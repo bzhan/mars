@@ -50,46 +50,30 @@ def pprint_lines(hp, *, max_line=None, record_pos=False):
             for i, sub_hp in enumerate(hp.hps):
                 if sub_hp.type == 'select_comm':
                     new_line(indent)
-                    add_str("(")
+                    add_str("{")
                     rec(sub_hp, indent+2, pos+(i,))
                     new_line(indent)
-                    add_str(")")
+                    add_str("}")
                 else:
                     rec(sub_hp, indent, pos+(i,))
-                if i != len(hp.hps) - 1:
-                    add_str(';')
-
-        elif hp.type == 'condition':
-            new_line(indent)
-            start_pos(pos)
-            if hp.hp.type in ('condition', 'sequence', 'select_comm', 'ite', 'ode_comm'):
-                add_str(str(hp.cond) + " -> (")
-                start_pos(pos+(0,))
-                rec(hp.hp, indent+2, pos+(0,))
-                end_pos(pos+(0,))
-                new_line(indent)
-                add_str(")")
-            else:
-                add_str(str(hp.cond) + " -> ")
-                start_pos(pos+(0,))
-                add_str(str(hp.hp))
-                end_pos(pos+(0,))
-            end_pos(pos)
 
         elif hp.type == 'select_comm':
             new_line(indent)
             start_pos(pos)
             for i, (comm_hp, out_hp) in enumerate(hp.io_comms):
+                comm_hp_no_semicolon = str(comm_hp)[:-1]
                 if out_hp.type == 'select_comm':
-                    add_str("%s --> (" % comm_hp)
+                    add_str("%s --> {" % comm_hp_no_semicolon)
                     rec(out_hp, indent+2, pos+(i,))
                     if i != len(hp.io_comms) - 1:
-                        add_str(") $")
+                        new_line(indent)
+                        add_str("} $")
                         new_line(indent)
                     else:
-                        add_str(")")
+                        new_line(indent)
+                        add_str("}")
                 else:
-                    add_str("%s -->" % comm_hp)
+                    add_str("%s -->" % comm_hp_no_semicolon)
                     rec(out_hp, indent+2, pos+(i,))
                     if i != len(hp.io_comms) - 1:
                         add_str(" $")
@@ -98,13 +82,13 @@ def pprint_lines(hp, *, max_line=None, record_pos=False):
 
         elif hp.type == 'loop':
             new_line(indent),
-            add_str("(")
+            add_str("{")
             rec(hp.hp, indent+2, pos+(0,))
             new_line(indent)
             if hp.constraint == true_expr:
-                add_str(")**")
+                add_str("}*")
             else:
-                add_str("){%s}**" % hp.constraint)
+                add_str("}*(%s)" % hp.constraint)
 
         elif hp.type == 'ode':
             new_line(indent)
@@ -118,7 +102,7 @@ def pprint_lines(hp, *, max_line=None, record_pos=False):
                 for i, constraint in enumerate(conjs):
                     new_line(indent+2)
                     if i != len(conjs)-1:
-                        add_str("%s &&" % constraint)
+                        add_str("%s &" % constraint)
                     else:
                         add_str("%s" % constraint)
                 new_line(indent)
@@ -132,7 +116,7 @@ def pprint_lines(hp, *, max_line=None, record_pos=False):
             add_str("<%s & %s> |> [] (" % (str_eqs, hp.constraint))
             for i, (comm_hp, out_hp) in enumerate(hp.io_comms):
                 new_line(indent+2)
-                add_str("%s -->" % comm_hp)
+                add_str("%s -->" % str(comm_hp)[:-1])
                 rec(out_hp, indent+4, pos+(i,))
                 if i != len(hp.io_comms) - 1:
                     add_str(",")
@@ -143,26 +127,27 @@ def pprint_lines(hp, *, max_line=None, record_pos=False):
         elif hp.type == 'recursion':
             new_line(indent)
             start_pos(pos)
-            add_str("rec %s.(" % hp.entry)
+            add_str("rec %s {" % hp.entry)
             rec(hp.hp, indent+2, pos+(0,))
             new_line(indent)
-            add_str(")")
+            add_str("}")
             end_pos(pos)
 
         elif hp.type == 'ite':
             new_line(indent)
             start_pos(pos)
-            add_str("if %s then" % hp.if_hps[0][0])
+            add_str("if (%s) {" % hp.if_hps[0][0])
             rec(hp.if_hps[0][1], indent+2, pos+(0,))
             new_line(indent)
             for i, (cond, sub_hp) in enumerate(hp.if_hps[1:], 1):
-                add_str("elif %s then" % cond)
+                add_str("} else if (%s) {" % cond)
                 rec(sub_hp, indent+2, pos+(i,))
                 new_line(indent)
-            add_str("else")
-            rec(hp.else_hp, indent+2, pos+(len(hp.if_hps),))
-            new_line(indent)
-            add_str("endif")
+            if hp.else_hp is not None:
+                add_str("} else {")
+                rec(hp.else_hp, indent+2, pos+(len(hp.if_hps),))
+                new_line(indent)
+            add_str("}")
             end_pos(pos)
             
         else:

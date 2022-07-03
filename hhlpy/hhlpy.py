@@ -11,10 +11,10 @@ def compute_diff(e, eqs_dict):
     """Compute differential of an arithmetic or boolean expression."""
     def rec(e):
         if isinstance(e, expr.LogicExpr):
-            if e.op == "&&":
-                return expr.LogicExpr("&&", rec(e.exprs[0]), rec(e.exprs[1]))
-            elif e.op == "||":
-                 return expr.LogicExpr("&&", rec(e.exprs[0]), rec(e.exprs[1]))
+            if e.op == "&":
+                return expr.LogicExpr("&", rec(e.exprs[0]), rec(e.exprs[1]))
+            elif e.op == "|":
+                 return expr.LogicExpr("&", rec(e.exprs[0]), rec(e.exprs[1]))
         elif isinstance(e, expr.RelExpr):
             if e.op == '<' or e.op == '<=':
                 return expr.RelExpr("<=", rec(e.expr1), rec(e.expr2))

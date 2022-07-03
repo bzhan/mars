@@ -30,10 +30,10 @@ class MatlabTest(unittest.TestCase):
             "z = min(x,y)",
             "fprintf(\"abc\")",
             "fprintf(\"abc\" + \"\\n\")",
-            "x = 1;\ny = 1",
-            "if x == 1\n  x = x + 1\nelse\n  x = x - 1",
-            "if x == 1\n  if y == 1\n    z = 1\n  else\n    z = 2\nelse\n  z = 3",
-            "if x == 1\n  y = 1;\n  z = 2\nelse\n  y = 2;\n  z = 1",
+            "x = 1; y = 1",
+            "if x == 1  x = x + 1 else x = x - 1",
+            "if x == 1  if y == 1  z = 1 else z = 2 else z = 3",
+            "if x == 1  y = 1; z = 2 else y = 2; z = 1",
             "a(1) = b(1)",
             "[a,b] = [b,a]",
             "[a(1),a(2)] = [a(2),a(1)]",
@@ -48,9 +48,9 @@ class MatlabTest(unittest.TestCase):
         test_data = [
             "function bar()\n  x = 0",
             "function y=bar()\n  y = 0",
-            "function [x,y]=bar()\n  x = 0;\n  y = 0",
+            "function [x,y]=bar()\n  x = 0; y = 0",
             "function y=bar(x)\n  y = x",
-            "function [x,y]=bar(z)\n  x = z;\n  y = 2 * z",
+            "function [x,y]=bar(z)\n  x = z; y = 2 * z",
         ]
 
         for s in test_data:
@@ -76,7 +76,7 @@ class MatlabTest(unittest.TestCase):
         self.assertEqual(str(func), s2)
 
     def testParseFunctionPrint(self):
-        s = "function enA()\n  x = 0;\n  x = x + 1;\n  fprintf(\"enA is executing\" + x)"
+        s = "function enA()\n  x = 0; x = x + 1; fprintf(\"enA is executing\" + x)"
         func = parser.function_parser.parse(s)
         self.assertEqual(str(func), s)
 
@@ -104,8 +104,8 @@ class MatlabTest(unittest.TestCase):
     def testConvertCondition(self):
         test_data = [
             ("a < b", "a < b"),
-            ("a < 1 && b < 1", "a < 1 && b < 1"),
-            ("~(a < 1)", "~(a < 1)")
+            ("a < 1 && b < 1", "a < 1 & b < 1"),
+            ("~(a < 1)", "!a < 1")
         ]
 
         for s, res in test_data:
@@ -115,13 +115,13 @@ class MatlabTest(unittest.TestCase):
 
     def testConvertCommand(self):
         test_data = [
-            ("x = 0", "x := 0"),
-            ("fprintf(\"abc\")", "log(\"abc\")"),
-            ("z = min(x,y)", "z := min(x,y)"),
-            ("if x == 1\n  x = x + 1\nelse\n  x = x - 1", "if x == 1 then x := x + 1 else x := x - 1 endif"),
-            ("x = 1; y = 1", "x := 1; y := 1"),
-            ("a(1) = b(1)", "a[0] := b[0]"),
-            ("a(1) = f(1)", "a[0] := f(1)"),
+            ("x = 0", "x := 0;"),
+            ("fprintf(\"abc\")", "log(\"abc\");"),
+            ("z = min(x,y)", "z := min(x,y);"),
+            ("if x == 1\n  x = x + 1\nelse\n  x = x - 1", "if (x == 1) { x := x + 1; } else { x := x - 1; }"),
+            ("x = 1; y = 1", "x := 1; y := 1;"),
+            ("a(1) = b(1)", "a[0] := b[0];"),
+            ("a(1) = f(1)", "a[0] := f(1);"),
         ]
 
         for s, res in test_data:
@@ -136,17 +136,17 @@ class MatlabTest(unittest.TestCase):
           x=x+1;
           fprintf("enA is executing"+x);
         """
-        res = "x := 0; x := x+1; log(\"enA is executing\"+x)"
+        res = "x := 0; x := x + 1; log(\"enA is executing\" + x);"
 
         func = parser.function_parser.parse(s)
-        hp = convert.convert_cmd(func.instantiate())
+        hp = convert.convert_cmd(func.instantiate()[0])
         self.assertEqual(str(hp), res)
 
     def testConvertEvent(self):
         s = "x = 0; E; x = 1"
         def raise_event(e):
             return hcsp.Log(expr.AConst(e.name))
-        res = "x := 0; log(\"E\"); x := 1"
+        res = "x := 0; log(\"E\"); x := 1;"
 
         cmd = parser.cmd_parser.parse(s)
         hp = convert.convert_cmd(cmd, raise_event=raise_event)
@@ -155,7 +155,7 @@ class MatlabTest(unittest.TestCase):
     def testConvertFunctionCall(self):
         s = "x = 0; f()"
         procedures = {'f': parser.function_parser.parse("function f\n  x = x + 1;")}
-        res = "x := 0; x := x + 1"
+        res = "x := 0; x := x + 1;"
 
         cmd = parser.cmd_parser.parse(s)
         hp = convert.convert_cmd(cmd, procedures=procedures)
@@ -164,7 +164,7 @@ class MatlabTest(unittest.TestCase):
     def testConvertFunctionCallWithParam(self):
         s = "f(\"A\")"
         procedures = {'f': parser.function_parser.parse("function f(x)\n  fprintf(x+\"\\n\");")}
-        res = "log(\"A\"+\"\\n\")"
+        res = "x := \"A\"; log(x + \"\\n\");"
 
         cmd = parser.cmd_parser.parse(s)
         hp = convert.convert_cmd(cmd, procedures=procedures)
@@ -184,9 +184,9 @@ class MatlabTest(unittest.TestCase):
             y=0; 
           end 
         """
-        res = "y := uniform(0,1); if x > 0.6 then if x > 0.6 then y := 1 else y := 0 endif else y := 0 endif"
+        res = "y := uniform(0,1); if (x > 0.6) { if (x > 0.6) { y := 1; } else { y := 0; } } else { y := 0; }"
         func = parser.function_parser.parse(s)
-        hp = convert.convert_cmd(func.instantiate())
+        hp = convert.convert_cmd(func.instantiate()[0])
         self.assertEqual(str(hp), res)
 
     def testConvertFunctionWithParam(self):
@@ -194,9 +194,10 @@ class MatlabTest(unittest.TestCase):
         function f(s)
           fprintf(s + "\\n");
         """
-        res = "log(\"A1\"+\"\\n\")"
+        res = 's := "A1"; log(s + "\\n");'
         func = parser.function_parser.parse(s)
-        hp = convert.convert_cmd(func.instantiate([function.AConst("A1")]))
+        cmd, params = func.instantiate([function.AConst("A1")])
+        hp = hcsp.seq([convert.convert_cmd(params),convert.convert_cmd(cmd)])
         self.assertEqual(str(hp), res)
 
     def testParseTransition(self):
@@ -228,9 +229,9 @@ class MatlabTest(unittest.TestCase):
             "E{E}",
             "E/{E}",
             "E{E}/{E}",
-            "E{E;\nx = x + 1}",
-            "E{x = x + 1;\nE}",
-            "E{if x == 0\n  E\nelse\n  F}",
+            "E{E; x = x + 1}",
+            "E{x = x + 1; E}",
+            "E{if x == 0  E else F}",
         ]
 
         for s in test_data:

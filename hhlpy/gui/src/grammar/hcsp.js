@@ -1,10 +1,8 @@
 import {parser} from "./hcsp_parser"
 import {LRLanguage, LanguageSupport, indentNodeProp, foldNodeProp, foldInside, continuedIndent} from "@codemirror/language"
 import {styleTags, tags as t} from "@codemirror/highlight"
-import {completeFromList} from "@codemirror/autocomplete"
-import {snippets} from "./snippets"
 import {linter} from "@codemirror/lint"
-import {annotationPlugin} from "./annotation"
+import {annotationPlugin} from "../decoration/button"
 
 export const HCSPLanguage = LRLanguage.define({
   parser: parser.configure({
@@ -13,19 +11,17 @@ export const HCSPLanguage = LRLanguage.define({
         WaitCmd: continuedIndent({except:/\)/}),
         AssignCmd: continuedIndent(),
         MultiAssignCmd: continuedIndent(),
-        RandomAssignCmd: continuedIndent({except:/\}/}),
+        RandomAssignCmd: continuedIndent({except:/\)/}),
         AssertCmd: continuedIndent({except:/\)/}),
         TestCmd: continuedIndent({except:/\)/}),
         LogCmd: continuedIndent({except:/\)/}),
-        RepeatCmd: continuedIndent({except:/\)\*\*/}),
-        RepeatCondCmd: continuedIndent({except:/(\)\{|\}\*\*)/}),
-        RepeatCmdInv: continuedIndent({except:/(\)\*\*@invariant\(|\))/}),
-        RepeatCondCmdInv: continuedIndent(),
+        RepeatCmd: continuedIndent({except:/\}\*/}),
+        RepeatCondCmd: continuedIndent({except:/(\}*\(|\))/}),
         Ode: continuedIndent({except:/>/}),
         OdeCommConst: continuedIndent({except:/(>|\))/}),
         OdeComm: continuedIndent({except:/(>|\))/}),
-        RecCmd: continuedIndent({except:/\)/}),
-        IteCmd: continuedIndent({except:/(if|then|else|elif|endif)/}),
+        RecCmd: continuedIndent({except:/\}/}),
+        IteCmd: continuedIndent({except:/(if|\}|\{)/}),
       }),
       foldNodeProp.add({
         IteCmd: foldInside,
@@ -37,9 +33,10 @@ export const HCSPLanguage = LRLanguage.define({
         ESCAPED_STRING: t.string,
         SIGNED_NUMBER: t.number,
         "( )": t.paren,
-        "if then else elif endif rec log test assert": t.controlKeyword,
+        "{ }": t.paren,
+        "if then else rec log test assert pre post": t.controlKeyword,
         "+ - %": t.operator,
-        "|| && -->": t.logicOperator,
+        "| & -> <->": t.logicOperator,
         "> >= < <=" : t.compareOperator,
         "min max gcd" : t.operatorKeyword,
         "skip wait assert test log" : t.keyword
@@ -48,12 +45,8 @@ export const HCSPLanguage = LRLanguage.define({
   }),
   languageData: {
     commentTokens: {line: "#"},
-    indentOnInput: /^\s*(\}|then|else|elif|endif|\)|>)$/
+    indentOnInput: /^\s*(\}|then|else|\)|>)$/
   }
-})
-
-export const HCSPCompletion = HCSPLanguage.data.of({
-  autocomplete: completeFromList(snippets)
 })
 
 export const HCSPLinter = linter((editorView) =>{
@@ -76,5 +69,5 @@ export const HCSPLinter = linter((editorView) =>{
 })
 
 export function HCSP() {
-  return new LanguageSupport(HCSPLanguage, [HCSPCompletion, HCSPLinter, annotationPlugin])
+  return new LanguageSupport(HCSPLanguage, [HCSPLinter, annotationPlugin])
 }

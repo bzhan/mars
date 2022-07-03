@@ -1,0 +1,30 @@
+%type: module
+
+module Chart():
+begin
+  ChartEL := [];
+  a := [0,0,0,0,0];
+  b := [100,200,300,400,500];
+  i := 1;
+  Chart_st := "Chart_add";
+  {
+    Chart_add_done := 0;
+    if (i <= 5) {
+      a[i - 1] := b[i - 1];
+      i := i + 1;
+      s := "loop";
+      log("loop" + "\n");
+      Chart_st := "Chart_add";
+      Chart_add_done := 1;
+    }
+    if (Chart_add_done == 0) {
+      log("%.0f,%.0f,%.0f,%.0f,%.0f\n",a[0],a[1],a[2],a[3],a[4]);
+    }
+    Chart_ret := Chart_add_done;
+    wait(0.1);
+  }*
+end
+endmodule
+system
+Chart()
+endsystem

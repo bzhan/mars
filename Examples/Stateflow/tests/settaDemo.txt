@@ -1,0 +1,39 @@
+%type: module
+
+module Chart():
+procedure during_Chart_B begin
+  Chart_B_done := 0;
+  log("D\n");
+  if (ChartEL != [] & top(ChartEL) == "E") {
+    log("A\n");
+    Chart_B_done := 1;
+  }
+  Chart_ret := Chart_B_done;
+end
+
+begin
+  ChartEL := [];
+  x := 1;
+  {
+    Chart_ret := 0;
+    Chart_A_done := 0;
+    if (x == 1) {
+      log("B\n");
+      ChartEL := push(ChartEL,"E");
+      @during_Chart_B;
+      ChartEL := pop(ChartEL);
+      Chart_A_done := 1;
+    }
+    if (Chart_A_done == 0) {
+      log("C\n");
+      Chart_A_done := 1;
+    }
+    Chart_ret := Chart_A_done;
+    @during_Chart_B;
+    wait(0.1);
+  }*
+end
+endmodule
+system
+Chart()
+endsystem

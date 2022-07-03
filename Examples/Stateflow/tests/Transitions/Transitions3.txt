@@ -1,0 +1,123 @@
+%type: module
+
+module Chart():
+begin
+  ChartEL := [];
+  Chart_A_c_st := "";
+  Chart_A_c_hist := "";
+  Chart_st := "Chart_A";
+  Chart_A_st := "Chart_A_b";
+  Chart_A_hist := "Chart_A_b";
+  s := "b";
+  log("b" + "\n");
+  {
+    Chart_ret := 0;
+    if (Chart_st == "Chart_A") {
+      Chart_ret := 0;
+      if (Chart_A_st == "Chart_A_b") {
+        Chart_A_b_done := 0;
+        if (Chart_A_st == "Chart_A_b") {
+          Chart_A_st := "";
+          if (Chart_st == "Chart_A") {
+            Chart_A_st := "Chart_A_c";
+            Chart_A_hist := "Chart_A_c";
+            if (Chart_A_c_hist == "Chart_A_c_c1") {
+              Chart_A_c_st := "Chart_A_c_c1";
+              Chart_A_c_hist := "Chart_A_c_c1";
+              s := "c1";
+              log("c1" + "\n");
+            } else if (Chart_A_c_hist == "Chart_A_c_c2") {
+              Chart_A_c_st := "Chart_A_c_c2";
+              Chart_A_c_hist := "Chart_A_c_c2";
+              s := "c2";
+              log("c2" + "\n");
+            } else {
+              Chart_A_c_st := "Chart_A_c_c1";
+              Chart_A_c_hist := "Chart_A_c_c1";
+              s := "c1";
+              log("c1" + "\n");
+            }
+          }
+          Chart_A_b_done := 1;
+        }
+        Chart_ret := Chart_A_b_done;
+      } else if (Chart_A_st == "Chart_A_c") {
+        Chart_ret := 0;
+        if (Chart_A_c_st == "Chart_A_c_c1") {
+          Chart_A_c_c1_done := 0;
+          if (Chart_A_c_st == "Chart_A_c_c1") {
+            Chart_A_c_st := "";
+            if (Chart_A_st == "Chart_A_c") {
+              Chart_A_c_st := "Chart_A_c_c2";
+              Chart_A_c_hist := "Chart_A_c_c2";
+              s := "c2";
+              log("c2" + "\n");
+            }
+            Chart_A_c_c1_done := 1;
+          }
+          Chart_ret := Chart_A_c_c1_done;
+        } else if (Chart_A_c_st == "Chart_A_c_c2") {
+          Chart_A_c_c2_done := 0;
+          if (Chart_A_c_st == "Chart_A_c_c2") {
+            Chart_A_c_st := "";
+            if (Chart_A_st == "Chart_A_c") {
+              Chart_A_st := "";
+            }
+            if (Chart_st == "Chart_A") {
+              Chart_st := "";
+            }
+            if (Chart_st == "") {
+              Chart_st := "Chart_B";
+              s := "B";
+              log("B" + "\n");
+            }
+            Chart_A_c_c2_done := 1;
+          }
+          Chart_ret := Chart_A_c_c2_done;
+        }
+      }
+    } else if (Chart_st == "Chart_B") {
+      Chart_B_done := 0;
+      if (Chart_st == "Chart_B") {
+        Chart_st := "Chart_A";
+        if (Chart_A_hist == "Chart_A_b") {
+          Chart_A_st := "Chart_A_b";
+          Chart_A_hist := "Chart_A_b";
+          s := "b";
+          log("b" + "\n");
+        } else if (Chart_A_hist == "Chart_A_c") {
+          Chart_A_st := "Chart_A_c";
+          Chart_A_hist := "Chart_A_c";
+          if (Chart_A_c_hist == "Chart_A_c_c1") {
+            Chart_A_c_st := "Chart_A_c_c1";
+            Chart_A_c_hist := "Chart_A_c_c1";
+            s := "c1";
+            log("c1" + "\n");
+          } else if (Chart_A_c_hist == "Chart_A_c_c2") {
+            Chart_A_c_st := "Chart_A_c_c2";
+            Chart_A_c_hist := "Chart_A_c_c2";
+            s := "c2";
+            log("c2" + "\n");
+          } else {
+            Chart_A_c_st := "Chart_A_c_c1";
+            Chart_A_c_hist := "Chart_A_c_c1";
+            s := "c1";
+            log("c1" + "\n");
+          }
+        } else {
+          Chart_A_st := "Chart_A_b";
+          Chart_A_hist := "Chart_A_b";
+          s := "b";
+          log("b" + "\n");
+        }
+        Chart_B_done := 1;
+      }
+      Chart_ret := Chart_B_done;
+    }
+    wait(0.1);
+  }*
+end
+endmodule
+system
+Chart()
+endsystem

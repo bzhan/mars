@@ -1,0 +1,45 @@
+%type: module
+
+module Chart():
+begin
+  ChartEL := [];
+  Chart_st := "Chart_A";
+  log("enA" + "\n");
+  Chart_A_st := "Chart_A_A1";
+  log("enA1" + "\n");
+  {
+    s := "duA";
+    log("duA" + "\n");
+    Chart_ret := 0;
+    if (Chart_A_st == "Chart_A_A1") {
+      Chart_A_A1_done := 0;
+      if (Chart_A_st == "Chart_A_A1") {
+        s := "exA1";
+        log("exA1" + "\n");
+        if (Chart_A_st == "Chart_A_A1") {
+          Chart_A_st := "";
+        }
+        if (Chart_A_st == "") {
+          Chart_A_st := "Chart_A_A2";
+          s := "enA2";
+          log("enA2" + "\n");
+        }
+        Chart_A_A1_done := 1;
+      }
+      if (Chart_A_st == "Chart_A_A1" & Chart_A_A1_done == 0) {
+        s := "duA1";
+        log("duA1" + "\n");
+      }
+      Chart_ret := Chart_A_A1_done;
+    } else if (Chart_A_st == "Chart_A_A2") {
+      s := "duA2";
+      log("duA2" + "\n");
+      Chart_ret := 0;
+    }
+    wait(0.1);
+  }*
+end
+endmodule
+system
+Chart()
+endsystem

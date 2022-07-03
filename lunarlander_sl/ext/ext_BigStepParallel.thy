@@ -27,35 +27,12 @@ proof -
   have a3: "\<And>t. 0 \<le> t \<Longrightarrow> t \<le> d1 \<Longrightarrow> p2 t = p2' t"
     using assms(2) WaitBlk_cong2 by blast
   show ?thesis
-  proof (cases d1)
-    case (real r)
-    have b: "d1' = ereal r"
-      using real a1(1) by auto
-    show ?thesis
-      unfolding real b apply (auto simp add: WaitBlk_simps)
+    apply (auto simp add: WaitBlk_simps)
+    using a1 apply auto
        apply (rule ext) apply auto
-      subgoal for x apply (rule a2) by (auto simp add: real)
-      subgoal for x apply (rule a3) by (auto simp add: real)
-      using a1 by auto
-  next
-    case PInf
-    have b: "d1' = \<infinity>"
-      using PInf a1 by auto
-    show ?thesis
-      unfolding PInf b infinity_ereal_def
-      apply (auto simp: WaitBlk_simps)
-       apply (rule ext) apply auto
-      subgoal for x apply (rule a2) by (auto simp add: PInf)
-      subgoal for x apply (rule a3) by (auto simp add: PInf)
-      using a1 by auto
-  next
-    case MInf
-    have b: "d1' = - \<infinity>"
-      using MInf a1 by auto
-    show ?thesis
-      unfolding MInf b
-      by (auto simp: a1 WaitBlk_simps)
-  qed
+      subgoal for x apply (rule a2) by auto
+      subgoal for x apply (rule a3) by auto
+      done
 qed
 
 
@@ -412,6 +389,15 @@ subsection \<open>Combination on assertions\<close>
 definition combine_assn :: "cname set \<Rightarrow> 'a tassn \<Rightarrow> 'a tassn \<Rightarrow> 'a tassn" where
   "combine_assn chs P Q = (\<lambda>tr. \<exists>tr1 tr2. P tr1 \<and> Q tr2 \<and> combine_blocks chs tr1 tr2 tr)"
 
+lemma combine_blocks_assn:
+  assumes "P tr1"
+    and "Q tr2"
+    and "combine_blocks chs tr1 tr2 tr"
+    and "combine_assn chs P Q \<Longrightarrow>\<^sub>t R"
+  shows "R tr"
+  using assms 
+  by(auto simp add: entails_tassn_def combine_assn_def)
+
 lemma combine_assn_ex_pre_left:
   assumes "\<And>x. combine_assn chs (P x) Q \<Longrightarrow>\<^sub>t R"
   shows "combine_assn chs (\<lambda>tr. \<exists>x. P x tr) Q \<Longrightarrow>\<^sub>t R"
@@ -569,12 +555,10 @@ proof (cases "d > 0")
       then show ?thesis
       proof (elim disjE)
         assume d1: "d < d2"
-        have d1': "ereal d < ereal d2"
-          using d1 by auto
         show ?thesis
           using that(2)
           apply (elim combine_blocks_waitE3)
-            apply (rule True) apply (rule d1') using assms(2) apply simp
+            apply (rule True) apply (rule d1) using assms(2) apply simp
           subgoal for blks'
             apply (subst join_assn_def)
             apply (rule exI[where x="[WaitBlk d (\<lambda>t. ParState (p t) s) (merge_rdy rdy1 ({}, {ch}))]"])
@@ -623,12 +607,10 @@ proof (cases "d > 0")
           done
       next
         assume d3: "d > d2"
-        have d3': "ereal d > ereal d2"
-          using d3 by auto
         show ?thesis
           using that(2)
           apply (elim combine_blocks_waitE4)
-          apply (rule that(1)) apply (rule d3')
+          apply (rule that(1)) apply (rule d3)
            using assms(2) apply simp
           apply (elim combine_blocks_pairE2')
           using assms by auto
@@ -692,7 +674,7 @@ proof -
         show ?thesis
           using that(2)
           apply (elim combine_blocks_waitE3) apply (rule that(1))
-            apply (rule d1') apply (rule assms(2))
+            apply (rule d1) apply (rule assms(2))
           using assms(1) combine_blocks_pairE2 by blast
       next
         assume d2: "d = d2"
@@ -724,12 +706,10 @@ proof -
           done
       next
         assume d3: "d > d2"
-        have d3': "ereal d > ereal d2"
-          using d3 by auto
         show ?thesis
           using that(2)
           apply (elim combine_blocks_waitE4) apply (rule \<open>0 < d2\<close>)
-            apply (rule d3') apply (rule assms(2))
+            apply (rule d3) apply (rule assms(2))
           subgoal for blks'
             unfolding pure_assn_def conj_assn_def
             apply (rule conjI)

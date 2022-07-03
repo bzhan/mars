@@ -1,4 +1,5 @@
 import matplotlib
+import matplotlib as plt
 matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
@@ -187,9 +188,34 @@ class PageThree(tk.Frame):
         # toolbar.update()
         # canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        
 
-    
-
-# app = Graphapp()
-# app.mainloop()
+def graph(res, proc_name, tkplot=False, separate=True, variables=None):
+    DataState = {}
+    temp = res.get("time_series")
+    lst = temp.get(proc_name)
+    for t in lst:
+        state = t.get("state")
+        for key in state.keys():
+            if variables is not None and key not in variables:
+                continue
+            if key not in DataState.keys():
+                DataState.update({key:([],[])})
+            DataState.get(key)[0].append(state.get(key))
+            DataState.get(key)[1].append(t.get('time'))
+                
+    if tkplot:
+        app = Graphapp(res)
+        app.mainloop()
+    else:
+        if separate:
+            for t in DataState.keys():
+                x = DataState.get(t)[1]
+                y = DataState.get(t)[0]
+                plt.plot(x, y, label=t)
+                plt.show()
+        else:
+            for t in DataState.keys():
+                x = DataState.get(t)[1]
+                y = DataState.get(t)[0]
+                plt.plot(x, y, label=t)
+                plt.legend()

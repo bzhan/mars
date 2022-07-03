@@ -1,0 +1,109 @@
+%type: module
+
+module order_ctrl():
+begin
+  {
+    start_Chart1!;
+    end_Chart1!;
+    start_Chart2!;
+    end_Chart2!;
+  }*
+end
+endmodule
+module Chart1():
+begin
+  start_Chart1?;
+  Chart1EL := [];
+  global_x_in?global_x;
+  Chart1_st := "Chart1_A";
+  s := "A";
+  log("A" + "%d\n",global_x);
+  global_x_out!global_x;
+  end_Chart1?;
+  {
+    start_Chart1?;
+    global_x_in?global_x;
+    Chart1_ret := 0;
+    if (Chart1_st == "Chart1_A") {
+      Chart1_A_done := 0;
+      global_x := global_x + 1;
+      if (Chart1_st == "Chart1_A") {
+        Chart1_st := "Chart1_B";
+        s := "B";
+        log("B" + "%d\n",global_x);
+        Chart1_A_done := 1;
+      }
+      Chart1_ret := Chart1_A_done;
+    } else if (Chart1_st == "Chart1_B") {
+      Chart1_B_done := 0;
+      if (Chart1_st == "Chart1_B") {
+        Chart1_st := "Chart1_A";
+        s := "A";
+        log("A" + "%d\n",global_x);
+        Chart1_B_done := 1;
+      }
+      Chart1_ret := Chart1_B_done;
+    }
+    global_x_out!global_x;
+    end_Chart1?;
+    wait(0.1);
+  }*
+end
+endmodule
+module Chart2():
+begin
+  start_Chart2?;
+  Chart2EL := [];
+  global_x_in?global_x;
+  Chart2_st := "Chart2_C";
+  s := "C";
+  log("C" + "%d\n",global_x);
+  global_x_out!global_x;
+  end_Chart2?;
+  {
+    start_Chart2?;
+    global_x_in?global_x;
+    Chart2_ret := 0;
+    if (Chart2_st == "Chart2_C") {
+      Chart2_C_done := 0;
+      global_x := global_x + 2;
+      if (Chart2_st == "Chart2_C") {
+        Chart2_st := "Chart2_B";
+        s := "D";
+        log("D" + "%d\n",global_x);
+        Chart2_C_done := 1;
+      }
+      Chart2_ret := Chart2_C_done;
+    } else if (Chart2_st == "Chart2_B") {
+      Chart2_B_done := 0;
+      if (Chart2_st == "Chart2_B") {
+        Chart2_st := "Chart2_C";
+        s := "C";
+        log("C" + "%d\n",global_x);
+        Chart2_B_done := 1;
+      }
+      Chart2_ret := Chart2_B_done;
+    }
+    global_x_out!global_x;
+    end_Chart2?;
+    wait(0.1);
+  }*
+end
+endmodule
+module data_ctrl():
+begin
+  global_x := 1;
+  {
+    global_x_in!global_x -->
+      skip; $
+    global_x_out?global_x -->
+      skip;
+  }*
+end
+endmodule
+system
+order_ctrl() ||
+Chart1() ||
+Chart2() ||
+data_ctrl()
+endsystem

@@ -1,0 +1,134 @@
+%type: module
+
+module Chart():
+procedure exec_Chart begin
+  Chart_ret := 0;
+  if (Chart_st == "Chart_A") {
+    Chart_A_done := 0;
+    if (ChartEL != [] & top(ChartEL) == "E") {
+      s := "loop";
+      log("loop" + "\n");
+      if (Chart_st == "Chart_A") {
+        if (Chart_A_st == "Chart_A_A2") {
+          if (Chart_A_A2_st == "Chart_A_A2_A2a") {
+            log("ex_A2a" + "\n");
+            if (Chart_A_A2_st == "Chart_A_A2_A2a") {
+              Chart_A_A2_st := "";
+            }
+          }
+          log("ex_A2" + "\n");
+          if (Chart_A_st == "Chart_A_A2") {
+            Chart_A_st := "";
+          }
+        } else if (Chart_A_st == "Chart_A_A3") {
+          if (Chart_A_A3_st == "Chart_A_A3_A3a") {
+            log("ex_A3a" + "\n");
+            if (Chart_A_A3_st == "Chart_A_A3_A3a") {
+              Chart_A_A3_st := "";
+            }
+          }
+          log("ex_A3" + "\n");
+          if (Chart_A_st == "Chart_A_A3") {
+            Chart_A_st := "";
+          }
+        } else if (Chart_A_st == "Chart_A_A1") {
+          log("ex_A1" + "\n");
+          if (Chart_A_st == "Chart_A_A1") {
+            Chart_A_st := "";
+          }
+        }
+        s := "ex_A";
+        log("ex_A" + "\n");
+        if (Chart_st == "Chart_A") {
+          Chart_st := "";
+        }
+        if (Chart_st == "") {
+          Chart_st := "Chart_A";
+          log("en_A" + "\n");
+          Chart_A_st := "Chart_A_A1";
+          s := "en_A1";
+          log("en_A1" + "\n");
+        }
+        Chart_A_done := 1;
+      }
+    }
+    Chart_ret := Chart_A_done;
+    if (Chart_ret == 0) {
+      if (Chart_A_st == "Chart_A_A2") {
+        Chart_ret := 0;
+        if (Chart_A_A2_st == "Chart_A_A2_A2a") {
+          Chart_A_A2_A2a_done := 0;
+          if (Chart_A_A2_st == "Chart_A_A2_A2a") {
+            log("ex_A2a" + "\n");
+            if (Chart_A_A2_st == "Chart_A_A2_A2a") {
+              Chart_A_A2_st := "";
+            }
+            s := "ex_A2";
+            log("ex_A2" + "\n");
+            if (Chart_A_st == "Chart_A_A2") {
+              Chart_A_st := "";
+            }
+            ChartEL := push(ChartEL,"E");
+            @exec_Chart;
+            ChartEL := pop(ChartEL);
+            if (Chart_A_st == "" & Chart_st == "Chart_A") {
+              s := "ta";
+              log("ta" + "\n");
+            }
+            if (Chart_A_st == "" & Chart_st == "Chart_A") {
+              Chart_A_st := "Chart_A_A3";
+              log("en_A3" + "\n");
+              Chart_A_A3_st := "Chart_A_A3_A3a";
+              s := "en_A3a";
+              log("en_A3a" + "\n");
+            }
+            Chart_A_A2_A2a_done := 1;
+          }
+          Chart_ret := Chart_A_A2_A2a_done;
+        }
+      } else if (Chart_A_st == "Chart_A_A3") {
+        Chart_ret := 0;
+        if (Chart_A_A3_st == "Chart_A_A3_A3a") {
+          Chart_ret := 0;
+        }
+      } else if (Chart_A_st == "Chart_A_A1") {
+        Chart_A_A1_done := 0;
+        if (Chart_A_st == "Chart_A_A1") {
+          s := "ex_A1";
+          log("ex_A1" + "\n");
+          if (Chart_A_st == "Chart_A_A1") {
+            Chart_A_st := "";
+          }
+          if (Chart_A_st == "" & Chart_st == "Chart_A") {
+            Chart_A_st := "Chart_A_A2";
+            log("en_A2" + "\n");
+            Chart_A_A2_st := "Chart_A_A2_A2a";
+            s := "en_A2a";
+            log("en_A2a" + "\n");
+          }
+          Chart_A_A1_done := 1;
+        }
+        Chart_ret := Chart_A_A1_done;
+      }
+    }
+  }
+end
+
+begin
+  ChartEL := [];
+  Chart_A_A2_st := "";
+  Chart_A_A3_st := "";
+  Chart_st := "Chart_A";
+  log("en_A" + "\n");
+  Chart_A_st := "Chart_A_A1";
+  s := "en_A1";
+  log("en_A1" + "\n");
+  {
+    @exec_Chart;
+    wait(0.1);
+  }*
+end
+endmodule
+system
+Chart()
+endsystem

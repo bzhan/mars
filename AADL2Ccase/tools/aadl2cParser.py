@@ -486,10 +486,10 @@ def translate_hcsp(hp, indent):
                 res.append("else if (%s) {" % str(cond))
             res.extend(translate_hcsp(if_hp, 4))
             res.append("}")
-
-        res.append("else {")
-        res.extend(translate_hcsp(hp.else_hp, 4))
-        res.append("}")
+        if hp.else_hp is not None:
+            res.append("else {")
+            res.extend(translate_hcsp(hp.else_hp, 4))
+            res.append("}")
     else:
         raise NotImplementedError
 

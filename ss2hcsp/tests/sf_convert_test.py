@@ -62,547 +62,651 @@ def run_test(self, filename, num_cycle, res, *, io_filter=None,
     run_simulator_test(self, proc_map, num_cycle, res, io_filter=io_filter,
                        print_res=print_res)
 
+# Path to all test cases
+prefix = "./Examples/Stateflow/tests/"
 
 class SFConvertTest(unittest.TestCase):
     def testStates1(self):
-        run_test(self, "./Examples/Stateflow/tests/States/States1.xml", 3,
+        run_test(self, prefix+"States/States1.xml", 3,
             ['log enA', 'log enA1', 'log duA', 'log exA1', 'log enA2', 'delay 0.1',
-             'log duA', 'log duA2', 'delay 0.1', 'log duA', 'log duA2', 'delay 0.1'])
+             'log duA', 'log duA2', 'delay 0.1', 'log duA', 'log duA2', 'delay 0.1'],
+            output_to_file=prefix+"States/States1.txt")
 
     def testStates2(self):
-        run_test(self, "./Examples/Stateflow/tests/States/States2.xml", 3,
+        run_test(self, prefix+"States/States2.xml", 3,
             ['log enA', 'log enA1', 'log exA1', 'log exA', 'log enB', 'log enB1', 'delay 0.1',
-             'log duB', 'log duB1', 'delay 0.1', 'log duB', 'log duB1', 'delay 0.1'])
+             'log duB', 'log duB1', 'delay 0.1', 'log duB', 'log duB1', 'delay 0.1'],
+            output_to_file=prefix+"States/States2.txt")
 
     def testStates3(self):
-        run_test(self, "./Examples/Stateflow/tests/States/States3.xml", 2,
+        run_test(self, prefix+"States/States3.xml", 2,
             ['log enA', 'log enA1', 'log enA2', 'log exA2', 'log exA1',
              'log exA', 'log enB', 'log enB1', 'log enB2', 'delay 0.1',
-             'log duB', 'log duB1', 'log duB2', 'delay 0.1'])
+             'log duB', 'log duB1', 'log duB2', 'delay 0.1'],
+            output_to_file=prefix+"States/States3.txt")
 
     def testStates4(self):
-        run_test(self, "./Examples/Stateflow/tests/States/States4.xml", 3,
+        run_test(self, prefix+"States/States4.xml", 3,
             ['log enA', 'log enA1', 'log enB', 'log enB1', 'delay 0.1',
-             'log enA', 'log enA1', 'delay 0.1', 'log enB', 'log enB1', 'delay 0.1'])
+             'log enA', 'log enA1', 'delay 0.1', 'log enB', 'log enB1', 'delay 0.1'],
+            output_to_file=prefix+"States/States4.txt")
 
     def testStates5(self):
-        run_test(self, "./Examples/Stateflow/tests/States/States5.xml", 10,
+        run_test(self, prefix+"States/States5.xml", 10,
             ['log enA1', 'log enA2', 'delay 0.1', 'log enB1', 'delay 0.1', 'log enB2', 'delay 0.1',
              'log enA2', 'delay 0.1', 'log enA1', 'delay 0.1',
              'log enB1', 'delay 0.1', 'log enB2', 'delay 0.1',
-             'log enA1', 'delay 0.1', 'log enA2', 'delay 0.1', 'log enB1', 'delay 0.1'])
+             'log enA1', 'delay 0.1', 'log enA2', 'delay 0.1', 'log enB1', 'delay 0.1'],
+            output_to_file=prefix+"States/States5.txt")
 
     def testStates6(self):
-        run_test(self, "./Examples/Stateflow/tests/States/States6.xml", 1,
-            ['log enA', 'log enA1', 'log enA2', 'log enB', 'log enB1', 'log enB2', 'delay 0.1'])
+        run_test(self, prefix+"States/States6.xml", 1,
+            ['log enA', 'log enA1', 'log enA2', 'log enB', 'log enB1', 'log enB2', 'delay 0.1'],
+            output_to_file=prefix+"States/States6.txt")
 
     def testStates7(self):
-        run_test(self, "./Examples/Stateflow/tests/States/States7.xml", 2,
+        run_test(self, prefix+"States/States7.xml", 2,
             ['log enA', 'log enA1', 'log exA1', 'log exA', 'log enA', 'log enA1', 'delay 0.1',
-             'log exA1', 'log exA', 'log enA', 'log enA1', 'delay 0.1'])
+             'log exA1', 'log exA', 'log enA', 'log enA1', 'delay 0.1'],
+            output_to_file=prefix+"States/States7.txt")
 
     def testStates8(self):
-        run_test(self, "./Examples/Stateflow/tests/States/States8.xml", 6,
+        run_test(self, prefix+"States/States8.xml", 6,
             ['log loop', 'delay 0.1', 'log loop', 'delay 0.1', 'log loop', 'delay 0.1',
              'log loop', 'delay 0.1', 'log loop', 'delay 0.1',
-             'log 100,200,300,400,500', 'delay 0.1'])
+             'log 100,200,300,400,500', 'delay 0.1'],
+            output_to_file=prefix+"States/States8.txt")
 
     def testTransitions1(self):
-        run_test(self, "./Examples/Stateflow/tests/Transitions/Transitions1.xml", 1,
+        run_test(self, prefix+"Transitions/Transitions1.xml", 1,
             ['log enS', 'log enA', 'log ca', 'log exA', 'log exS', 'log ta',
-             'log enT', 'log enB', 'delay 0.1'])
+             'log enT', 'log enB', 'delay 0.1'],
+            output_to_file=prefix+"Transitions/Transitions1.txt")
 
     def testTransitions2(self):
-        run_test(self, "./Examples/Stateflow/tests/Transitions/Transitions2.xml", 2,
+        run_test(self, prefix+"Transitions/Transitions2.xml", 2,
             ['log enS', 'log enA', 'log exA', 'log enB', 'delay 0.1',
-             'log ca', 'log exB', 'log exS', 'log ta', 'log enT', 'log enB', 'delay 0.1'])
+             'log ca', 'log exB', 'log exS', 'log ta', 'log enT', 'log enB', 'delay 0.1'],
+            output_to_file=prefix+"Transitions/Transitions2.txt")
 
     def testTransitions3(self):
-        run_test(self, "./Examples/Stateflow/tests/Transitions/Transitions3.xml", 5,
+        run_test(self, prefix+"Transitions/Transitions3.xml", 5,
             ['log b', 'log c1', 'delay 0.1', 'log c2', 'delay 0.1', 'log B',
-             'delay 0.1', 'log c2', 'delay 0.1', 'log B', 'delay 0.1'])
+             'delay 0.1', 'log c2', 'delay 0.1', 'log B', 'delay 0.1'],
+            output_to_file=prefix+"Transitions/Transitions3.txt")
 
     def testTransitions4(self):
-        run_test(self, "./Examples/Stateflow/tests/Transitions/Transitions4.xml", 2,
+        run_test(self, prefix+"Transitions/Transitions4.xml", 2,
             ['log enS', 'log condDefault', 'log tranDefault', 'log enA',
              'log duS', 'log condInner', 'log exA', 'log tranInner', 'log enA', 'delay 0.1',
-             'log duS', 'log condInner', 'log exA', 'log tranInner', 'log enA', 'delay 0.1'])
+             'log duS', 'log condInner', 'log exA', 'log tranInner', 'log enA', 'delay 0.1'],
+            output_to_file=prefix+"Transitions/Transitions4.txt")
 
     def testTransitions5(self):
-        run_test(self, "./Examples/Stateflow/tests/Transitions/Transitions5.xml", 1,
+        run_test(self, prefix+"Transitions/Transitions5.xml", 1,
             ['log enS', 'log enA', 'log duS', 'log condInner', 'log exA',
-             'log tranInner', 'log enA', 'delay 0.1'])
+             'log tranInner', 'log enA', 'delay 0.1'],
+            output_to_file=prefix+"Transitions/Transitions5.txt")
 
     def testTransitions6(self):
-        run_test(self, "./Examples/Stateflow/tests/Transitions/Transitions6.xml", 2,
+        run_test(self, prefix+"Transitions/Transitions6.xml", 2,
             ['log enS', 'log enA', 'log duS', 'log exA', 'log enB', 'delay 0.1',
-             'log duS', 'log innerCond', 'log exB', 'log innerTran', 'log enA', 'delay 0.1'])
+             'log duS', 'log innerCond', 'log exB', 'log innerTran', 'log enA', 'delay 0.1'],
+            output_to_file=prefix+"Transitions/Transitions6.txt")
 
     def testTransitions7(self):
-        run_test(self, "./Examples/Stateflow/tests/Transitions/Transitions7.xml", 1,
-            ['log enS', 'log enT', 'delay 0.1'])
+        run_test(self, prefix+"Transitions/Transitions7.xml", 1,
+            ['log enS', 'log enT', 'delay 0.1'],
+            output_to_file=prefix+"Transitions/Transitions7.txt")
 
     def testTransitions8(self):
-        run_test(self, "./Examples/Stateflow/tests/Transitions/Transitions8.xml", 5,
+        run_test(self, prefix+"Transitions/Transitions8.xml", 5,
             ['log enS', 'log duS', 'log ca1', 'delay 0.1', 'log duS', 'log ca1', 'delay 0.1',
              'log duS', 'log ca2', 'delay 0.1', 'log duS', 'log ca2', 'delay 0.1',
-             'log enT', 'delay 0.1'])
+             'log enT', 'delay 0.1'],
+            output_to_file=prefix+"Transitions/Transitions8.txt")
 
     def testJunctions1(self):
-        run_test(self, "./Examples/Stateflow/tests/Junctions/Junctions1.xml", 1,
-            ['log enA', 'log enD', 'delay 0.1'])
+        run_test(self, prefix+"Junctions/Junctions1.xml", 1,
+            ['log enA', 'log enD', 'delay 0.1'],
+            output_to_file=prefix+"Junctions/Junctions1.txt")
 
     def testJunctions2(self):
-        run_test(self, "./Examples/Stateflow/tests/Junctions/Junctions2.xml", 2,
+        run_test(self, prefix+"Junctions/Junctions2.xml", 2,
             ['log enA', 'log exA', 'log enB', 'delay 0.1', 'log conBJun', 'log conJunC',
-             'log exB', 'log tranBJun', 'log tranJunC', 'log enC', 'delay 0.1'])
+             'log exB', 'log tranBJun', 'log tranJunC', 'log enC', 'delay 0.1'],
+            output_to_file=prefix+"Junctions/Junctions2.txt")
 
     def testJunctions3(self):
-        run_test(self, "./Examples/Stateflow/tests/Junctions/Junctions3.xml", 1,
+        run_test(self, prefix+"Junctions/Junctions3.xml", 1,
             ['log t1', 'log t2', 'log t1', 'log t2', 'log t1', 'log t2', 'log t1',
-             'log t4', 'delay 0.1'])
+             'log t4', 'delay 0.1'],
+            output_to_file=prefix+"Junctions/Junctions3.txt")
 
     def testJunctions4(self):
-        run_test(self, "./Examples/Stateflow/tests/Junctions/Junctions4.xml", 1,
+        run_test(self, prefix+"Junctions/Junctions4.xml", 1,
             ['log enA', 'log enA1', 'log duA', 'log c1', 'log c2', 'log exA1', 'log exA',
-             'log t1', 'log t2', 'log enC', 'log enC2', 'delay 0.1'])
+             'log t1', 'log t2', 'log enC', 'log enC2', 'delay 0.1'],
+            output_to_file=prefix+"Junctions/Junctions4.txt")
 
     def testJunctions5(self):
-        run_test(self, "./Examples/Stateflow/tests/Junctions/Junctions5.xml", 1,
-            ['log enA', 'log enA1', 'log duA', 'log ca', 'log exA1', 'log enA2', 'delay 0.1'])
+        run_test(self, prefix+"Junctions/Junctions5.xml", 1,
+            ['log enA', 'log enA1', 'log duA', 'log ca', 'log exA1', 'log enA2', 'delay 0.1'],
+            output_to_file=prefix+"Junctions/Junctions5.txt")
 
     def testJunctions6(self):
-        run_test(self, "./Examples/Stateflow/tests/Junctions/Junctions6.xml", 1,
+        run_test(self, prefix+"Junctions/Junctions6.xml", 1,
             ['log enA', 'log ca', 'log ca', 'log exA', 'log ta2', 'log ta4',
-             'log enC', 'delay 0.1'])
+             'log enC', 'delay 0.1'],
+            output_to_file=prefix+"Junctions/Junctions6.txt")
 
     def testJunctions7(self):
-        run_test(self, "./Examples/Stateflow/tests/Junctions/Junctions7.xml", 1,
-            ['log enA', 'log exA', 'log xle2', 'log yeq2', 'log zge2', 'log enC', 'delay 0.1'])
+        run_test(self, prefix+"Junctions/Junctions7.xml", 1,
+            ['log enA', 'log exA', 'log xle2', 'log yeq2', 'log zge2', 'log enC', 'delay 0.1'],
+            output_to_file=prefix+"Junctions/Junctions7.txt")
 
     def testJunctions8(self):
-        run_test(self, "./Examples/Stateflow/tests/Junctions/Junctions8.xml", 3,
+        run_test(self, prefix+"Junctions/Junctions8.xml", 3,
             ['log enA', 'log ca1', 'log exA', 'log enC', 'delay 0.1',
              'log exC', 'log enA', 'delay 0.1',
-             'log duA', 'log ca2', 'log exA', 'log enC', 'delay 0.1'])
+             'log duA', 'log ca2', 'log exA', 'log enC', 'delay 0.1'],
+            output_to_file=prefix+"Junctions/Junctions8.txt")
 
     def testEvent1(self):
-        run_test(self, "./Examples/Stateflow/tests/Events/Event1.xml", 1,
-            ['log b', 'log a', 'log en_A2', 'log tb', 'log en_B2', 'delay 0.1'])
+        run_test(self, prefix+"Events/Event1.xml", 1,
+            ['log b', 'log a', 'log en_A2', 'log tb', 'log en_B2', 'delay 0.1'],
+            output_to_file=prefix+"Events/Events1.txt")
 
     def testEvent2(self):
-        run_test(self, "./Examples/Stateflow/tests/Events/Event2.xml", 1,
+        run_test(self, prefix+"Events/Event2.xml", 1,
             ['log b', 'log a', 'log en_A2', 'log c', 'log en_C2', 'log tb',
-             'log en_B2', 'delay 0.1'])
+             'log en_B2', 'delay 0.1'],
+            output_to_file=prefix+"Events/Events2.txt")
 
     def testEvent3(self):
-        run_test(self, "./Examples/Stateflow/tests/Events/Event3.xml", 1,
-            ['log b', 'log a1', 'log a2', 'log en_A2', 'log tb', 'log en_B2', 'delay 0.1'])
+        run_test(self, prefix+"Events/Event3.xml", 1,
+            ['log b', 'log a1', 'log a2', 'log en_A2', 'log tb', 'log en_B2', 'delay 0.1'],
+            output_to_file=prefix+"Events/Events3.txt")
 
     def testEvent4(self):
-        run_test(self, "./Examples/Stateflow/tests/Events/Event4.xml", 1,
+        run_test(self, prefix+"Events/Event4.xml", 1,
             ['log b', 'log a1', 'log c', 'log en_C2', 'log a2', 'log en_A2',
-             'log tb', 'log en_B2', 'delay 0.1'])
+             'log tb', 'log en_B2', 'delay 0.1'],
+            output_to_file=prefix+"Events/Events4.txt")
 
     def testEvent5(self):
-        run_test(self, "./Examples/Stateflow/tests/Events/Event5.xml", 1,
-            ['log en_A2', 'log b', 'log en_A3', 'log tb', 'log en_B2', 'delay 0.1'])
+        run_test(self, prefix+"Events/Event5.xml", 1,
+            ['log en_A2', 'log b', 'log en_A3', 'log tb', 'log en_B2', 'delay 0.1'],
+            output_to_file=prefix+"Events/Events5.txt")
 
     def testEvent6(self):
-        run_test(self, "./Examples/Stateflow/tests/Events/Event6.xml", 1,
+        run_test(self, prefix+"Events/Event6.xml", 1,
             ['log a 5', 'log a 4', 'log a 3', 'log a 2', 'log a 1', 'log a 0',
-             'log en_A2 0', 'delay 0.1'])
+             'log en_A2 0', 'delay 0.1'],
+            output_to_file=prefix+"Events/Events6.txt")
 
     def testDirectedEvent1(self):
-        run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent1.xml", 1,
+        run_test(self, prefix+"Events/DirectedEvent1.xml", 1,
             ['log en_A1', 'log en_B1', 'log en_C1',
              'log ex_C1', 'log en_C2', 'log ex_B1', 'log en_B2', 'log ex_A1', 'log en_A2',
              'log ex_A2', 'log en_A1', 'log ex_B2', 'log en_B1', 'log ex_C2', 'log en_C1',
-             'delay 0.1'])
+             'delay 0.1'],
+            output_to_file=prefix+"Events/DirectedEvent1.txt")
 
     def testDirectedEvent2(self):
-        run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent2.xml", 1,
+        run_test(self, prefix+"Events/DirectedEvent2.xml", 1,
             ['log en_A1', 'log en_B1_A1', 'log en_C1_A1', 'log ex_C1_A1', 'log en_C2_A2',
              'log ex_B1_A1', 'log en_B2_A2', 'log ex_A1', 'log en_A2', 'log ex_A2',
              'log en_A1', 'log ex_B2_A2', 'log en_B1_A1', 'log ex_C2_A2', 'log en_C1_A1',
-             'delay 0.1'])
+             'delay 0.1'],
+            output_to_file=prefix+"Events/DirectedEvent2.txt")
         
     def testDirectedEvent3(self):
-        run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent3.xml", 1,
+        run_test(self, prefix+"Events/DirectedEvent3.xml", 1,
             ['log en_A1', 'log en_B1', 'log ex_B1',
-             'log en_B2', 'log ex_A1', 'log en_A2', 'delay 0.1'])
+             'log en_B2', 'log ex_A1', 'log en_A2', 'delay 0.1'],
+            output_to_file=prefix+"Events/DirectedEvent3.txt")
 
     def testDirectedEvent4(self):
-        run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent4.xml", 1,
+        run_test(self, prefix+"Events/DirectedEvent4.xml", 1,
             ['log en_A1', 'log en_B2', 'log en_B21',
-             'log ex_B21', 'log ex_B2', 'log en_B4', 'log ex_A1', 'log en_A2', 'delay 0.1'])
+             'log ex_B21', 'log ex_B2', 'log en_B4', 'log ex_A1', 'log en_A2', 'delay 0.1'],
+            output_to_file=prefix+"Events/DirectedEvent4.txt")
 
     def testDirectedEvent5(self):
-        run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent5.xml", 1,
+        run_test(self, prefix+"Events/DirectedEvent5.xml", 1,
             ['log en_A1', 'log en_B2', 'log en_B21',
-             'log ex_B21', 'log en_B22', 'log ex_A1', 'log en_A2', 'delay 0.1'])
+             'log ex_B21', 'log en_B22', 'log ex_A1', 'log en_A2', 'delay 0.1'],
+            output_to_file=prefix+"Events/DirectedEvent5.txt")
 
     def testDirectedEvent6(self):
-        run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent6.xml", 1,
-            ['log a', 'log c', 'delay 0.1'])
+        run_test(self, prefix+"Events/DirectedEvent6.xml", 1,
+            ['log a', 'log c', 'delay 0.1'],
+            output_to_file=prefix+"Events/DirectedEvent6.txt")
 
     def testFunction1(self):
-        run_test(self, "./Examples/Stateflow/tests/Functions/Function1.xml", 1,
-            ['log en_A', 'log en_B', 'delay 0.1'])
+        run_test(self, prefix+"Functions/Function1.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'],
+            output_to_file=prefix+"Functions/Function1.txt")
 
     def testFunction2(self):
-        run_test(self, "./Examples/Stateflow/tests/Functions/Function2.xml", 1,
-            ['log en_A', 'log en_B', 'delay 0.1'])
+        run_test(self, prefix+"Functions/Function2.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'],
+            output_to_file=prefix+"Functions/Function2.txt")
 
     def testFunction3(self):
-        run_test(self, "./Examples/Stateflow/tests/Functions/Function3.xml", 1,
-            ['log en_A', 'log en_B', 'delay 0.1'])
+        run_test(self, prefix+"Functions/Function3.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'],
+            output_to_file=prefix+"Functions/Function3.txt")
 
     def testFunction4(self):
-        run_test(self, "./Examples/Stateflow/tests/Functions/Function4.xml", 1,
-            ['log en_A', 'log en_B', 'delay 0.1'])
+        run_test(self, prefix+"Functions/Function4.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'],
+            output_to_file=prefix+"Functions/Function4.txt")
 
     def testFunction5(self):
-        run_test(self, "./Examples/Stateflow/tests/Functions/Function5.xml", 1,
-            ['log en_A', 'log en_B', 'delay 0.1'])
+        run_test(self, prefix+"Functions/Function5.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'],
+            output_to_file=prefix+"Functions/Function5.txt")
 
     def testFunction6(self):
-        run_test(self, "./Examples/Stateflow/tests/Functions/Function6.xml", 1,
-            ['log en_A', 'log en_B', 'delay 0.1'])
+        run_test(self, prefix+"Functions/Function6.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'],
+            output_to_file=prefix+"Functions/Function6.txt")
 
     def testGraphicalFunction1(self):
-        run_test(self, "./Examples/Stateflow/tests/Functions/GraphicalFunction1.xml", 1,
-            ['log en_A', 'log en_B', 'delay 0.1'])
+        run_test(self, prefix+"Functions/GraphicalFunction1.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'],
+            output_to_file=prefix+"Functions/GraphicalFunction1.txt")
         
     def testGraphicalFunction2(self):
-        run_test(self, "./Examples/Stateflow/tests/Functions/GraphicalFunction2.xml", 1,
+        run_test(self, prefix+"Functions/GraphicalFunction2.xml", 1,
             ['log en_A', 'log set', 'log set', 'log set', 'log en_B',
-             'log 100 200 300 0 0', 'delay 0.1'])
+             'log 100 200 300 0 0', 'delay 0.1'],
+            output_to_file=prefix+"Functions/GraphicalFunction2.txt")
 
     def testGraphicalFunction3(self):
-        run_test(self, "./Examples/Stateflow/tests/Functions/GraphicalFunction3.xml", 1,
-            ['log en_A', 'log en_B', 'log 4', 'log 9', 'delay 0.1'])
+        run_test(self, prefix+"Functions/GraphicalFunction3.xml", 1,
+            ['log en_A', 'log en_B', 'log 4', 'log 9', 'delay 0.1'],
+            output_to_file=prefix+"Functions/GraphicalFunction3.txt")
 
     def testGraphicalFunction4(self):
-        run_test(self, "./Examples/Stateflow/tests/Functions/GraphicalFunction4.xml", 1,
+        run_test(self, prefix+"Functions/GraphicalFunction4.xml", 1,
             ['log en_A', 'log ack', 'log ack', 'log ack', 'log ack', 'log ack',
-             'log en_B', 'delay 0.1'])
+             'log en_B', 'delay 0.1'],
+            output_to_file=prefix+"Functions/GraphicalFunction4.txt")
 
     def testTemporal1(self):
-        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal1.xml", 10,
+        run_test(self, prefix+"Temporal/Temporal1.xml", 10,
             ['log en_A', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
              'log en_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1',
              'log en_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
-             'log en_B', 'delay 0.1', 'log du_B', 'delay 0.1'])
+             'log en_B', 'delay 0.1', 'log du_B', 'delay 0.1'],
+            output_to_file=prefix+"Temporal/Temporal1.txt")
 
     def testTemporal2(self):
         random.seed(0)  # for repeatability
-        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal2.xml", 10,
+        run_test(self, prefix+"Temporal/Temporal2.xml", 10,
             ['log en_A', 'log Picked 4', 'delay 1', 'delay 1', 'delay 1', 'delay 1',
              'log en_B', 'log Picked 4', 'delay 1', 'delay 1', 'delay 1', 'delay 1',
              'log en_A', 'log Picked 1', 'delay 1',
-             'log en_B', 'log Picked 3', 'delay 1'])
+             'log en_B', 'log Picked 3', 'delay 1'],
+            output_to_file=prefix+"Temporal/Temporal2.txt")
 
     def testTemporal3(self):
-        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal3.xml", 10,
+        run_test(self, prefix+"Temporal/Temporal3.xml", 10,
             ['log en_A', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
              'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
              'log en_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1',
-             'log en_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1'])
+             'log en_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1'],
+            output_to_file=prefix+"Temporal/Temporal3.txt")
 
     def testTemporal4(self):
-        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal4.xml", 10,
+        run_test(self, prefix+"Temporal/Temporal4.xml", 10,
             ['log en_A', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
              'log en_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1',
              'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1',
-             'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1'])
+             'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1'],
+            output_to_file=prefix+"Temporal/Temporal4.txt")
 
     def testTemporal5(self):
-        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal5.xml", 10,
+        run_test(self, prefix+"Temporal/Temporal5.xml", 10,
             ['log en_A', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
              'log en_B', 'delay 0.1', 'log en_A', 'delay 0.1',
              'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
-             'log en_B', 'delay 0.1', 'log en_A', 'delay 0.1'])
+             'log en_B', 'delay 0.1', 'log en_A', 'delay 0.1'],
+            output_to_file=prefix+"Temporal/Temporal5.txt")
 
     def testTemporal6(self):
-        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal6.xml", 5,
+        run_test(self, prefix+"Temporal/Temporal6.xml", 5,
             ['log en_A', 'log en_A', 'delay 0.1', 'log en_A', 'delay 0.1', 'log en_A',
-             'delay 0.1', 'log en_A', 'delay 0.1', 'log en_A', 'delay 0.1'])
+             'delay 0.1', 'log en_A', 'delay 0.1', 'log en_A', 'delay 0.1'],
+            output_to_file=prefix+"Temporal/Temporal6.txt")
     
     def testTemporal7(self):
-        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal7.xml", 5,
+        run_test(self, prefix+"Temporal/Temporal7.xml", 5,
             ['log en_A', 'log en_B', 'delay 0.1', 'log en_A', 'delay 0.1', 'log en_B',
-             'delay 0.1', 'log en_A', 'delay 0.1', 'log en_B', 'delay 0.1'])
+             'delay 0.1', 'log en_A', 'delay 0.1', 'log en_B', 'delay 0.1'],
+            output_to_file=prefix+"Temporal/Temporal7.txt")
 
     def testTemporal8(self):
-        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal8.xml", 10,
+        run_test(self, prefix+"Temporal/Temporal8.xml", 10,
             ['log en_A', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
              'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
              'log en_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1',
-             'log en_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1'])
+             'log en_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1'],
+            output_to_file=prefix+"Temporal/Temporal8.txt")
 
     def testEarlyReturn1(self):
-        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn1.xml", 1,
-            ['log en_A', 'log en_A1', 'log ex_A1', 'log ex_A', 'log en_B', 'delay 0.1'])
+        run_test(self, prefix+"EarlyReturn/EarlyReturn1.xml", 1,
+            ['log en_A', 'log en_A1', 'log ex_A1', 'log ex_A', 'log en_B', 'delay 0.1'],
+            output_to_file=prefix+"EarlyReturn/EarlyReturn1.txt")
 
     def testEarlyReturn2(self):
-        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn2.xml", 1,
-            ['log en_A', 'log en_A1', 'log E', 'log ex_A1', 'log ex_A', 'log en_B', 'delay 0.1'])
+        run_test(self, prefix+"EarlyReturn/EarlyReturn2.xml", 1,
+            ['log en_A', 'log en_A1', 'log E', 'log ex_A1', 'log ex_A', 'log en_B', 'delay 0.1'],
+            output_to_file=prefix+"EarlyReturn/EarlyReturn2.txt")
 
     def testEarlyReturn3(self):
-        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn3.xml", 1,
-            ['log en_A 1', 'log ex_A 2', 'log en_C 2', 'delay 0.1'])
+        run_test(self, prefix+"EarlyReturn/EarlyReturn3.xml", 1,
+            ['log en_A 1', 'log ex_A 2', 'log en_C 2', 'delay 0.1'],
+            output_to_file=prefix+"EarlyReturn/EarlyReturn3.txt")
 
     def testEarlyReturn4(self):
-        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn4.xml", 1,
-            ['log ca', 'log ta', 'log en_A2', 'delay 0.1'])
+        run_test(self, prefix+"EarlyReturn/EarlyReturn4.xml", 1,
+            ['log ca', 'log ta', 'log en_A2', 'delay 0.1'],
+            output_to_file=prefix+"EarlyReturn/EarlyReturn4.txt")
 
     def testEarlyReturn5(self):
-        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn5.xml", 1,
-            ['log en_A', 'log en_A1', 'log ex_A1', 'log ex_A', 'log en_B', 'delay 0.1'])
+        run_test(self, prefix+"EarlyReturn/EarlyReturn5.xml", 1,
+            ['log en_A', 'log en_A1', 'log ex_A1', 'log ex_A', 'log en_B', 'delay 0.1'],
+            output_to_file=prefix+"EarlyReturn/EarlyReturn5.txt")
 
     def testEarlyReturn6(self):
-        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn6.xml", 1,
+        run_test(self, prefix+"EarlyReturn/EarlyReturn6.xml", 1,
             ['log en_A', 'log en_A1', 'log ex_A1', 'log loop', 'log ex_A', 'log en_A',
-             'log en_A1', 'delay 0.1'])
+             'log en_A1', 'delay 0.1'],
+            output_to_file=prefix+"EarlyReturn/EarlyReturn6.txt")
 
     def testEarlyReturn7(self):
-        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn7.xml", 2,
+        run_test(self, prefix+"EarlyReturn/EarlyReturn7.xml", 2,
             ['log en_A', 'log en_A1', 'log ex_A1', 'log en_A2', 'delay 0.1',
-             'log ex_A2', 'log loop', 'log ex_A', 'log en_A', 'log en_A1', 'delay 0.1'])
+             'log ex_A2', 'log loop', 'log ex_A', 'log en_A', 'log en_A1', 'delay 0.1'],
+            output_to_file=prefix+"EarlyReturn/EarlyReturn7.txt")
 
     def testEarlyReturn8(self):
-        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn8.xml", 1,
+        run_test(self, prefix+"EarlyReturn/EarlyReturn8.xml", 1,
             ['log a', 'log c', 'log du_A1', 'log b', 'log a', 'log c', 'log ex_A1',
-             'log en_A2', 'log en_C2', 'log tb', 'log en_B2', 'log en_C3', 'delay 0.1'])
+             'log en_A2', 'log en_C2', 'log tb', 'log en_B2', 'log en_C3', 'delay 0.1'],
+            output_to_file=prefix+"EarlyReturn/EarlyReturn8.txt")
 
     def testEarlyReturn9(self):
-        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn9.xml", 1,
-            ['log en_A', 'log en_A1', 'log pre', 'log ex_A1', 'log ex_A', 'log en_B', 'delay 0.1'])
+        run_test(self, prefix+"EarlyReturn/EarlyReturn9.xml", 1,
+            ['log en_A', 'log en_A1', 'log pre', 'log ex_A1', 'log ex_A', 'log en_B', 'delay 0.1'],
+            output_to_file=prefix+"EarlyReturn/EarlyReturn9.txt")
 
     def testEarlyReturn10(self):
-        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn10.xml", 1,
-            ['log en_A', 'log en_A1', 'log pre', 'log ex_A1', 'log ex_A', 'log en_B', 'delay 0.1'])
+        run_test(self, prefix+"EarlyReturn/EarlyReturn10.xml", 1,
+            ['log en_A', 'log en_A1', 'log pre', 'log ex_A1', 'log ex_A', 'log en_B', 'delay 0.1'],
+            output_to_file=prefix+"EarlyReturn/EarlyReturn10.txt")
 
     def testEarlyReturn11(self):
-        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn11.xml", 2,
+        run_test(self, prefix+"EarlyReturn/EarlyReturn11.xml", 2,
             ['log en_A', 'log en_A1', 'log ex_A1', 'log en_A2', 'log en_A2a', 'delay 0.1',
-             'log ex_A2a', 'log ex_A2', 'log loop', 'log ex_A', 'log en_A', 'log en_A1', 'delay 0.1'])
+             'log ex_A2a', 'log ex_A2', 'log loop', 'log ex_A', 'log en_A', 'log en_A1', 'delay 0.1'],
+            output_to_file=prefix+"EarlyReturn/EarlyReturn11.txt")
 
     def testEarlyReturn12(self):
-        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn12.xml", 1,
-            ['log enB', 'log enC', 'delay 0.1'])
+        run_test(self, prefix+"EarlyReturn/EarlyReturn12.xml", 1,
+            ['log enB', 'log enC', 'delay 0.1'],
+            output_to_file=prefix+"EarlyReturn/EarlyReturn12.txt")
 
     def testEarlyReturn13(self):
-        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn13.xml", 1,
+        run_test(self, prefix+"EarlyReturn/EarlyReturn13.xml", 1,
             ['log F', 'log exA1', 'log exA1', 'log exA1', 'log exA1', 'log exA1',
-             'log exA1_done', 'log enA3', 'delay 0.1'])
+             'log exA1_done', 'log enA3', 'delay 0.1'],
+            output_to_file=prefix+"EarlyReturn/EarlyReturn13.txt")
 
     def testEarlyReturn14(self):
-        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn14.xml", 1,
+        run_test(self, prefix+"EarlyReturn/EarlyReturn14.xml", 1,
             ['log en_A', 'log en_A1', 'log loop', 'log ex_A1', 'log ex_A', 'log en_A',
-             'log en_A1', 'log ca', 'log ex_A1', 'log ta', 'log en_A2', 'delay 0.1'])
+             'log en_A1', 'log ca', 'log ex_A1', 'log ta', 'log en_A2', 'delay 0.1'],
+            output_to_file=prefix+"EarlyReturn/EarlyReturn14.txt")
 
     def testEarlyReturn15(self):
-        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn15.xml", 1,
-            ['log enS', 'log enA1', 'log enA1a', 'log enA2', 'log ca', 'log enB', 'delay 0.1'])
+        run_test(self, prefix+"EarlyReturn/EarlyReturn15.xml", 1,
+            ['log enS', 'log enA1', 'log enA1a', 'log enA2', 'log ca', 'log enB', 'delay 0.1'],
+            output_to_file=prefix+"EarlyReturn/EarlyReturn15.txt")
 
     def testEarlyReturn16(self):
-        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn16.xml", 1,
-            ['log en_A', 'log en_A1', 'log outA1', 'log ex_A1', 'log en_A3', 'delay 0.1'])
+        run_test(self, prefix+"EarlyReturn/EarlyReturn16.xml", 1,
+            ['log en_A', 'log en_A1', 'log outA1', 'log ex_A1', 'log en_A3', 'delay 0.1'],
+            output_to_file=prefix+"EarlyReturn/EarlyReturn16.txt")
 
     def testEarlyReturn17(self):
-        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn17.xml", 2,
+        run_test(self, prefix+"EarlyReturn/EarlyReturn17.xml", 2,
             ['log en_A', 'log en_A1', 'log ex_A1', 'log en_A2', 'delay 0.1',
-             'log outA2', 'log ex_A2', 'log en_A3', 'delay 0.1'])
+             'log outA2', 'log ex_A2', 'log en_A3', 'delay 0.1'],
+            output_to_file=prefix+"EarlyReturn/EarlyReturn17.txt")
 
     def testEarlyReturn18(self):
-        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn18.xml", 1,
-            ['log enS', 'log duS', 'log ca1', 'log exS', 'log enT', 'delay 0.1'])
+        run_test(self, prefix+"EarlyReturn/EarlyReturn18.xml", 1,
+            ['log enS', 'log duS', 'log ca1', 'log exS', 'log enT', 'delay 0.1'],
+            output_to_file=prefix+"EarlyReturn/EarlyReturn18.txt")
 
     def testEarlyReturn19(self):
-        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn19.xml", 1,
-            ['log enS', 'log duS', 'log ca1', 'log ca2', 'log exS', 'log enT', 'delay 0.1'])
+        run_test(self, prefix+"EarlyReturn/EarlyReturn19.xml", 1,
+            ['log enS', 'log duS', 'log ca1', 'log ca2', 'log exS', 'log enT', 'delay 0.1'],
+            output_to_file=prefix+"EarlyReturn/EarlyReturn19.txt")
 
     def testEarlyReturn20(self):
-        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn20.xml", 1,
-            ['log enS', 'log duS', 'log ca1', 'log ca2', 'log exS', 'log enT', 'delay 0.1'])
+        run_test(self, prefix+"EarlyReturn/EarlyReturn20.xml", 1,
+            ['log enS', 'log duS', 'log ca1', 'log ca2', 'log exS', 'log enT', 'delay 0.1'],
+            output_to_file=prefix+"EarlyReturn/EarlyReturn20.txt")
 
     def testDSM1(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Data/DSM1.xml", 20,
+        run_test(self, prefix+"Data/DSM1.xml", 20,
             ['log 2', 'delay 0.1', 'log 4', 'delay 0.1', 'log 5', 'delay 0.1',
-             'log 7', 'delay 0.1', 'log 8', 'delay 0.1', 'log 10', 'delay 0.1'], io_filter=io_filter)
+             'log 7', 'delay 0.1', 'log 8', 'delay 0.1', 'log 10', 'delay 0.1'], io_filter=io_filter,
+            output_to_file=prefix+"Data/DSM1.txt")
 
     def testDSM2(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Data/DSM2.xml", 20,
+        run_test(self, prefix+"Data/DSM2.xml", 20,
             ['log 1', 'delay 0.1', 'log 3', 'delay 0.1', 'log 4', 'delay 0.1',
-             'log 6', 'delay 0.1', 'log 7', 'delay 0.1', 'log 9', 'delay 0.1'], io_filter=io_filter)
+             'log 6', 'delay 0.1', 'log 7', 'delay 0.1', 'log 9', 'delay 0.1'], io_filter=io_filter,
+            output_to_file=prefix+"Data/DSM2.txt")
 
     def testDSM3(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Data/DSM3.xml", 20,
+        run_test(self, prefix+"Data/DSM3.xml", 20,
             ['log 3 2', 'delay 0.1', 'log 3 5', 'delay 0.1', 'log 8 5', 'delay 0.1',
-             'log 8 13', 'delay 0.1', 'log 21 13', 'delay 0.1', 'log 21 34', 'delay 0.1'], io_filter=io_filter)
+             'log 8 13', 'delay 0.1', 'log 21 13', 'delay 0.1', 'log 21 34', 'delay 0.1'], io_filter=io_filter,
+            output_to_file=prefix+"Data/DSM3.txt")
 
     def testDSM4(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Data/DSM4.xml", 35,
+        run_test(self, prefix+"Data/DSM4.xml", 35,
             ['log A1', 'log C1', 'log B2', 'log D4', 'delay 0.1',
-             'log A4', 'log C4', 'delay 0.1', 'log B5', 'log D7', 'delay 0.1'], io_filter=io_filter)
+             'log A4', 'log C4', 'delay 0.1', 'log B5', 'log D7', 'delay 0.1'], io_filter=io_filter,
+            output_to_file=prefix+"Data/DSM4.txt")
 
     def testDSM5(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Data/DSM5.xml", 34,
+        run_test(self, prefix+"Data/DSM5.xml", 34,
             ['log 4 2', 'delay 0.1', 'log 4 4', 'delay 0.1', 'log 5 4', 'delay 0.1',
-             'log 5 6', 'delay 0.1', 'log 6 6', 'delay 0.1', 'log 6 8', 'delay 0.1'], io_filter=io_filter)
+             'log 5 6', 'delay 0.1', 'log 6 6', 'delay 0.1', 'log 6 8', 'delay 0.1'], io_filter=io_filter,
+            output_to_file=prefix+"Data/DSM5.txt")
 
     def testDSM6(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Data/DSM6.xml", 36,
+        run_test(self, prefix+"Data/DSM6.xml", 36,
             ['log en_A 0 0', 'log en_A1 3 0', 'log en_B 4 4', 'log du_A1 4 0', 'delay 0.1',
              'log en_A 4 -1', 'log du_A1 3 -1', 'delay 0.1',
-             'log en_B 4 -1', 'log du_A1 4 0', 'delay 0.1'], io_filter=io_filter)
+             'log en_B 4 -1', 'log du_A1 4 0', 'delay 0.1'], io_filter=io_filter,
+            output_to_file=prefix+"Data/DSM6.txt")
 
     def testCommunication1(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Data/Communication1.xml", 62,
+        run_test(self, prefix+"Data/Communication1.xml", 62,
             ['log en_A', 'log en_A1', 'log en_B', 'log 2 1', 'delay 0.1',
              'log en_A', 'log 2 2', 'delay 0.1', 'log en_B', 'log 3 2', 'delay 0.1',
              'log en_A', 'log 3 3', 'delay 0.1', 'log en_B', 'log 4 3', 'delay 0.1',
-             'log en_A', 'log 4 4', 'delay 0.1'], io_filter=io_filter)
+             'log en_A', 'log 4 4', 'delay 0.1'], io_filter=io_filter,
+            output_to_file=prefix+"Data/Communication1.txt")
         
     def testCommunication2(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Data/Communication2.xml", 65,
+        run_test(self, prefix+"Data/Communication2.xml", 65,
             ['log en_A', 'log en_A1', 'log en_B', 'log 1 2 2 1', 'delay 0.1',
              'log en_A', 'log 1 2 2 2', 'delay 0.1',
              'log en_B', 'log 1 2 3 2', 'delay 0.1',
              'log en_A', 'log 1 2 3 3', 'delay 0.1',
-             'log en_B', 'log 1 2 4 3', 'delay 0.1'], io_filter=io_filter)
+             'log en_B', 'log 1 2 4 3', 'delay 0.1'], io_filter=io_filter,
+            output_to_file=prefix+"Data/Communication2.txt")
 
     def testCommunication3(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Data/Communication3.xml", 62,
+        run_test(self, prefix+"Data/Communication3.xml", 62,
             ['log en_A', 'log en_A1', 'log en_B', 'log 2 1', 'delay 0.1',
              'log en_A', 'log 2 2', 'delay 0.1', 'log en_B', 'log 3 2', 'delay 0.1',
              'log en_A', 'log 3 3', 'delay 0.1', 'log en_B', 'log 4 3', 'delay 0.1',
-             'log en_A', 'log 4 4', 'delay 0.1'], io_filter=io_filter)
+             'log en_A', 'log 4 4', 'delay 0.1'], io_filter=io_filter,
+            output_to_file=prefix+"Data/Communication3.txt")
 
     def testCommunication4(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Data/Communication4.xml", 105,
+        run_test(self, prefix+"Data/Communication4.xml", 105,
             ['log en_A', 'log en_A1', 'log en_B', 'log 2 2', 'delay 0.1',
              'log en_A', 'log 2 4', 'delay 0.1', 'log en_B', 'log 3 4', 'delay 0.1',
              'log en_A', 'log 3 6', 'delay 0.1', 'log en_B', 'log 4 6', 'delay 0.1',
-             'log en_A', 'log 4 8', 'delay 0.1'], io_filter=io_filter)
+             'log en_A', 'log 4 8', 'delay 0.1'], io_filter=io_filter,
+            output_to_file=prefix+"Data/Communication4.txt")
 
     def testCommunication5(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Data/Communication5.xml", 147,
+        run_test(self, prefix+"Data/Communication5.xml", 147,
            ['log en_A', 'log en_C', 'log en_A1', 'log en_B', 'log 2 2 2', 'delay 0.1',
             'log en_A', 'log 2 4 4', 'delay 0.1', 'log en_B', 'log 3 4 10', 'delay 0.1',
             'log en_A', 'log 3 6 20', 'delay 0.1', 'log en_B', 'log 4 6 42', 'delay 0.1',
-            'log en_A', 'log 4 8 84', 'delay 0.1'], io_filter=io_filter)
+            'log en_A', 'log 4 8 84', 'delay 0.1'], io_filter=io_filter,
+           output_to_file=prefix+"Data/Communication5.txt")
 
     def testCommunication6(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Data/Communication6.xml", 120,
+        run_test(self, prefix+"Data/Communication6.xml", 120,
             ['log en_A', 'log en_A1', 'log en_C', 'log en_B', 'log 2 1', 'log 1', 'delay 0.1',
              'log en_A', 'log 2 2', 'log 1', 'delay 0.1',
              'log en_B', 'log 3 2', 'log 2', 'delay 0.1',
              'log en_A', 'log 3 3', 'log 2', 'delay 0.1',
              'log en_B', 'log 4 3', 'log 3', 'delay 0.1',
-             'log en_A', 'log 4 4', 'log 3', 'delay 0.1'], io_filter=io_filter)
+             'log en_A', 'log 4 4', 'log 3', 'delay 0.1'], io_filter=io_filter,
+            output_to_file=prefix+"Data/Communication6.txt")
 
     def testMessages1(self):
-        run_test(self, "./Examples/Stateflow/tests/Messages/Messages1.xml", 2,
-            ['log en_A', 'log en_B', 'delay 0.1', 'delay 0.1'])
+        run_test(self, prefix+"Messages/Messages1.xml", 2,
+            ['log en_A', 'log en_B', 'delay 0.1', 'delay 0.1'],
+            output_to_file=prefix+"Messages/Messages1.txt")
 
     def testMessages2(self):
-        run_test(self, "./Examples/Stateflow/tests/Messages/Messages2.xml", 3,
+        run_test(self, prefix+"Messages/Messages2.xml", 3,
             ['log en_A', 'log en_B', 'delay 0.1', 'log en_C',
-             'delay 0.1', 'log en_D', 'delay 0.1'])
+             'delay 0.1', 'log en_D', 'delay 0.1'],
+            output_to_file=prefix+"Messages/Messages2.txt")
 
     def testMessages3(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Messages/Messages3.xml", 40,
-           ['log en_A', 'log en_A0', 'delay 1', 'delay 1', 'delay 1',
-            'log en_A1', 'delay 1', 'log en_A2', 'delay 1', 'delay 1'], io_filter=io_filter)
+        run_test(self, prefix+"Messages/Messages3.xml", 40,
+            ['log en_A', 'log en_A0', 'delay 1', 'delay 1', 'delay 1',
+             'log en_A1', 'delay 1', 'log en_A2', 'delay 1', 'delay 1'], io_filter=io_filter,
+            output_to_file=prefix+"Messages/Messages3.txt")
     
     def testMessages4(self):
-        run_test(self, "./Examples/Stateflow/tests/Messages/Messages4.xml", 3,
-            ['log en_A', 'log en_B', 'delay 0.1', 'log en_C', 'delay 0.1', 'delay 0.1'])
+        run_test(self, prefix+"Messages/Messages4.xml", 3,
+            ['log en_A', 'log en_B', 'delay 0.1', 'log en_C', 'delay 0.1', 'delay 0.1'],
+            output_to_file=prefix+"Messages/Messages4.txt")
 
     def testMessages5(self):
-        run_test(self, "./Examples/Stateflow/tests/Messages/Messages5.xml", 4,
-            ['log en_A', 'log en_B', 'delay 0.1', 'delay 0.1', 'log en_C', 'delay 0.1', 'delay 0.1'])
+        run_test(self, prefix+"Messages/Messages5.xml", 4,
+            ['log en_A', 'log en_B', 'delay 0.1', 'delay 0.1', 'log en_C', 'delay 0.1', 'delay 0.1'],
+            output_to_file=prefix+"Messages/Messages5.txt")
 
     def testMessages6(self):
-        run_test(self, "./Examples/Stateflow/tests/Messages/Messages6.xml", 5,
+        run_test(self, prefix+"Messages/Messages6.xml", 5,
             ['log en_A', 'log en_B', 'delay 0.1', 'delay 0.1', 'log en_C', 'delay 0.1',
-             'log en_D', 'delay 0.1', 'log en_E', 'delay 0.1'])
+             'log en_D', 'delay 0.1', 'log en_E', 'delay 0.1'],
+            output_to_file=prefix+"Messages/Messages6.txt")
 
     def testMessages7(self):
-        run_test(self, "./Examples/Stateflow/tests/Messages/Messages7.xml", 4,
+        run_test(self, prefix+"Messages/Messages7.xml", 4,
             ['log en_A', 'log en_B', 'delay 0.1', 'log en_C', 'delay 0.1',
-             'log en_D', 'delay 0.1', 'delay 0.1'])
+             'log en_D', 'delay 0.1', 'delay 0.1'],
+            output_to_file=prefix+"Messages/Messages7.txt")
 
     def testMessages8(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Messages/Messages8.xml", 40,
+        run_test(self, prefix+"Messages/Messages8.xml", 40,
             ['log en_A', 'log en_A0', 'delay 1', 'delay 1', 'delay 1', 'log en_A1',
-             'delay 1', 'log en_A2', 'delay 1', 'log en_A3', 'delay 1'], io_filter=io_filter)
+             'delay 1', 'log en_A2', 'delay 1', 'log en_A3', 'delay 1'], io_filter=io_filter,
+            output_to_file=prefix+"Messages/Messages8.txt")
 
     def testMessages9(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Messages/Messages9.xml", 40,
+        run_test(self, prefix+"Messages/Messages9.xml", 40,
             ['log en_A', 'log en_A0', 'log en_B', 'delay 1', 'delay 1', 'delay 1', 'log en_A1',
-             'delay 1', 'log en_A2', 'delay 1', 'log en_A3', 'delay 1'], io_filter=io_filter)
+             'delay 1', 'log en_A2', 'delay 1', 'log en_A3', 'delay 1'], io_filter=io_filter,
+            output_to_file=prefix+"Messages/Messages9.txt")
 
     def testMessages10(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Messages/Messages10.xml", 4,
+        run_test(self, prefix+"Messages/Messages10.xml", 4,
             ['log A', 'log B', 'delay 0.1', 'log B', 'delay 0.1', 'log C',
-             'delay 0.1', 'log D', 'delay 0.1'], io_filter=io_filter)
+             'delay 0.1', 'log D', 'delay 0.1'], io_filter=io_filter,
+            output_to_file=prefix+"Messages/Messages10.txt")
 
     def testContinuous1(self):
-        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous1.xml", 2,
+        run_test(self, prefix+"Continuous/Continuous1.xml", 2,
             ['log enA 0.000 0.000', 'delay 0.5',
              'log conAB1 1.000 0.500', 'log exA 1.000 0.500', 'log tranAB1 1.000 0.500',
-             'log enB 1.000 0.500', 'log enB1 0.000 0.500', 'delay 1.0'])
+             'log enB 1.000 0.500', 'log enB1 0.000 0.500', 'delay 1.0'],
+            output_to_file=prefix+"Continuous/Continuous1.txt")
 
     def testContinuous2(self):
-        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous2.xml", 3,
+        run_test(self, prefix+"Continuous/Continuous2.xml", 3,
             ['log enA 0.000 1.000', 'delay 0.524', 'delay 0.0',
              'log conAB1 0.500 0.866', 'log exA 0.500 0.866', 'log tranAB1 0.500 0.866',
-             'log enB 0.500 0.866', 'log enB1 0.000 0.866', 'delay 1.0'])
+             'log enB 0.500 0.866', 'log enB1 0.000 0.866', 'delay 1.0'],
+            output_to_file=prefix+"Continuous/Continuous2.txt")
 
     def testContinuous3(self):
-        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous3.xml", 2,
+        run_test(self, prefix+"Continuous/Continuous3.xml", 2,
             ['log enA 0.000 0.000', 'delay 1.414',
              'log conAB1 1.414 1.000', 'log exA 1.414 1.000', 'log tranAB1 1.414 1.000',
-             'log enB 1.414 1.000', 'log enB1 0.000 1.000', 'delay 1.0'])
+             'log enB 1.414 1.000', 'log enB1 0.000 1.000', 'delay 1.0'],
+            output_to_file=prefix+"Continuous/Continuous3.txt")
 
     def testContinuous4(self):
-        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous4.xml", 2,
+        run_test(self, prefix+"Continuous/Continuous4.xml", 2,
             ['log enA 0.000 0.000', 'delay 1.0',
              'log conAB 1.000 0.500', 'log exA 1.000 0.500', 'log tranAB 1.000 0.500',
-             'log enB 1.000 0.500', 'log enB1 0.000 0.500', 'delay 1.0'])
+             'log enB 1.000 0.500', 'log enB1 0.000 0.500', 'delay 1.0'],
+            output_to_file=prefix+"Continuous/Continuous4.txt")
 
     def testContinuous5(self):
-        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous5.xml", 3,
+        run_test(self, prefix+"Continuous/Continuous5.xml", 3,
             ['log enA', 'log enA1', 'delay 1.0', 'log enA2', 'delay 1.0',
-             'log exA', 'log enB', 'delay 1.0'])
+             'log exA', 'log enB', 'delay 1.0'],
+            output_to_file=prefix+"Continuous/Continuous5.txt")
 
     def testContinuous6(self):
-        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous6.xml", 3,
+        run_test(self, prefix+"Continuous/Continuous6.xml", 3,
             ['log enA', 'log enA1', 'delay 1.0', 'log enA2', 'delay 0.5',
-             'log condA2B', 'log exA', 'log enB', 'delay 1.0'])
+             'log condA2B', 'log exA', 'log enB', 'delay 1.0'],
+            output_to_file=prefix+"Continuous/Continuous6.txt")
 
     def testTriggerEdge1(self):
-        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge1.xml", 200, {
+        run_sim_test(self, prefix+"Triggered/TriggerEdge1.xml", 200, {
             0: {'y': 0, 'signal': 0.0},
             0.5: {'y': 1, 'signal': 1.0},
             1.0: {'y': 1, 'signal': 0.0},
@@ -613,10 +717,10 @@ class SFConvertTest(unittest.TestCase):
             3.5: {'y': 4, 'signal': 1.0},
             4.0: {'y': 4, 'signal': 0.0},
             4.5: {'y': 5, 'signal': 1.0}
-        })
+        }, output_to_file=prefix+"Triggered/TriggerEdge1.txt")
 
     def testTriggerEdge2(self):
-        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge2.xml", 200, {
+        run_sim_test(self, prefix+"Triggered/TriggerEdge2.xml", 200, {
             0: {'y': 0, 'signal': 1.0},
             0.5: {'y': 1, 'signal': 0.0},
             1.0: {'y': 1, 'signal': 1.0},
@@ -627,20 +731,20 @@ class SFConvertTest(unittest.TestCase):
             3.5: {'y': 4, 'signal': 0.0},
             4.0: {'y': 4, 'signal': 1.0},
             4.5: {'y': 5, 'signal': 0.0}
-        })
+        }, output_to_file=prefix+"Triggered/TriggerEdge2.txt")
 
     def testTriggerEdge3(self):
-        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge3.xml", 300, {
+        run_sim_test(self, prefix+"Triggered/TriggerEdge3.xml", 300, {
             0: {'y': 0, 'signal': 0.0},
             0.3: {'y': 1, 'signal': 1.0},
             0.8: {'y': 2, 'signal': 0.0},
             1.3: {'y': 3, 'signal': 1.0},
             1.8: {'y': 4, 'signal': 0.0},
             2.3: {'y': 5, 'signal': 1.0}
-        })
+        }, output_to_file=prefix+"Triggered/TriggerEdge3.txt")
 
     def testTriggerEdge4(self):
-        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge4.xml", 1000, {
+        run_sim_test(self, prefix+"Triggered/TriggerEdge4.xml", 1000, {
             0: {'a': 0.0},
             0.2: {'a': 0.0},
             0.4: {'a': 2.0},
@@ -650,46 +754,46 @@ class SFConvertTest(unittest.TestCase):
             1.4: {'a': 2.0},
             1.6: {'a': 3.0},
             1.9: {'a': 1.0}
-        })
+        }, output_to_file=prefix+"Triggered/TriggerEdge4.txt")
 
     def testTriggerEdge5(self):
-        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge5.xml", 60, {
+        run_sim_test(self, prefix+"Triggered/TriggerEdge5.xml", 60, {
             0.1: {'y': 0.0},
             3.9: {'y': 0.0},
             4.1: {'y': 1.0},
             5.9: {'y': 1.0},
             6.1: {'y': 2.0}
-        })
+        }, output_to_file=prefix+"Triggered/TriggerEdge5.txt")
 
     def testTriggerEdge6(self):
-        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge6.xml", 60, {
+        run_sim_test(self, prefix+"Triggered/TriggerEdge6.xml", 60, {
             0.1: {'y': 0.0},
             3.9: {'y': 0.0},
             4.1: {'y': 1.0},
             5.9: {'y': 1.0},
             6.1: {'y': 1.0}
-        })
+        }, output_to_file=prefix+"Triggered/TriggerEdge6.txt")
 
     def testTriggerEdge7(self):
-        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge7.xml", 60, {
+        run_sim_test(self, prefix+"Triggered/TriggerEdge7.xml", 60, {
             0.1: {'y': 0.0},
             3.9: {'y': 0.0},
             4.1: {'y': 0.0},
             5.9: {'y': 0.0},
             6.1: {'y': 1.0}
-        })
+        }, output_to_file=prefix+"Triggered/TriggerEdge7.txt")
 
     def testTriggerEdge8(self):
-        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge8.xml", 100, {
+        run_sim_test(self, prefix+"Triggered/TriggerEdge8.xml", 100, {
             0.1: {'y': 0.0},
             0.9: {'y': 0.0},
             1.1: {'y': 1.0},
             3.9: {'y': 1.0},
             4.1: {'y': 2.0}
-        })
+        }, output_to_file=prefix+"Triggered/TriggerEdge8.txt")
 
     def testTriggerFun1(self):
-        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerFun1.xml", 400, {
+        run_sim_test(self, prefix+"Triggered/TriggerFun1.xml", 400, {
             0: {'y': 1},
             0.1: {'y': 2},
             0.2: {'y': 3},
@@ -701,26 +805,27 @@ class SFConvertTest(unittest.TestCase):
             1.3: {'y': 8},
             1.9: {'y': 8},
             2.0: {'y': 9}
-        })
+        }, output_to_file=prefix+"Triggered/TriggerFun1.txt")
 
     def testTriggerFun2(self):
-        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerFun2.xml", 100, {
+        run_sim_test(self, prefix+"Triggered/TriggerFun2.xml", 100, {
             0.0: {'y': 4},
             0.1: {'y': 4},
             0.2: {'y': 4},
             0.3: {'y': 4},
             0.4: {'y': 4}
-        })
+        }, output_to_file=prefix+"Triggered/TriggerFun2.txt")
 
     def testSettaDemo(self):
-        run_test(self, "./Examples/Stateflow/tests/settaDemo.xml", 2,
+        run_test(self, prefix+"settaDemo.xml", 2,
             ['log B', 'log D', 'log A', 'log D', 'delay 0.1',
-             'log B', 'log D', 'log A', 'log D', 'delay 0.1'])
+             'log B', 'log D', 'log A', 'log D', 'delay 0.1'],
+            output_to_file=prefix+"settaDemo.txt")
 
     def testRTPS(self):
         random.seed(0)  # for repeatability
         io_filter = lambda s: s == 'WHC_out'
-        run_test(self, "./Examples/Stateflow/tests/RTPS.xml", 500,
+        run_test(self, prefix+"RTPS.xml", 500,
             ['IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]',
              'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
              'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
@@ -736,10 +841,11 @@ class SFConvertTest(unittest.TestCase):
              'IO WHC_out [100,0,0,0,0]', 'IO WHC_out [100,0,0,0,0]', 'delay 0.1',
              'IO WHC_out [100,0,0,0,0]', 'IO WHC_out [100,0,0,0,0]', 'delay 0.1',
              'IO WHC_out [100,0,0,0,0]', 'IO WHC_out [100,0,0,0,0]', 'delay 0.1',
-             'IO WHC_out [100,0,0,0,0]'], io_filter=io_filter)
+             'IO WHC_out [100,0,0,0,0]'], io_filter=io_filter,
+            output_to_file=prefix+"RTPS.txt")
 
     def testStopWatch1(self):
-        run_sim_test(self, "./Examples/Stateflow/tests/StopWatch1.xml", 6000, {
+        run_sim_test(self, prefix+"StopWatch1.xml", 6000, {
             0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
             0.1: {'t': 0.1, 'cent': 6, 'disp_cent': 6},
             0.2: {'t': 0.2, 'cent': 16, 'disp_cent': 15},
@@ -752,10 +858,10 @@ class SFConvertTest(unittest.TestCase):
             0.9: {'t': 0.9, 'cent': 86, 'disp_cent': 86},
             1.0: {'t': 1.0, 'cent': 96, 'disp_cent': 96},
             1.1: {'t': 1.1, 'cent': 6, 'disp_cent': 6},
-        })
+        }, output_to_file=prefix+"StopWatch1.txt")
 
     def testStopWatch2(self):
-        run_sim_test(self, "./Examples/Stateflow/tests/StopWatch2.xml", 6000, {
+        run_sim_test(self, prefix+"StopWatch2.xml", 6000, {
             0: {'t': 0.0, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
             0.1: {'t': 0.1, 'cent': 8, 'disp_cent': 2, 'start': 1.0, 'lap': 0.0},
             0.2: {'t': 0.2, 'cent': 18, 'disp_cent': 18, 'start': 0.0, 'lap': 0.0},
@@ -767,10 +873,10 @@ class SFConvertTest(unittest.TestCase):
             0.8: {'t': 0.8, 'cent': 18, 'disp_cent': 18, 'start': 0.0, 'lap': 0.0},
             0.9: {'t': 0.9, 'cent': 28, 'disp_cent': 22, 'start': 0.0, 'lap': 0.0},
             1.0: {'t': 1.0, 'cent': 30, 'disp_cent': 22, 'start': 1.0, 'lap': 0.0},
-        })
+        }, output_to_file=prefix+"StopWatch2.txt")
 
     def testStopWatch3(self):
-        run_sim_test(self, "./Examples/Stateflow/tests/StopWatch3.xml", 6000, {
+        run_sim_test(self, prefix+"StopWatch3.xml", 6000, {
             0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
             0.1: {'t': 0.1, 'cent': 6, 'disp_cent': 5},
             0.2: {'t': 0.2, 'cent': 16, 'disp_cent': 5},
@@ -783,10 +889,10 @@ class SFConvertTest(unittest.TestCase):
             0.9: {'t': 0.9, 'cent': 56, 'disp_cent': 56},
             1.0: {'t': 1.0, 'cent': 66, 'disp_cent': 66},
             1.1: {'t': 1.1, 'cent': 76, 'disp_cent': 76},
-        })
+        }, output_to_file=prefix+"StopWatch3.txt")
 
     def testStopWatch4(self):
-        run_sim_test(self, "./Examples/Stateflow/tests/StopWatch4.xml", 6000, {
+        run_sim_test(self, prefix+"StopWatch4.xml", 6000, {
             0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
             0.1: {'t': 0.1, 'cent': 6, 'disp_cent': 6},
             0.2: {'t': 0.2, 'cent': 16, 'disp_cent': 16},
@@ -799,10 +905,10 @@ class SFConvertTest(unittest.TestCase):
             0.9: {'t': 0.9, 'cent': 21, 'disp_cent': 21},
             1.0: {'t': 1.0, 'cent': 31, 'disp_cent': 31},
             1.1: {'t': 1.1, 'cent': 41, 'disp_cent': 41},
-        })
+        }, output_to_file=prefix+"StopWatch4.txt")
 
     def testStopWatch5(self):
-        run_sim_test(self, "./Examples/Stateflow/tests/StopWatch5.xml", 6000, {
+        run_sim_test(self, prefix+"StopWatch5.xml", 6000, {
             0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
             0.1: {'t': 0.1, 'cent': 6, 'disp_cent': 6},
             0.2: {'t': 0.2, 'cent': 16, 'disp_cent': 15},
@@ -815,10 +921,10 @@ class SFConvertTest(unittest.TestCase):
             0.9: {'t': 0.9, 'cent': 56, 'disp_cent': 56},
             1.0: {'t': 1.0, 'cent': 66, 'disp_cent': 66},
             1.1: {'t': 1.1, 'cent': 76, 'disp_cent': 76},
-        })
+        }, output_to_file=prefix+"StopWatch5.txt")
 
     def testStopWatch6(self):
-        run_sim_test(self, "./Examples/Stateflow/tests/StopWatch6.xml", 6000, {
+        run_sim_test(self, prefix+"StopWatch6.xml", 6000, {
             0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
             0.1: {'t': 0.1, 'cent': 6, 'disp_cent': 6},
             0.2: {'t': 0.2, 'cent': 16, 'disp_cent': 15},
@@ -831,7 +937,7 @@ class SFConvertTest(unittest.TestCase):
             0.9: {'t': 0.9, 'cent': 56, 'disp_cent': 56},
             1.0: {'t': 1.0, 'cent': 66, 'disp_cent': 66},
             1.1: {'t': 1.1, 'cent': 76, 'disp_cent': 76},
-        })
+        }, output_to_file=prefix+"StopWatch6.txt")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,9 @@
-// TODO: Capital letters indicate that the rule produces a node in the parse tree!
 
-@precedence { conj @right, disj @right, imp @right }
+// Capital letters indicate that the rule produces a node in the parse tree!
+// When changing this file, regenerate the grammar: 
+// lezer-generator ./src/grammar/hcsp.grammar > ./src/grammar/hcsp_parser.js
+
+@precedence { conj @right, disj @right, equiv @right, imp @right }
 
 lname {
   var_expr { CNAME }
@@ -63,34 +66,39 @@ atom_cond {
   | LessCond { expr "<" expr }
   | GreaterEqCond { expr ">=" expr }
   | GreaterCond { expr ">" expr }
-  | NotCond { "~" cond }
+  | NotCond { "!" cond }
   | TrueCond { "true" }
   | FalseCond { "false" }
   | "(" cond ")"
 } 
 
 conj {
-  ConjCond { atom_cond !conj "&&" conj }
+  ConjCond { atom_cond !conj "&" conj }
   | atom_cond       // Conjunction: priority 35
 }
 
 disj {
-  DisjCond { conj !disj "||" disj }
+  DisjCond { conj !disj "|" disj }
   | conj                 // Disjunction: priority 30
 }
 
+equiv {
+  EquivCond { disj !equiv "<->" equiv }
+  | disj                  // Equivalent: priority 25
+}
+
 imp {
-  ImpCond { disj !imp "-->" imp }
-  | disj                  // Implies: priority 25
+  ImpCond { equiv !imp "->" imp }
+  | equiv                  // Implies: priority 20
 }
 
 exists_expr {
-  ExCond { "EX" CNAME "." imp }            // Exists: priority 10
+  ExCond { "\\exists" CNAME "." imp }            // Exists: priority 10
   | imp
 }
 
 forall_expr {
-  ForallCond { "Forall" CNAME "." imp }
+  ForallCond { "\\forall" CNAME "." imp }
 }
 
 cond { 
@@ -130,40 +138,33 @@ interrupt {
 }
 
 atom_cmd {
-  VarCmd { "@" CNAME }
-  | SkipCmd { "skip" }
-  | WaitCmd { "wait" "(" expr ")" }
-  | AssignCmd { atom_expr ":=" expr }
-  | MultiAssignCmd { "(" lname ("," lname)+ ")" ":=" expr } // TODO: used + instead * here to avoid abiguity
-  | RandomAssignCmd { atom_expr ":=" "{" cond "}" }
-  | AssertCmd { "assert" "(" cond ("," expr)* ")" }
-  | TestCmd { "test" "(" cond ("," expr)* ")" }
-  | LogCmd { "log" "(" expr ("," expr)* ")" }
-  | comm_cmd
-  | RepeatCmd { "(" cmd ")**" maybe_invariant }
-  | RepeatCondCmd { "(" cmd "){" cond "}**"  maybe_invariant}
-  | RepeatCmdInv { "(" cmd ")**@invariant(" cond ")" }
-  | RepeatCondCmdInv { "(" cmd "){" cond "}**@invariant(" cond ")" }
+  VarCmd { "@" CNAME ";" }
+  | SkipCmd { "skip" ";" }
+  | WaitCmd { "wait" "(" expr ")" ";" }
+  | AssignCmd { lname ":=" expr ";" }
+  | MultiAssignCmd { "(" lname ("," lname)+ ")" ":=" expr ";" } // TODO: used + instead * here to avoid abiguity
+  | RandomAssignCmd { lname ":=" "*" "(" cond ")" ";" }
+  | AssertCmd { "assert" "(" cond ("," expr)* ")"  ";" }
+  | TestCmd { "test" "(" cond ("," expr)* ")" ";" }
+  | LogCmd { "log" "(" expr ("," expr)* ")" ";" }
+  | comm_cmd ";"
+  | RepeatCmd { "{" cmd "}" "*" maybe_loop_invariant }
+  | RepeatCondCmd { "{" cmd "}" "*(" cond ")" maybe_loop_invariant}
   | Ode { OdeNoInv maybe_ode_invariant }
   | OdeCommConst { "<" "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant}
   | OdeComm { "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant} 
-  | RecCmd { "rec" CNAME ".(" cmd ")" }
-  | IteCmd { "if" cond "then" cmd ("elif" cond "then" cmd)* "else" cmd "endif" }
-  | ParenCmd { "(" cmd ")" }
-}
-
-cond_cmd {
-  atom_cmd 
-  | CondCmd { cond "->" atom_cmd }      // Priority: 90
+  | RecCmd { "rec" CNAME "{" cmd "}" }
+  | IteCmd { "if" "(" cond ")" "{" cmd "}" ("else" "if" "(" cond ")" "{" cmd "}")* ("else" "{" cmd "}")? }
+  | ParenCmd { "{" cmd "}" }
 }
 
 ichoice_cmd {
-  cond_cmd 
-  | IchoiceCmd { ichoice_cmd "++" cond_cmd }
+  atom_cmd 
+  | IchoiceCmd { ichoice_cmd "++" atom_cmd }
 }   // Priority: 80
 
 SeqCmd {
-  ichoice_cmd (";" ichoice_cmd)*  // Priority: 70
+  ichoice_cmd* // Priority: 70
 }
 
 select_cmd {
@@ -175,11 +176,18 @@ cmd { select_cmd }
 
 procedure { "procedure" CNAME "begin" cmd "end" }
 
-maybe_invariant { ("invariant " Invariant)?}
+maybe_invariant { ("invariant" Invariant ";")?}
 
 Invariant { "[" cond "]"}
 
-maybe_ode_invariant{ ("invariant " Ode_invariant+)?}
+maybe_loop_invariant { ("invariant" Loop_invariant+ ";")? }
+Loop_invariant { Invariant ("{{" proof_method ("," proof_method)* "}}")? }
+proof_method { label ":" method }
+label { CNAME? SIGNED_NUMBER? }    
+method { "Z3"       
+      | "Wolfram Engine" }
+
+maybe_ode_invariant{ ("invariant" Ode_invariant+ ";")?}
 
 //TODO: Do we need 'expr?' after 'ode_rule'?
 Ode_invariant { InvariantWithRule
@@ -195,7 +203,11 @@ ode_rule {
   "di" | "dbx" | "bc" | "dw" | "sln"
 }
 
-@top parallel_cmd { cmd ("||" cmd)* }  // Priority 30, outermost level only
+hoare_pre { "pre" ("[" cond "]")* ";" }
+hoare_post { "post" ("[" cond "]")* ";" }
+@top hoare_triple { hoare_pre cmd hoare_post }
+
+parallel_cmd { cmd ("||" cmd)* }  // Priority 30, outermost level only
 
 ModuleSig { 
   CNAME "(" (CNAME | "$" CNAME) ("," (CNAME | "$" CNAME))* ")"  
@@ -272,15 +284,16 @@ Decls {
   "=" ":="
   "==" "!=" "<" "<=" ">" ">="
 
-  "(" ")" "[" "]" "{" "}" ")**" "){" ")**@invariant(" "|>" "[]" ".("
+  "(" ")" "[" "]" "{" "}" "*(" "){" "invariant" "|>" "[]" ".("
   "if" "then" "else" "elif" "endif"
-  "true" "false"
-  "gcd" "log" "max" "min" "rec" "skip" "test" "wait" "EX" "Forall" "assert"
+  "true" "false" "pre" "post"
+  "gcd" "log" "max" "min" "rec" "skip" "test" "wait" "\\exists" "\\forall" "assert"
   "output"  "module" "begin" "end" "endmodule" "system" "endsystem" "import" "%type: module"
   
   @precedence { 
-    SIGNED_NUMBER, "-",
-    "true", "false", "gcd", "if", "elif", "else", "endif", "log", "max", "min", "rec", "skip", "test", "wait", "EX", "Forall", "assert", CNAME }
+    SIGNED_NUMBER, "-", "pre", "post",
+    "true", "false", "gcd", "if", "else", "log", "max", "min", "rec", "skip", 
+    "test", "wait", "\\exists", "\\forall", "assert", "invariant", CNAME }
 }
 
 @detectDelim
