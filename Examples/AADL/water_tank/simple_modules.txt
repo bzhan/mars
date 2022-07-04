@@ -22,12 +22,13 @@ begin
 lb := 4.4; ub := 5.6; v := 1;
 (
 wl?h;
-pre_v := v;
+wait(0.025);
+# pre_v := v;
 if h >= ub then v := 0 elif h <= lb then v := 1 else skip endif;
-(pre_v == 1 && v == 0) -> log("here");
+# (pre_v == 1 && v == 0) -> log("here");
 wait(0.025);
 vc!v;
-wait(0.075)
+wait(0.05)
 )**
 end
 endmodule
