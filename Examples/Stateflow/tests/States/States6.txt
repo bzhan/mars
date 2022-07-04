@@ -1,0 +1,21 @@
+%type: module
+
+module Chart():
+begin
+  ChartEL := [];
+  log("enA" + "\n");
+  log("enA1" + "\n");
+  log("enA2" + "\n");
+  log("enB" + "\n");
+  log("enB1" + "\n");
+  s := "enB2";
+  log("enB2" + "\n");
+  {
+    Chart_ret := 0;
+    wait(0.1);
+  }*
+end
+endmodule
+system
+Chart()
+endsystem

@@ -649,12 +649,12 @@ qed
 
 inductive waitin_assn :: "real \<Rightarrow> (real \<Rightarrow> 'a gstate) \<Rightarrow> cname \<Rightarrow> real \<Rightarrow> rdy_info \<Rightarrow>  'a tassn" ("Waitin\<^sub>t") where
   "d > 0 \<Longrightarrow> Waitin\<^sub>t d p ch v rdy [WaitBlk d (\<lambda>\<tau>. p \<tau>) rdy, InBlock ch v]"
-| "d \<le> 0 \<Longrightarrow> Waitin\<^sub>t d p ch v rdy [InBlock ch v]"
+| "d = 0 \<Longrightarrow> Waitin\<^sub>t d p ch v rdy [InBlock ch v]"
 
 
 inductive waitout_assn :: "real \<Rightarrow> (real \<Rightarrow> 'a gstate) \<Rightarrow> cname \<Rightarrow> real \<Rightarrow> rdy_info \<Rightarrow> 'a tassn" ("Waitout\<^sub>t") where
-  "d > 0 \<Longrightarrow> Waitout\<^sub>t d p ch v rdy [WaitBlk d (\<lambda>\<tau>. p \<tau>) rdy, InBlock ch v]"
-| "d \<le> 0 \<Longrightarrow> Waitout\<^sub>t d p ch v rdy [InBlock ch v]"
+  "d > 0 \<Longrightarrow> Waitout\<^sub>t d p ch v rdy [WaitBlk d (\<lambda>\<tau>. p \<tau>) rdy, OutBlock ch v]"
+| "d = 0 \<Longrightarrow> Waitout\<^sub>t d p ch v rdy [OutBlock ch v]"
 
 (*
 theorem Valid_interrupt_sol:
@@ -726,5 +726,8 @@ proof -
   qed
 
 *)
+
+
+
 
 end

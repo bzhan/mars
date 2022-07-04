@@ -1,0 +1,89 @@
+%type: module
+
+module Chart():
+procedure exec_Chart begin
+  Chart_ret := 0;
+  if (Chart_A_st == "Chart_A_A1") {
+    Chart_A_A1_done := 0;
+    if ((ChartEL != [] & top(ChartEL) == "E") & x > 0) {
+      if (Chart_A_st == "Chart_A_A1") {
+        s := "exA1";
+        log("exA1" + "\n");
+        x := x - 1;
+        ChartEL := push(ChartEL,"E");
+        @exec_Chart;
+        ChartEL := pop(ChartEL);
+        if (Chart_A_st == "Chart_A_A1") {
+          s := "exA1_done";
+          log("exA1_done" + "\n");
+        }
+        if (Chart_A_st == "Chart_A_A1") {
+          Chart_A_st := "";
+        }
+        if (Chart_A_st == "") {
+          Chart_A_st := "Chart_A_A3";
+          s := "enA3";
+          log("enA3" + "\n");
+        }
+        Chart_ret := 1;
+        Chart_A_A1_done := 1;
+      }
+    }
+    if (Chart_A_st == "Chart_A_A1" & Chart_A_A1_done == 0 & ChartEL != [] & top(ChartEL) == "F") {
+      if (Chart_A_st == "Chart_A_A1") {
+        s := "exA1";
+        log("exA1" + "\n");
+        x := x - 1;
+        ChartEL := push(ChartEL,"E");
+        @exec_Chart;
+        ChartEL := pop(ChartEL);
+        if (Chart_A_st == "Chart_A_A1") {
+          s := "exA1_done";
+          log("exA1_done" + "\n");
+        }
+        if (Chart_A_st == "Chart_A_A1") {
+          Chart_A_st := "";
+        }
+        if (Chart_A_st == "") {
+          Chart_A_st := "Chart_A_A2";
+          s := "enA2";
+          log("enA2" + "\n");
+        }
+      }
+    }
+  }
+  Chart_ret := 0;
+  if (Chart_B_st == "Chart_B_B1") {
+    Chart_B_B1_done := 0;
+    if (Chart_B_st == "Chart_B_B1") {
+      Chart_B_st := "";
+      s := "F";
+      log("F" + "\n");
+      ChartEL := push(ChartEL,"F");
+      @exec_Chart;
+      ChartEL := pop(ChartEL);
+      if (Chart_B_st == "") {
+        Chart_B_st := "Chart_B_B2";
+      }
+      Chart_B_B1_done := 1;
+    }
+    Chart_ret := Chart_B_B1_done;
+  } else if (Chart_B_st == "Chart_B_B2") {
+    Chart_ret := 0;
+  }
+end
+
+begin
+  ChartEL := [];
+  x := 5;
+  Chart_A_st := "Chart_A_A1";
+  Chart_B_st := "Chart_B_B1";
+  {
+    @exec_Chart;
+    wait(0.1);
+  }*
+end
+endmodule
+system
+Chart()
+endsystem

@@ -2,6 +2,7 @@
 
 from collections import OrderedDict
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, false_expr, RelExpr, LogicExpr
+from ss2hcsp.hcsp.invariant import Invariant, LoopInvariant
 from ss2hcsp.matlab import function
 from ss2hcsp.util.topsort import topological_sort
 import re
@@ -82,7 +83,10 @@ class HCSP:
     def get_vars(self):
         return set()
 
-    def get_funs(self):
+    def get_fun_names(self):
+        return set()
+
+    def get_zero_arity_funcs(self):
         return set()
 
     def get_chs(self):
@@ -97,8 +101,6 @@ class HCSP:
             return 70
         elif self.type == "ichoice":
             return 80
-        elif self.type == "condition":
-            return 90
         else:
             return 100
 
@@ -109,14 +111,15 @@ class HCSP:
             return 1
         elif isinstance(self, (Sequence, Parallel)):
             return 1 + sum([hp.size() for hp in self.hps])
-        elif isinstance(self, (Loop, Condition, Recursion)):
+        elif isinstance(self, (Loop, Recursion)):
             return 1 + self.hp.size()
         elif isinstance(self, ODE):
             return 1
         elif isinstance(self, (ODE_Comm, SelectComm)):
             return 1 + sum([1 + out_hp.size() for comm_hp, out_hp in self.io_comms])
         elif isinstance(self, ITE):
-            return 1 + sum([1 + hp.size() for cond, hp in self.if_hps]) + self.else_hp.size()
+            return 1 + sum([1 + hp.size() for cond, hp in self.if_hps]) + \
+              (self.else_hp.size() if self.else_hp else 0)
         else:
             raise NotImplementedError
 
@@ -140,7 +143,7 @@ class HCSP:
                 if io_comm[1].contain_hp(name):
                     return True
         elif isinstance(self, ITE):
-            if self.else_hp.contain_hp(name):
+            if self.else_hp.else_hp is not None and self.else_hp.contain_hp(name):
                 return True
             for sub_hp in [hp for cond, hp in self.if_hps]:
                 if sub_hp.contain_hp(name):
@@ -148,25 +151,43 @@ class HCSP:
         else:
             raise NotImplementedError
 
+    def get_contain_hps_count(self):
+        """Returns the dictionary mapping contained hps to number
+        of appearances.
+        
+        """
+        res = dict()
+
+        def rec(hp):
+            if isinstance(hp, Var):
+                if hp.name not in res:
+                    res[hp.name] = 0
+                res[hp.name] += 1
+            elif isinstance(hp, (Skip, Wait, Assign, Assert, Test, Log, InputChannel, OutputChannel)):
+                pass
+            elif isinstance(hp, (Sequence, Parallel)):
+                for sub_hp in hp.hps:
+                    rec(sub_hp)
+            elif isinstance(hp, (Loop, Recursion)):
+                rec(hp.hp)
+            elif isinstance(hp, ODE):
+                rec(hp.out_hp)
+            elif isinstance(hp, (ODE_Comm, SelectComm)):
+                for _, out_hp in hp.io_comms:
+                    rec(out_hp)
+            elif isinstance(hp, ITE):
+                for _, sub_hp in hp.if_hps:
+                    rec(sub_hp)
+                if hp.else_hp is not None:
+                    rec(hp.else_hp)
+            else:
+                raise NotImplementedError
+        rec(self)
+        return res
+
     def get_contain_hps(self):
         """Returns the set of Var calls contained in self."""
-        if isinstance(self, Var):
-            return {self.name}
-        elif isinstance(self, (Skip, Wait, Assign, Assert, Test, Log, InputChannel, OutputChannel)):
-            return set()
-        elif isinstance(self, (Sequence, Parallel)):
-            return set().union(*(hp.get_contain_hps() for hp in self.hps))
-        elif isinstance(self, (Loop, Condition, Recursion)):
-            # Note the test for Recursion is imprecise.
-            return self.hp.get_contain_hps()
-        elif isinstance(self, ODE):
-            return self.out_hp.get_contain_hps()
-        elif isinstance(self, (ODE_Comm, SelectComm)):
-            return set().union(*(io_comm[1].get_contain_hps() for io_comm in self.io_comms))
-        elif isinstance(self, ITE):
-            return self.else_hp.get_contain_hps().union(*(hp.get_contain_hps() for cond, hp in self.if_hps))
-        else:
-            raise NotImplementedError
+        return set(self.get_contain_hps_count())
 
     def subst_comm(self, inst):
         def subst_io_comm(io_comm):
@@ -208,14 +229,13 @@ class HCSP:
                             [subst_io_comm(io_comm) for io_comm in self.io_comms])
         elif self.type == 'loop':
             return Loop(self.hp.subst_comm(inst), constraint=self.constraint)
-        elif self.type == 'condition':
-            return Condition(self.cond.subst(inst), self.hp.subst_comm(inst))
         elif self.type == 'select_comm':
             return SelectComm(*(subst_io_comm(io_comm) for io_comm in self.io_comms))
         elif self.type == 'recursion':
             return Recursion(self.hp.subst_comm(inst), entry=self.entry)
         elif self.type == 'ite':
-            return ITE([subst_if_hp(if_hp) for if_hp in self.if_hps], self.else_hp.subst_comm(inst))
+            return ITE([subst_if_hp(if_hp) for if_hp in self.if_hps], 
+              self.else_hp.subst_comm(inst) if self.else_hp is not None else None)
         else:
             print(self.type)
             raise NotImplementedError
@@ -236,7 +256,7 @@ class Var(HCSP):
         return "Var(%s)" % self.name
 
     def __str__(self):
-        return "@" + self.name
+        return "@" + self.name + ";"
 
     def __hash__(self):
         return hash(("VAR", self.name))
@@ -258,7 +278,7 @@ class Skip(HCSP):
         return "Skip()"
 
     def __str__(self):
-        return "skip"
+        return "skip;"
 
     def __hash__(self):
         return hash("Skip")
@@ -279,7 +299,7 @@ class Wait(HCSP):
         return "Wait(%s)" % str(self.delay)
 
     def __str__(self):
-        return "wait(%s)" % str(self.delay)
+        return "wait(%s);" % str(self.delay)
 
     def __hash__(self):
         return hash(("Wait", self.delay))
@@ -330,7 +350,7 @@ class Assign(HCSP):
             var_str=str(self.var_name)
         else:
             var_str = "(%s)" % (', '.join(str(n) for n in self.var_name))
-        return "%s := %s" % (var_str, self.expr)
+        return "%s := %s;" % (var_str, self.expr)
 
     def __hash__(self):
         return hash(("Assign", self.var_name, self.expr))
@@ -342,8 +362,11 @@ class Assign(HCSP):
             var_set = set(str(n) for n in self.var_name)
         return var_set.union(self.expr.get_vars())
 
-    def get_funs(self):
-        return set().union(self.expr.get_funs())
+    def get_fun_names(self):
+        return set().union(self.expr.get_fun_names())
+
+    def get_zero_arity_funcs(self):
+        return set().union(self.expr.get_zero_arity_funcs())
 
     def sc_str(self):
         return re.sub(pattern=":=", repl="=", string=str(self))
@@ -397,7 +420,7 @@ class RandomAssign(HCSP):
             var_str=str(self.var_name)
         else:
             var_str = "(%s)" % (', '.join(str(n) for n in self.var_name))
-        return var_str + " := " + "{" + str(self.expr) + "}"
+        return var_str + " := " + "*(" + str(self.expr) + ");"
 
     def __hash__(self):
         return hash(("RandomAssign", self.var_name, self.expr))
@@ -409,8 +432,11 @@ class RandomAssign(HCSP):
             var_set = set(str(n) for n in self.var_name)
         return var_set.union(self.expr.get_vars())
 
-    def get_funs(self):
-        return set.union(self.expr.get_funs())
+    def get_fun_names(self):
+        return set.union(self.expr.get_fun_names())
+
+    def get_zero_arity_funcs(self):
+        return set.union(self.expr.get_zero_arity_funcs())
 
     def priority(self):
         return 100
@@ -437,9 +463,9 @@ class Assert(HCSP):
 
     def __str__(self):
         if self.msgs:
-            return "assert(%s,%s)" % (self.bexpr, ','.join(str(msg) for msg in self.msgs))
+            return "assert(%s,%s);" % (self.bexpr, ','.join(str(msg) for msg in self.msgs))
         else:
-            return "assert(%s)" % self.bexpr
+            return "assert(%s);" % self.bexpr
 
     def __hash__(self):
         return hash(("Assert", self.bexpr, self.msgs))
@@ -450,10 +476,16 @@ class Assert(HCSP):
             var_set.update(msg.get_vars())
         return var_set
 
-    def get_funs(self):
-        fun_set = self.bexpr.get_funs()
+    def get_fun_names(self):
+        fun_set = self.bexpr.get_fun_names()
         for msg in self.msgs:
-            fun_set.update(msg.get_funs())
+            fun_set.update(msg.get_fun_names())
+        return fun_set
+
+    def get_zero_arity_funcs(self):
+        fun_set = self.bexpr.get_zero_arity_funcs()
+        for msg in self.msgs:
+            fun_set.update(msg.get_zero_arity_funcs())
         return fun_set
 
 
@@ -479,9 +511,9 @@ class Test(HCSP):
 
     def __str__(self):
         if self.msgs:
-            return "test(%s,%s)" % (self.bexpr, ','.join(str(msg) for msg in self.msgs))
+            return "test(%s,%s);" % (self.bexpr, ','.join(str(msg) for msg in self.msgs))
         else:
-            return "test(%s)" % self.bexpr
+            return "test(%s);" % self.bexpr
 
     def __hash__(self):
         return hash(("Test", self.bexpr, self.msgs))
@@ -492,10 +524,16 @@ class Test(HCSP):
             var_set.update(msg.get_vars())
         return var_set
 
-    def get_funs(self):
-        fun_set = self.bexpr.get_funs()
+    def get_fun_names(self):
+        fun_set = self.bexpr.get_fun_names()
         for msg in self.msgs:
-            fun_set.update(msg.get_funs())
+            fun_set.update(msg.get_fun_names())
+        return fun_set
+
+    def get_zero_arity_funcs(self):
+        fun_set = self.bexpr.get_zero_arity_funcs()
+        for msg in self.msgs:
+            fun_set.update(msg.get_zero_arity_funcs())
         return fun_set
 
 
@@ -524,9 +562,9 @@ class Log(HCSP):
 
     def __str__(self):
         if self.exprs:
-            return "log(%s,%s)" % (self.pattern, ','.join(str(expr) for expr in self.exprs))
+            return "log(%s,%s);" % (self.pattern, ','.join(str(expr) for expr in self.exprs))
         else:
-            return "log(%s)" % self.pattern
+            return "log(%s);" % self.pattern
 
     def __hash__(self):
         return hash(("Log", self.pattern, self.exprs))
@@ -537,10 +575,16 @@ class Log(HCSP):
             var_set.update(expr.get_vars())
         return var_set
 
-    def get_funs(self):
-        fun_set = self.pattern.get_funs()
+    def get_fun_names(self):
+        fun_set = self.pattern.get_fun_names()
         for expr in self.exprs:
-            fun_set.update(expr.get_funs())
+            fun_set.update(expr.get_fun_names())
+        return fun_set
+
+    def get_zero_arity_funcs(self):
+        fun_set = self.pattern.get_zero_arity_funcs()
+        for expr in self.exprs:
+            fun_set.update(expr.get_zero_arity_funcs())
         return fun_set
     
 class InputChannel(HCSP):
@@ -569,9 +613,9 @@ class InputChannel(HCSP):
 
     def __str__(self):
         if self.var_name:
-            return str(self.ch_name) + "?" + str(self.var_name)
+            return str(self.ch_name) + "?" + str(self.var_name) + ";"
         else:
-            return str(self.ch_name) + "?"
+            return str(self.ch_name) + "?" + ";"
 
     def __hash__(self):
         return hash(("InputChannel", self.ch_name, self.var_name))
@@ -581,7 +625,10 @@ class InputChannel(HCSP):
             return {str(self.var_name)}
         return set()
 
-    def get_funs(self):
+    def get_fun_names(self):
+        return set()
+
+    def get_zero_arity_funcs(self):
         return set()
 
     def get_chs(self):
@@ -608,6 +655,7 @@ class ParaInputChannel(InputChannel):
         result += "?"
         if self.var_name:
             result += str(self.var_name)
+        result += ";"
         return result
 
 
@@ -634,9 +682,9 @@ class OutputChannel(HCSP):
 
     def __str__(self):
         if self.expr:
-            return str(self.ch_name) + "!" + str(self.expr)
+            return str(self.ch_name) + "!" + str(self.expr) + ";"
         else:
-            return str(self.ch_name) + "!"
+            return str(self.ch_name) + "!" + ";"
 
     def __hash__(self):
         return hash(("OutputChannel", self.ch_name, self.expr))
@@ -646,9 +694,14 @@ class OutputChannel(HCSP):
             return self.expr.get_vars()
         return set()
 
-    def get_funs(self):
+    def get_fun_names(self):
         if self.expr:
-            return self.expr.get_funs()
+            return self.expr.get_fun_names()
+        return set()
+
+    def get_zero_arity_funcs(self):
+        if self.expr:
+            return self.expr.get_zero_arity_funcs()
         return set()
 
     def get_chs(self):
@@ -672,9 +725,9 @@ class ParaOutputChannel(OutputChannel):
                 result += "[\"" + str(para) + "\"]"
             else:
                 result += "[" + str(para) + "]"
-        result += "!"
         if self.expr:
             result += str(self.expr)
+        result += ";"
         return result
 
 
@@ -705,8 +758,8 @@ class Sequence(HCSP):
         return "Seq(%s)" % ", ".join(repr(hp) for hp in self.hps)
 
     def __str__(self):
-        return "; ".join(
-            str(hp) if hp.priority() > self.priority() else "(" + str(hp) + ")"
+        return " ".join(
+            str(hp) if hp.priority() > self.priority() else "{" + str(hp) + "}"
             for hp in self.hps)
 
     def __hash__(self):
@@ -725,10 +778,16 @@ class Sequence(HCSP):
             var_set.update(hp.get_vars())
         return var_set
 
-    def get_funs(self):
+    def get_fun_names(self):
         fun_set = set()
         for hp in self.hps:
-            fun_set.update(hp.get_funs())
+            fun_set.update(hp.get_fun_names())
+        return fun_set
+
+    def get_zero_arity_funcs(self):
+        fun_set = set()
+        for hp in self.hps:
+            fun_set.update(hp.get_zero_arity_funcs())
         return fun_set
 
     def get_chs(self):
@@ -778,9 +837,11 @@ class IChoice(HCSP):
     def get_vars(self):
         return self.hp1.get_vars().union(self.hp2.get_vars())
 
-    def get_funs(self):
-        return self.hp1.get_funs().union(self.hp2.get_funs())
+    def get_fun_names(self):
+        return self.hp1.get_fun_names().union(self.hp2.get_fun_names())
 
+    def get_zero_arity_funcs(self):
+        return self.hp1.get_zero_arity_funcs().union(self.hp2.get_zero_arity_funcs())
 
 class ODE(HCSP):
     """Represents an ODE program of the form
@@ -801,6 +862,10 @@ class ODE(HCSP):
             assert isinstance(eq, tuple) and len(eq) == 2
             assert isinstance(eq[0], str) and isinstance(eq[1], AExpr)
         assert isinstance(constraint, BExpr)
+        assert inv is None or isinstance(inv, tuple)
+        if isinstance(inv, tuple):
+            for sub_inv in inv:
+                assert isinstance(sub_inv, Invariant)
         assert not out_hp or isinstance(out_hp, HCSP)
 
         self.type = "ode"
@@ -837,12 +902,20 @@ class ODE(HCSP):
         var_set.update(self.out_hp.get_vars())
         return var_set
 
-    def get_funs(self):
+    def get_fun_names(self):
         fun_set = set()
         for _, expression in self.eqs:
-            fun_set.update(expression.get_funs())
-        fun_set.update(self.constraint.get_funs())
-        fun_set.update(self.out_hp.get_funs())
+            fun_set.update(expression.get_fun_names())
+        fun_set.update(self.constraint.get_fun_names())
+        fun_set.update(self.out_hp.get_fun_names())
+        return fun_set
+
+    def get_zero_arity_funcs(self):
+        fun_set = set()
+        for _, expression in self.eqs:
+            fun_set.update(expression.get_zero_arity_funcs())
+        fun_set.update(self.constraint.get_zero_arity_funcs())
+        fun_set.update(self.out_hp.get_zero_arity_funcs())
         return fun_set
 
     def get_chs(self):
@@ -887,12 +960,12 @@ class ODE_Comm(HCSP):
 
     def __str__(self):
         str_eqs = ", ".join(var_name + "_dot = " + str(expr) for var_name, expr in self.eqs)
-        str_io_comms = ", ".join(str(comm_hp) + " --> " + str(out_hp) for comm_hp, out_hp in self.io_comms)
+        str_io_comms = ", ".join(str(comm_hp)[:-1] + " --> " + str(out_hp) for comm_hp, out_hp in self.io_comms)
         return "<" + str_eqs + " & " + str(self.constraint) + "> |> [] (" + str_io_comms + ")"
 
     def __repr__(self):
         str_eqs = ", ".join(var_name + ", " + str(expr) for var_name, expr in self.eqs)
-        str_io_comms = ", ".join(str(comm_hp) + ", " + str(out_hp) for comm_hp, out_hp in self.io_comms)
+        str_io_comms = ", ".join(str(comm_hp)[:-1] + ", " + str(out_hp) for comm_hp, out_hp in self.io_comms)
         return "ODEComm(%s, %s, %s)" % (str_eqs, str(self.constraint), str_io_comms)
 
     def __hash__(self):
@@ -918,14 +991,24 @@ class ODE_Comm(HCSP):
             var_set.update(out_hp.get_vars())
         return var_set
 
-    def get_funs(self):
+    def get_fun_names(self):
         fun_set = set()
         for _, expression in self.eqs:
-            fun_set.update(expression.get_funs())
-        fun_set.update(self.constraint.get_funs())
+            fun_set.update(expression.get_fun_names())
+        fun_set.update(self.constraint.get_fun_names())
         for ch, out_hp in self.io_comms:
-            fun_set.update(ch.get_funs())
-            fun_set.update(out_hp.get_funs())
+            fun_set.update(ch.get_fun_names())
+            fun_set.update(out_hp.get_fun_names())
+        return fun_set
+
+    def get_zero_arity_funcs(self):
+        fun_set = set()
+        for _, expression in self.eqs:
+            fun_set.update(expression.get_zero_arity_funcs())
+        fun_set.update(self.constraint.get_zero_arity_funcs())
+        for ch, out_hp in self.io_comms:
+            fun_set.update(ch.get_zero_arity_funcs())
+            fun_set.update(out_hp.get_zero_arity_funcs())
         return fun_set
 
     def get_chs(self):
@@ -941,13 +1024,17 @@ class Loop(HCSP):
     
     hp : HCSP - body of the loop.
     constraint : BExpr - loop condition, default to true.
-    inv : list of BExpr - invariants
+    inv : tuple of LoopInvariants - invariants
 
     """
     def __init__(self, hp, *, inv=None, constraint=true_expr, meta=None):
         super(Loop, self).__init__()
         self.type = 'loop'
         assert isinstance(hp, HCSP)
+        if inv is not None:
+            assert isinstance(inv, tuple)
+            for sub_inv in inv:
+                assert isinstance(sub_inv, LoopInvariant)
         self.hp = hp
         self.inv = inv
         self.constraint = constraint
@@ -965,9 +1052,9 @@ class Loop(HCSP):
 
     def __str__(self):
         if self.constraint == true_expr:
-            return "(%s)**" % str(self.hp)
+            return "{%s}*" % str(self.hp)
         else:
-            return "(%s){%s}**" % (str(self.hp), str(self.constraint))
+            return "{%s}*(%s)" % (str(self.hp), str(self.constraint))
 
     def __hash__(self):
         return hash(("Loop", self.hp, self.constraint))
@@ -979,54 +1066,14 @@ class Loop(HCSP):
     def get_vars(self):
         return self.hp.get_vars()
 
-    def get_funs(self):
-        return self.hp.get_funs()
+    def get_fun_names(self):
+        return self.hp.get_fun_names()
+
+    def get_zero_arity_funcs(self):
+        return self.hp.get_zero_arity_funcs()
 
     def get_chs(self):
         return self.hp.get_chs()
-
-
-class Condition(HCSP):
-    """The alternative cond -> hp behaves as hp if cond is true, otherwise,
-    it terminates immediately.
-     
-    """
-    def __init__(self, cond, hp, meta=None):
-        super(Condition, self).__init__()
-        assert isinstance(cond, BExpr) and isinstance(hp, HCSP)
-        self.type = "condition"
-        self.cond = cond
-        self.hp = hp
-        self.meta = meta
-
-    def __eq__(self, other):
-        return self.type == other.type and self.cond == other.cond and self.hp == other.hp
-
-    def __repr__(self):
-        return "Condition(%s, %s)" % (str(self.cond), repr(self.hp))
-
-    def __str__(self):
-        return str(self.cond) + " -> " + \
-            (str(self.hp) if self.hp.priority() > self.priority() else "(" + str(self.hp) + ")")
-
-    def __hash__(self):
-        return hash(("Condition", self.cond, self.hp))
-
-    def sc_str(self):
-        assert isinstance(self.hp, Var)
-        if_hps = ((self.cond, self.hp),)
-        else_hp = Skip()
-        return ITE(if_hps, else_hp).sc_str()
-
-    def get_vars(self):
-        return self.cond.get_vars().union(self.hp.get_vars())
-
-    def get_funs(self):
-        return self.cond.get_funs().union(self.hp.get_funs())
-
-    def get_chs(self):
-        return self.hp.get_chs()
-
 
 class Parallel(HCSP):
     def __init__(self, *hps, meta=None):
@@ -1053,7 +1100,7 @@ class Parallel(HCSP):
 
     def __str__(self):
         return " || ".join(
-            str(hp) if hp.priority() > self.priority() else "(" + str(hp) + ")"
+            str(hp) if hp.priority() > self.priority() else "{" + str(hp) + "}"
             for hp in self.hps)
 
     def __hash__(self):
@@ -1070,11 +1117,18 @@ class Parallel(HCSP):
             var_set.update(hp.get_vars())
         return var_set
 
-    def get_funs(self):
+    def get_fun_names(self):
         fun_set = set()
         for hp in self.hps:
-            fun_set.update(hp.get_vars())
+            fun_set.update(hp.get_fun_names())
         return fun_set
+
+    def get_zero_arity_funcs(self):
+        fun_set = set()
+        for hp in self.hps:
+            fun_set.update(hp.get_zero_arity_funcs())
+        return fun_set
+
 
     def get_chs(self):
         ch_set = set()
@@ -1108,8 +1162,8 @@ class SelectComm(HCSP):
 
     def __str__(self):
         return " $ ".join(
-            "%s --> %s" % (comm_hp, out_hp) if out_hp.priority() > self.priority() else
-            "%s --> (%s)" % (comm_hp, out_hp)
+            "%s --> %s" % (str(comm_hp)[:-1], out_hp) if out_hp.priority() > self.priority() else
+            "%s --> {%s}" % (str(comm_hp)[:-1], out_hp)
             for comm_hp, out_hp in self.io_comms)
 
     def __hash__(self):
@@ -1126,11 +1180,18 @@ class SelectComm(HCSP):
             var_set.update(out_hp.get_vars())
         return var_set
 
-    def get_funs(self):
+    def get_fun_names(self):
         fun_set = set()
         for ch, out_hp in self.io_comms:
-            fun_set.update(ch.get_funs())
-            fun_set.update(out_hp.get_funs())
+            fun_set.update(ch.get_fun_names())
+            fun_set.update(out_hp.get_fun_names())
+        return fun_set
+
+    def get_zero_arity_funcs(self):
+        fun_set = set()
+        for ch, out_hp in self.io_comms:
+            fun_set.update(ch.get_zero_arity_funcs())
+            fun_set.update(out_hp.get_zero_arity_funcs())
         return fun_set
 
     def get_chs(self):
@@ -1157,7 +1218,7 @@ class Recursion(HCSP):
         return "Recursion(%s, %s)" % (self.entry, repr(self.hp))
 
     def __str__(self):
-        return "rec " + self.entry + ".(" + str(self.hp) + ")"
+        return "rec " + self.entry + " { " + str(self.hp) + " }"
 
     def __hash__(self):
         return hash(("Recursion", self.entry, self.hp))
@@ -1165,8 +1226,11 @@ class Recursion(HCSP):
     def get_vars(self):
         return self.hp.get_vars()
 
-    def get_funs(self):
-        return self.hp.get_funs()
+    def get_fun_names(self):
+        return self.hp.get_fun_names()
+
+    def get_zero_arity_funcs(self):
+        return self.hp.get_zero_arity_funcs()
 
     def get_chs(self):
         return self.hp.get_chs()
@@ -1188,9 +1252,7 @@ class ITE(HCSP):
         assert all(isinstance(cond, (BExpr,LogicExpr,RelExpr)) and isinstance(hp, (HCSP,function.Assign)) for cond, hp in if_hps)
         # assert all(isinstance(cond, BExpr) and isinstance(hp, HCSP) for cond, hp in if_hps)
         assert len(if_hps) > 0, "ITE: must have at least one if branch"
-        if else_hp is None:
-            else_hp = Skip()
-        assert isinstance(else_hp, HCSP)
+        assert else_hp is None or isinstance(else_hp, HCSP)
         self.type = "ite"
         self.if_hps = tuple(tuple(p) for p in if_hps)
         self.else_hp = else_hp
@@ -1204,40 +1266,58 @@ class ITE(HCSP):
         return "ITE(%s, %s)" % (if_hps_strs, repr(self.else_hp))
 
     def __str__(self):
-        res = "if %s then %s " % (self.if_hps[0][0], self.if_hps[0][1])
+        res = "if (%s) { %s " % (self.if_hps[0][0], self.if_hps[0][1])
         for cond, hp in self.if_hps[1:]:
-            res += "elif %s then %s " % (cond, hp)
-        res += "else %s endif" % self.else_hp
+            res += "} else if (%s) { %s " % (cond, hp)
+        if self.else_hp is None:
+            res += "}"
+        else:
+            res += "} else { %s }" % self.else_hp
         return res
 
     def __hash__(self):
         return hash(("ITE", self.if_hps, self.else_hp))
 
     def sc_str(self):
-        assert len(self.if_hps) == 1 and isinstance(self.if_hps[0][1], Var) and isinstance(self.else_hp, (Skip, Var))
-        return "if %s then %s else %s" % (self.if_hps[0][0], self.if_hps[0][1].sc_str(), self.else_hp.sc_str())
+        assert len(self.if_hps) == 1 and isinstance(self.if_hps[0][1], Var) and (self.else_hp is None or isinstance(self.else_hp, Var))
+        if self.else_hp is None:
+            return "if %s then %s" % (self.if_hps[0][0], self.if_hps[0][1].sc_str())
+        else:
+            return "if %s then %s else %s" % (self.if_hps[0][0], self.if_hps[0][1].sc_str(), self.else_hp.sc_str())
 
     def get_vars(self):
         var_set = set()
         for cond, hp in self.if_hps:
             var_set.update(cond.get_vars())
             var_set.update(hp.get_vars())
-        var_set.update(self.else_hp.get_vars())
+        if self.else_hp is not None:
+            var_set.update(self.else_hp.get_vars())
         return var_set
 
-    def get_funs(self):
+    def get_fun_names(self):
         fun_set = set()
         for cond, hp in self.if_hps:
-            fun_set.update(cond.get_funs())
-            fun_set.update(hp.get_funs())
-        fun_set.update(self.else_hp.get_funs())
+            fun_set.update(cond.get_fun_names())
+            fun_set.update(hp.get_fun_names())
+        if self.else_hp is not None:
+            fun_set.update(self.else_hp.get_fun_names())
+        return fun_set
+
+    def get_zero_arity_funcs(self):
+        fun_set = set()
+        for cond, hp in self.if_hps:
+            fun_set.update(cond.get_zero_arity_funcs())
+            fun_set.update(hp.get_zero_arity_funcs())
+        if self.else_hp is not None:
+            fun_set.update(self.else_hp.get_zero_arity_funcs())
         return fun_set
 
     def get_chs(self):
         ch_set = set()
         for _, hp in self.if_hps:
             ch_set.update(hp.get_chs())
-        ch_set.update(self.else_hp.get_chs())
+        if self.else_hp is not None:
+            ch_set.update(self.else_hp.get_chs())
         return ch_set
 
 def ite(if_hps, else_hp):
@@ -1252,6 +1332,8 @@ def ite(if_hps, else_hp):
         else:
             new_if_hps.append((cond, if_hp))
     if len(new_if_hps) == 0:
+        if new_else_hp is None:
+            return Skip()
         return new_else_hp
     else:
         return ITE(new_if_hps, new_else_hp)
@@ -1280,16 +1362,24 @@ def get_comm_chs(hp):
             for comm_hp, out_hp in _hp.io_comms:
                 rec(comm_hp)
                 rec(out_hp)
-        elif _hp.type in ('loop', 'condition', 'recursion'):
+        elif _hp.type in ('loop', 'recursion'):
             rec(_hp.hp)
         elif _hp.type == 'ite':
             for _, sub_hp in _hp.if_hps:
                 rec(sub_hp)
-            rec(_hp.else_hp)
+            if _hp.else_hp is not None:
+                rec(_hp.else_hp)
     
     rec(hp)
     return list(OrderedDict.fromkeys(collect))
 
+class HoareTriple:
+    """A program with pre- and post-conditions"""
+    def __init__(self, pre, hp, post, meta=None):
+        self.pre = list(pre)
+        self.post = list(post)
+        self.hp = hp
+        self.meta = meta
 
 class Procedure:
     """Declared procedure within a process."""
@@ -1368,7 +1458,7 @@ def HCSP_subst(hp, inst):
             return hp
     elif isinstance(hp, (Skip, Wait, Assign, Assert, Test, Log, InputChannel, OutputChannel)):
         return hp
-    elif isinstance(hp, (Loop, Recursion, Condition)):
+    elif isinstance(hp, (Loop, Recursion)):
         hp.hp = HCSP_subst(hp.hp, inst)
         return hp
     elif isinstance(hp, Sequence):
@@ -1382,7 +1472,8 @@ def HCSP_subst(hp, inst):
         return hp
     elif isinstance(hp, ITE):
         hp.if_hps = tuple((e[0], HCSP_subst(e[1], inst)) for e in hp.if_hps)
-        hp.else_hp = HCSP_subst(hp.else_hp, inst)
+        if hp.else_hp is not None:
+            hp.else_hp = HCSP_subst(hp.else_hp, inst)
         return hp
     else:
         print(hp)
@@ -1420,14 +1511,15 @@ def reduce_procedures(hp, procs, strict_protect=None):
         dep_relation[name] = proc.get_contain_hps()
 
     # Construct reverse dependency relation, for heuristic selection of
-    # inlined functions
-    rev_dep_relation = dict()
-    rev_dep_relation[""] = 0
+    # inlined functions. For each hp
+    rev_dep_count = dict()
     for name in procs:
-        rev_dep_relation[name] = 0
-    for name, contains in dep_relation.items():
-        for contain in contains:
-            rev_dep_relation[contain] += 1
+        rev_dep_count[name] = 0
+    for name, count in hp.get_contain_hps_count().items():
+        rev_dep_count[name] += count
+    for _, proc in procs.items():
+        for name, count in proc.get_contain_hps_count().items():
+            rev_dep_count[name] += count
 
     # Set of procedures to be inlined, in order of removal
     inline_order = []
@@ -1438,7 +1530,7 @@ def reduce_procedures(hp, procs, strict_protect=None):
 
     # Also protect procedures that are too large and invoked too many times
     for name, proc in procs.items():
-        if rev_dep_relation[name] >= 2 and proc.size() > 2:
+        if rev_dep_count[name] >= 2 and proc.size() > 8:
             fixed.add(name)
 
     # Get the order of inlining
@@ -1527,7 +1619,8 @@ class HCSPProcess:
                 _hp.io_comms = tuple((io_comm[0], _substitute(io_comm[1])) for io_comm in _hp.io_comms)
             elif isinstance(_hp, ITE):
                 _hp.if_hps = tuple((e[0], _substitute(e[1])) for e in _hp.if_hps)
-                _hp.else_hp = _substitute(_hp.else_hp)
+                if _hp.else_hp is not None:
+                    _hp.else_hp = _substitute(_hp.else_hp)
             return _hp
 
         hps_dict = {name: hp for name, hp in self.hps}
@@ -1570,10 +1663,16 @@ class HCSPProcess:
             var_set.update(hp.get_vars())
         return var_set
 
-    def get_funs(self):
+    def get_fun_names(self):
         fun_set = set()
         for _, hp in self.hps:
-            fun_set.update(hp.get_funs())
+            fun_set.update(hp.get_fun_names())
+        return fun_set
+
+    def get_zero_arity_funcs(self):
+        fun_set = set()
+        for _, hp in self.hps:
+            fun_set.update(hp.get_zero_arity_funcs())
         return fun_set
 
     def get_chs(self):

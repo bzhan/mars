@@ -40,6 +40,11 @@ datatype 'a gstate =
   EState "'a ext_state"
 | ParState "'a gstate"  "'a gstate"
 
+type_synonym 'a g_exp = "'a gstate \<Rightarrow> real"
+
+fun exp_lift :: "'a ext_exp \<Rightarrow> 'a g_exp" where
+  "exp_lift e (EState s) = e s"
+| "exp_lift e (ParState s s') = undefined"
 
 datatype 'a pproc =
   Single "'a proc"
@@ -50,33 +55,27 @@ datatype comm_type = In | Out | IO
 
 datatype 'a trace_block =
   CommBlock comm_type cname real
-| WaitBlock ereal "real \<Rightarrow> 'a gstate" rdy_info
+| WaitBlock real "real \<Rightarrow> 'a gstate" rdy_info
 
 abbreviation "InBlock ch v \<equiv> CommBlock In ch v"
 abbreviation "OutBlock ch v \<equiv> CommBlock Out ch v"
 abbreviation "IOBlock ch v \<equiv> CommBlock IO ch v"
 
-fun WaitBlk :: "ereal \<Rightarrow> (real \<Rightarrow> 'a gstate) \<Rightarrow> rdy_info \<Rightarrow> 'a trace_block" where
-  "WaitBlk (ereal d) p rdy = WaitBlock (ereal d) (\<lambda>\<tau>\<in>{0..d}. p \<tau>) rdy"
-| "WaitBlk PInfty p rdy = WaitBlock PInfty (\<lambda>\<tau>\<in>{0..}. p \<tau>) rdy"
-| "WaitBlk MInfty p rdy = WaitBlock MInfty (\<lambda>_. undefined) rdy"
+fun WaitBlk :: "real \<Rightarrow> (real \<Rightarrow> 'a gstate) \<Rightarrow> rdy_info \<Rightarrow> 'a trace_block" where
+  "WaitBlk d p rdy = WaitBlock d (\<lambda>\<tau>\<in>{0..d}. p \<tau>) rdy"
+
 
 lemma WaitBlk_simps [simp]:
-  "WaitBlk (ereal d) p rdy = WaitBlock (ereal d) (\<lambda>\<tau>\<in>{0..d}. p \<tau>) rdy"
-  "WaitBlk \<infinity> p rdy = WaitBlock \<infinity> (\<lambda>\<tau>\<in>{0..}. p \<tau>) rdy"
-  "WaitBlk (-\<infinity>) p rdy = WaitBlock (-\<infinity>) (\<lambda>_. undefined) rdy"
+  "WaitBlk d p rdy = WaitBlock d (\<lambda>\<tau>\<in>{0..d}. p \<tau>) rdy"
   apply auto
-  using WaitBlk.simps(2) infinity_ereal_def 
-  apply metis
-  using WaitBlk.simps(3) 
-  by (metis MInfty_eq_minfinity)
+  done
 
 declare WaitBlk.simps [simp del]
 
 lemma WaitBlk_not_Comm [simp]:
   "WaitBlk d p rdy \<noteq> CommBlock ch_type ch v"
   "CommBlock ch_type ch v \<noteq> WaitBlk d p rdy"
-  by (cases d, auto)+
+  by (auto)+
 
 
 lemma restrict_cong_to_eq:
@@ -90,25 +89,23 @@ lemma restrict_cong_to_eq2:
   apply (auto simp add: restrict_def) by metis
 
 lemma WaitBlk_ext:
-  fixes t1 t2 :: ereal
+  fixes t1 t2 :: real
     and hist1 hist2 :: "real \<Rightarrow> 'a gstate"
   shows "t1 = t2 \<Longrightarrow>
    (\<And>\<tau>::real. 0 \<le> \<tau> \<Longrightarrow> \<tau> \<le> t1 \<Longrightarrow> hist1 \<tau> = hist2 \<tau>) \<Longrightarrow> rdy1 = rdy2 \<Longrightarrow>
    WaitBlk t1 hist1 rdy1 = WaitBlk t2 hist2 rdy2"
-  apply (cases t1)
-  apply (auto simp add: restrict_def)
-  apply (rule ext) by auto
+  by auto
 
 lemma WaitBlk_ext_real:
   fixes t1 :: real
     and t2 :: real
   shows "t1 = t2 \<Longrightarrow> (\<And>\<tau>. 0 \<le> \<tau> \<Longrightarrow> \<tau> \<le> t1 \<Longrightarrow> hist1 \<tau> = hist2 \<tau>) \<Longrightarrow> rdy1 = rdy2 \<Longrightarrow>
-         WaitBlk (ereal t1) hist1 rdy1 = WaitBlk (ereal t2) hist2 rdy2"
+         WaitBlk t1 hist1 rdy1 = WaitBlk t2 hist2 rdy2"
   by (auto simp add: restrict_def)
 
 lemma WaitBlk_cong:
   "WaitBlk t1 hist1 rdy1 = WaitBlk t2 hist2 rdy2 \<Longrightarrow> t1 = t2 \<and> rdy1 = rdy2"
-  apply (cases t1) by (cases t2, auto)+
+  by (auto)+
 
 lemma WaitBlk_cong2:
   assumes "WaitBlk t1 hist1 rdy1 = WaitBlk t2 hist2 rdy2"
@@ -119,80 +116,32 @@ proof -
     using assms WaitBlk_cong 
     by blast+
   show ?thesis
-  proof (cases t1)
-    case (real r)
-    have real2: "t2 = ereal r"
-      using real a by auto
-    show ?thesis
-      using assms(1)[unfolded real real2]
-      apply auto using restrict_cong_to_eq assms ereal_less_eq(3) real by blast
-  next
-    case PInf
-    have PInf2: "t2 = \<infinity>"
-      using PInf a by auto
-    show ?thesis
-      using assms(1)[unfolded PInf PInf2] restrict_cong_to_eq2 assms by auto
-  next
-    case MInf
-    show ?thesis
-      using assms MInf by auto
-  qed
+    using restrict_cong_to_eq assms 
+    by auto
 qed
 
 lemma WaitBlk_split1:
   fixes t1 :: real
   assumes "WaitBlk t p1 rdy = WaitBlk t p2 rdy"
-    and "0 < t1" "ereal t1 < t"
-  shows "WaitBlk (ereal t1) p1 rdy = WaitBlk (ereal t1) p2 rdy"
-proof (cases t)
-  case (real r)
-  show ?thesis
-    apply auto apply (rule ext) subgoal for x
-      using assms[unfolded real] 
-      using restrict_cong_to_eq[of p1 r p2 x] by auto
+    and "0 < t1" "t1 < t"
+  shows "WaitBlk t1 p1 rdy = WaitBlk t1 p2 rdy"
+  apply auto apply (rule ext) subgoal for x
+      using assms[unfolded ] 
+      using restrict_cong_to_eq[of p1 t p2 x] 
+      apply auto
     done
-next
-  case PInf
-  show ?thesis
-    apply auto apply (rule ext) subgoal for x
-      using assms[unfolded PInf] restrict_cong_to_eq2[of p1 p2 x] by auto
-    done
-next
-  case MInf
-  then show ?thesis
-    using assms by auto
-qed
+  done
 
 lemma WaitBlk_split2:
   fixes t1 :: real
   assumes "WaitBlk t p1 rdy = WaitBlk t p2 rdy"
-    and "0 < t1" "ereal t1 < t"
-  shows "WaitBlk (t - ereal t1) (\<lambda>\<tau>::real. p1 (\<tau> + t1)) rdy =
-         WaitBlk (t - ereal t1) (\<lambda>\<tau>::real. p2 (\<tau> + t1)) rdy"
-proof (cases t)
-  case (real r)
-  have a: "t - ereal t1 = ereal (r - t1)"
-    unfolding real by auto
-  show ?thesis
-    unfolding a apply auto apply (rule ext) subgoal for x
-      using assms[unfolded real]
-      using restrict_cong_to_eq[of p1 r p2 "x + t1"] by auto
+    and "0 < t1" "t1 < t"
+  shows "WaitBlk (t - t1) (\<lambda>\<tau>::real. p1 (\<tau> + t1)) rdy =
+         WaitBlk (t - t1) (\<lambda>\<tau>::real. p2 (\<tau> + t1)) rdy"
+  apply auto apply (rule ext) subgoal for x
+      using assms[unfolded ]
+      using restrict_cong_to_eq[of p1 t p2 "x + t1"] by auto
     done
-next
-  case PInf
-  have a: "t - ereal t1 = \<infinity>"
-    unfolding PInf by auto
-  show ?thesis
-    unfolding a
-    apply auto
-    apply (rule ext) subgoal for x
-      using assms[unfolded PInf] restrict_cong_to_eq2[of p1 p2 "x + t1"] by auto
-    done
-next
-  case MInf
-  then show ?thesis
-    using assms by auto
-qed
 
 lemmas WaitBlk_split = WaitBlk_split1 WaitBlk_split2
 declare WaitBlk_simps [simp del]
@@ -553,11 +502,11 @@ definition pure_assn :: "bool \<Rightarrow> 'a tassn" ("\<up>") where
 
 inductive out_assn :: "'a gstate \<Rightarrow> cname \<Rightarrow> real \<Rightarrow> 'a tassn" ("Out\<^sub>t") where
   "Out\<^sub>t s ch v [OutBlock ch v]"
-| "(d::real) > 0 \<Longrightarrow> Out\<^sub>t s ch v [WaitBlk (ereal d) (\<lambda>_. s) ({ch}, {}), OutBlock ch v]"
+| "d > 0 \<Longrightarrow> Out\<^sub>t s ch v [WaitBlk d (\<lambda>_. s) ({ch}, {}), OutBlock ch v]"
 
 inductive in_assn :: "'a gstate \<Rightarrow> cname \<Rightarrow> real \<Rightarrow> 'a tassn" ("In\<^sub>t") where
   "In\<^sub>t s ch v [InBlock ch v]"
-| "(d::real) > 0 \<Longrightarrow> In\<^sub>t s ch v [WaitBlk (ereal d) (\<lambda>_. s) ({}, {ch}), InBlock ch v]"
+| "d > 0 \<Longrightarrow> In\<^sub>t s ch v [WaitBlk d (\<lambda>_. s) ({}, {ch}), InBlock ch v]"
 
 inductive io_assn :: "cname \<Rightarrow> real \<Rightarrow> 'a tassn" ("IO\<^sub>t") where
   "IO\<^sub>t ch v [IOBlock ch v]"

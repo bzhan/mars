@@ -1,6 +1,6 @@
 <template>
 <span class="annotation-button" v-on:click="addAnnotation">
-  Add Annotation
+  {{ buttonName }}
 </span>
 </template>
 
@@ -8,6 +8,11 @@
 export default {
   name: 'AnnotationButton',
   props: [],
+  data() {
+    return {
+      buttonName: ''
+    }
+  },
   methods: {
     addAnnotation: function () {
       this.$emit("addAnnotation")

@@ -189,10 +189,10 @@ lemmas ode_in_assn_induct = ode_in_assn.induct[split_format(complete)]
 
 inductive ode_out_assn :: "'a ext_state \<Rightarrow> ODE \<Rightarrow> fform \<Rightarrow> 'a ext_state \<Rightarrow> cname \<Rightarrow> 'a ext_exp \<Rightarrow> rdy_info \<Rightarrow> 'a tassn" ("ODEout\<^sub>t") where
   "ODEout\<^sub>t (a,s) ode b (a,s) ch e rdy [OutBlock ch (e (a,s))]"
-| "0 < (d::real) \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = s \<Longrightarrow>
+| "0 < d \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = s \<Longrightarrow>
     \<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t) \<Longrightarrow>
     ODEout\<^sub>t (a,s) ode b (a,p d) ch e rdy
-      [WaitBlk (ereal d) (\<lambda>\<tau>. EState (a,p \<tau>)) rdy, OutBlock ch (e (a,p d))]"
+      [WaitBlk d (\<lambda>\<tau>. EState (a,p \<tau>)) rdy, OutBlock ch (e (a,p d))]"
 lemmas ode_out_assn_induct = ode_out_assn.induct[split_format(complete)]
 
 
@@ -702,7 +702,7 @@ theorem Valid_interrupt_Out_sp2:
       using 1 pre cond assms(3) unfolding supp_def by auto
     have 3:"ODEout\<^sub>t (a,st) (ODE ode) (\<lambda>_. True) (a,s) ch e ({ch}, {}) tr2 \<Longrightarrow> tr2 \<noteq>  [OutBlock ch (e (a,s))] \<Longrightarrow>
 \<exists> p d. (0 < (d::real) \<and>  ODEsol (ODE ode) p d \<and> p 0 = st \<and>
-    s = p d \<and> tr2 = [WaitBlk (ereal d) (\<lambda>\<tau>. EState (a,p \<tau>)) ({ch}, {}), OutBlock ch (e (a,p d))])"
+    s = p d \<and> tr2 = [WaitBlk d (\<lambda>\<tau>. EState (a,p \<tau>)) ({ch}, {}), OutBlock ch (e (a,p d))])"
       apply (induct rule: ode_out_assn_induct) by auto
     have 4:"ODEout\<^sub>t (a,st) (ODE ode) (\<lambda>_. True) (a,s) ch e ({ch}, {}) tr2 \<Longrightarrow> tr2 \<noteq>  [OutBlock ch (e (a,s))] \<Longrightarrow>False"
       subgoal premises pre1

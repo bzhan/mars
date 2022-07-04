@@ -10,14 +10,12 @@ import math
 import random
 from decimal import Decimal
 from scipy.integrate import solve_ivp
-import matplotlib.pyplot as plt
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, OpExpr, FunExpr, IfExpr, \
     ListExpr, DictExpr, ArrayIdxExpr, FieldNameExpr, BConst, LogicExpr, \
     RelExpr, true_expr, false_expr, opt_round, get_range, str_of_val
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import pprint
-from ss2hcsp.hcsp import graph_plot
 import numpy as np
 from ss2hcsp.matlab import function
 
@@ -133,7 +131,7 @@ def eval_expr(expr, state):
             if len(a) == 0:
                 raise SimulatorException('When evaluating %s: argument is empty' % expr)
             return a[1:]
-        elif expr.fun_name == "del_proc":
+        elif expr.fun_name == "del0":
             a, b = args
             assert isinstance(a, list)
             assert isinstance(b, str)
@@ -196,22 +194,22 @@ def eval_expr(expr, state):
         elif expr.fun_name == "zeros":
             if len(args) == 3:
                 return np.zeros((args[0],args[1],args[2]),dtype=int).tolist()
-        elif expr.fun_name == "protected_curve":
-            # assert len(args) == 4
-            # obs_pos, veh_pos, max_v, min_a = args
-            a, = args
-            assert len(a) == 4
-            obs_pos, veh_pos, max_v, min_a = a
-            if obs_pos <= 0:
-                return max_v
-            assert min_a < 0
-            distance = obs_pos - veh_pos
-            if distance > max_v * max_v / (-2 * min_a):
-                return max_v
-            elif distance >= 0:
-                return math.sqrt(-2 * min_a * distance)
-            else:
-                return 0
+        # elif expr.fun_name == "protected_curve":
+        #     # assert len(args) == 4
+        #     # obs_pos, veh_pos, max_v, min_a = args
+        #     a, = args
+        #     assert len(a) == 4
+        #     obs_pos, veh_pos, max_v, min_a = a
+        #     if obs_pos <= 0:
+        #         return max_v
+        #     assert min_a < 0
+        #     distance = obs_pos - veh_pos
+        #     if distance > max_v * max_v / (-2 * min_a):
+        #         return max_v
+        #     elif distance >= 0:
+        #         return math.sqrt(-2 * min_a * distance)
+        #     else:
+        #         return 0
         else:
             raise SimulatorException("When evaluating %s: unrecognized function" % expr)
 
@@ -247,15 +245,15 @@ def eval_expr(expr, state):
         return expr.value
 
     elif isinstance(expr, LogicExpr):
-        if expr.op == "&&":
+        if expr.op == "&":
             return eval_expr(expr.exprs[0], state) and eval_expr(expr.exprs[1], state)
-        elif expr.op == "||":
+        elif expr.op == "|":
             return eval_expr(expr.exprs[0], state) or eval_expr(expr.exprs[1], state)
-        elif expr.op == "-->":
+        elif expr.op == "->":
             return (not eval_expr(expr.exprs[0], state)) or eval_expr(expr.exprs[1], state)
-        elif expr.op == "<-->":
+        elif expr.op == "<->":
             return eval_expr(expr.exprs[0], state) == eval_expr(expr.exprs[1], state)
-        elif expr.op == "~":
+        elif expr.op == "!":
             return not eval_expr(expr.exprs[0], state)
         else:
             raise NotImplementedError
@@ -391,12 +389,12 @@ def get_ode_delay(hp, state):
         return all(not occur_var(e, var_name) for var_name in changed_vars)
 
     def test_cond(e):
-        if isinstance(e, LogicExpr) and e.op == '||':
+        if isinstance(e, LogicExpr) and e.op == '|':
             delay1 = test_cond(e.exprs[0])
             delay2 = test_cond(e.exprs[1])
             return max(delay1, delay2)
         
-        if isinstance(e, LogicExpr) and e.op == '&&':
+        if isinstance(e, LogicExpr) and e.op == '&':
             delay1 = test_cond(e.exprs[0])
             delay2 = test_cond(e.exprs[1])
             return min(delay1, delay2)
@@ -592,12 +590,6 @@ def get_pos(hp, pos, rec_vars=None, procs=None):
         else:
             _, out_hp = hp.io_comms[pos[0]]
             return get_pos(out_hp, pos[1:], rec_vars, procs)
-    elif hp.type == 'condition':
-        if len(pos) == 0:
-            return hp
-        else:
-            assert pos[0] == 0
-            return get_pos(hp.hp, pos[1:], rec_vars, procs)
     elif hp.type == 'select_comm':
         if len(pos) == 0:
             return hp
@@ -616,7 +608,7 @@ def get_pos(hp, pos, rec_vars=None, procs=None):
         elif pos[0] < len(hp.if_hps):
             return get_pos(hp.if_hps[pos[0]][1], pos[1:], rec_vars, procs)
         else:
-            assert pos[0] == len(hp.if_hps)
+            assert pos[0] == len(hp.if_hps) and hp.else_hp is not None
             return get_pos(hp.else_hp, pos[1:], rec_vars, procs)
     elif hp.type == 'var':
         if len(pos) == 0:
@@ -685,14 +677,6 @@ def step_pos(hp, callstack, state, rec_vars=None, procs=None):
                     return (0,) + start_pos(hp.hp)
             else:
                 return (0,) + sub_step
-        elif hp.type == 'condition':
-            if len(pos) == 0:
-                return None
-            sub_step = helper(hp.hp, pos[1:])
-            if sub_step is None:
-                return None
-            else:
-                return (0,) + sub_step
         elif hp.type == 'delay':
             assert len(pos) == 1
             return None
@@ -727,12 +711,13 @@ def step_pos(hp, callstack, state, rec_vars=None, procs=None):
             else:
                 return (pos[0],) + sub_step
         elif hp.type == 'ite':
-            assert len(pos) > 0
+            if len(pos) == 0:
+                return None
             if pos[0] < len(hp.if_hps):
                 _, sub_hp = hp.if_hps[pos[0]]
                 sub_step = helper(sub_hp, pos[1:])
             else:
-                assert pos[0] == len(hp.if_hps)
+                assert pos[0] == len(hp.if_hps) and hp.else_hp is not None
                 sub_step = helper(hp.else_hp, pos[1:])
         
             if sub_step is None:
@@ -931,15 +916,6 @@ class SimInfo:
                     % (str_pat, vals))
             self.reason = {"log": log_expr}
 
-        elif cur_hp.type == "condition":
-            # Evaluate the condition, either go inside or step to next
-            if eval_expr(cur_hp.cond, self.state):
-                pos=self.callstack.top_pos() + (0,) + start_pos(cur_hp.hp)
-                self.callstack.renew(pos, rec_vars)
-            else:
-                self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, procedures_list)
-            self.reason = None
-
         elif cur_hp.type == "recursion":
             # Enter into recursion
             pos=self.callstack.top_pos() + (0,) + start_pos(cur_hp.hp)
@@ -1023,10 +999,16 @@ class SimInfo:
                     self.reason = None
                     return
 
-            # Otherwise, go to the else branch
-            pos=self.callstack.top_pos() + (len(cur_hp.if_hps),) + start_pos(cur_hp.else_hp)
-            self.callstack.renew(pos, rec_vars)
-            self.reason = None
+            if cur_hp.else_hp is None:
+                # If no else branch exists, skip the ITE block
+                self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, procedures_list)
+                self.reason = None
+            else:
+                # Otherwise, go to the else branch
+                pos=self.callstack.top_pos() + (len(cur_hp.if_hps),) + start_pos(cur_hp.else_hp)
+                self.callstack.renew(pos, rec_vars)
+                self.reason = None
+
 
         else:
             raise NotImplementedError
@@ -1500,38 +1482,6 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=3000, num_show=None,
         statemap[value] = state
     res['statemap'] = statemap
     return res
-
-def graph(res, proc_name, tkplot=False, separate=True, variables=None):
-    DataState = {}
-    temp = res.get("time_series")
-    lst = temp.get(proc_name)
-    for t in lst:
-        state = t.get("state")
-        for key in state.keys():
-            if variables is not None and key not in variables:
-                continue
-            if key not in DataState.keys():
-                DataState.update({key:([],[])})
-            DataState.get(key)[0].append(state.get(key))
-            DataState.get(key)[1].append(t.get('time'))
-                
-    if tkplot:
-        app = graph_plot.Graphapp(res)
-        app.mainloop()
-    else:
-        if separate:
-            for t in DataState.keys():
-                x = DataState.get(t)[1]
-                y = DataState.get(t)[0]
-                plt.plot(x, y, label=t)
-                plt.show()
-        else:
-            for t in DataState.keys():
-                x = DataState.get(t)[1]
-                y = DataState.get(t)[0]
-                plt.plot(x, y, label=t)
-                plt.legend()
-
 
 def check_comms(infos):
     """Given a list of HCSP infos, check for potential mismatch of

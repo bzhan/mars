@@ -61,21 +61,21 @@ grammar = r"""
         | expr ">" expr -> greater_cond
         | atom_cond
 
-    ?neg_cond: "~" neg_cond -> not_cond          // priority 40
+    ?neg_cond: "!" neg_cond -> not_cond          // priority 40
         | rel_cond
 
-    ?conj: neg_cond "&&" conj | neg_cond         // Conjunction: priority 35
+    ?conj: neg_cond "&" conj | neg_cond         // Conjunction: priority 35
 
-    ?disj: conj "||" disj | conj                 // Disjunction: priority 30
+    ?disj: conj "|" disj | conj                 // Disjunction: priority 30
 
-    ?equiv: disj "<-->" equiv | disj             // Equivalent: priority 25
+    ?equiv: disj "<->" equiv | disj             // Equivalent: priority 25
 
-    ?imp: equiv "-->" imp | equiv                  // Implies: priority 20
+    ?imp: equiv "->" imp | equiv                  // Implies: priority 20
 
-    ?quant: "EX" CNAME "." quant                         -> exists_expr  // priority 10
-        | "EX" "{" CNAME ("," CNAME)+ "}" "." quant      -> exists_expr
-        | "ForAll" CNAME "." quant                       -> forall_expr
-        | "ForAll" "{" CNAME ("," CNAME)+ "}" "." quant  -> forall_expr
+    ?quant: "\\exists" CNAME "." quant                         -> exists_expr  // priority 10
+        | "\\exists" "{" CNAME ("," CNAME)+ "}" "." quant      -> exists_expr
+        | "\\forall" CNAME "." quant                       -> forall_expr
+        | "\\forall" "{" CNAME ("," CNAME)+ "}" "." quant  -> forall_expr
         | imp
 
     ?cond: quant
@@ -97,29 +97,40 @@ grammar = r"""
 
     ?interrupt: comm_cmd "-->" cmd ("," comm_cmd "-->" cmd)*
 
-    ?atom_cmd: "@" CNAME -> var_cmd
-        | "skip" -> skip_cmd
-        | "wait" "(" expr ")" -> wait_cmd
-        | atom_expr ":=" expr -> assign_cmd
-        | "(" lname ("," lname)* ")" ":=" expr -> multi_assign_cmd
-        | atom_expr ":=" "{" cond "}" -> random_assign_cmd
-        | "assert" "(" cond ("," expr)* ")" -> assert_cmd
-        | "test" "(" cond ("," expr)* ")" -> test_cmd
-        | "log" "(" expr ("," expr)* ")" -> log_cmd
-        | comm_cmd
-        | "(" cmd ")**" maybe_invariant -> repeat_cmd
-        | "(" cmd "){" cond "}**" maybe_invariant -> repeat_cond_cmd
+    ?atom_cmd: "@" CNAME ";" -> var_cmd
+        | "skip" ";" -> skip_cmd
+        | "wait" "(" expr ")" ";" -> wait_cmd
+        | lname ":=" expr ";" -> assign_cmd
+        | "(" lname ("," lname)* ")" ":=" expr ";" -> multi_assign_cmd
+        | lname ":=" "*" "(" cond ")" ";" -> random_assign_cmd
+        | "assert" "(" cond ("," expr)* ")" ";" -> assert_cmd
+        | "test" "(" cond ("," expr)* ")" ";" -> test_cmd
+        | "log" "(" expr ("," expr)* ")" ";" -> log_cmd
+        | comm_cmd ";"
+        | "{" cmd "}" "*" maybe_loop_invariant -> repeat_cmd
+        | "{" cmd "}" "*" "(" cond ")" maybe_loop_invariant -> repeat_cond_cmd
         | "<" ode_seq "&" cond ">" maybe_ode_invariant -> ode
         | "<" "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm_const
         | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm
-        | "rec" CNAME ".(" cmd ")" maybe_invariant -> rec_cmd
-        | "if" cond "then" cmd ("elif" cond "then" cmd)* "else" cmd "endif" -> ite_cmd 
-        | "(" cmd ")" -> paren_cmd
+        | "rec" CNAME "{" cmd "}" maybe_invariant -> rec_cmd
+        | "if" "(" cond ")" "{" cmd "}" ("else" "if" "(" cond ")" "{" cmd "}")* ("else" "{" cmd "}")? -> ite_cmd
+        | "{" cmd "}" -> paren_cmd
 
-    ?maybe_invariant: ("invariant" invariant+)? -> maybe_invariant
+    ?maybe_invariant: ("invariant" invariant+ ";")? -> maybe_invariant
     ?invariant: "[" cond "]"
+    
+    ?maybe_loop_invariant: ("invariant" loop_invariant+ ";")? -> maybe_loop_invariant
+    ?loop_invariant: "[" cond "]" ("{{" proof_method ("," proof_method)* "}}")? -> loop_invariant
+    ?proof_method: (label ":")? method   -> proof_method
+    ?atom_label: CNAME | NUMBER
+    ?label: atom_label              ->label
+        | label ("." label)+
+        | atom_label "(" label ")"
+    
+    ?method: "z3"        -> method_z3
+      | "wolfram_engine" -> method_wolfram_engine
 
-    ?maybe_ode_invariant: ("invariant" ode_invariant+)? -> maybe_ode_invariant
+    ?maybe_ode_invariant: ("invariant" ode_invariant+ ";")? -> maybe_ode_invariant
     ?ode_invariant: "[" cond "]" ("{" ode_rule expr? "}")? -> ode_invariant
         | "ghost" CNAME -> ghost_intro
         | "ghost" "<" CNAME "=" expr ">" -> ghost_intro_eq
@@ -129,15 +140,17 @@ grammar = r"""
       | "dw" -> ode_rule_dw
       | "sln" -> ode_rule_sln
 
-    ?cond_cmd: atom_cmd | cond "->" atom_cmd       // Priority: 90
+    ?ichoice_cmd: atom_cmd | ichoice_cmd "++" atom_cmd   // Priority: 80
 
-    ?ichoice_cmd: cond_cmd | ichoice_cmd "++" cond_cmd   // Priority: 80
-
-    ?seq_cmd: ichoice_cmd (";" ichoice_cmd)*  // Priority: 70
+    ?seq_cmd: ichoice_cmd*  // Priority: 70
 
     ?select_cmd: seq_cmd | comm_cmd "-->" seq_cmd ("$" comm_cmd "-->" seq_cmd)*  // Priority 50
 
     ?cmd: select_cmd
+
+    ?hoare_pre : "pre" ("[" cond "]")* ";" -> hoare_pre
+    ?hoare_post : "post" ("[" cond "]")* ";" -> hoare_post
+    ?hoare_triple: hoare_pre cmd hoare_post
 
     ?procedure: "procedure" CNAME "begin" cmd "end"
 
@@ -301,7 +314,7 @@ class HPTransformer(Transformer):
         return expr.RelExpr(">", e1, e2, meta=meta)
 
     def not_cond(self, meta, e):
-        return expr.LogicExpr("~", e, meta=meta)
+        return expr.LogicExpr("!", e, meta=meta)
 
     def true_cond(self, meta):
         return expr.BConst(True, meta=meta)
@@ -310,16 +323,16 @@ class HPTransformer(Transformer):
         return expr.BConst(False, meta=meta)
 
     def conj(self, meta, b1, b2):
-        return expr.LogicExpr("&&", b1, b2, meta=meta)
+        return expr.LogicExpr("&", b1, b2, meta=meta)
 
     def disj(self, meta, b1, b2):
-        return expr.LogicExpr("||", b1, b2, meta=meta)
+        return expr.LogicExpr("|", b1, b2, meta=meta)
 
     def imp(self, meta, b1, b2):
-        return expr.LogicExpr("-->", b1, b2, meta=meta)
+        return expr.LogicExpr("->", b1, b2, meta=meta)
 
     def equiv(self, meta, b1, b2):
-        return expr.LogicExpr("<-->", b1, b2, meta=meta)
+        return expr.LogicExpr("<->", b1, b2, meta=meta)
 
     def var_cmd(self, meta, name):
         return hcsp.Var(str(name), meta=meta)
@@ -355,7 +368,9 @@ class HPTransformer(Transformer):
         return hcsp.Log(args[0], exprs=args[1:], meta=meta)
 
     def seq_cmd(self, meta, *args):
-        if len(args) == 1:
+        if len(args) == 0:
+            return hcsp.Skip(meta=meta)
+        elif len(args) == 1:
             return args[0]
         else:
             return hcsp.Sequence(*args, meta=meta)
@@ -388,6 +403,18 @@ class HPTransformer(Transformer):
         else:
             return args
 
+    def maybe_loop_invariant(self, meta, *args):
+        if len(args) == 0:
+            return None
+        else:
+            return args
+
+    def loop_invariant(self, meta, inv, *args):
+        if len(args) == 0:
+            return invariant.LoopInvariant(inv=inv, meta=meta)
+        else:
+            return invariant.LoopInvariant(inv=inv, proof_methods=args, meta=meta)
+
     def maybe_ode_invariant(self, meta, *args):
         if len(args) == 0:
             return None
@@ -398,9 +425,9 @@ class HPTransformer(Transformer):
         if len(args) == 1:
             return invariant.CutInvariant(inv=args[0], meta=meta)
         elif len(args) == 2:
-            return invariant.CutInvariant(inv=args[0], method=args[1], meta=meta)
+            return invariant.CutInvariant(inv=args[0], rule=args[1], meta=meta)
         else:
-            return invariant.CutInvariant(inv=args[0], method=args[1], method_arg=args[2], meta=meta)
+            return invariant.CutInvariant(inv=args[0], rule=args[1], rule_arg=args[2], meta=meta)
     
     def ghost_intro(self, meta, var):
         return invariant.GhostIntro(var=var, diff=None, meta=meta)
@@ -414,6 +441,15 @@ class HPTransformer(Transformer):
     def ode_rule_dbx(self, meta): return "dbx"
     def ode_rule_dw(self, meta): return "dw"
     def ode_rule_sln(self, meta): return "sln"
+
+    def method_z3(self, meta): return "z3"
+    def method_wolfram_engine(self, meta): return "wolfram_engine"
+
+    def proof_method(self, meta, label, method):
+        return invariant.ProofMethod(label=label, method=method, meta=meta)
+
+    def label(self, meta, *args):
+        return "".join(str(arg) for arg in args)
             
     def repeat_cmd(self, meta, cmd, inv):
         return hcsp.Loop(cmd, meta=meta, inv=inv)
@@ -460,11 +496,13 @@ class HPTransformer(Transformer):
         return hcsp.Recursion(c, entry=var_name, meta=meta)
 
     def ite_cmd(self, meta, *args):
-        assert len(args) % 2 == 1 and len(args) >= 3
         if_hps = []
-        for i in range(0, len(args)-1, 2):
-            if_hps.append((args[i], args[i+1]))
-        else_hp = args[-1]
+        for i in range(0, len(args)//2):
+            if_hps.append((args[2*i], args[2*i+1]))
+        if len(args) % 2 == 1:
+            else_hp = args[-1]
+        else:
+            else_hp = None
         return hcsp.ITE(if_hps, else_hp, meta=meta)
 
     def paren_cmd(self, meta, c):
@@ -478,6 +516,15 @@ class HPTransformer(Transformer):
             return args[0]
         else:
             return hcsp.Parallel(*args, meta=meta)
+
+    def hoare_pre(self, meta, *args):
+        return list(args)
+
+    def hoare_post(self, meta, *args):
+        return list(args)
+
+    def hoare_triple(self, meta, pre, hp, post):
+        return hcsp.HoareTriple(pre, hp, post, meta=meta)
 
     def module_sig(self, meta, *args):
         return tuple(str(arg) for arg in args)
@@ -570,6 +617,7 @@ decls_parser = Lark(grammar, start="decls", parser="lalr", transformer=hp_transf
 aexpr_tree_parser = Lark(grammar, start="expr", parser="lalr", propagate_positions=True)
 bexpr_tree_parser = Lark(grammar, start="cond", parser="lalr", propagate_positions=True)
 hp_tree_parser = Lark(grammar, start="parallel_cmd", parser="lalr", propagate_positions=True)
+hoare_triple_tree_parser = Lark(grammar, start="hoare_triple", parser="lalr", propagate_positions=True)
 module_tree_parser = Lark(grammar, start="module", parser="lalr", propagate_positions=True)
 system_tree_parser = Lark(grammar, start="system", parser="lalr", propagate_positions=True)
 decls_tree_parser = Lark(grammar, start="decls", parser="lalr", propagate_positions=True)
@@ -577,6 +625,7 @@ decls_tree_parser = Lark(grammar, start="decls", parser="lalr", propagate_positi
 def parse_aexpr_with_meta(text): return hp_transformer.transform(aexpr_tree_parser.parse(text))
 def parse_bexpr_with_meta(text): return hp_transformer.transform(bexpr_tree_parser.parse(text))
 def parse_hp_with_meta(text): return hp_transformer.transform(hp_tree_parser.parse(text))
+def parse_hoare_triple_with_meta(text): return hp_transformer.transform(hoare_triple_tree_parser.parse(text))
 def parse_module_with_meta(text): return hp_transformer.transform(module_tree_parser.parse(text))
 def parse_system_with_meta(text): return hp_transformer.transform(system_tree_parser.parse(text))
 def parse_decls_with_meta(text): return hp_transformer.transform(decls_tree_parser.parse(text))

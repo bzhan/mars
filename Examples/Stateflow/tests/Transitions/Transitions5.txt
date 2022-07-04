@@ -1,0 +1,38 @@
+%type: module
+
+module Chart():
+begin
+  ChartEL := [];
+  Chart_st := "Chart_S";
+  log("enS" + "\n");
+  Chart_S_st := "Chart_S_A";
+  log("enA" + "\n");
+  {
+    log("duS" + "\n");
+    log("condInner" + "\n");
+    if (Chart_S_st == "Chart_S_A") {
+      log("exA" + "\n");
+      if (Chart_S_st == "Chart_S_A") {
+        Chart_S_st := "";
+      }
+    } else if (Chart_S_st == "Chart_S_B") {
+      log("exB" + "\n");
+      if (Chart_S_st == "Chart_S_B") {
+        Chart_S_st := "";
+      }
+    }
+    s := "tranInner";
+    log("tranInner" + "\n");
+    if (Chart_S_st == "") {
+      Chart_S_st := "Chart_S_A";
+      s := "enA";
+      log("enA" + "\n");
+    }
+    Chart_ret := 1;
+    wait(0.1);
+  }*
+end
+endmodule
+system
+Chart()
+endsystem

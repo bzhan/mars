@@ -1,0 +1,81 @@
+%type: module
+
+module Chart():
+procedure exec_Chart begin
+  Chart_ret := 0;
+  if (Chart_st == "Chart_S") {
+    Chart_S_done := 0;
+    if (ChartEL != [] & top(ChartEL) == "E") {
+      if (Chart_st == "Chart_S") {
+        if (Chart_S_st == "Chart_S_A1") {
+          Chart_S_st := "";
+        } else if (Chart_S_st == "Chart_S_A2") {
+          Chart_S_st := "";
+        }
+        s := "exS";
+        log("exS" + "\n");
+        if (Chart_st == "Chart_S") {
+          Chart_st := "";
+        }
+        if (Chart_st == "") {
+          Chart_st := "Chart_T";
+          s := "enT";
+          log("enT" + "\n");
+        }
+        Chart_S_done := 1;
+      }
+    }
+    if (Chart_st == "Chart_S" & Chart_S_done == 0) {
+      s := "duS";
+      log("duS" + "\n");
+    }
+    Chart_ret := Chart_S_done;
+    if (Chart_ret == 0) {
+      if (Chart_S_st == "Chart_S_A1") {
+        Chart_S_A1_done := 0;
+        s := "ca1";
+        log("ca1" + "\n");
+        if (Chart_S_st == "Chart_S_A1") {
+          s := "ca2";
+          log("ca2" + "\n");
+          if (Chart_S_st == "Chart_S_A1") {
+            Chart_S_st := "";
+          }
+          ChartEL := push(ChartEL,"E");
+          @exec_Chart;
+          ChartEL := pop(ChartEL);
+          if (Chart_S_st == "" & Chart_st == "Chart_S") {
+            log("ta1" + "\n");
+            s := "ta2";
+            log("ta2" + "\n");
+          }
+          if (Chart_S_st == "" & Chart_st == "Chart_S") {
+            Chart_S_st := "Chart_S_A2";
+          }
+          Chart_S_A1_done := 1;
+        }
+        Chart_ret := Chart_S_A1_done;
+      } else if (Chart_S_st == "Chart_S_A2") {
+        Chart_ret := 0;
+      }
+    }
+  } else if (Chart_st == "Chart_T") {
+    Chart_ret := 0;
+  }
+end
+
+begin
+  ChartEL := [];
+  Chart_st := "Chart_S";
+  s := "enS";
+  log("enS" + "\n");
+  Chart_S_st := "Chart_S_A1";
+  {
+    @exec_Chart;
+    wait(0.1);
+  }*
+end
+endmodule
+system
+Chart()
+endsystem

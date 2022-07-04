@@ -1,0 +1,60 @@
+%type: module
+
+module Chart():
+begin
+  ChartEL := [];
+  x := 1;
+  Chart_st := "Chart_A";
+  s := "enA";
+  log("enA" + "\n");
+  {
+    Chart_ret := 0;
+    if (Chart_st == "Chart_A") {
+      Chart_A_done := 0;
+      if (Chart_st == "Chart_A") {
+        s := "exA";
+        log("exA" + "\n");
+        if (Chart_st == "Chart_A") {
+          Chart_st := "";
+        }
+        if (Chart_st == "") {
+          Chart_st := "Chart_B";
+          s := "enB";
+          log("enB" + "\n");
+        }
+        Chart_A_done := 1;
+      }
+      Chart_ret := Chart_A_done;
+    } else if (Chart_st == "Chart_C") {
+      Chart_ret := 0;
+    } else if (Chart_st == "Chart_B") {
+      Chart_B_done := 0;
+      s := "conBJun";
+      log("conBJun" + "\n");
+      if (Chart_st == "Chart_B") {
+        log("conJunC" + "\n");
+        if (Chart_st == "Chart_B") {
+          log("exB" + "\n");
+          if (Chart_st == "Chart_B") {
+            Chart_st := "";
+          }
+        }
+        log("tranBJun" + "\n");
+        s := "tranJunC";
+        log("tranJunC" + "\n");
+        if (Chart_st == "") {
+          Chart_st := "Chart_C";
+          s := "enC";
+          log("enC" + "\n");
+        }
+        Chart_B_done := 1;
+      }
+      Chart_ret := Chart_B_done;
+    }
+    wait(0.1);
+  }*
+end
+endmodule
+system
+Chart()
+endsystem

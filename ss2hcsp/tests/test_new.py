@@ -1,5 +1,5 @@
-import json
 from ss2hcsp.hcsp import simulator
+import json
 from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import pprint

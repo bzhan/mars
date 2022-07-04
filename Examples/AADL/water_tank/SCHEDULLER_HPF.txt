@@ -20,7 +20,7 @@ free[sid][_tid]? -->
     assert(_tid == run_now);
     if len(Pool) > 0 then
         (run_prior, run_now) := get_max(Pool);
-        Pool := del_proc(Pool, run_now);
+        Pool := del0(Pool, run_now);
         run[sid][run_now]!
     else
         run_prior := -1; run_now := -1

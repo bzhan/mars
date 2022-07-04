@@ -1,0 +1,62 @@
+%type: module
+
+module Chart():
+begin
+  ChartEL := [];
+  rb := 0;
+  Chart_B_time := -1;
+  Chart_st := "Chart_A";
+  Chart_A_time := 0;
+  s := "en_A";
+  log("en_A" + "\n");
+  r := unidrnd(5);
+  log("Picked %.0f\n",r);
+  ra := r;
+  {
+    Chart_ret := 0;
+    if (Chart_st == "Chart_A") {
+      Chart_A_done := 0;
+      if (Chart_A_time >= ra) {
+        if (Chart_st == "Chart_A") {
+          Chart_A_time := -1;
+          Chart_st := "Chart_B";
+          Chart_B_time := 0;
+          s := "en_B";
+          log("en_B" + "\n");
+          r := unidrnd(5);
+          log("Picked %.0f\n",r);
+          rb := r;
+          Chart_A_done := 1;
+        }
+      }
+      Chart_ret := Chart_A_done;
+    } else if (Chart_st == "Chart_B") {
+      Chart_B_done := 0;
+      if (Chart_B_time >= rb) {
+        if (Chart_st == "Chart_B") {
+          Chart_B_time := -1;
+          Chart_st := "Chart_A";
+          Chart_A_time := 0;
+          s := "en_A";
+          log("en_A" + "\n");
+          r := unidrnd(5);
+          log("Picked %.0f\n",r);
+          ra := r;
+          Chart_B_done := 1;
+        }
+      }
+      Chart_ret := Chart_B_done;
+    }
+    wait(1);
+    if (Chart_A_time != -1) {
+      Chart_A_time := Chart_A_time + 1;
+    }
+    if (Chart_B_time != -1) {
+      Chart_B_time := Chart_B_time + 1;
+    }
+  }*
+end
+endmodule
+system
+Chart()
+endsystem

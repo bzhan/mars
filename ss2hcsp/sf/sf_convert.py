@@ -335,7 +335,7 @@ class SFConvert:
         else:
             still_there = expr.BConst(True)
 
-        return expr.LogicExpr("&&", still_there, self.get_still_there_cond(ancestor))
+        return expr.LogicExpr("&", still_there, self.get_still_there_cond(ancestor))
 
     def get_en_proc(self, state):
         # For entry procedure, the early return logic is that the state that
@@ -346,11 +346,11 @@ class SFConvert:
         procs = []
         if state.ssid in self.implicit_events:
             tick_name = self.entry_tick_name(state)
-            procs.append(hcsp.Condition(
+            procs.append(hcsp.ITE([(
                     expr.RelExpr("!=", expr.AVar(tick_name), expr.AConst(-1)),
                     hcsp.Assign(
                         expr.AVar(tick_name),
-                        expr.OpExpr("+", expr.AVar(tick_name), expr.AConst(1)))))
+                        expr.OpExpr("+", expr.AVar(tick_name), expr.AConst(1))))]))
 
         return hcsp.Sequence(self.convert_cmd(state.du), *procs)
 
@@ -454,7 +454,7 @@ class SFConvert:
             exit_procs.append(hcsp.Var(self.exit_proc_name(state)))
 
         # Whether the source state is still active
-        procs.append(hcsp.Condition(self.get_still_there_cond(src), hcsp.seq(exit_procs)))
+        procs.append(hcsp.ITE([(self.get_still_there_cond(src), hcsp.seq(exit_procs))]))
 
         # Perform transition action
         procs.append(self.convert_cmd(tran_act, still_there=self.get_ancestor_empty_cond(ancestor)))
@@ -465,7 +465,7 @@ class SFConvert:
             entry_procs.append(hcsp.Var(self.entry_proc_name(state)))
         entry_procs.append(self.get_rec_entry_proc(dst))
 
-        procs.append(hcsp.Condition(self.get_ancestor_empty_cond(ancestor), hcsp.seq(entry_procs)))
+        procs.append(hcsp.ITE([(self.get_ancestor_empty_cond(ancestor), hcsp.seq(entry_procs))]))
 
         return hcsp.seq(procs)
 
@@ -534,8 +534,8 @@ class SFConvert:
                             procs.append(hcsp.InputChannel(ch_name, expr.AVar(in_var)))
                             procs.append(hcsp.OutputChannel(ch_name1, expr.AConst("")))
                             mqueue_name1 = self.get_message_queue_name_input(str(in_var))
-                            procs.append(hcsp.Condition(expr.RelExpr("!=",expr.AVar(in_var),expr.AConst("")),hcsp.Assign(
-                            mqueue_name1, expr.FunExpr("push", [expr.AVar(mqueue_name1), expr.AVar(in_var)]))) )
+                            procs.append(hcsp.ITE([(expr.RelExpr("!=",expr.AVar(in_var),expr.AConst("")),hcsp.Assign(
+                            mqueue_name1, expr.FunExpr("push", [expr.AVar(mqueue_name1), expr.AVar(in_var)])))]) )
                     mqueue_name = self.get_message_queue_name_input(label.event.name)
 
                 else:
@@ -667,23 +667,23 @@ class SFConvert:
                     # from the second transition, check whether still in the state.
                     act = hcsp.Sequence(
                          cond_act,
-                        hcsp.Condition(still_there_cond, hcsp.seq([
+                        hcsp.ITE([(still_there_cond, hcsp.seq([
                             self.get_traverse_state_proc(dst, src, tran.label.tran_act, out_trans=True),
-                            hcsp.Assign(done, expr.AVar(self.chart.name+"_ret"))])))
+                            hcsp.Assign(done, expr.AVar(self.chart.name+"_ret"))]))]))
                     if i == 0:
-                        procs.append(hcsp.seq([pre_act, hcsp.Condition(cond, act)]))
+                        procs.append(hcsp.seq([pre_act, hcsp.ITE([(cond, act)])]))
                     else:
-                        procs.append(hcsp.seq([pre_act, hcsp.Condition(
+                        procs.append(hcsp.seq([pre_act, hcsp.ITE([(
                             expr.conj(still_there_cond,
                                       expr.RelExpr("==", expr.AVar(done), expr.AConst(0)),
                                       cond),
-                            act)]))
+                            act)])]))
 
             # If still in the state, perform the during action.
-            procs.append(hcsp.Condition(
+            procs.append(hcsp.ITE([(
                 expr.conj(still_there_cond,
                           expr.RelExpr("==", expr.AVar(done), expr.AConst(0))),
-                hcsp.Var(self.du_proc_name(state))))
+                hcsp.Var(self.du_proc_name(state)))]))
 
             # Now, perform the inner transitions
             if state.inner_trans:
@@ -699,15 +699,15 @@ class SFConvert:
                     # been carried out.
                     act = hcsp.Sequence(
                         cond_act,
-                        hcsp.Condition(still_there_cond, hcsp.seq([
+                        hcsp.ITE([(still_there_cond, hcsp.seq([
                             self.get_traverse_state_proc(dst, src, tran.label.tran_act, out_trans=False),
-                            hcsp.Assign(done, expr.AVar(self.chart.name+"_ret"))])))
+                            hcsp.Assign(done, expr.AVar(self.chart.name+"_ret"))]))]))
 
-                    procs.append(hcsp.seq([pre_act, hcsp.Condition(
+                    procs.append(hcsp.seq([pre_act, hcsp.ITE([(
                         expr.conj(still_there_cond,
                                     expr.RelExpr("==", expr.AVar(done), expr.AConst(0)),
                                     cond),
-                        act)]))
+                        act)])]))
 
             # Set return value to done
             procs.append(self.return_val(expr.AVar(done)))
@@ -743,7 +743,7 @@ class SFConvert:
         if isinstance(state, OR_State):
             exit_procs.append(hcsp.Assign(self.active_state_name(state.father), expr.AConst("")))
 
-        procs.append(hcsp.Condition(self.get_still_there_cond(state), hcsp.seq(exit_procs)))
+        procs.append(hcsp.ITE([(self.get_still_there_cond(state), hcsp.seq(exit_procs))]))
         return hcsp.seq(procs)
 
     def get_rec_during_proc(self, state):
@@ -765,7 +765,7 @@ class SFConvert:
                 if isinstance(child, OR_State):
                     ite.append((expr.RelExpr("==", expr.AVar(self.active_state_name(state)), expr.AConst(child.whole_name)),
                                 self.get_rec_during_proc(child)))
-            procs.append(hcsp.Condition(to_sub_cond, hcsp.ITE(ite)))
+            procs.append(hcsp.ITE([(to_sub_cond, hcsp.ITE(ite))]))
         else:
             pass  # Junction only
 
@@ -826,11 +826,11 @@ class SFConvert:
                         dst, init_src, function.seq([tran_act, tran.label.tran_act]), out_trans=out_trans)
                     act = hcsp.seq([ cond_act, act, hcsp.Assign(done, expr.AVar(self.chart.name+"_ret"))])
                     if i == 0:
-                        procs.append(hcsp.seq([pre_act, hcsp.Condition(cond, act)])),
+                        procs.append(hcsp.seq([pre_act, hcsp.ITE([(cond, act)])])),
                     else:
-                        procs.append(hcsp.seq([pre_act, hcsp.Condition(
+                        procs.append(hcsp.seq([pre_act, hcsp.ITE([(
                             expr.conj(expr.RelExpr("==", expr.AVar(done), expr.AConst(0)), cond),
-                            act)]))
+                            act)])]))
                 procs.append(self.return_val(expr.AVar(done)))
                 proc = hcsp.seq(procs)
                 self.junction_map[state.ssid][(init_src.ssid, tran_act, out_trans)] = (cur_name, proc)
@@ -864,11 +864,11 @@ class SFConvert:
                 "convert_graphical_function_junc: no transition action in graphical functions."
             act = hcsp.seq([ cond_act, hcsp.Var("J" + tran.dst),hcsp.Assign(done, expr.AConst(1))])
             if i == 0:
-                procs.append(hcsp.seq([pre_act, hcsp.Condition(cond, act)]))
+                procs.append(hcsp.seq([pre_act, hcsp.ITE([(cond, act)])]))
             else:
-                procs.append(hcsp.seq([pre_act, hcsp.Condition(
+                procs.append(hcsp.seq([pre_act, hcsp.ITE([(
                     expr.conj(expr.RelExpr("==", expr.AVar(done), expr.AConst(0)), cond),
-                    act)]))
+                    act)])]))
         return hcsp.seq(procs)
 
     def convert_graphical_function(self, proc):
@@ -1041,11 +1041,11 @@ class SFConvert:
         # Update counter for absolute time events
         for ssid in self.absolute_time_events:
             time_name = self.entry_time_name(self.chart.all_states[ssid])
-            procs.append(hcsp.Condition(
+            procs.append(hcsp.ITE([(
                 expr.RelExpr("!=", expr.AVar(time_name), expr.AConst(-1)),
                 hcsp.Assign(
                     expr.AVar(time_name),
-                    expr.OpExpr('+', expr.AVar(time_name), expr.AConst(self.sample_time)))))
+                    expr.OpExpr('+', expr.AVar(time_name), expr.AConst(self.sample_time))))]))
 
         return hcsp.seq(procs)
 
@@ -1295,3 +1295,27 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
         print(diagram.name, before_size, after_size)
 
     return proc_map
+
+
+if __name__ == "__main__":
+    import sys
+    from ss2hcsp.sl.sl_diagram import SL_Diagram
+    from ss2hcsp.hcsp import module
+
+    if len(sys.argv) != 2:
+        print("Usage: python sf_convert.py filename")
+    else:
+        filename = sys.argv[1]
+        diagram = SL_Diagram(filename)
+        proc_map = convert_diagram(diagram)
+
+        # Output to file
+        modules = []
+        module_insts = []
+        for name, (procs, hp) in proc_map.items():
+            procs_lst = [hcsp.Procedure(proc_name, hp) for proc_name, hp in procs.items()]
+            modules.append(module.HCSPModule(name, code=hp, procedures=procs_lst))
+            module_insts.append(module.HCSPModuleInst(name, name, []))
+        system = module.HCSPSystem(module_insts)
+        declarations = module.HCSPDeclarations(modules + [system])
+        print(declarations.export())

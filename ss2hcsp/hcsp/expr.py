@@ -59,8 +59,12 @@ class AExpr:
         """Returns set of variables in the expression."""
         raise NotImplementedError
 
-    def get_funs(self):
+    def get_fun_names(self):
         """Return set of function names in the expression"""
+        return NotImplementedError
+
+    def get_zero_arity_funcs(self):
+        """Return set of functions with zero arity in the expression"""
         return NotImplementedError
 
     def subst(self, inst):
@@ -93,7 +97,10 @@ class AVar(AExpr):
     def get_vars(self):
         return {self.name}
 
-    def get_funs(self):
+    def get_fun_names(self):
+        return set()
+
+    def get_zero_arity_funcs(self):
         return set()
 
     def subst(self, inst):
@@ -130,7 +137,10 @@ class AConst(AExpr):
     def get_vars(self):
         return set()
 
-    def get_funs(self):
+    def get_fun_names(self):
+        return set()
+
+    def get_zero_arity_funcs(self):
         return set()
 
     def subst(self, inst):
@@ -193,8 +203,11 @@ class OpExpr(AExpr):
     def get_vars(self):
         return set().union(*(expr.get_vars() for expr in self.exprs))
 
-    def get_funs(self):
-        return set().union(*(expr.get_funs() for expr in self.exprs))
+    def get_fun_names(self):
+        return set().union(*(expr.get_fun_names() for expr in self.exprs))
+
+    def get_zero_arity_funcs(self):
+        return set().union(*(expr.get_zero_arity_funcs() for expr in self.exprs))
 
     def subst(self, inst):
         return OpExpr(self.op, *(expr.subst(inst) for expr in self.exprs))
@@ -248,9 +261,14 @@ class FunExpr(AExpr):
     def get_vars(self):
         return set().union(*(expr.get_vars() for expr in self.exprs))
 
-    def get_funs(self):
-        fun_names = {str(self.fun_name)+'('+')', str(self.fun_name)}
-        return fun_names.union(*(expr.get_funs() for expr in self.exprs))
+    def get_fun_names(self):
+        func_names = set((self.fun_name,))
+        return func_names.union(*(expr.get_fun_names() for expr in self.exprs))
+
+    def get_zero_arity_funcs(self):
+        if len(self.exprs) == 0:
+            zero_arity_funcs = set((self.fun_name + '(' + ')',))
+        return zero_arity_funcs.union(*(expr.get_zero_arity_funcs() for expr in self.exprs))
 
     def subst(self, inst):
         return FunExpr(self.fun_name, [expr.subst(inst) for expr in self.exprs])
@@ -285,8 +303,11 @@ class IfExpr(AExpr):
     def get_vars(self):
         return set().union(*(arg.get_vars() for arg in [self.cond, self.expr1, self.expr2]))
 
-    def get_funs(self):
-        return set().union(*(arg.get_funs() for arg in [self.cond, self.expr1, self.expr2]))
+    def get_fun_names(self):
+        return set().union(*(arg.get_fun_names() for arg in [self.cond, self.expr1, self.expr2]))
+
+    def get_zero_arity_funcs(self):
+        return set().union(*(arg.get_zero_arity_funcs() for arg in [self.cond, self.expr1, self.expr2]))
     
     def subst(self, inst):
         return IfExpr(self.cond.subst(inst), self.expr1.subst(inst), self.expr2.subst(inst))
@@ -320,8 +341,11 @@ class ListExpr(AExpr):
     def get_vars(self):
         return set().union(*(arg.get_vars() for arg in self.args))
 
-    def get_funs(self):
-        return set().union(*(arg.get_funs() for arg in self.args))
+    def get_fun_names(self):
+        return set().union(*(arg.get_fun_names() for arg in self.args))
+
+    def get_zero_arity_funcs(self):
+        return set().union(*(arg.get_zero_arity_funcs() for arg in self.args))
 
     def subst(self, inst):
         return ListExpr(*(expr.subst(inst) for expr in self.args))
@@ -357,8 +381,11 @@ class DictExpr(AExpr):
     def get_vars(self):
         return set().union(*(v.get_vars() for k, v in self.dict.items()))
 
-    def get_funs(self):
-        return set().union(*(v.get_funs() for k, v in self.dict.items()))
+    def get_fun_names(self):
+        return set().union(*(v.get_fun_names() for k, v in self.dict.items()))
+
+    def get_zero_arity_funcs(self):
+        return set().union(*(v.get_zero_arity_funcs() for k, v in self.dict.items()))
 
     def subst(self, inst):
         return DictExpr(*((k, v.subst(inst)) for k, v in self.dict.items()))
@@ -406,8 +433,11 @@ class ArrayIdxExpr(AExpr):
     def get_vars(self):
         return self.expr1.get_vars().union(self.expr2.get_vars())
 
-    def get_funs(self):
-        return self.expr1.get_funs().union(self.expr2.get_funs())
+    def get_fun_names(self):
+        return self.expr1.get_fun_names().union(self.expr2.get_fun_names())
+
+    def get_zero_arity_funcs(self):
+        return self.expr1.get_zero_arity_funcs().union(self.expr2.get_zero_arity_funcs())
 
     def subst(self, inst):
         return ArrayIdxExpr(expr1=self.expr1.subst(inst), expr2=self.expr2.subst(inst))
@@ -444,8 +474,11 @@ class FieldNameExpr(AExpr):
     def get_vars(self):
         return self.expr.get_vars()
 
-    def get_funs(self):
-        return self.expr.get_funs()
+    def get_fun_names(self):
+        return self.expr.get_fun_names()
+
+    def get_zero_arity_funcs(self):
+        return self.expr.get_zero_arity_funcs()
 
     def subst(self, inst):
         return FieldNameExpr(expr=self.expr.subst(inst), field=self.field)
@@ -462,7 +495,10 @@ class BExpr:
     def get_vars(self):
         raise NotImplementedError
 
-    def get_funs(self):
+    def get_fun_names(self):
+        raise NotImplementedError
+
+    def get_zero_arity_funcs(self):
         raise NotImplementedError   
 
     def subst(self, inst):
@@ -494,7 +530,10 @@ class BConst(BExpr):  # Boolean expression
     def get_vars(self):
         return set()
 
-    def get_funs(self):
+    def get_fun_names(self):
+        return set()
+
+    def get_zero_arity_funcs(self):
         return set()
 
     def subst(self, inst):
@@ -508,13 +547,13 @@ false_expr = BConst(False)
 class LogicExpr(BExpr):
     def __init__(self, op, *exprs, meta=None):
         super(LogicExpr, self).__init__()
-        assert op in ["&&", "||", "-->", "<-->", "~"]
+        assert op in ["&", "|", "->", "<->", "!"]
         assert all(isinstance(expr, BExpr) for expr in exprs), \
             "Expected BExpr: {}".format(exprs)
         assert len(exprs) > 0 and len(exprs) <= 2, \
             "LogicExpr: wrong number of arguments for %s" % op
         if len(exprs) == 1:
-            assert op == '~', "LogicExpr: wrong number of arguments for %s" % op
+            assert op == '!', "LogicExpr: wrong number of arguments for %s" % op
         self.op = op
         self.exprs = tuple(exprs)
         self.meta = meta
@@ -524,11 +563,11 @@ class LogicExpr(BExpr):
 
     def __str__(self):
         if len(self.exprs) == 1:
-            assert self.op == '~'
+            assert self.op == '!'
             s = str(self.exprs[0])
             if self.exprs[0].priority() < self.priority():
                 s = '(' + s + ')'
-            return '~' + s
+            return '!' + s
         else:
             s1, s2 = str(self.exprs[0]), str(self.exprs[1])
             if self.exprs[0].priority() <= self.priority():
@@ -544,15 +583,15 @@ class LogicExpr(BExpr):
         return hash(("Logic", self.op, self.exprs))
 
     def priority(self):
-        if self.op == '<-->':
+        if self.op == '<->':
             return 25
-        elif self.op == '-->':
+        elif self.op == '->':
             return 20
-        elif self.op == '&&':
+        elif self.op == '&':
             return 35
-        elif self.op == '||':
+        elif self.op == '|':
             return 30
-        elif self.op == '~':
+        elif self.op == '!':
             return 40
         else:
             raise NotImplementedError
@@ -560,8 +599,11 @@ class LogicExpr(BExpr):
     def get_vars(self):
         return set().union(*(expr.get_vars() for expr in self.exprs))
 
-    def get_funs(self):
-        return set().union(*(expr.get_funs() for expr in self.exprs))
+    def get_fun_names(self):
+        return set().union(*(expr.get_fun_names() for expr in self.exprs))
+
+    def get_zero_arity_funcs(self):
+        return set().union(*(expr.get_zero_arity_funcs() for expr in self.exprs))
 
     def subst(self, inst):
         return LogicExpr(self.op, *(expr.subst(inst) for expr in self.exprs))
@@ -572,12 +614,12 @@ def list_conj(*args):
         return true_expr
     if len(args) == 1:
         return args[0]
-    return LogicExpr("&&", args[0], list_conj(*args[1:]))
+    return LogicExpr("&", args[0], list_conj(*args[1:]))
 
 def conj(*args):
     """Form the conjunction of the list of arguments.
     
-    Example: conj("x > 1", "x < 3") forms "x > 1 && x < 3"
+    Example: conj("x > 1", "x < 3") forms "x > 1 & x < 3"
 
     """
     assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
@@ -590,7 +632,7 @@ def conj(*args):
     return list_conj(*new_args)
 
 def split_conj(e):
-    if isinstance(e, LogicExpr) and e.op == '&&':
+    if isinstance(e, LogicExpr) and e.op == '&':
         return split_conj(e.exprs[0]) + split_conj(e.exprs[1])
     else:
         return [e]
@@ -600,12 +642,12 @@ def list_disj(*args):
         return false_expr
     if len(args) == 1:
         return args[0]
-    return LogicExpr("||", args[0], list_disj(*args[1:]))
+    return LogicExpr("|", args[0], list_disj(*args[1:]))
 
 def disj(*args):
     """Form the disjunction of the list of arguments.
     
-    Example: disj("x > 1", "x < 3") forms "x > 1 || x < 3"
+    Example: disj("x > 1", "x < 3") forms "x > 1 | x < 3"
 
     """
     assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
@@ -618,7 +660,7 @@ def disj(*args):
     return list_disj(*new_args)
 
 def split_disj(e):
-    if isinstance(e, LogicExpr) and e.op == '||':
+    if isinstance(e, LogicExpr) and e.op == '|':
         return [e.exprs[0]] + split_disj(e.exprs[1])
     else:
         return [e]
@@ -628,7 +670,7 @@ def imp(b1, b2):
         return true_expr
     if b1 == true_expr:
         return b2
-    return LogicExpr("-->", b1, b2)
+    return LogicExpr("->", b1, b2)
     
 
 class RelExpr(BExpr):
@@ -667,8 +709,11 @@ class RelExpr(BExpr):
     def get_vars(self):
         return self.expr1.get_vars().union(self.expr2.get_vars())
 
-    def get_funs(self):
-        return self.expr1.get_funs().union(self.expr2.get_funs())
+    def get_fun_names(self):
+        return self.expr1.get_fun_names().union(self.expr2.get_fun_names())
+
+    def get_zero_arity_funcs(self):
+        return self.expr1.get_zero_arity_funcs().union(self.expr2.get_zero_arity_funcs())
 
     def subst(self, inst):
         return RelExpr(self.op, self.expr1.subst(inst), self.expr2.subst(inst))
@@ -713,8 +758,11 @@ class ExistsExpr(BExpr):
         # Currently also include the bound variable.
         return self.expr.get_vars()
 
-    def get_funs(self):
-        return self.expr.get_funs()
+    def get_fun_names(self):
+        return self.expr.get_fun_names()
+
+    def get_zero_arity_funcs(self):
+        return self.expr.get_zero_arity_funcs()
 
     def subst(self, inst):
         # Currently assume the bound variable cannot be substituded.
@@ -761,8 +809,11 @@ class ForAllExpr(BExpr):
         # Currently also include the bound variable.
         return self.expr.get_vars()
 
-    def get_funs(self):
-        return self.expr.get_funs()
+    def get_fun_names(self):
+        return self.expr.get_fun_names()
+    
+    def get_zero_arity_funcs(self):
+        return self.expr.get_zero_arity_funcs()
     
     def subst(self, inst):
         # Currently assume the bound variable cannot be substituded.
@@ -779,15 +830,15 @@ def neg_expr(e):
     elif e == false_expr:
         return true_expr
     elif isinstance(e, LogicExpr):
-        if e.op == '&&':
-            return LogicExpr('||', neg_expr(e.exprs[0]), neg_expr(e.exprs[1]))
-        elif e.op == '||':
-            return LogicExpr('&&', neg_expr(e.exprs[0]), neg_expr(e.exprs[1]))
-        elif e.op == '-->':
-            return LogicExpr('&&', e.exprs[0], neg_expr(e.exprs[1]))
-        elif e.op == '<-->':
-            return LogicExpr('<-->', e.exprs[0], neg_expr(e.exprs[1]))
-        elif e.op == '~':
+        if e.op == '&':
+            return LogicExpr('|', neg_expr(e.exprs[0]), neg_expr(e.exprs[1]))
+        elif e.op == '|':
+            return LogicExpr('&', neg_expr(e.exprs[0]), neg_expr(e.exprs[1]))
+        elif e.op == '->':
+            return LogicExpr('&', e.exprs[0], neg_expr(e.exprs[1]))
+        elif e.op == '<->':
+            return LogicExpr('<->', e.exprs[0], neg_expr(e.exprs[1]))
+        elif e.op == '!':
             return e.exprs[0]
         else:
             raise NotImplementedError
@@ -869,7 +920,7 @@ class Conditional_Inst:
                     for cond_var, expr_var in self.data[var]:
                         new_cond = cond.subst({var: expr_var})
                         if self.conflicting({new_cond, cond_var}) or conj(new_cond, cond_var) == false_expr:
-                            continue  # because new_cond && cond_var is False
+                            continue  # because new_cond & cond_var is False
                         else:
                             new_cond = conj(new_cond, cond_var)
                         new_expr = expr.subst({var: expr_var})

@@ -11,6 +11,7 @@ from ss2hcsp.hcsp.module import HCSPModule
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.sf import sf_convert
 from ss2hcsp.hcsp.optimize import full_optimize_module
+from ss2hcsp.sl.sl_diagram import SL_Diagram
 
 
 def translate_continuous(diagram):
@@ -148,9 +149,9 @@ def translate_continuous(diagram):
         if isinstance(ode_hp, hp.ODE_Comm):
             for io_comm in ode_hp.io_comms:
                 if isinstance(io_comm[0], hp.OutputChannel):
-                    out_comms.append((io_comm[0], hp_parser.parse("num := num - 1")))
+                    out_comms.append((io_comm[0], hp_parser.parse("num := num - 1;")))
                 elif isinstance(io_comm[0], hp.InputChannel):
-                    in_comms.append((io_comm[0], hp_parser.parse("num := num - 1")))
+                    in_comms.append((io_comm[0], hp_parser.parse("num := num - 1;")))
                 else:
                     raise RuntimeError("It must be a channel operation!")
 
@@ -158,14 +159,14 @@ def translate_continuous(diagram):
     if len(out_comms) == 1:
         send_out_vars = out_comms[0][0]
     elif len(out_comms) >= 2:
-        send_out_vars = hp.Sequence(hp_parser.parse("num := %s" % len(out_comms)),
+        send_out_vars = hp.Sequence(hp_parser.parse("num := %s;" % len(out_comms)),
                                     hp.Loop(hp=hp.SelectComm(*out_comms), constraint=bexpr_parser.parse("num > 0")))
 
     receive_in_vars = hp.Skip()  # no input channel operations
     if len(in_comms) == 1:
         receive_in_vars = in_comms[0][0]
     elif len(in_comms) >= 2:
-        receive_in_vars = hp.Sequence(hp_parser.parse("num := %s" % len(in_comms)),
+        receive_in_vars = hp.Sequence(hp_parser.parse("num := %s;" % len(in_comms)),
                                       hp.Loop(hp=hp.SelectComm(*in_comms), constraint=bexpr_parser.parse("num > 0")))
 
     init_hps.extend([send_out_vars, receive_in_vars])
@@ -458,9 +459,9 @@ def new_translate_discrete(diagram, chart_parameters):
         else:
             assert block.st % sample_time == 0
             period = block.st // sample_time
-            output_hps.append(hp.Condition(
+            output_hps.append(hp.ITE([(
                 RelExpr("==", OpExpr("%", AVar("_tick"), AConst(period)), AConst(0)),
-                block.get_output_hp()))
+                block.get_output_hp())]))
 
         if block.type == "unit_delay":
             if block.st == sample_time:
@@ -468,9 +469,9 @@ def new_translate_discrete(diagram, chart_parameters):
             else:
                 assert block.st % sample_time == 0
                 period = block.st // sample_time
-                update_hps.append(hp.Condition(
+                update_hps.append(hp.ITE([(
                     RelExpr("==", OpExpr("%", AVar("_tick"), AConst(period)), AConst(0)),
-                    block.get_update_hp()))
+                    block.get_update_hp())]))
     return init_hps, procedures, output_hps, update_hps, sample_time
 
 
@@ -562,9 +563,9 @@ def new_get_hcsp(discrete_diagram, continuous_diagram, chart_parameters, outputs
         for _, sys_name in trig_procs:
             name_triggered = sys_name.name + "_triggered"
             names_triggered.append(
-                hp.Condition(cond=RelExpr(">", AVar(name_triggered), AConst(0)),
-                             hp=hp.Assign(var_name=name_triggered,
-                                          expr=OpExpr("-", AVar(name_triggered), AConst(1)))))
+                hp.ITE([(RelExpr(">", AVar(name_triggered), AConst(0)),
+                        hp.Assign(var_name=name_triggered,
+                                          expr=OpExpr("-", AVar(name_triggered), AConst(1))))]))
         names_triggered = hp.seq(names_triggered)
         trig_proc = list()
         for cond, sys_name in trig_procs:
@@ -572,7 +573,7 @@ def new_get_hcsp(discrete_diagram, continuous_diagram, chart_parameters, outputs
                                             hp.Assign(var_name=sys_name.name+"_triggered", expr=AConst(1)))],
                                    else_hp=hp.Assign(var_name=sys_name.name+"_triggered", expr=AConst(2))
                                    )
-            trig_proc.append(hp.Condition(cond=cond, hp=hp.Sequence(sys_name, set_triggered)))
+            trig_proc.append(hp.ITE([(cond, hp.Sequence(sys_name, set_triggered))]))
         trig_proc = hp.Sequence(*trig_proc) if len(trig_proc) >= 2 else trig_proc[0]
         continuous_hp = hp.Loop(hp=hp.Sequence(continuous_hp, trig_proc), constraint=time_constraint)
 
@@ -682,3 +683,32 @@ def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, buffers,
             processes.insert(n=0, name=model_name, hp=main_process)
 
     return processes
+
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) != 2:
+        print("Usage: python sf_convert.py filename")
+    else:
+        filename = sys.argv[1]
+        diagram = SL_Diagram(filename)
+        diagram.parse_xml()
+        diagram.delete_subsystems()
+        diagram.add_line_name()
+        diagram.comp_inher_st()
+        diagram.inherit_to_continuous()
+        diagram.separate_diagram()
+
+        # Convert to HCSP
+        result_hp = new_get_hcsp(
+            diagram.discrete_blocks, diagram.continuous_blocks,
+            diagram.chart_parameters, diagram.outputs)
+
+        # Optimize module
+        hp = result_hp.code
+        procs = dict((proc.name, proc.hp) for proc in result_hp.procedures)
+        procs, hp = full_optimize_module(procs, hp)
+        result_hp.procedures = [hcsp.Procedure(name, hp) for name, hp in procs.items()]
+        result_hp.code = hp
+
+        print(result_hp.export())
