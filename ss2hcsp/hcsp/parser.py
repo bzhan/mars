@@ -126,10 +126,10 @@ grammar = r"""
     ?label_category: "init"             -> label_categ_init
         | "maintain"                    -> label_categ_maintain
 
-    ?atom_branch_label: ESCAPED_STRING | INT
-    ?branch_label: atom_branch_label                 -> atom_branch_label
-        | branch_label ("." branch_label)+           -> seq_branch_label
-        | atom_branch_label "(" branch_label ")"     -> rec_branch_label
+    ?atom_label: ESCAPED_STRING | INT
+    ?branch_label: atom_label                 -> atom_label
+        | branch_label ("." branch_label)+           -> seq_label
+        | atom_label "(" branch_label ")"     -> nest_label
 
     ?label: label_category                  ->categ_label 
         | branch_label
@@ -456,14 +456,14 @@ class HPTransformer(Transformer):
     def label_categ_init(self, meta): return "init"
     def label_categ_maintain(self, meta): return "maintain"
 
-    def atom_branch_label(self, meta, value):
-        return label.BranchLabel(value=value)
+    def atom_label(self, meta, value):
+        return label.AtomLabel(value=value)
 
-    def seq_branch_label(self, meta, *args):
-        return label.BranchLabel(None, *args)
+    def seq_label(self, meta, *args):
+        return label.SequenceLabel(*args)
 
-    def rec_branch_label(self, meta, *args):
-        return label.BranchLabel(args[0], *args[1:])
+    def nest_label(self, meta, value, sub_label):
+        return label.NestLabel(value=value, sub_label=sub_label)
 
     def categ_label(self, meta, categ):
         return label.CompLabel(categ=categ)
