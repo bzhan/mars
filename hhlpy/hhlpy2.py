@@ -501,24 +501,63 @@ class CmdVerifier:
             # Pre-condition is the conjunction of the two pre-conditions
             # of subprograms.
 
-            pos0 = (pos[0]+(0,), pos[1]) 
-            pos1 = (pos[0]+(1,), pos[1])
-            if pos0 not in self.infos:
-                self.infos[pos0] = CmdInfo()
-            if pos1 not in self.infos:
-                self.infos[pos1] = CmdInfo()
-            info1 = self.infos[pos0]
-            info2 = self.infos[pos1]
-            info1.post = post
-            info2.post = post
-            info1.assume += self.infos[pos].assume
-            info2.assume += self.infos[pos].assume
-            self.compute_wp(pos=pos0)
-            self.compute_wp(pos=pos1)
-            pre = [Predicate(vc.expr, vc.pos, vc.path + [0], vc.annot_pos, vc.categ) 
-                    for vc in self.infos[pos0].pre] + \
-                  [Predicate(vc.expr, vc.pos, vc.path + [1], vc.annot_pos, vc.categ) 
-                    for vc in self.infos[pos1].pre]
+            pre = []
+            for i in range(len(cur_hp.hps)):
+                sub_pos = (pos[0]+(i,), pos[1])
+                if sub_pos not in self.infos:
+                    self.infos[sub_pos] = CmdInfo()
+                sub_info = self.infos[sub_pos]
+                sub_info.post = post
+                sub_info.assume += self.infos[pos].assume
+                self.compute_wp(pos=sub_pos)
+
+                pre += [Predicate(vc.expr, vc.pos, vc.path + [i], vc.annot_pos, vc.categ) 
+                    for vc in sub_info.pre]
+
+        elif isinstance(cur_hp, hcsp.ITE):
+            # ITE, if b then c1 else c2 endif
+            #                       {P1} c1 {Q}  {P2} c2 {Q}  {P3} c3 {Q}
+            #-----------------------------------------------------------------------------
+            #              {(b1 -> P1) & (!b1 & b2 -> P2)& (!b1 & !b2 -> P3)} 
+            #                      if b1 then c1 elif b2 then c2 else c3 endif 
+            #                                         {Q}
+            if_hps = cur_hp.if_hps
+
+            sub_imp = []
+            if_cond_list = []
+            for i in range(len(if_hps) + 1):
+                sub_pos = (pos[0] + (i,), pos[1])
+                if sub_pos not in self.infos:
+                    self.infos[sub_pos] = CmdInfo()
+                self.infos[sub_pos].post = post
+                self.infos[sub_pos].assume += self.infos[pos].assume
+
+                if i == len(if_hps) and cur_hp.else_hp is None:
+                    sub_pre = post
+                else:
+                    # Compute the sub-pre-condition for each sub_hp, 
+                    # e.g. P1, P2, P3 for c1, c2 and c3
+                    self.compute_wp(pos=sub_pos)
+                    sub_pre = self.infos[sub_pos].pre
+
+                # Collect the all if conditions.
+                if i < len(if_hps):
+                    if_cond_list.append(if_hps[i][0])
+
+                # Compute the hypothesis of each implication
+                if i == 0:
+                    sub_cond = if_cond_list[0]
+                elif i < len(if_hps):
+                    sub_cond = expr.LogicExpr('&', expr.neg_expr(expr.list_disj(*if_cond_list[:i])), if_cond_list[i])
+                else:
+                    sub_cond = expr.neg_expr(expr.list_disj(*if_cond_list[:]))
+
+                # Compute the implicaiton for each if_hp or else_hp
+                for vc in sub_pre:
+                    sub_imp.append(
+                        Predicate(expr.imp(sub_cond, vc.expr), vc.pos, vc.path + [i]))
+
+            pre = sub_imp
 
         elif isinstance(cur_hp, hcsp.Sequence):
             # Sequence of several commands, apply compute_wp from bottom to top
@@ -1135,54 +1174,6 @@ class CmdVerifier:
 
                 self.infos[pos].vcs.append(Predicate(vc, [pos], [], categ="maintain"))
 
-            # # Using Conjuntion Rule
-            #     #  {P1} c {Q1}     {P2} c {Q2}   P -> P1 & P2
-            #     #------------------------------------------------
-            #     #               {P} c {Q1 & Q2}
-            # elif self.infos[pos].conj_rule:
-            #     assert isinstance(post, expr.LogicExpr) and post.op == '&'
-
-            #     eqs_dict = self.infos[pos].eqs_dict
-            #     sub_posts = expr.split_conj(post)
-
-            #     # Compute wp for each sub_inv
-            #     sub_pres = []
-            #     for i, sub_post in enumerate(sub_posts):
-            #         # Create different CmdInfos for each sub-invariants
-            #         sub_pos = (pos[0], pos[1] + (i,))
-            #         if sub_pos not in self.infos:
-            #             self.infos[sub_pos] = CmdInfo()
-            #         self.infos[sub_pos].post = sub_post
-            #         self.infos[sub_pos].assume += self.infos[pos].assume
-            #         self.infos[sub_pos].eqs_dict = eqs_dict
-            #         self.compute_wp(pos=sub_pos)
-
-            #         sub_pres.append(self.infos[sub_pos].pre)
-
-            #     pre = expr.list_conj(*sub_pres)
-
-            # # Using the rule below:(proved by Isabelle)
-            # #    e > 0 -> e_lie_deriv >= 0
-            # #----------------------------------    # c is an ODE
-            # #           {e > 0} c {e > 0}
-            # elif self.infos[pos].assume_inv:
-            #     assume_inv = self.infos[pos].assume_inv
-            #     assert assume_inv.op in ['>', '<']
-                
-            #     # Translate into '>' form.
-            #     if assume_inv.op == '<':
-            #         assume_inv = expr.RelExpr('>', assume_inv.expr2, assume_inv.expr1)
-
-            #     # Translate into 'e > 0' form.
-            #     if assume_inv.expr2 is not expr.AConst(0):
-            #         assume_inv = expr.RelExpr('>', expr.OpExpr('-', assume_inv.expr1, assume_inv.expr2),\
-            #             expr.AConst(0))
-
-            #     # Compute the lie derivation of 'e > 0'
-            #     differential = compute_diff(assume_inv, eqs_dict=self.infos[pos].eqs_dict)
-
-            #     self.infos[pos].vcs.append(expr.imp(assume_inv, differential))
-            #     pre = assume_inv
 
             else:
                 raise AssertionError("No invariant set at position %s." % str(pos))
@@ -1193,50 +1184,6 @@ class CmdVerifier:
                 pre = pre_dw
             # If pre is None and pre_dw is None, no pre is computed, so pre is still None.
 
-        elif isinstance(cur_hp, hcsp.ITE):
-            # ITE, if b then c1 else c2 endif
-            #                       {P1} c1 {Q}  {P2} c2 {Q}  {P3} c3 {Q}
-            #-----------------------------------------------------------------------------
-            #              {(b1 -> P1) & (!b1 & b2 -> P2)& (!b1 & !b2 -> P3)} 
-            #                      if b1 then c1 elif b2 then c2 else c3 endif 
-            #                                         {Q}
-            if_hps = cur_hp.if_hps
-
-            sub_imp = []
-            if_cond_list = []
-            for i in range(len(if_hps) + 1):
-                sub_pos = (pos[0] + (i,), pos[1])
-                if sub_pos not in self.infos:
-                    self.infos[sub_pos] = CmdInfo()
-                self.infos[sub_pos].post = post
-                self.infos[sub_pos].assume += self.infos[pos].assume
-
-                if i == len(if_hps) and cur_hp.else_hp is None:
-                    sub_pre = post
-                else:
-                    # Compute the sub-pre-condition for each sub_hp, 
-                    # e.g. P1, P2, P3 for c1, c2 and c3
-                    self.compute_wp(pos=sub_pos)
-                    sub_pre = self.infos[sub_pos].pre
-
-                # Collect the all if conditions.
-                if i < len(if_hps):
-                    if_cond_list.append(if_hps[i][0])
-
-                # Compute the hypothesis of each implication
-                if i == 0:
-                    sub_cond = if_cond_list[0]
-                elif i < len(if_hps):
-                    sub_cond = expr.LogicExpr('&', expr.neg_expr(expr.list_disj(*if_cond_list[:i])), if_cond_list[i])
-                else:
-                    sub_cond = expr.neg_expr(expr.list_disj(*if_cond_list[:]))
-
-                # Compute the implicaiton for each if_hp or else_hp
-                for vc in sub_pre:
-                    sub_imp.append(
-                        Predicate(expr.imp(sub_cond, vc.expr), vc.pos, vc.path + [i]))
-
-            pre = sub_imp
 
         else:
             raise NotImplementedError

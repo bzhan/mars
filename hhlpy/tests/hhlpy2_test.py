@@ -84,6 +84,10 @@ class BasicHHLPyTest(unittest.TestCase):
                   expected_vcs={((), ()): ["x >= 0 -> x + 1 >= 1", "x >= 0 -> x + 2 >= 1"]},
                   print_vcs=False)
 
+    def testVerify2_1(self):
+        # {x >= 0} x := x+1 ++ x := x+2 ++ x := x + 3 {x >= 1}
+        runVerify(self, pre="x >= 0", hp="x := x+1; ++ x := x+2; ++ x := x+3;", post="x >= 1")
+
     def testVerify3(self):
         # {x >= 0} x := x+1; y := x+2 {x >= 1 & y >= 3}
         runVerify(self, pre="x >= 0", hp="x := x+1; y := x+2;", post="x >= 1 & y >= 3",
