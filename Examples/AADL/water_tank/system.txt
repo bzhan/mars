@@ -6,9 +6,9 @@ system
 
 scheduler = SCHEDULLER_HPF($0) ||
 water_tank = water_tank() ||
-DIS_set_valve = DIS_periodic($"set_valve", $0.03) ||
+DIS_set_valve = DIS_periodic($"set_valve", $0.1) ||
 COM_set_valve = set_valve() ||
-DIS_get_waterlevel = DIS_periodic($"get_waterlevel", $0.03) ||
+DIS_get_waterlevel = DIS_periodic($"get_waterlevel", $0.1) ||
 COM_get_waterlevel = get_waterlevel() ||
 DEVICE_sensor = sensor() ||
 DEVICE_actuator = actuator() ||
