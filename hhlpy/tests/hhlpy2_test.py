@@ -38,8 +38,12 @@ def runVerify(self, *, pre, hp, post, constants=set(),
         for pos, vcs in verifier.get_all_vcs().items():
             print("%s:" % str(pos))
             for vc in vcs:
-                print(vc.expr, "pos:", vc.pos, "path:", vc.path, "annot_pos:", vc.annot_pos,
-                      "categ:", vc.categ)
+                print(vc.expr, 
+                "pos:", vc.pos, 
+                "seq_labels:", [str(lb) for lb in vc.seq_labels], 
+                "nest_label:", vc.nest_label,
+                "annot_pos:", vc.annot_pos,
+                "categ:", vc.categ)
 
     # Use SMT to verify all verification conditions
     self.assertTrue(verifier.verify())
@@ -86,7 +90,15 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testVerify2_1(self):
         # {x >= 0} x := x+1 ++ x := x+2 ++ x := x + 3 {x >= 1}
-        runVerify(self, pre="x >= 0", hp="x := x+1; ++ x := x+2; ++ x := x+3;", post="x >= 1")
+        runVerify(self, pre="x >= 0", hp="x := x+1; ++ x := x+2; ++ x := x+3;", post="x >= 1",
+        print_vcs=False)
+
+    def testVerify2_2(self):
+        # {x >= 0} x := x+1 ++ x := x+2; x := x+1 ++ x := x+2 ++ x := x + 3 {x >= 1}
+        runVerify(self, pre="x >= 0", 
+                  hp="x := x+1; ++ x := x+2; x := x + 1; x := x+3; ++ x := x+4; ++ x := x+5;", 
+                  post="x >= 2",
+                print_vcs=False)
 
     def testVerify3(self):
         # {x >= 0} x := x+1; y := x+2 {x >= 1 & y >= 3}
@@ -100,6 +112,13 @@ class BasicHHLPyTest(unittest.TestCase):
                   expected_vcs={((), ()): ["x >= 0 -> x + 1 + 1 >= 1", "x >= 0 -> x + 1 >= 1"]})
 
     def testVerify4_1(self):
+        #  {x >= 0} x := x+1; (x := x+1 ++ y := x+1)** {x >= 1}
+        runVerify(self, pre="x >= 0", 
+                  hp="x := x+1; {x := x+1; ++ y := x+1;}* invariant[x >= 1];", 
+                  post="x >= 1",
+                  print_vcs=False)
+
+    def testVerify4_2(self):
         # ITE
         # {x == 1}
         # if (x > 0){
@@ -251,6 +270,19 @@ class BasicHHLPyTest(unittest.TestCase):
                     x := y;", 
                   post="x >= 1") 
 
+    def testVerify14_1(self):
+         # {x >= 0 & y >= 1} 
+
+        # x := x + 1; 
+        # (x := x + 1)**@invariant(x >= 1) ++ y:= x + 1; 
+
+        # {x >= 1 & y >= 1}
+        runVerify(self, pre="x >= 0 & y >= 1", 
+                  hp="x := x + 1; \
+                    {x := x + 1;}* invariant [x >= 1] [y >= 1]; ++ y := x + 1;", 
+                  post="x >= 1 & y >= 1",
+                  print_vcs=False) 
+
     def testVerify15(self):
         # Basic benchmark, problem8
         # {x > 0 & y > 0} 
@@ -260,7 +292,8 @@ class BasicHHLPyTest(unittest.TestCase):
 
         # {x > 0 & y > 0}
         runVerify(self, pre="x > 0 & y > 0", 
-                  hp="<x_dot = 5 & x < 10> invariant [x > 0] [y > 0]; {x := x + 3;}* invariant [x > 0] [y > 0]; ++ y := x;", 
+                  hp="<x_dot = 5 & x < 10> invariant [x > 0] [y > 0]; \
+                      {x := x + 3;}* invariant [x > 0] [y > 0]; ++ y := x;", 
                   post="x > 0 & y > 0")
 
     def testVerify16(self):
