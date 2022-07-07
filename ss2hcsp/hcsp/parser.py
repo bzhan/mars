@@ -123,17 +123,24 @@ grammar = r"""
     ?loop_invariant: "[" cond "]" ("{{" proof_method ("," proof_method)* "}}")? -> loop_invariant
     ?proof_method: (label ":")? method   -> proof_method
 
-    ?label_category: "init"             -> label_categ_init
-        | "maintain"                    -> label_categ_maintain
+    
+    
+    ?label_category: "init"     -> label_categ_init
+        | "maintain"         -> label_categ_maintain
 
-    ?atom_label: ESCAPED_STRING | INT
+    ?categ_label: label_category     -> categ_label
+
+    ?atom_label: INT
+        | "execute"          -> atom_label_execute
+        | "skip"             -> atom_label_skip
+
     ?branch_label: atom_label                 -> atom_label
         | branch_label ("." branch_label)+           -> seq_label
         | atom_label "(" branch_label ")"     -> nest_label
 
-    ?label: label_category                  ->categ_label 
+    ?label: categ_label                  
         | branch_label
-        | label_category branch_label       ->comp_label
+        | categ_label branch_label       -> comp_label
     
     ?method: "z3"        -> method_z3
       | "wolfram_engine" -> method_wolfram_engine
@@ -456,6 +463,9 @@ class HPTransformer(Transformer):
     def label_categ_init(self, meta): return "init"
     def label_categ_maintain(self, meta): return "maintain"
 
+    def atom_label_execute(self, meta): return "execute"
+    def atom_label_skip(self, meta): return "skip"
+
     def atom_label(self, meta, value):
         return label.AtomLabel(value=value)
 
@@ -466,10 +476,10 @@ class HPTransformer(Transformer):
         return label.NestLabel(value=value, sub_label=sub_label)
 
     def categ_label(self, meta, categ):
-        return label.CompLabel(categ=categ)
+        return label.CategLabel(categ=categ)
 
-    def comp_label(self, meta, categ, branch_label):
-        return label.CompLabel(categ=categ, branch_label=branch_label)
+    def comp_label(self, meta, categ_label, branch_label):
+        return label.CompLabel(categ_label=categ_label, branch_label=branch_label)
 
     def proof_method(self, meta, *args):
         assert(len(args) == 1 or len(args) == 2)

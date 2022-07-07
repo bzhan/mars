@@ -43,7 +43,9 @@ def runVerify(self, *, pre, hp, post, constants=set(),
                 "seq_labels:", [str(lb) for lb in vc.seq_labels], 
                 "nest_label:", vc.nest_label,
                 "annot_pos:", vc.annot_pos,
-                "categ:", vc.categ)
+                "categ:", vc.categ,
+                "branch_label:", str(vc.branch_label),
+                "comp_label:", str(vc.comp_label))
 
     # Use SMT to verify all verification conditions
     self.assertTrue(verifier.verify())
@@ -150,7 +152,7 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testVerify5(self):
         # {x >= 0} (x := x+1)** {x >= 0}
-        runVerify(self, pre="x >= 0", hp="{x := x+1;}* invariant [x >= 0]{{init1.1(2): z3}};", post="x >= 0", print_vcs=False,
+        runVerify(self, pre="x >= 0", hp="{x := x+1;}* invariant [x >= 0]{{init 1.1(2).skip: z3}};", post="x >= 0", print_vcs=True,
                   expected_vcs={((), (0,)): ["x >= 0 -> x + 1 >= 0"]})
 
     def testVerify5_1(self):
@@ -188,7 +190,7 @@ class BasicHHLPyTest(unittest.TestCase):
         # {x >= 0} <x_dot=2 & x < 10> {x >= 0}
         # Use the boundary x == 10 to imply the post x >= 0.
         # No invariant attached.
-        runVerify(self, pre="x >= 0", hp="<x_dot=2 & x < 10>", post="x >= 0", print_vcs=False)
+        runVerify(self, pre="x >= 0", hp="<x_dot=2 & x < 10>", post="x >= 0", print_vcs=True)
 
     # TODO: 
     # def testVerify7_1(self):
@@ -209,7 +211,7 @@ class BasicHHLPyTest(unittest.TestCase):
                   hp="<x_dot=y, y_dot=-x & x > 0> \
                       invariant [x * x + y * y == 1] {di};",
                   post="x * x + y * y == 1",
-                  print_vcs=False)
+                  print_vcs=True)
 
     def testVerify9(self):
         # Basic benchmark, problem 4
@@ -227,7 +229,7 @@ class BasicHHLPyTest(unittest.TestCase):
                   hp="<x_dot = 5 & x < 1> invariant [x > 0]; \
                       <x_dot = 2 & x < 2> invariant [x > 0];",
                   post="x > 0",
-                  print_vcs=False)
+                  print_vcs=True)
 
     def testVerify10(self):
         # Basic Benchmark, problem5
