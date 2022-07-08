@@ -862,7 +862,6 @@ class BasicHHLPyTest(unittest.TestCase):
                       invariant [v >= 0] [x+v^2/(2*B) <= S];",
                   post="x <= S",
                   constants={'A', 'B', 'S', 'ep'},
-                  andR_rule={((), ()): "true"},
                   wolfram_engine=True)
 
     def testVerify58(self):
@@ -892,8 +891,6 @@ class BasicHHLPyTest(unittest.TestCase):
                       }* \
                       invariant [x+v^2/(2*b) <= S] [v >= 0];",
                   post="x <= S",
-                #   constants={'A', 'B', 'b', 'S', 'ep'},
-                  andR_rule={((), ()): "true"},
                   wolfram_engine=True
         )
 
