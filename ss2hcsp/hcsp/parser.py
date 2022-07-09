@@ -112,7 +112,6 @@ grammar = r"""
         | "<" ode_seq "&" cond ">" maybe_ode_invariant -> ode
         | "<" "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm_const
         | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm
-        | "rec" CNAME "{" cmd "}" maybe_invariant -> rec_cmd
         | "if" "(" cond ")" "{" cmd "}" ("else" "if" "(" cond ")" "{" cmd "}")* ("else" "{" cmd "}")? -> ite_cmd
         | "{" cmd "}" -> paren_cmd
 
@@ -528,9 +527,6 @@ class HPTransformer(Transformer):
         for i in range(0, len(args), 2):
             io_comms.append((args[i], args[i+1]))
         return hcsp.SelectComm(*io_comms, meta=meta)
-
-    def rec_cmd(self, meta, var_name, c, inv):
-        return hcsp.Recursion(c, entry=var_name, meta=meta)
 
     def ite_cmd(self, meta, *args):
         if_hps = []

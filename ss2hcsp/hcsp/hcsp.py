@@ -136,7 +136,7 @@ class HCSP:
             return 1
         elif isinstance(self, (Sequence, Parallel)):
             return 1 + sum([hp.size() for hp in self.hps])
-        elif isinstance(self, (Loop, Recursion)):
+        elif isinstance(self, Loop):
             return 1 + self.hp.size()
         elif isinstance(self, ODE):
             return 1
@@ -158,8 +158,7 @@ class HCSP:
             for sub_hp in self.hps:
                 if sub_hp.contain_hp(name):
                     return True
-        elif isinstance(self, (Loop, Recursion)):
-            # Note the test for Recursion is imprecise.
+        elif isinstance(self, Loop):
             return self.hp.contain_hp(name)
         elif isinstance(self, ODE):
             return self.out_hp.contain_hp(name)
@@ -193,7 +192,7 @@ class HCSP:
             elif isinstance(hp, (Sequence, Parallel)):
                 for sub_hp in hp.hps:
                     rec(sub_hp)
-            elif isinstance(hp, (Loop, Recursion)):
+            elif isinstance(hp, Loop):
                 rec(hp.hp)
             elif isinstance(hp, ODE):
                 rec(hp.out_hp)
@@ -256,8 +255,6 @@ class HCSP:
             return Loop(self.hp.subst_comm(inst), constraint=self.constraint)
         elif self.type == 'select_comm':
             return SelectComm(*(subst_io_comm(io_comm) for io_comm in self.io_comms))
-        elif self.type == 'recursion':
-            return Recursion(self.hp.subst_comm(inst), entry=self.entry)
         elif self.type == 'ite':
             return ITE([subst_if_hp(if_hp) for if_hp in self.if_hps], 
               self.else_hp.subst_comm(inst) if self.else_hp is not None else None)
@@ -1240,40 +1237,6 @@ class SelectComm(HCSP):
         return ch_set
 
 
-class Recursion(HCSP):
-    def __init__(self, hp, entry="X", meta=None):
-        super(Recursion, self).__init__()
-        assert isinstance(entry, str) and isinstance(hp, HCSP)
-        self.type = "recursion"
-        self.entry = entry
-        self.hp = hp
-        self.meta = meta
-
-    def __eq__(self, other):
-        return self.type == other.type and self.entry == other.entry and self.hp == other.hp
-
-    def __repr__(self):
-        return "Recursion(%s, %s)" % (self.entry, repr(self.hp))
-
-    def __str__(self):
-        return "rec " + self.entry + " { " + str(self.hp) + " }"
-
-    def __hash__(self):
-        return hash(("Recursion", self.entry, self.hp))
-
-    def get_vars(self):
-        return self.hp.get_vars()
-
-    def get_fun_names(self):
-        return self.hp.get_fun_names()
-
-    def get_zero_arity_funcs(self):
-        return self.hp.get_zero_arity_funcs()
-
-    def get_chs(self):
-        return self.hp.get_chs()
-
-
 class ITE(HCSP):
     def __init__(self, if_hps, else_hp=None, meta=None):
         """if-then-else statements.
@@ -1400,7 +1363,7 @@ def get_comm_chs(hp):
             for comm_hp, out_hp in _hp.io_comms:
                 rec(comm_hp)
                 rec(out_hp)
-        elif _hp.type in ('loop', 'recursion'):
+        elif _hp.type == 'loop':
             rec(_hp.hp)
         elif _hp.type == 'ite':
             for _, sub_hp in _hp.if_hps:
@@ -1496,7 +1459,7 @@ def HCSP_subst(hp, inst):
             return hp
     elif isinstance(hp, (Skip, Wait, Assign, Assert, Test, Log, InputChannel, OutputChannel)):
         return hp
-    elif isinstance(hp, (Loop, Recursion)):
+    elif isinstance(hp, Loop):
         hp.hp = HCSP_subst(hp.hp, inst)
         return hp
     elif isinstance(hp, Sequence):
@@ -1645,7 +1608,7 @@ class HCSPProcess:
                     _hp = _substitute(hps_dict[_name])
                     substituted[_name] = _hp
                     del hps_dict[_name]
-            elif isinstance(_hp, (Loop, Recursion)):
+            elif isinstance(_hp, Loop):
                 _hp.hp = _substitute(_hp.hp)
             elif isinstance(_hp, Sequence):
                 _hps = [_substitute(sub_hp) for sub_hp in _hp.hps]
