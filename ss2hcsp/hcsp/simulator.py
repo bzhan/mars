@@ -41,248 +41,260 @@ class SimulatorAssertionException(Exception):
         return res
 
 
-def eval_expr(expr, state):
+def eval_expr(expr, state, functions=None):
     """Evaluate the given expression on the given state."""
     if expr is None:
         return None
 
-    elif isinstance(expr, AVar):
-        # Variable case
-        if expr.name not in state:
-            raise SimulatorException("Uninitialized variable: " + expr.name)
+    def rec(expr):
+        if isinstance(expr, AVar):
+            # Variable case
+            if expr.name not in state:
+                raise SimulatorException("Uninitialized variable: " + expr.name)
 
-        return state[expr.name]
+            return state[expr.name]
 
-    elif isinstance(expr, AConst):
-        # Constant case
-        if isinstance(expr.value, Decimal):
-            return float(expr.value)
-        else:
+        elif isinstance(expr, AConst):
+            # Constant case
+            if isinstance(expr.value, Decimal):
+                return float(expr.value)
+            else:
+                return expr.value
+
+        elif isinstance(expr, OpExpr):
+            # Arithmetic operations
+            if len(expr.exprs) == 1:
+                return -rec(expr.exprs[0])
+            else:
+                e1, e2 = rec(expr.exprs[0]), rec(expr.exprs[1])
+                if expr.op == '+':
+                    return e1 + e2
+                elif expr.op == '-':
+                    return e1 - e2
+                elif expr.op == '*':
+                    return e1 * e2
+                elif expr.op == '/':
+                    return e1 / e2
+                elif expr.op == '%':
+                    if isinstance(e2, Decimal):
+                        if e2 != int(e2):
+                            raise SimulatorException("When evaluating %s: %s is not an integer" % (expr, e2))
+                        return round(e1) % int(e2)
+                    else:
+                        return round(e1) % e2
+                else:
+                    raise TypeError
+
+        elif isinstance(expr, FunExpr):
+            # Special functions
+            args = [rec(e) for e in expr.exprs]
+            if expr.fun_name == "min":
+                return min(*args)
+            elif expr.fun_name == "max":
+                return max(*args)
+            elif expr.fun_name == "abs":
+                return abs(*args)
+            elif expr.fun_name == "gcd":
+                return math.gcd(*args)
+            elif expr.fun_name == "div":
+                a, b = args
+                return int(a) // int(b)
+            elif expr.fun_name == "sin":
+                return math.sin(args[0])
+            elif expr.fun_name == "push":
+                a, b = args
+                if not isinstance(a, list):
+                    a = [a]
+                if not isinstance(b, list):
+                    b = [b]
+                return a + b
+            elif expr.fun_name == "pop":
+                a, = args
+                assert isinstance(a, list)
+                if len(a) == 0:
+                    raise SimulatorException('When evaluating %s: argument is empty' % expr)
+                return a[:-1]
+            elif expr.fun_name == "top":
+                a, = args
+                assert isinstance(a, list)
+                if len(a) == 0:
+                    raise SimulatorException('When evaluating %s: argument is empty' % expr)
+                return a[-1]
+            elif expr.fun_name == "bottom":
+                a, = args
+                assert isinstance(a, list)
+                if len(a) == 0:
+                    raise SimulatorException('When evaluating %s: argument is empty' % expr)
+                return a[0]
+            elif expr.fun_name == "get":
+                a, = args
+                assert isinstance(a, list)
+                if len(a) == 0:
+                    raise SimulatorException('When evaluating %s: argument is empty' % expr)
+                return a[1:]
+            elif expr.fun_name == "del0":
+                a, b = args
+                assert isinstance(a, list)
+                assert isinstance(b, str)
+                procs = []
+                for e in a:
+                    assert isinstance(e, list) and len(e) == 2  # [prior, process]
+                    if e[1] == b:
+                        procs.append(e)
+                assert len(procs) <= 1
+                if len(procs) == 1:
+                    c = list(a)
+                    c.remove(procs[0])
+                    a = list(c)
+                return a
+            elif expr.fun_name == "len":
+                a, = args
+                assert isinstance(a, list)
+                return len(a)
+            elif expr.fun_name == "get_max":
+                a, = args
+                assert isinstance(a, list)
+                if len(a) == 0:
+                    raise SimulatorException('When evaluating %s: argument is empty' % expr)
+                return max(a)
+            elif expr.fun_name == "pop_max":
+                a, = args
+                assert isinstance(a, list)
+                if len(a) == 0:
+                    raise SimulatorException('When evaluating %s: argument is empty' % expr)
+                b = list(a)
+                try:
+                    b.remove(max(a))
+                except TypeError as e:
+                    print('value is:', a)
+                    raise e
+                return list(b)
+            elif expr.fun_name == "sqrt":
+                assert len(args) == 1
+                if args[0] < 0:
+                    raise SimulatorException('When evaluating %s: argument %s less than zero' % (expr, args[0]))
+                return math.sqrt(args[0])
+            elif expr.fun_name == "bernoulli":
+                assert len(args) == 1
+                if not (args[0] >= 0 and args[0] <= 1):
+                    raise SimulatorException('When evaluating %s: argument %s not in range' % (expr, args[0]))
+                if random.uniform(0,1) <= args[0]:
+                    return 1
+                else:
+                    return 0
+            elif expr.fun_name == "uniform":
+                assert len(args) == 2
+                if args[0] > args[1]:
+                    raise SimulatorException('When evaluating %s: %s > %s' % (expr, args[0], args[1]))
+                return random.uniform(args[0], args[1])
+            elif expr.fun_name == "unidrnd":
+                assert len(args) == 1
+                if args[0] <= 0:
+                    raise SimulatorException('When evaluating %s: %s <= 0' % (expr, args[0]))
+                return random.randint(1, args[0])
+
+            # Case of custom functions
+            elif functions is not None and expr.fun_name in functions:
+                f = functions[expr.fun_name]
+                if len(args) != len(f.vars):
+                    raise SimulatorException("When evaluating %s: wrong number of arguments" % expr)
+                inst = dict()
+                for (var, arg) in zip(f.vars, args):
+                    inst[var] = AConst(arg)
+                expr2 = f.expr.subst(inst)
+                return rec(expr2)
+
+            # elif expr.fun_name == "protected_curve":
+            #     # assert len(args) == 4
+            #     # obs_pos, veh_pos, max_v, min_a = args
+            #     a, = args
+            #     assert len(a) == 4
+            #     obs_pos, veh_pos, max_v, min_a = a
+            #     if obs_pos <= 0:
+            #         return max_v
+            #     assert min_a < 0
+            #     distance = obs_pos - veh_pos
+            #     if distance > max_v * max_v / (-2 * min_a):
+            #         return max_v
+            #     elif distance >= 0:
+            #         return math.sqrt(-2 * min_a * distance)
+            #     else:
+            #         return 0
+            else:
+                raise SimulatorException("When evaluating %s: unrecognized function" % expr)
+
+        elif isinstance(expr, IfExpr):
+            cond = rec(expr.cond)
+            if cond:
+                return rec(expr.expr1)
+            else:
+                return rec(expr.expr2)
+
+        elif isinstance(expr, ListExpr):
+            return list(rec(arg) for arg in expr.args)
+
+        elif isinstance(expr, DictExpr):
+            return dict((k, rec(v)) for k, v in expr.dict.items())
+
+        elif isinstance(expr, ArrayIdxExpr):
+            a = rec(expr.expr1)
+            i = rec(expr.expr2)
+            if not (isinstance(a, list) and isinstance(i, int)):
+                raise SimulatorException('When evaluating %s: type error' % expr)
+            if not i < len(a):
+                raise SimulatorException('When evaluating %s: array out of bounds error' % expr)
+            return a[i]
+
+        elif isinstance(expr, FieldNameExpr):
+            a = rec(expr.expr)
+            if not isinstance(a, dict) or expr.field not in a:
+                raise SimulatorException('When evaluating %s: field not found' % expr)
+            return a[expr.field]
+
+        elif isinstance(expr, BConst):
             return expr.value
 
-    elif isinstance(expr, OpExpr):
-        # Arithmetic operations
-        if len(expr.exprs) == 1:
-            return -eval_expr(expr.exprs[0], state)
-        else:
-            e1, e2 = eval_expr(expr.exprs[0], state), eval_expr(expr.exprs[1], state)
-            if expr.op == '+':
-                return e1 + e2
-            elif expr.op == '-':
-                return e1 - e2
-            elif expr.op == '*':
-                return e1 * e2
-            elif expr.op == '/':
-                return e1 / e2
-            elif expr.op == '%':
-                if isinstance(e2, Decimal):
-                    if e2 != int(e2):
-                        raise SimulatorException("When evaluating %s: %s is not an integer" % (expr, e2))
-                    return round(e1) % int(e2)
+        elif isinstance(expr, LogicExpr):
+            if expr.op == "&":
+                return rec(expr.exprs[0]) and rec(expr.exprs[1])
+            elif expr.op == "|":
+                return rec(expr.exprs[0]) or rec(expr.exprs[1])
+            elif expr.op == "->":
+                return (not rec(expr.exprs[0])) or rec(expr.exprs[1])
+            elif expr.op == "<->":
+                return rec(expr.exprs[0]) == rec(expr.exprs[1])
+            elif expr.op == "!":
+                return not rec(expr.exprs[0])
+            else:
+                raise NotImplementedError
+
+        elif isinstance(expr, RelExpr):
+            a, b = rec(expr.expr1), rec(expr.expr2)
+            if expr.op == "<":
+                return a < b
+            elif expr.op == ">":
+                return a > b
+            elif expr.op == "==":
+                if isinstance(a, float) or isinstance(b, float):
+                    return abs(a - b) < 1e-10
                 else:
-                    return round(e1) % e2
+                    return a == b
+            elif expr.op == "!=":
+                return a != b
+            elif expr.op == ">=":
+                return a >= b
+            elif expr.op == "<=":
+                return a <= b
             else:
-                raise TypeError
+                raise NotImplementedError
 
-    elif isinstance(expr, FunExpr):
-        # Special functions
-        args = [eval_expr(e, state) for e in expr.exprs]
-        if expr.fun_name == "min":
-            return min(*args)
-        elif expr.fun_name == "max":
-            return max(*args)
-        elif expr.fun_name == "abs":
-            return abs(*args)
-        elif expr.fun_name == "gcd":
-            return math.gcd(*args)
-        elif expr.fun_name == "div":
-            a, b = args
-            return int(a) // int(b)
-        elif expr.fun_name == "sin":
-            return math.sin(args[0])
-        elif expr.fun_name == "push":
-            a, b = args
-            if not isinstance(a, list):
-                a = [a]
-            if not isinstance(b, list):
-                b = [b]
-            return a + b
-        elif expr.fun_name == "pop":
-            a, = args
-            assert isinstance(a, list)
-            if len(a) == 0:
-                raise SimulatorException('When evaluating %s: argument is empty' % expr)
-            return a[:-1]
-        elif expr.fun_name == "top":
-            a, = args
-            assert isinstance(a, list)
-            if len(a) == 0:
-                raise SimulatorException('When evaluating %s: argument is empty' % expr)
-            return a[-1]
-        elif expr.fun_name == "bottom":
-            a, = args
-            assert isinstance(a, list)
-            if len(a) == 0:
-                raise SimulatorException('When evaluating %s: argument is empty' % expr)
-            return a[0]
-        elif expr.fun_name == "get":
-            a, = args
-            assert isinstance(a, list)
-            if len(a) == 0:
-                raise SimulatorException('When evaluating %s: argument is empty' % expr)
-            return a[1:]
-        elif expr.fun_name == "del0":
-            a, b = args
-            assert isinstance(a, list)
-            assert isinstance(b, str)
-            procs = []
-            for e in a:
-                assert isinstance(e, list) and len(e) == 2  # [prior, process]
-                if e[1] == b:
-                    procs.append(e)
-            assert len(procs) <= 1
-            if len(procs) == 1:
-                c = list(a)
-                c.remove(procs[0])
-                a = list(c)
-            return a
-        elif expr.fun_name == "len":
-            a, = args
-            assert isinstance(a, list)
-            return len(a)
-        elif expr.fun_name == "get_max":
-            a, = args
-            assert isinstance(a, list)
-            if len(a) == 0:
-                raise SimulatorException('When evaluating %s: argument is empty' % expr)
-            return max(a)
-        elif expr.fun_name == "pop_max":
-            a, = args
-            assert isinstance(a, list)
-            if len(a) == 0:
-                raise SimulatorException('When evaluating %s: argument is empty' % expr)
-            b = list(a)
-            try:
-                b.remove(max(a))
-            except TypeError as e:
-                print('value is:', a)
-                raise e
-            return list(b)
-        elif expr.fun_name == "sqrt":
-            assert len(args) == 1
-            if args[0] < 0:
-                raise SimulatorException('When evaluating %s: argument %s less than zero' % (expr, args[0]))
-            return math.sqrt(args[0])
-        elif expr.fun_name == "bernoulli":
-            assert len(args) == 1
-            if not (args[0] >= 0 and args[0] <= 1):
-                raise SimulatorException('When evaluating %s: argument %s not in range' % (expr, args[0]))
-            if random.uniform(0,1) <= args[0]:
-                return 1
-            else:
-                return 0
-        elif expr.fun_name == "uniform":
-            assert len(args) == 2
-            if args[0] > args[1]:
-                raise SimulatorException('When evaluating %s: %s > %s' % (expr, args[0], args[1]))
-            return random.uniform(args[0], args[1])
-        elif expr.fun_name == "unidrnd":
-            assert len(args) == 1
-            if args[0] <= 0:
-                raise SimulatorException('When evaluating %s: %s <= 0' % (expr, args[0]))
-            return random.randint(1, args[0])
-        elif expr.fun_name == "zeros":
-            if len(args) == 3:
-                return np.zeros((args[0],args[1],args[2]),dtype=int).tolist()
-        # elif expr.fun_name == "protected_curve":
-        #     # assert len(args) == 4
-        #     # obs_pos, veh_pos, max_v, min_a = args
-        #     a, = args
-        #     assert len(a) == 4
-        #     obs_pos, veh_pos, max_v, min_a = a
-        #     if obs_pos <= 0:
-        #         return max_v
-        #     assert min_a < 0
-        #     distance = obs_pos - veh_pos
-        #     if distance > max_v * max_v / (-2 * min_a):
-        #         return max_v
-        #     elif distance >= 0:
-        #         return math.sqrt(-2 * min_a * distance)
-        #     else:
-        #         return 0
         else:
-            raise SimulatorException("When evaluating %s: unrecognized function" % expr)
-
-    elif isinstance(expr, IfExpr):
-        cond = eval_expr(expr.cond, state)
-        if cond:
-            return eval_expr(expr.expr1, state)
-        else:
-            return eval_expr(expr.expr2, state)
-
-    elif isinstance(expr, ListExpr):
-        return list(eval_expr(arg, state) for arg in expr.args)
-
-    elif isinstance(expr, DictExpr):
-        return dict((k, eval_expr(v, state)) for k, v in expr.dict.items())
-
-    elif isinstance(expr, ArrayIdxExpr):
-        a = eval_expr(expr.expr1, state)
-        i = eval_expr(expr.expr2, state)
-        if not (isinstance(a, list) and isinstance(i, int)):
-            raise SimulatorException('When evaluating %s: type error' % expr)
-        if not i < len(a):
-            raise SimulatorException('When evaluating %s: array out of bounds error' % expr)
-        return a[i]
-
-    elif isinstance(expr, FieldNameExpr):
-        a = eval_expr(expr.expr, state)
-        if not isinstance(a, dict) or expr.field not in a:
-            raise SimulatorException('When evaluating %s: field not found' % expr)
-        return a[expr.field]
-
-    elif isinstance(expr, BConst):
-        return expr.value
-
-    elif isinstance(expr, LogicExpr):
-        if expr.op == "&":
-            return eval_expr(expr.exprs[0], state) and eval_expr(expr.exprs[1], state)
-        elif expr.op == "|":
-            return eval_expr(expr.exprs[0], state) or eval_expr(expr.exprs[1], state)
-        elif expr.op == "->":
-            return (not eval_expr(expr.exprs[0], state)) or eval_expr(expr.exprs[1], state)
-        elif expr.op == "<->":
-            return eval_expr(expr.exprs[0], state) == eval_expr(expr.exprs[1], state)
-        elif expr.op == "!":
-            return not eval_expr(expr.exprs[0], state)
-        else:
+            print('When evaluating %s' % expr)
             raise NotImplementedError
 
-    elif isinstance(expr, RelExpr):
-        a, b = eval_expr(expr.expr1, state), eval_expr(expr.expr2, state)
-        if expr.op == "<":
-            return a < b
-        elif expr.op == ">":
-            return a > b
-        elif expr.op == "==":
-            if isinstance(a, float) or isinstance(b, float):
-                return abs(a - b) < 1e-10
-            else:
-                return a == b
-        elif expr.op == "!=":
-            return a != b
-        elif expr.op == ">=":
-            return a >= b
-        elif expr.op == "<=":
-            return a <= b
-        else:
-            raise NotImplementedError
+    return rec(expr)
 
-    else:
-        print('When evaluating %s' % expr)
-        raise NotImplementedError
-
-def eval_channel(ch_name, state):
+def eval_channel(ch_name, state, functions=None):
     """Evaluate channel ch_name at the given state.
 
     A special case is when one or more indices of the communication
@@ -295,10 +307,10 @@ def eval_channel(ch_name, state):
         if isinstance(arg, AVar) and arg.name.startswith("_"):
             args.append(arg)
         else:
-            args.append(eval_expr(arg, state))
+            args.append(eval_expr(arg, state, functions=functions))
     return hcsp.Channel(ch_name.name, tuple(args))
 
-def get_ode_delay(hp, state):
+def get_ode_delay(hp, state, functions=None):
     """Obtain the delay needed for the given ODE, starting at the
     given state.
     
@@ -308,7 +320,7 @@ def get_ode_delay(hp, state):
     if hp.constraint == false_expr:
         return 0.0
 
-    if not eval_expr(hp.constraint, state):
+    if not eval_expr(hp.constraint, state, functions=functions):
         return 0.0
 
     def get_deriv(name):
@@ -324,7 +336,7 @@ def get_ode_delay(hp, state):
         for (var_name, _), yval in zip(hp.eqs, y):
             state2[var_name] = yval
         for var_name, expr in hp.eqs:
-            res.append(eval_expr(expr, state2))
+            res.append(eval_expr(expr, state2, functions=functions))
         return res
 
     def event_gen(t, y, c):
@@ -334,9 +346,9 @@ def get_ode_delay(hp, state):
             state2[var_name] = yval
         if isinstance(c, RelExpr):
             if c.op in ('<', '<='):
-                return eval_expr(c.expr1, state2) - eval_expr(c.expr2, state2)
+                return eval_expr(c.expr1, state2, functions=functions) - eval_expr(c.expr2, state2, functions=functions)
             elif c.op in ('>', '>='):
-                return eval_expr(c.expr2, state2) - eval_expr(c.expr1, state2)
+                return eval_expr(c.expr2, state2, functions=functions) - eval_expr(c.expr1, state2, functions=functions)
             else:
                 print('get_ode_delay: cannot handle constraint %s' % c)
                 raise NotImplementedError
@@ -401,7 +413,7 @@ def get_ode_delay(hp, state):
 
         # Condition never changes
         if expr_unchanged(e):
-            if eval_expr(e, state):
+            if eval_expr(e, state, functions=functions):
                 return 100
             else:
                 return 0
@@ -411,8 +423,8 @@ def get_ode_delay(hp, state):
         if (isinstance(e, RelExpr) and e.op in ('<', '<=', '>', '>=') and
             isinstance(e.expr1, AVar) and expr_unchanged(e.expr2) and
             expr_unchanged(get_deriv(e.expr1.name))):
-            deriv = eval_expr(get_deriv(e.expr1.name), state)
-            diff = eval_expr(e.expr2, state) - eval_expr(e.expr1, state)
+            deriv = eval_expr(get_deriv(e.expr1.name), state, functions=functions)
+            diff = eval_expr(e.expr2, state, functions=functions) - eval_expr(e.expr1, state, functions=functions)
             if e.op in ('<', '<='):
                 if diff < 0:
                     return 0.0
@@ -422,7 +434,7 @@ def get_ode_delay(hp, state):
                     return 0.0
                 return min(diff / deriv, 100.0) if deriv < 0 else 100.0        
 
-        if not eval_expr(e, state):
+        if not eval_expr(e, state, functions=functions):
             return 0
 
         y0 = []
@@ -630,7 +642,7 @@ def get_pos(hp, pos, rec_vars=None, procs=None):
         assert len(pos) == 0
         return hp
 
-def step_pos(hp, callstack, state, rec_vars=None, procs=None):
+def step_pos(hp, callstack, state, rec_vars=None, procs=None, functions=None):
     """Execute a (non-communicating) step in the program. Returns the
     new position, or None if steping to the end.
     
@@ -667,7 +679,7 @@ def step_pos(hp, callstack, state, rec_vars=None, procs=None):
             assert pos[0] == 0
             sub_step = helper(hp.hp, pos[1:])
             if sub_step is None:
-                if hp.constraint != true_expr and not eval_expr(hp.constraint, state):
+                if hp.constraint != true_expr and not eval_expr(hp.constraint, state, functions=functions):
                     return None
                 else:
                     return (0,) + start_pos(hp.hp)
@@ -758,7 +770,7 @@ class SimInfo:
     or None if execution has reached the end.
 
     """
-    def __init__(self, name, hp, *, outputs=None, procedures=None, pos="start", state=None):
+    def __init__(self, name, hp, *, outputs=None, procedures=None, functions=None, pos="start", state=None):
         """Initializes with starting position as the execution position."""
 
         # Name of the program
@@ -777,10 +789,18 @@ class SimInfo:
         # Dictionary of procedure declarations
         if procedures is None:
             procedures = dict()
-        # assert isinstance(procedures, dict)
-        # for k, v in procedures.items():
-        #     assert isinstance(k, str) and isinstance(v, hcsp.Procedure)
+        assert isinstance(procedures, dict)
+        for k, v in procedures.items():
+            assert isinstance(k, str) and isinstance(v, hcsp.Procedure)
         self.procedures = procedures
+
+        # Dictionary of function declarations
+        if functions is None:
+            functions = dict()
+        assert isinstance(functions, dict)
+        for k, v in functions.items():
+            assert isinstance(k, str) and isinstance(v, hcsp.Function)
+        self.functions = functions
 
         # Current position of execution
         if isinstance(pos, str):
@@ -817,15 +837,15 @@ class SimInfo:
         elif isinstance(lname,function.DirectName):
             self.state[str(lname)] = copy.deepcopy(val)
         elif isinstance(lname, ArrayIdxExpr):
-            v = eval_expr(lname.expr1, self.state)
-            idx = eval_expr(lname.expr2, self.state)
+            v = eval_expr(lname.expr1, self.state, functions=self.functions)
+            idx = eval_expr(lname.expr2, self.state, functions=self.functions)
             if not isinstance(v, list):
                 raise SimulatorException('%s is not a list, when executing %s' % (v, hp))
             if idx >= len(v):
                 raise SimulatorException('Array index %s out of bounds, when executing %s' % (idx, hp))
             v[idx] = copy.deepcopy(val)
         elif isinstance(lname, FieldNameExpr):
-            v = eval_expr(lname.expr, self.state)
+            v = eval_expr(lname.expr, self.state, functions=self.functions)
             if lname.field not in v:
                 raise SimulatorException('Field %s does not exist, when executing %s' % (lname.field, hp))
             v[lname.field] = copy.deepcopy(val)
@@ -860,10 +880,10 @@ class SimInfo:
         elif cur_hp.type == "assign":
             # Perform assignment
             if isinstance(cur_hp.var_name, (AExpr,function.DirectName)):
-                self.exec_assign(cur_hp.var_name, eval_expr(cur_hp.expr, self.state), cur_hp)
+                self.exec_assign(cur_hp.var_name, eval_expr(cur_hp.expr, self.state, functions=self.functions), cur_hp)
             else:
                 # Multiple assignment
-                val = eval_expr(cur_hp.expr, self.state)
+                val = eval_expr(cur_hp.expr, self.state, functions=self.functions)
                 assert isinstance(val, list) and len(val) == len(cur_hp.var_name), \
                     "Multiple assignment: value not a list or of the wrong length."
                 for i, s in enumerate(cur_hp.var_name):
@@ -876,10 +896,10 @@ class SimInfo:
         elif cur_hp.type == "assert":
             # Evaluate an assertion. If fails, immediate stop the execution
             # (like a runtime error).
-            if not eval_expr(cur_hp.bexpr, self.state):
+            if not eval_expr(cur_hp.bexpr, self.state, functions=self.functions):
                 error_msg = ''
                 for msg in cur_hp.msgs:
-                    val = eval_expr(msg, self.state)
+                    val = eval_expr(msg, self.state, functions=self.functions)
                     error_msg += str(val)
                 raise SimulatorException(error_msg)
             else:
@@ -891,17 +911,17 @@ class SimInfo:
             # the execution.
             self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, procedures_list)
             self.reason = None
-            if not eval_expr(cur_hp.bexpr, self.state):
+            if not eval_expr(cur_hp.bexpr, self.state, functions=self.functions):
                 warning_expr = ''
                 for msg in cur_hp.msgs:
-                    val = eval_expr(msg, self.state)
+                    val = eval_expr(msg, self.state, functions=self.functions)
                     warning_expr += str(val)
                 raise SimulatorAssertionException(cur_hp.bexpr, warning_expr)
 
         elif cur_hp.type == "log":
             # Output a log item to the simulator
             self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, procedures_list)
-            str_pat = eval_expr(cur_hp.pattern, self.state)
+            str_pat = eval_expr(cur_hp.pattern, self.state, functions=self.functions)
             if not isinstance(str_pat, str):
                 str_pat = str(str_pat)
             vals = tuple(eval_expr(e, self.state) for e in cur_hp.exprs)
@@ -949,7 +969,7 @@ class SimInfo:
 
         elif cur_hp.type == "wait":
             # Waiting for some number of seconds
-            delay = eval_expr(cur_hp.delay, self.state) - self.callstack.top_pos()[-1]
+            delay = eval_expr(cur_hp.delay, self.state, functions=self.functions) - self.callstack.top_pos()[-1]
             if delay < 0:
                 raise SimulatorException("When executing %s: delay %s less than zero" % (cur_hp, delay))
             self.reason = {"delay": delay}
@@ -989,7 +1009,7 @@ class SimInfo:
         elif cur_hp.type == 'ite':
             # Find the first condition that evaluates to true
             for i, (cond, sub_hp) in enumerate(cur_hp.if_hps):
-                if eval_expr(cond, self.state):
+                if eval_expr(cond, self.state, functions=self.functions):
                     pos=self.callstack.top_pos() + (i,) + start_pos(sub_hp)
                     self.callstack.renew(pos, rec_vars)
                     self.reason = None
@@ -1079,12 +1099,12 @@ class SimInfo:
         if cur_hp.type == "output_channel":
             assert eval_channel(cur_hp.ch_name, self.state) == ch_name
             self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, self.procedures)
-            return eval_expr(cur_hp.expr, self.state)
+            return eval_expr(cur_hp.expr, self.state, functions=self.functions)
 
         elif cur_hp.type == "ode_comm":
             for i, (comm_hp, out_hp) in enumerate(cur_hp.io_comms):
                 if comm_hp.type == "output_channel" and eval_channel(comm_hp.ch_name, self.state) == ch_name:
-                    val = eval_expr(comm_hp.expr, self.state)
+                    val = eval_expr(comm_hp.expr, self.state, functions=self.functions)
                     pos=self.callstack.top_pos() + (i,) + start_pos(out_hp)
                     self.callstack.renew(pos, rec_vars)
                     return val
@@ -1097,7 +1117,7 @@ class SimInfo:
                 if comm_hp.type == "output_channel" and eval_channel(comm_hp.ch_name, self.state) == ch_name:
                     pos=self.callstack.top_pos() + (i,) + start_pos(out_hp)
                     self.callstack.renew(pos, rec_vars)
-                    return eval_expr(comm_hp.expr, self.state)
+                    return eval_expr(comm_hp.expr, self.state, functions=self.functions)
 
             # Communication must be found among the choices
             assert False
@@ -1143,7 +1163,7 @@ class SimInfo:
                     for (var_name, _), yval in zip(cur_hp.eqs, y):
                         state2[var_name] = yval
                     for var_name, expr in cur_hp.eqs:
-                        res.append(eval_expr(expr, state2))
+                        res.append(eval_expr(expr, state2, functions=self.functions))
                     return res
                 
                 y0 = []

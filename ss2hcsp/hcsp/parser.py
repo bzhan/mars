@@ -516,9 +516,6 @@ class HPTransformer(Transformer):
     def ode_comm(self, meta, eqs, constraint, io_comms, inv):
         return hcsp.ODE_Comm(eqs, constraint, io_comms, meta=meta)
 
-    def cond_cmd(self, meta, cond, cmd):
-        return hcsp.Condition(cond=cond, hp=cmd, meta=meta)
-
     def ichoice_cmd(self, meta, *args):
         if len(args) == 1:
             return args[0]

@@ -1,7 +1,8 @@
 """Hybrid programs"""
 
 from collections import OrderedDict
-from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, false_expr, RelExpr, LogicExpr
+from typing import Union
+from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, false_expr, RelExpr, LogicExpr, AExpr
 from ss2hcsp.hcsp.invariant import Invariant, LoopInvariant
 from ss2hcsp.matlab import function
 from ss2hcsp.util.topsort import topological_sort
@@ -68,6 +69,30 @@ class Channel:
             return Channel(self.name, tuple(arg if isinstance(arg, (int, str)) else arg.subst(inst)
                                             for arg in self.args))
 
+class Function:
+    """Declarations of (pure functions).
+    
+    Each pure functions is defined by a list of variables and an expression.
+    When the function is called, the variables in the expression are
+    substituted for the arguments to the function.
+    
+    """
+    def __init__(self, name: str, vars, expr: Union[AExpr, str]):
+        assert isinstance(vars, list) and all(isinstance(var, str) for var in vars)
+        if isinstance(expr, str):
+            from ss2hcsp.hcsp.parser import aexpr_parser
+            expr = aexpr_parser.parse(expr)
+        assert set(vars) == expr.get_vars()
+        self.name = name
+        self.vars = vars
+        self.expr = expr
+
+    def __str__(self):
+        return "%s(%s) = %s" % (self.name, ",".join(var for var in self.vars), self.expr)
+
+    def __repr__(self):
+        return "Function(%s, %s, %s)" % (self.name, repr(self.vars), repr(self.expr))
+
 
 class HCSP:
     def __init__(self):
@@ -133,7 +158,7 @@ class HCSP:
             for sub_hp in self.hps:
                 if sub_hp.contain_hp(name):
                     return True
-        elif isinstance(self, (Loop, Condition, Recursion)):
+        elif isinstance(self, (Loop, Recursion)):
             # Note the test for Recursion is imprecise.
             return self.hp.contain_hp(name)
         elif isinstance(self, ODE):
@@ -1620,7 +1645,7 @@ class HCSPProcess:
                     _hp = _substitute(hps_dict[_name])
                     substituted[_name] = _hp
                     del hps_dict[_name]
-            elif isinstance(_hp, (Loop, Recursion, Condition)):
+            elif isinstance(_hp, (Loop, Recursion)):
                 _hp.hp = _substitute(_hp.hp)
             elif isinstance(_hp, Sequence):
                 _hps = [_substitute(sub_hp) for sub_hp in _hp.hps]

@@ -4,7 +4,7 @@ import unittest
 import math
 import pprint
 
-from ss2hcsp.hcsp.hcsp import Channel, Procedure
+from ss2hcsp.hcsp.hcsp import Channel, Procedure, Function
 from ss2hcsp.hcsp import simulator
 from ss2hcsp.hcsp import parser
 
@@ -35,13 +35,18 @@ def run_test(self, infos, num_events, trace, *, io_filter=None, print_time_serie
                 # Single HCSP program
                 sim_infos.append(simulator.SimInfo('P' + str(i), infos[i]))
             else:
-                # HCSP program with procedure specifications
-                procs, hp = infos[i]
+                # HCSP program with procedure and function specifications
+                hp = None
                 procedures = dict()
-                for name, proc_hp in procs.items():
-                    # Specified as a pair of name and HCSP program
-                    procedures[name] = Procedure(name, proc_hp)
-                sim_infos.append(simulator.SimInfo('P' + str(i), hp, procedures=procedures))
+                functions = dict()
+                for spec in infos[i]:
+                    if isinstance(spec, str):
+                        hp = spec
+                    elif isinstance(spec, Procedure):
+                        procedures[spec.name] = spec
+                    elif isinstance(spec, Function):
+                        functions[spec.name] = spec
+                sim_infos.append(simulator.SimInfo('P' + str(i), hp, procedures=procedures, functions=functions))
 
     elif isinstance(infos, dict):
         procedures = dict()
@@ -624,38 +629,45 @@ class SimulatorTest(unittest.TestCase):
 
     def testProcedure1(self):
         run_test(self, [
-            ({"incr": "x := x + 1;"},
+            (Procedure("incr", "x := x + 1;"),
              "x := 0; @incr; @incr; ch!x;"),
             "ch?x;"
         ], 2, ['IO ch 2', 'deadlock'])
 
     def testProcedure2(self):
         run_test(self, [
-            ({"fact": "if (a > 0) { x := a * x; a := a - 1; @fact; } else { skip; }"},
+            (Procedure("fact", "if (a > 0) { x := a * x; a := a - 1; @fact; } else { skip; }"),
              "x := 1; a := 5; @fact; ch!x;"),
             "ch?x;"
         ], 2, ['IO ch 120', 'deadlock'])
 
     def testProcedure3(self):
         run_test(self, [
-            ({"output": "if (a > 0) { a := a - 1; ch!a; @output; } else { skip; }"},
+            (Procedure("output", "if (a > 0) { a := a - 1; ch!a; @output; } else { skip; }"),
              "a := 5; @output;"),
             "{ch?x;}*"
         ], 10, ['IO ch 4', 'IO ch 3', 'IO ch 2', 'IO ch 1', 'IO ch 0', 'deadlock'])
 
     def testProcedure4(self):
         run_test(self, [
-            ({"delay": "if (a > 0) { a := a - 1; wait(2); @delay; } else { skip; }"},
+            (Procedure("delay", "if (a > 0) { a := a - 1; wait(2); @delay; } else { skip; }"),
              "a := 5; @delay;")
         ], 10, ['delay 2', 'delay 2', 'delay 2', 'delay 2', 'delay 2', 'deadlock'])
 
     def testProcedure5(self):
         run_test(self, [
-            ({"pa": "if (x > 0) { x := x - 1; cha!x; @pb; } else { skip; }",
-              "pb": "if (x > 0) { x := x - 1; chb!x; @pa; } else { skip; }"},
+            (Procedure("pa", "if (x > 0) { x := x - 1; cha!x; @pb; } else { skip; }"),
+             Procedure("pb", "if (x > 0) { x := x - 1; chb!x; @pa; } else { skip; }"),
              "x := 5; @pa;"),
             "{cha?x --> { skip; } $ chb?x --> { skip; }}*"
         ], 10, ['IO cha 4', 'IO chb 3', 'IO cha 2', 'IO chb 1', 'IO cha 0', 'deadlock'])
+
+    def testFunctions1(self):
+        run_test(self, [
+            (Function("bar", ["a", "b"], "2 * a + 3 * b"),
+             "x := 2; y := 3; ch!bar(x, y);"),
+            "ch?x;"
+        ], 10, ['IO ch 13', 'deadlock'])
         
     def run_test_trace(self, infos, *, num_steps, num_show, ids=None,
                        show_interval=None, start_event=None, print_trace=False):
