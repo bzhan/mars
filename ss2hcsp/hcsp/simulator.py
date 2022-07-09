@@ -12,7 +12,7 @@ from decimal import Decimal
 from scipy.integrate import solve_ivp
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, OpExpr, FunExpr, IfExpr, \
     ListExpr, DictExpr, ArrayIdxExpr, FieldNameExpr, BConst, LogicExpr, \
-    RelExpr, true_expr, false_expr, opt_round, get_range, str_of_val
+    RelExpr, PredCond, true_expr, false_expr, opt_round, get_range, str_of_val
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
 import numpy as np
@@ -227,7 +227,8 @@ class SimInfo:
     or None if execution has reached the end.
 
     """
-    def __init__(self, name, hp, *, outputs=None, procedures=None, functions=None, pos="start", state=None):
+    def __init__(self, name, hp, *, outputs=None, procedures=None, functions=None,
+                 predicates=None, pos="start", state=None):
         """Initializes with starting position as the execution position."""
 
         # Name of the program
@@ -259,6 +260,14 @@ class SimInfo:
             assert isinstance(k, str) and isinstance(v, hcsp.Function)
         self.functions = functions
 
+        # Dictionary of predicate declarations
+        if predicates is None:
+            predicates = dict()
+        assert isinstance(predicates, dict)
+        for k, v in predicates.items():
+            assert isinstance(k, str) and isinstance(v, hcsp.Predicate)
+        self.predicates = predicates
+    
         # Current position of execution
         if isinstance(pos, str):
             pos = parse_pos(self.hp, pos)
@@ -437,7 +446,7 @@ class SimInfo:
             elif expr.fun_name == "zeros":
                 return np.zeros(tuple(args), dtype=int).tolist()
 
-            # Case of custom functions
+            # Custom functions
             elif expr.fun_name in self.functions:
                 f = self.functions[expr.fun_name]
                 if len(args) != len(f.vars):
@@ -531,6 +540,21 @@ class SimInfo:
                 return a <= b
             else:
                 raise NotImplementedError
+
+        elif isinstance(expr, PredCond):
+            # Custom predicates
+            args = [self.eval_expr(e) for e in expr.exprs]
+            if expr.pred_name in self.predicates:
+                f = self.predicates[expr.pred_name]
+                if len(args) != len(f.vars):
+                    raise SimulatorException("When evaluating %s: wrong number of arguments" % expr)
+                inst = dict()
+                for (var, arg) in zip(f.vars, args):
+                    inst[var] = AConst(arg)
+                expr2 = f.expr.subst(inst)
+                return self.eval_expr(expr2)
+            else:
+                raise SimulatorException("When evaluating %s: unknown predicate" % expr)
 
         else:
             print('When evaluating %s' % expr)

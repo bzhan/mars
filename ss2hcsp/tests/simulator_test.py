@@ -4,12 +4,12 @@ import unittest
 import math
 import pprint
 
-from ss2hcsp.hcsp.hcsp import Channel, Procedure, Function, Skip
+from ss2hcsp.hcsp.hcsp import Channel, Predicate, Procedure, Function, Skip
 from ss2hcsp.hcsp import simulator
 from ss2hcsp.hcsp import parser
 
 
-def run_test(self, infos, num_events, trace, *, io_filter=None, print_time_series=False,
+def run_test(self, infos, num_events, trace, *, io_filter=None,
              print_state=False, print_res=False, warning=None):
     """Test function for HCSP processes.
 
@@ -39,6 +39,7 @@ def run_test(self, infos, num_events, trace, *, io_filter=None, print_time_serie
                 hp = None
                 procedures = dict()
                 functions = dict()
+                predicates = dict()
                 for spec in infos[i]:
                     if isinstance(spec, str):
                         hp = spec
@@ -46,7 +47,12 @@ def run_test(self, infos, num_events, trace, *, io_filter=None, print_time_serie
                         procedures[spec.name] = spec
                     elif isinstance(spec, Function):
                         functions[spec.name] = spec
-                sim_infos.append(simulator.SimInfo('P' + str(i), hp, procedures=procedures, functions=functions))
+                    elif isinstance(spec, Predicate):
+                        predicates[spec.name] = spec
+                    else:
+                        raise AssertionError("run_test: unknown info")
+                sim_infos.append(simulator.SimInfo('P' + str(i), hp, procedures=procedures,
+                                 functions=functions, predicates=predicates))
 
     elif isinstance(infos, dict):
         procedures = dict()
@@ -77,11 +83,6 @@ def run_test(self, infos, num_events, trace, *, io_filter=None, print_time_serie
         print(res_trace)
 
     self.assertEqual(res_trace, trace)
-
-    # Optional: print time series
-    if print_time_series:
-        for record in time_series:
-            print("%s: %s" % (record['time'], record['states']))
 
     # Optional: print state
     if print_state:
@@ -622,7 +623,14 @@ class SimulatorTest(unittest.TestCase):
              "x := 2; y := 3; ch!bar(x, y);"),
             "ch?x;"
         ], 10, ['IO ch 13', 'deadlock'])
-        
+    
+    def testFunctions2(self):
+        run_test(self, [
+            (Predicate("bar", ["a", "b"], "2 * a == b"),
+             "x := 2; y := 1; if (bar((y, x))) { ch!x; } else { ch!y; }"),
+            "ch?x;"
+        ], 10, ['IO ch 2', 'deadlock'])
+
     def run_test_trace(self, infos, *, num_steps, num_show, ids=None,
                        show_interval=None, start_event=None, print_trace=False):
         for i in range(len(infos)):

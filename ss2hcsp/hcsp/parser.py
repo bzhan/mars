@@ -51,6 +51,7 @@ grammar = r"""
 
     ?atom_cond: "true" -> true_cond
         | "false" -> false_cond
+        | CNAME "((" (expr)? ("," expr)* "))" -> pred_cond
         | "(" cond ")"
 
     ?rel_cond: expr "==" expr -> eq_cond         // priority 50
@@ -335,6 +336,9 @@ class HPTransformer(Transformer):
 
     def false_cond(self, meta):
         return expr.BConst(False, meta=meta)
+
+    def pred_cond(self, meta, pred_name, *exprs):
+        return expr.PredCond(str(pred_name), exprs, meta=meta)
 
     def conj(self, meta, b1, b2):
         return expr.LogicExpr("&", b1, b2, meta=meta)

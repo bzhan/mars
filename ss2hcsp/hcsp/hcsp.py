@@ -4,7 +4,6 @@ from collections import OrderedDict
 from typing import Union
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, false_expr, RelExpr, LogicExpr, AExpr
 from ss2hcsp.hcsp.invariant import Invariant, LoopInvariant
-from ss2hcsp.matlab import function
 from ss2hcsp.util.topsort import topological_sort
 import re
 
@@ -82,7 +81,7 @@ class Function:
         if isinstance(expr, str):
             from ss2hcsp.hcsp.parser import aexpr_parser
             expr = aexpr_parser.parse(expr)
-        assert set(vars) == expr.get_vars()
+        assert set(vars) == expr.get_vars(), "Function: unexpected set of variables"
         self.name = name
         self.vars = vars
         self.expr = expr
@@ -92,6 +91,30 @@ class Function:
 
     def __repr__(self):
         return "Function(%s, %s, %s)" % (self.name, repr(self.vars), repr(self.expr))
+
+
+class Predicate:
+    """Declarations of predicates.
+    
+    Predicates are similar to Functions, except they return a value of
+    boolean type.
+    
+    """
+    def __init__(self, name: str, vars, expr: Union[BExpr, str]):
+        assert isinstance(vars, list) and all(isinstance(var, str) for var in vars)
+        if isinstance(expr, str):
+            from ss2hcsp.hcsp.parser import bexpr_parser
+            expr = bexpr_parser.parse(expr)
+        assert set(vars) == expr.get_vars(), "Predicate: unexpected set of variables"
+        self.name = name
+        self.vars = vars
+        self.expr = expr
+
+    def __str__(self):
+        return "%s(%s) = %s" % (self.name, ",".join(var for var in self.vars), self.expr)
+
+    def __repr__(self):
+        return "Predicate(%s, %s, %s)" % (self.name, repr(self.vars), repr(self.expr))
 
 
 class HCSP:
@@ -346,8 +369,6 @@ class Assign(HCSP):
             var_name = AVar(str(var_name))
         if isinstance(var_name, AExpr):
             self.var_name = var_name
-        elif isinstance(var_name,function.DirectName):
-            self.var_name=var_name
         else:
             var_name = tuple(var_name)
             assert len(var_name) >= 2 and all(isinstance(name, (str, AExpr)) for name in var_name)
@@ -368,8 +389,6 @@ class Assign(HCSP):
     def __str__(self):
         if isinstance(self.var_name, AExpr):
             var_str = str(self.var_name)
-        elif isinstance(self.var_name,function.DirectName):
-            var_str=str(self.var_name)
         else:
             var_str = "(%s)" % (', '.join(str(n) for n in self.var_name))
         return "%s := %s;" % (var_str, self.expr)
@@ -416,8 +435,6 @@ class RandomAssign(HCSP):
             var_name = AVar(str(var_name))
         if isinstance(var_name, AExpr):
             self.var_name = var_name
-        elif isinstance(var_name, function.DirectName):
-            self.var_name = var_name
         else:
             var_name = tuple(var_name)
             assert len(var_name) <= 2 and all (isinstance(name, (str, AExpr))for name in var_name)
@@ -438,8 +455,6 @@ class RandomAssign(HCSP):
     def __str__(self):
         if isinstance(self.var_name, AExpr):
             var_str = str(self.var_name)
-        elif isinstance(self.var_name,function.DirectName):
-            var_str=str(self.var_name)
         else:
             var_str = "(%s)" % (', '.join(str(n) for n in self.var_name))
         return var_str + " := " + "*(" + str(self.expr) + ");"
@@ -1249,9 +1264,7 @@ class ITE(HCSP):
 
         """
         super(ITE, self).__init__()
-#         assert all(isinstance(cond, BExpr) and isinstance(hp, (HCSP,function.Assign)) for cond, hp in if_hps)   
-        assert all(isinstance(cond, (BExpr,LogicExpr,RelExpr)) and isinstance(hp, (HCSP,function.Assign)) for cond, hp in if_hps)
-        # assert all(isinstance(cond, BExpr) and isinstance(hp, HCSP) for cond, hp in if_hps)
+        assert all(isinstance(cond, BExpr) and isinstance(hp, HCSP) for cond, hp in if_hps)
         assert len(if_hps) > 0, "ITE: must have at least one if branch"
         assert else_hp is None or isinstance(else_hp, HCSP)
         self.type = "ite"
@@ -1599,7 +1612,7 @@ class HCSPProcess:
     def substitute(self):
         """Substitute program variables for their definitions."""
         def _substitute(_hp):
-            assert isinstance(_hp, (HCSP,function.Assign))
+            assert isinstance(_hp, HCSP)
             if isinstance(_hp, Var):
                 _name = _hp.name
                 if _name in substituted.keys():
