@@ -163,9 +163,13 @@ grammar = r"""
 
     ?cmd: select_cmd
 
+    ?function_decl: "function" CNAME "(" CNAME ("," CNAME)* ")" "=" expr ";"
+
+    ?predicate_decl: "predicate" CNAME "(" CNAME ("," CNAME)* ")" "=" cond ";"
+
     ?hoare_pre : "pre" ("[" cond "]")* ";" -> hoare_pre
     ?hoare_post : "post" ("[" cond "]")* ";" -> hoare_post
-    ?hoare_triple: hoare_pre cmd hoare_post
+    ?hoare_triple: (function_decl)* (predicate_decl)* hoare_pre cmd hoare_post
 
     ?procedure: "procedure" CNAME "begin" cmd "end"
 
@@ -554,14 +558,39 @@ class HPTransformer(Transformer):
         else:
             return hcsp.Parallel(*args, meta=meta)
 
+    def function_decl(self, meta, *args):
+        name = str(args[0])
+        vars = list(str(var) for var in args[1:-1])
+        expr = args[-1]
+        return hcsp.Function(name, vars, expr)
+
+    def predicate_decl(self, meta, *args):
+        name = str(args[0])
+        vars = list(str(var) for var in args[1:-1])
+        expr = args[-1]
+        return hcsp.Predicate(name, vars, expr)
+
     def hoare_pre(self, meta, *args):
         return list(args)
 
     def hoare_post(self, meta, *args):
         return list(args)
 
-    def hoare_triple(self, meta, pre, hp, post):
-        return hcsp.HoareTriple(pre, hp, post, meta=meta)
+    def hoare_triple(self, meta, *args):
+        # The last three arguments are pre, hp, and post.
+        pre = args[-3]
+        hp = args[-2]
+        post = args[-1]
+
+        # The other arguments are either functions or predicates
+        functions = dict()
+        predicates = dict()
+        for item in args[:-3]:
+            if isinstance(item, hcsp.Function):
+                functions[item.name] = item
+            elif isinstance(item, hcsp.Predicate):
+                predicates[item.name] = item
+        return hcsp.HoareTriple(pre, hp, post, functions=functions, predicates=predicates, meta=meta)
 
     def module_sig(self, meta, *args):
         return tuple(str(arg) for arg in args)

@@ -4,12 +4,10 @@ import unittest
 from wolframclient.evaluation import WolframLanguageSession
 
 from ss2hcsp.hcsp import expr
-from ss2hcsp.hcsp.parser import parse_aexpr_with_meta, parse_bexpr_with_meta, parse_hp_with_meta
+from ss2hcsp.hcsp.parser import parse_aexpr_with_meta, parse_bexpr_with_meta, parse_hp_with_meta, \
+    parse_hoare_triple_with_meta
 from hhlpy.hhlpy2 import CmdVerifier
-from hhlpy.wolframengine_wrapper import session
-
-path = "D:\Program Files\Wolfram Research\Wolfram Engine\\13.0\MathKernel.exe"
-# session = WolframLanguageSession(path)
+from hhlpy.wolframengine_wrapper import found_wolfram, session
 
 
 def runVerify(self, *, pre, hp, post, constants=set(),
@@ -69,14 +67,41 @@ class BasicHHLPyTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        try:
-            session.start()
-        except Exception as e:
+        if found_wolfram:
             session.start()
 
     @classmethod
     def tearDownClass(cls):
-        session.terminate()
+        if found_wolfram:
+            session.terminate()
+
+    def testParseHoareTriple(self):
+        res = parse_hoare_triple_with_meta("""
+            pre [x >= 0];
+            x := x + 1;
+            post [x >= 1];
+        """)
+        self.assertEqual(str(res.pre[0]), "x >= 0")
+        self.assertEqual(str(res.post[0]), "x >= 1")
+        self.assertEqual(str(res.hp), "x := x + 1;")
+
+    def testParseHoareTriple2(self):
+        res = parse_hoare_triple_with_meta("""
+            function bar(x, y) = 2 * x + y;
+            pre [x >= 0];
+            x := x + 1;
+            post [x >= 1];
+        """)
+        self.assertEqual(str(res.functions["bar"]), "bar(x,y) = 2 * x + y")
+
+    def testParseHoareTriple3(self):
+        res = parse_hoare_triple_with_meta("""
+            predicate bar(x, y) = 2 * x == y;
+            pre [x >= 0];
+            x := x + 1;
+            post [x >= 1];
+        """)
+        self.assertEqual(str(res.predicates["bar"]), "bar(x,y) = 2 * x == y")
 
     def testVerify1(self):
         # Baisc benchmark, problem 1 

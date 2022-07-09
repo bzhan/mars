@@ -1389,10 +1389,16 @@ def get_comm_chs(hp):
 
 class HoareTriple:
     """A program with pre- and post-conditions"""
-    def __init__(self, pre, hp, post, meta=None):
+    def __init__(self, pre, hp, post, functions=None, predicates=None, meta=None):
         self.pre = list(pre)
         self.post = list(post)
         self.hp = hp
+        if functions is None:
+            functions = dict()
+        self.functions = functions
+        if predicates is None:
+            predicates = dict()
+        self.predicates = predicates
         self.meta = meta
 
 class Procedure:
