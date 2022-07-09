@@ -15,10 +15,7 @@ from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, OpExpr, FunExpr, IfExpr, \
     RelExpr, true_expr, false_expr, opt_round, get_range, str_of_val
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
-from ss2hcsp.hcsp import pprint
 import numpy as np
-from ss2hcsp.matlab import function
-
 
 class SimulatorException(Exception):
     """Exception raised during simulation. Indicates an error in the
@@ -437,6 +434,8 @@ class SimInfo:
                 if args[0] <= 0:
                     raise SimulatorException('When evaluating %s: %s <= 0' % (expr, args[0]))
                 return random.randint(1, args[0])
+            elif expr.fun_name == "zeros":
+                return np.zeros(tuple(args), dtype=int).tolist()
 
             # Case of custom functions
             elif expr.fun_name in self.functions:
@@ -815,8 +814,6 @@ class SimInfo:
         """
         if isinstance(lname, AVar):
             self.state[lname.name] = copy.deepcopy(val)
-        elif isinstance(lname,function.DirectName):
-            self.state[str(lname)] = copy.deepcopy(val)
         elif isinstance(lname, ArrayIdxExpr):
             v = self.eval_expr(lname.expr1)
             idx = self.eval_expr(lname.expr2)
@@ -859,7 +856,7 @@ class SimInfo:
             
         elif cur_hp.type == "assign":
             # Perform assignment
-            if isinstance(cur_hp.var_name, (AExpr,function.DirectName)):
+            if isinstance(cur_hp.var_name, AExpr):
                 self.exec_assign(cur_hp.var_name, self.eval_expr(cur_hp.expr), cur_hp)
             else:
                 # Multiple assignment
@@ -1518,3 +1515,8 @@ def check_comms(infos):
             warnings.append("Warning: output channel %s has no corresponding input" % ch_name)
 
     return warnings
+
+
+# Some convenient functions from simulator
+def eval_expr(e, state):
+    return SimInfo("P1", hcsp.Skip(), state=state).eval_expr(e)
