@@ -303,6 +303,10 @@ def wl_prove(e):
     if not isinstance(e, expr.BExpr):
         raise NotImplementedError
 
+    # If wolfram not found, just return failure
+    if not found_wolfram:
+        return False
+
     vars = e.get_vars()
     wl_expr = toWLexpr(e)
     wl_vars = {toWLexpr(expr.AVar(var)) for var in vars}

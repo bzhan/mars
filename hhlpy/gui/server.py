@@ -10,8 +10,7 @@ from ss2hcsp.hcsp.simulator import get_pos
 from hhlpy.hhlpy2 import CmdVerifier
 from hhlpy.wolframengine_wrapper import wl_prove
 from hhlpy.z3wrapper import z3_prove
-from hhlpy.wolframengine_wrapper import session
-
+from hhlpy.wolframengine_wrapper import session, found_wolfram
 
 
 import json
@@ -121,13 +120,17 @@ if __name__ == "__main__":
         Resource(OrderedDict([('/', HHLPyApplication)]))
     )
     try:
-        print("Starting Wolfram Engine")
-        session.start()
+        if found_wolfram:
+            print("Starting Wolfram Engine")
+            session.start()
+        else:
+            print("Wolfram Engine not found")
         print("Running python websocket server on ws://localhost:{0}".format(port), flush=True)
         server.serve_forever()
     except KeyboardInterrupt:
         print("KeyboardInterrupt")
         print("Closing python websocket server")
         server.close()
-        print("Terminating Wolfram Engine")
-        session.terminate()
+        if found_wolfram:
+            print("Terminating Wolfram Engine")
+            session.terminate()
