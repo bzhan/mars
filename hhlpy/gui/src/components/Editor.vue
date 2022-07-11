@@ -1,6 +1,10 @@
 <template>
   <div class="editor">
     <div id="code"></div>
+
+    <vcs :vc_infos="vc_infos" :view="editorView"></vcs>
+    <!-- {{vc_infos}} -->
+
     <div class="toolbar">
       <div class="group">
         <form class="open_file">
@@ -21,9 +25,9 @@ import {EditorState, EditorView, basicSetup} from "@codemirror/basic-setup"
 import {HCSP} from "../grammar/hcsp"
 import {indentWithTab} from "@codemirror/commands"
 import {keymap} from "@codemirror/view"
-import { displayVerificationCondition, getPosition, removeVerificationCondition } from "../decoration/verification_condition"
 import { test_examples } from "../test_examples/examples"
 import { originTheme, originField } from '../decoration/origin'
+import VerificationCondition2 from "./VerificationCondition2.vue"
 
 const fixedHeightEditor = EditorView.theme({
   "&": {height: "100%", overflow: "hidden"},
@@ -51,9 +55,13 @@ function initEditor(doc){
 export default {
   name: 'Editor',
   data: () => { return {
-    vcs: "",
-    vc_infos: {}
+    vc_info_received: "",   //An  array received from server, consisted of objects about vc information.
+    vc_infos: [], // An array of verification condition information, each information object include formula, solver, result and origin.
+    editorView: initEditor()
   }},
+  components: {
+    vcs: VerificationCondition2
+  },
   mounted: function () {
 
     this.editorView = initEditor();
@@ -69,24 +77,33 @@ export default {
 
       this.socket.onmessage = (event) => {
         let eventData = JSON.parse(event.data)
+        
         if (eventData.type === "computed"){
-          this.vcs = eventData.vcs;
-
-          this.display_vc_infos()
+          this.vc_info_received = eventData.vcs;
+          // Clear the old vc information.
+          this.vc_infos = []
+          // Add the new vc information computed.
+          this.add_vc_infos()
         }
         else if(eventData.type === 'verified'){
-          console.log("eventData:", eventData)
-          let vc = eventData.vc
-          let result = eventData.vc_result
-          this.vc_infos[vc].result = result
-
-          this.display_vc_infos()
-        } else if(eventData.type === 'error'){ 
+          let i = eventData.index
+          let formula = eventData.formula
+          let result = eventData.result
+          
+          if(formula ===  this.vc_infos[i].formula)
+            // Variable result stores the result of formula with index i.
+            // Set the result of index i as the value of variable result.
+            this.vc_infos[i].result = result
+          else{
+             console.error("Wrong result for the verification condition:", formula)
+          }
+        }
+        else if(eventData.type === 'error'){ 
           console.error("Server side error:", eventData.error)
         } else {
           console.error("Unknown message type:", eventData.type);
         }
-      };
+    }; 
     }
 
     openConnection();
@@ -107,39 +124,29 @@ export default {
       )
     },
     compute: function () {
+      // Send the doc in editor to server with type "compute".
       let code = this.editorView.state.doc.toString();
       
       this.socket.send(JSON.stringify({code: code, type: "compute"}));
     },
     verify: function () {
-      for (let vc in this.vc_infos) {
-        this.socket.send(JSON.stringify({vc: vc, solver: this.vc_infos[vc].solver, type: "verify"}))
+      // Send the computed vc formula, the index i and the choosen solver to server.
+      for (let i = 0; i < this.vc_infos.length; i++){
+        let formula = this.vc_infos[i].formula
+        let solver = this.vc_infos[i].solver
+        this.socket.send(JSON.stringify({index: i, formula: formula, solver: solver, type: "verify"}))
       }
     },
-    display_vc_infos : function() {
-      // Remove the old verification condition
-      removeVerificationCondition(this.editorView)
-
-      for (let i in this.vcs){
-        let vcData = this.vcs[i]
-        let lineNumber = vcData.line
-        let linePos = getPosition(this.editorView, lineNumber)
-
-        let solver = 'Z3'
-        let origin = vcData.origin
-        let result
-        if (this.vc_infos[vcData.vc]){
-          solver = this.vc_infos[vcData.vc].solver
-          result = this.vc_infos[vcData.vc].result
-        }
-        else {
-          this.vc_infos[vcData.vc] = {"solver": solver, "result": null}
-        }
-        let changeSolverCallBack = (solver) => {
-          this.vc_infos[vcData.vc].solver = solver
-        }
-        displayVerificationCondition(this.editorView, vcData.vc, linePos, changeSolverCallBack, solver, result, origin)
-        console.log("vc_infos:", this.vc_infos)
+    // Add vc informations in this.vc_infos
+    add_vc_infos: function(){
+      for (let i in this.vc_info_received){
+        let vcData = this.vc_info_received[i]  // vcData is object
+        this.vc_infos.push({
+          formula: vcData.formula,
+          solver: "Z3",  //TODO: set the solver
+          result: null,
+          origin: vcData.origin
+        })
       }
     }
   }

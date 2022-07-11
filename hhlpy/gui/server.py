@@ -18,6 +18,8 @@ import json
 
 
 def runCompute(code, constants=set()):
+    """Compute the verification condition information by the code received from the client editor.
+    Return an array of verification condition information."""
     hoare_triple = parse_hoare_triple_with_meta(code)
 
     # Initialize the verifier
@@ -30,8 +32,8 @@ def runCompute(code, constants=set()):
     # Compute wp and verify
     verifier.compute_wp()
 
-    # Return verification conditions
-    verificationConditions = []
+    # Return verification condition informations
+    vc_infos = []
 
     for pos, vcs in verifier.get_all_vcs().items():
 
@@ -54,28 +56,28 @@ def runCompute(code, constants=set()):
                     if not originMeta.empty:
                         origin.append({"from": originMeta.start_pos, "to": originMeta.end_pos})
 
-            verificationConditions.append({
+            vc_infos.append({
                 "line": meta.end_line,
                 "column": meta.column,
                 "start_pos": meta.start_pos,
                 "end_pos": meta.end_pos,
-                "vc": str(vc.expr),
+                "formula": str(vc.expr),
                 "origin": origin,
             })
+    
+    return vc_infos
 
-    return verificationConditions
-
-def runVerify(vc, solver):
+def runVerify(formula, solver):
     """Verify the given verification condition of the solver.
     Return True or False
     """
-    vc = parse_bexpr_with_meta(vc)
+    formula = parse_bexpr_with_meta(formula)
 
-    print('vc:', vc, "solver:", solver)
+    print('formula:', formula, "solver:", solver)
     if solver == "Z3":
-        return z3_prove(vc)
+        return z3_prove(formula)
     elif solver == "Wolfram Engine":
-        return wl_prove(vc)
+        return wl_prove(formula)
     else:
         raise NotImplementedError
 
@@ -90,16 +92,23 @@ class HHLPyApplication(WebSocketApplication):
             if message != None:
                 msg = json.loads(message)
                 print(msg, flush=True)
+                # If the type of message received is "compute", 
+                # the message has a code field, which is the document in editor,
+                # then call runCompute function.
                 if msg["type"] == "compute":
                     vcs = runCompute(code=msg["code"])
                     vcs_dict = {"vcs": vcs, "type": "computed"}
                     self.ws.send(json.dumps(vcs_dict))
 
+                # If the type of message received is "verify",
+                # the message has the index, the formula and solver of corresponding vc.
                 elif msg["type"] == "verify":
-                    vc_result = runVerify(vc=msg["vc"], solver=msg["solver"])
-                    print("vc_result:", vc_result)
-                    vc_result_dict = {"vc": msg["vc"], "vc_result": vc_result, "type": "verified"}  
-                    self.ws.send(json.dumps(vc_result_dict)) 
+                    result = runVerify(formula=msg["formula"], solver=msg["solver"])
+                    index_vc_result = {"index":msg["index"], 
+                                       "formula": msg["formula"], 
+                                       "result": result, 
+                                       "type": "verified"}
+                    self.ws.send(json.dumps(index_vc_result))
 
                 else:
                     raise NotImplementedError    

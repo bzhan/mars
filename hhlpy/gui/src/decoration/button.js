@@ -71,8 +71,6 @@ function addAnnotationButtons(view) {
     if (cursor.name == "RepeatCmd") {
       let inv_changes = {}
       let inv_selection = {}
-      console.log("cursor name:", cursor.name)
-      console.log("last child name:", cursor.node.lastChild.cursor.name)
       if (cursor.node.lastChild.cursor.name != ";") {
         inv_changes = {from: to, insert: "\n\t" + inv_desc + "[" + " ".repeat(space_len) + "];"}
         inv_selection = {anchor: to + inv_desc_len + 3, head: to + inv_desc_len + 3 + space_len}
