@@ -51,6 +51,7 @@ grammar = r"""
 
     ?atom_cond: "true" -> true_cond
         | "false" -> false_cond
+        | CNAME "((" (expr)? ("," expr)* "))" -> pred_cond
         | "(" cond ")"
 
     ?rel_cond: expr "==" expr -> eq_cond         // priority 50
@@ -112,7 +113,6 @@ grammar = r"""
         | "<" ode_seq "&" cond ">" maybe_ode_invariant -> ode
         | "<" "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm_const
         | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm
-        | "rec" CNAME "{" cmd "}" maybe_invariant -> rec_cmd
         | "if" "(" cond ")" "{" cmd "}" ("else" "if" "(" cond ")" "{" cmd "}")* ("else" "{" cmd "}")? -> ite_cmd
         | "{" cmd "}" -> paren_cmd
 
@@ -163,9 +163,13 @@ grammar = r"""
 
     ?cmd: select_cmd
 
+    ?function_decl: "function" CNAME "(" CNAME ("," CNAME)* ")" "=" expr ";"
+
+    ?predicate_decl: "predicate" CNAME "(" CNAME ("," CNAME)* ")" "=" cond ";"
+
     ?hoare_pre : "pre" ("[" cond "]")* ";" -> hoare_pre
     ?hoare_post : "post" ("[" cond "]")* ";" -> hoare_post
-    ?hoare_triple: hoare_pre cmd hoare_post
+    ?hoare_triple: (function_decl)* (predicate_decl)* hoare_pre cmd hoare_post
 
     ?procedure: "procedure" CNAME "begin" cmd "end"
 
@@ -201,7 +205,10 @@ grammar = r"""
     %import common.SIGNED_NUMBER
     %import common.ESCAPED_STRING
 
+    COMMENT: /#.*/
+
     %ignore WS
+    %ignore COMMENT
 """
 
 def _vargs_meta_inline(f, _data, children, meta):
@@ -336,6 +343,9 @@ class HPTransformer(Transformer):
 
     def false_cond(self, meta):
         return expr.BConst(False, meta=meta)
+
+    def pred_cond(self, meta, pred_name, *exprs):
+        return expr.PredCond(str(pred_name), exprs, meta=meta)
 
     def conj(self, meta, b1, b2):
         return expr.LogicExpr("&", b1, b2, meta=meta)
@@ -516,9 +526,6 @@ class HPTransformer(Transformer):
     def ode_comm(self, meta, eqs, constraint, io_comms, inv):
         return hcsp.ODE_Comm(eqs, constraint, io_comms, meta=meta)
 
-    def cond_cmd(self, meta, cond, cmd):
-        return hcsp.Condition(cond=cond, hp=cmd, meta=meta)
-
     def ichoice_cmd(self, meta, *args):
         if len(args) == 1:
             return args[0]
@@ -531,9 +538,6 @@ class HPTransformer(Transformer):
         for i in range(0, len(args), 2):
             io_comms.append((args[i], args[i+1]))
         return hcsp.SelectComm(*io_comms, meta=meta)
-
-    def rec_cmd(self, meta, var_name, c, inv):
-        return hcsp.Recursion(c, entry=var_name, meta=meta)
 
     def ite_cmd(self, meta, *args):
         if_hps = []
@@ -557,14 +561,39 @@ class HPTransformer(Transformer):
         else:
             return hcsp.Parallel(*args, meta=meta)
 
+    def function_decl(self, meta, *args):
+        name = str(args[0])
+        vars = list(str(var) for var in args[1:-1])
+        expr = args[-1]
+        return hcsp.Function(name, vars, expr)
+
+    def predicate_decl(self, meta, *args):
+        name = str(args[0])
+        vars = list(str(var) for var in args[1:-1])
+        expr = args[-1]
+        return hcsp.Predicate(name, vars, expr)
+
     def hoare_pre(self, meta, *args):
         return list(args)
 
     def hoare_post(self, meta, *args):
         return list(args)
 
-    def hoare_triple(self, meta, pre, hp, post):
-        return hcsp.HoareTriple(pre, hp, post, meta=meta)
+    def hoare_triple(self, meta, *args):
+        # The last three arguments are pre, hp, and post.
+        pre = args[-3]
+        hp = args[-2]
+        post = args[-1]
+
+        # The other arguments are either functions or predicates
+        functions = dict()
+        predicates = dict()
+        for item in args[:-3]:
+            if isinstance(item, hcsp.Function):
+                functions[item.name] = item
+            elif isinstance(item, hcsp.Predicate):
+                predicates[item.name] = item
+        return hcsp.HoareTriple(pre, hp, post, functions=functions, predicates=predicates, meta=meta)
 
     def module_sig(self, meta, *args):
         return tuple(str(arg) for arg in args)

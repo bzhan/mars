@@ -4,11 +4,16 @@ from decimal import Decimal
 from wolframclient.evaluation import WolframLanguageSession
 from wolframclient.language import wl, wlexpr
 from wolframclient.language.expression import WLFunction, WLSymbol
+from wolframclient.exception import WolframKernelException
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import hcsp
 import platform
 
 # logging.basicConfig(level=logging.DEBUG)
+found_wolfram = False
+path = None
+session = None
+
 if platform.system() == "Darwin":
     path = "/Applications/Wolfram Engine.app/Contents/Resources/Wolfram Player.app/Contents/MacOS/WolframKernel"
 else:
@@ -17,9 +22,13 @@ else:
             path = f.readline().strip()
     except FileNotFoundError as e:
         print("Please add a file wolframpath.txt under hhlpy and place path to Wolfram Engine there.")
-        raise e
 
-session = WolframLanguageSession(path)
+if path:
+    try:
+        session = WolframLanguageSession(path)
+        found_wolfram = True
+    except WolframKernelException:
+        print("Failed to start Wolfram Kernel")
 
 def toWLexpr(e):
     """Convert a hcsp expression to WolframLanguage expression"""
@@ -293,6 +302,10 @@ def wl_prove(e):
     """Attempt to prove the given condition."""
     if not isinstance(e, expr.BExpr):
         raise NotImplementedError
+
+    # If wolfram not found, just return failure
+    if not found_wolfram:
+        return False
 
     vars = e.get_vars()
     wl_expr = toWLexpr(e)

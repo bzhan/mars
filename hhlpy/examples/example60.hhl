@@ -1,0 +1,35 @@
+# Basic benchmark, problem 50
+#         v >= 0 & xm <= x2 & x2 <= S & xr = (xm + S)/2 & Kp = 2 & Kd = 3
+#            & 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2
+#  -> [ { {  xm := x2;
+#            xr := (xm + S)/2;
+#            ?5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2;
+#         ++ ?true;
+#         };
+#         {{ x2' = v, v' = -Kp*(x2-xr) - Kd*v & v >= 0 }
+#           @invariant(
+#             xm<=x2,
+#             5/4*(x2-(xm+S())/2)^2 + (x2-(xm+S())/2)*v/2 + v^2/4 < ((S()-xm)/2)^2
+#          )
+#         }
+#       }*@invariant(v >= 0 & xm <= x2 & xr = (xm + S)/2 & 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2)
+#     ] x2 <= S
+pre [v >= 0] [xm <= x2] [x2 <= S] [xr == (xm + S)/2] [Kp == 2] [Kd == 3] 
+  [5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2];
+{ 
+  if (5/4*(x2-(x2 + S)/2)^2 + (x2-(x2 + S)/2)*v/2 + v^2/4 < ((S - x2)/2)^2) {
+      xm := x2; 
+      xr := (xm + S)/2; 
+  } else {
+      skip; 
+  } 
+  ++ 
+  skip; 
+  <x2_dot = v, v_dot = -Kp * (x2 - xr) - Kd * v & v > 0> 
+  invariant [xm <= x2] 
+            [xr == (xm + S)/2] 
+            [5/4*(x2-(xm+S)/2)^2 + (x2-(xm+S)/2)*v/2 + v^2/4 < ((S-xm)/2)^2]; 
+}* 
+invariant [v >= 0] [xm <= x2] [xr == (xm + S)/2]
+          [5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2];
+post [x2 <= S];

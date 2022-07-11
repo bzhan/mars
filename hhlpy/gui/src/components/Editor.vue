@@ -11,6 +11,12 @@
           <label for="open_file">Open file</label>
           <input type="file" id="open_file" name="open_file" accept=".hhl" v-on:change="openFile">
         </form>
+        <select v-on:change="loadExample">
+          <option disabled selected>Load example</option>
+          <option v-for="example in examples" :value="example" :key="example">
+            {{ example }}
+          </option>
+        </select>
       </div>
       <div class="group">
         <button v-on:click="compute">Compute</button>
@@ -57,7 +63,8 @@ export default {
   data: () => { return {
     vc_info_received: "",   //An  array received from server, consisted of objects about vc information.
     vc_infos: [], // An array of verification condition information, each information object include formula, solver, result and origin.
-    editorView: initEditor()
+    editorView: initEditor(),
+    examples: []
   }},
   components: {
     vcs: VerificationCondition2
@@ -72,7 +79,9 @@ export default {
       this.socket = new WebSocket(wsPath);
       
       this.socket.onopen = () => {
-        console.log("Connection opened")
+        console.log("Connection opened");
+
+        this.socket.send(JSON.stringify({type: "get_example_list"}))
       };
 
       this.socket.onmessage = (event) => {
@@ -98,6 +107,12 @@ export default {
              console.error("Wrong result for the verification condition:", formula)
           }
         }
+        else if(eventData.type === 'example_list'){
+          this.examples = eventData.examples;
+        }
+        else if(eventData.type === 'load_example'){
+          this.editorView.setState(initEditorState(eventData.code));
+        }
         else if(eventData.type === 'error'){ 
           console.error("Server side error:", eventData.error)
         } else {
@@ -122,6 +137,9 @@ export default {
       e.target.files[0].text().then(t => 
         this.editorView.setState(initEditorState(t))
       )
+    },
+    loadExample: function (e) {
+      this.socket.send(JSON.stringify({example: e.target.value, type: "load_example"}));
     },
     compute: function () {
       // Send the doc in editor to server with type "compute".
@@ -159,7 +177,7 @@ export default {
   display: flex;
   flex-flow: column;
   height: 100%;
-  font-size: 20pt;
+  font-size: 120%;
 }
 
 .toolbar {
@@ -182,8 +200,9 @@ export default {
 } 
 
 .toolbar button, 
+.toolbar select, 
 .toolbar .open_file label {
-  font-size: 20pt;
+  font-size: 100%;
   margin: 2px;
   padding: 2px 10px;
   border-radius: 20px;

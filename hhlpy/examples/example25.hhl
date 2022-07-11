@@ -1,0 +1,13 @@
+# Basic benchmark, problem 18
+# {x >= 0} <x_dot = x & x < 10> {x >= 0}
+# dG and Conjunction Rule
+# Question remained: the form of ghost_equations.
+pre [x >= 0];
+<x_dot = x & x < 10> 
+invariant 
+  ghost <y_dot = - y> 
+  ghost z 
+  [y * z * z == 1] 
+  [y > 0] 
+  [x * y >= 0];
+post [x >= 0];

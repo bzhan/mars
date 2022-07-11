@@ -1,6 +1,9 @@
 from geventwebsocket import WebSocketServer, WebSocketApplication, Resource
 from collections import OrderedDict
 import sys
+import re
+from os import listdir
+from os.path import isfile, join, dirname
 
 from operator import pos
 
@@ -10,8 +13,7 @@ from ss2hcsp.hcsp.simulator import get_pos
 from hhlpy.hhlpy2 import CmdVerifier
 from hhlpy.wolframengine_wrapper import wl_prove
 from hhlpy.z3wrapper import z3_prove
-from hhlpy.wolframengine_wrapper import session
-
+from hhlpy.wolframengine_wrapper import session, found_wolfram
 
 
 import json
@@ -81,6 +83,23 @@ def runVerify(formula, solver):
     else:
         raise NotImplementedError
 
+def natural_sort(l): 
+    convert = lambda text: int(text) if text.isdigit() else text.lower() 
+    alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)] 
+    return sorted(l, key=alphanum_key)
+
+def getExampleList():
+    path = join(dirname(__file__), "..", "examples")
+    filenames = [f for f in listdir(path) if isfile(join(path, f))]
+    filenames = natural_sort(filenames)
+    return filenames
+
+def getExampleCode(example):
+    file = join(dirname(__file__), "../examples", example)
+    file = open(file,mode='r')
+    code = file.read()
+    file.close()
+    return code
 
 class HHLPyApplication(WebSocketApplication):
     def on_open(self):
@@ -110,6 +129,16 @@ class HHLPyApplication(WebSocketApplication):
                                        "type": "verified"}
                     self.ws.send(json.dumps(index_vc_result))
 
+                elif msg["type"] == "get_example_list":
+                    examples = getExampleList()
+                    result = {"examples": examples, "type": "example_list"}
+                    self.ws.send(json.dumps(result)) 
+
+                elif msg["type"] == "load_example":
+                    code = getExampleCode(msg["example"])
+                    result = {"code": code, "type": "load_example"}
+                    self.ws.send(json.dumps(result)) 
+
                 else:
                     raise NotImplementedError    
         except Exception as e:
@@ -130,13 +159,17 @@ if __name__ == "__main__":
         Resource(OrderedDict([('/', HHLPyApplication)]))
     )
     try:
-        print("Starting Wolfram Engine")
-        session.start()
+        if found_wolfram:
+            print("Starting Wolfram Engine")
+            session.start()
+        else:
+            print("Wolfram Engine not found")
         print("Running python websocket server on ws://localhost:{0}".format(port), flush=True)
         server.serve_forever()
     except KeyboardInterrupt:
         print("KeyboardInterrupt")
         print("Closing python websocket server")
         server.close()
-        print("Terminating Wolfram Engine")
-        session.terminate()
+        if found_wolfram:
+            print("Terminating Wolfram Engine")
+            session.terminate()
