@@ -1,0 +1,13 @@
+# Nonlinear benchmark, problem 34
+# {Il == 1 & Vc == 1}
+#     t := 0;
+#     <Il_dot = -Vc-1/5*Vc^2, Vc_dot = -2*Il-Il^2+Il^3, t_dot = 1 & t < 10>
+#       @invariant(4993/2416+Il^4+2*Vc^2+4/15*Vc^3<=4/3*Il^2*(3+Il))
+# {Vc <= 3}
+pre [Il == 1] [Vc == 1];
+t := 0; 
+<Il_dot = -Vc-1/5*Vc^2, Vc_dot = -2*Il-Il^2+Il^3, 
+t_dot = 1 & t < 10> 
+invariant 
+    [4993/2416+Il^4+2*Vc^2+4/15*Vc^3 <= 4/3*Il^2*(3+Il)];
+post [Vc <= 3];

@@ -1,0 +1,18 @@
+# Nonlinear benchmark, problem 75
+# {x1 == 0 & x2 == 0 & x3 == 0}
+#    t := 0;
+#   <x1_dot = 1 - x1 - (x1*x2)/4, 
+#    x2_dot = x2*(-1 + 2*x3), 
+#    x3_dot = x1/4 - 2*x3^2,
+#    t_dot = 1 & t < 10>@invariant(x2==0, x1<=5)
+# {x1 <= 5 & x2 <= 5 & x3 <= 5}
+# In this problem, sympy.div cannot compute the right quotient and remainder
+# for the last cut, so we use wolfram engine or offer the cofactors.
+pre [x1 == 0] [x2 == 0] [x3 == 0];
+t := 0; 
+ <x1_dot = 1 - x1 - (x1*x2)/4, 
+x2_dot = x2*(-1 + 2*x3), 
+x3_dot = x1/4 - 2*x3^2, 
+t_dot = 1 & t < 10> 
+invariant [x2==0] {dbx} [x1<=5] {dbx} [x3 <= 5] {dbx -10 - 2*x3};
+post [x1 <= 5] [x2 <= 5] [x3 <= 5];

@@ -1,0 +1,12 @@
+# Nonlinear benchmark, problem 77
+# {x == 1 & y == 2 & z == 3} 
+#      t := 0;
+#     <x_dot = y*z, y_dot = x*z, z_dot = x*y,
+#      t_dot = 1 & t < 10>@invariant(5+y^2==z^2)
+# {!(x==5 & y^2==27 & z^2==34)}
+pre [x == 1] [y == 2] [z == 3];
+t := 0; 
+ <x_dot = y*z, y_dot = x*z, z_dot = x*y, 
+t_dot = 1 & t < 10> 
+invariant [5+y^2==z^2];
+post [!(x==5 & y^2==27 & z^2==34)];

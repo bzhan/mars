@@ -1,0 +1,12 @@
+# Nonlinear benchmark, problem 79
+# {x == 2 & y == 0 & r == 2}
+#     t := 0;
+#    <x_dot = -y*omega, y_dot = x*omega, omega_dot = -g/r^2*x,
+#     t_dot = 1 & t < 10>@invariant(x^2+y^2>=4)
+# {2*x^2+y^2 > 3}
+pre [x == 2] [y == 0] [r == 2];
+t := 0; 
+ <x_dot = -y*omega, y_dot = x*omega, omega_dot = -g/r^2*x, 
+t_dot = 1 & t < 10> 
+invariant [x^2+y^2>=4];
+post [2*x^2+y^2 > 3];

@@ -1,0 +1,10 @@
+# Nonlinear benchmark, problem 40
+# {(-1/3 + x)^2 + y^2 < 1/25}
+#      t := 0;
+#     <x_dot = 2*x*y, y_dot = -x^2+y^2, t_dot = 1 & t < 10>@invariant(x>0)
+# {!(x <= -2)}
+pre [(-1/3 + x)^2 + y^2 < 1/25];
+t := 0; 
+ <x_dot = 2*x*y, y_dot = -x^2+y^2, t_dot = 1 & t < 10> 
+   invariant [x > 0] {dbx};
+post [!(x <= -2)];
