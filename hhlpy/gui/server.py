@@ -1,6 +1,9 @@
 from geventwebsocket import WebSocketServer, WebSocketApplication, Resource
 from collections import OrderedDict
 import sys
+import re
+from os import listdir
+from os.path import isfile, join, dirname
 
 from operator import pos
 
@@ -78,6 +81,23 @@ def runVerify(vc, solver):
     else:
         raise NotImplementedError
 
+def natural_sort(l): 
+    convert = lambda text: int(text) if text.isdigit() else text.lower() 
+    alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)] 
+    return sorted(l, key=alphanum_key)
+
+def getExampleList():
+    path = join(dirname(__file__), "..", "examples")
+    filenames = [f for f in listdir(path) if isfile(join(path, f))]
+    filenames = natural_sort(filenames)
+    return filenames
+
+def getExampleCode(example):
+    file = join(dirname(__file__), "../examples", example)
+    file = open(file,mode='r')
+    code = file.read()
+    file.close()
+    return code
 
 class HHLPyApplication(WebSocketApplication):
     def on_open(self):
@@ -99,6 +119,16 @@ class HHLPyApplication(WebSocketApplication):
                     print("vc_result:", vc_result)
                     vc_result_dict = {"vc": msg["vc"], "vc_result": vc_result, "type": "verified"}  
                     self.ws.send(json.dumps(vc_result_dict)) 
+
+                elif msg["type"] == "get_example_list":
+                    examples = getExampleList()
+                    result = {"examples": examples, "type": "example_list"}
+                    self.ws.send(json.dumps(result)) 
+
+                elif msg["type"] == "load_example":
+                    code = getExampleCode(msg["example"])
+                    result = {"code": code, "type": "load_example"}
+                    self.ws.send(json.dumps(result)) 
 
                 else:
                     raise NotImplementedError    

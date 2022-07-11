@@ -7,6 +7,12 @@
           <label for="open_file">Open file</label>
           <input type="file" id="open_file" name="open_file" accept=".hhl" v-on:change="openFile">
         </form>
+        <select v-on:change="loadExample">
+          <option disabled selected>Load example</option>
+          <option v-for="example in examples" :value="example" :key="example">
+            {{ example }}
+          </option>
+        </select>
       </div>
       <div class="group">
         <button v-on:click="compute">Compute</button>
@@ -52,7 +58,8 @@ export default {
   name: 'Editor',
   data: () => { return {
     vcs: "",
-    vc_infos: {}
+    vc_infos: {},
+    examples: []
   }},
   mounted: function () {
 
@@ -64,7 +71,9 @@ export default {
       this.socket = new WebSocket(wsPath);
       
       this.socket.onopen = () => {
-        console.log("Connection opened")
+        console.log("Connection opened");
+
+        this.socket.send(JSON.stringify({type: "get_example_list"}))
       };
 
       this.socket.onmessage = (event) => {
@@ -81,7 +90,14 @@ export default {
           this.vc_infos[vc].result = result
 
           this.display_vc_infos()
-        } else if(eventData.type === 'error'){ 
+        }
+        else if(eventData.type === 'example_list'){
+          this.examples = eventData.examples;
+        }
+        else if(eventData.type === 'load_example'){
+          this.editorView.setState(initEditorState(eventData.code));
+        }
+        else if(eventData.type === 'error'){ 
           console.error("Server side error:", eventData.error)
         } else {
           console.error("Unknown message type:", eventData.type);
@@ -105,6 +121,9 @@ export default {
       e.target.files[0].text().then(t => 
         this.editorView.setState(initEditorState(t))
       )
+    },
+    loadExample: function (e) {
+      this.socket.send(JSON.stringify({example: e.target.value, type: "load_example"}));
     },
     compute: function () {
       let code = this.editorView.state.doc.toString();
@@ -152,7 +171,7 @@ export default {
   display: flex;
   flex-flow: column;
   height: 100%;
-  font-size: 20pt;
+  font-size: 120%;
 }
 
 .toolbar {
@@ -175,8 +194,9 @@ export default {
 } 
 
 .toolbar button, 
+.toolbar select, 
 .toolbar .open_file label {
-  font-size: 20pt;
+  font-size: 100%;
   margin: 2px;
   padding: 2px 10px;
   border-radius: 20px;
