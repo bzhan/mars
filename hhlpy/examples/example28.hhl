@@ -1,0 +1,6 @@
+# Basic benchmark, problem 21
+# dI Rule
+# {x >= 1} <x_dot = x ^ 2 + 2 * x ^ 4 & x < 10> {x ^ 3 >= x ^ 2}
+pre [x >= 1];
+<x_dot = x ^ 2 + 2 * x ^ 4 & x < 10> invariant [x >= 1];
+post [x ^ 3 >= x ^ 2];

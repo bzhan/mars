@@ -1,0 +1,25 @@
+# Basic benchcmark, problem 47
+# constants = {'A', 'B', 'S', 'ep'}
+# {v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) <= S & ep > 0}
+#     (      if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := {-B <= a & a <= A}
+#              else a := -B endif
+#         ++ if v == 0 then a := 0 else a := -B endif
+#         ++ a := -B
+#         ;
+
+#         c := 0;
+#         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 & c < ep >
+#     )**@invariant(v >= 0 & x+v^2/(2*B) <= S)
+# {x <= S}
+pre [v >= 0] [A > 0] [B > 0] [x + v^2 / (2*B) <= S] [ep > 0];
+{   if (x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S) {
+      a := *(-B <= a & a <= A); 
+    } else { a := -B; } 
+ ++ if (v == 0) { a := 0; } else { a := -B; } 
+ ++ a := -B; 
+  c := 0; 
+  < x_dot = v, v_dot = a, c_dot = 1 & v > 0 & c < ep > 
+  invariant [x+v^2/(2*B) <= S] {sln};
+}* 
+invariant [v >= 0] [x+v^2/(2*B) <= S];
+post [x <= S];

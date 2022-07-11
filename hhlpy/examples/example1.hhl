@@ -1,0 +1,5 @@
+# Basic benchmark, problem 1 
+# {x >= 0} x := x + 1 {x >= 1}
+pre [x >= 0.12345];
+x := x+1.23456;
+post [x >= 1];

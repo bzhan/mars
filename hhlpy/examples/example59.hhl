@@ -1,0 +1,12 @@
+# Basic benchmark, problem 49
+# Constants = {'Kp()', 'Kd()', 'xr()', 'c()'}
+# {v >= 0 & c() > 0 & Kp() == 2 & Kd() == 3 & 5/4*(x1-xr())^2 + (x1-xr())*v/2 + v^2/4 < c()}
+# t := 0; 
+# <x1_dot = v, v_dot = -Kp()*(x1-xr()) - Kd()*v, t_dot = 1 & t < 10>
+# {5/4*(x1-xr())^2 + (x1-xr())*v/2 + v^2/4 < c()}
+pre [v >= 0] [c() > 0] [Kp() == 2] [Kd() == 3]
+  [5/4*(x1-xr())^2 + (x1-xr())*v/2 + v^2/4 < c()];
+t := 0; 
+<x1_dot = v, v_dot = -Kp()*(x1-xr()) - Kd()*v, t_dot = 1 & t < 10> 
+invariant [5/4*(x1-xr())^2 + (x1-xr())*v/2 + v^2/4 < c()];
+post [5/4*(x1-xr())^2 + (x1-xr())*v/2 + v^2/4 < c()];

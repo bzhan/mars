@@ -1,0 +1,16 @@
+# Basic benchmark, problem 44
+# constants = {'A', 'V'}
+# {v <= V & A > 0}
+#
+# (a := A;
+#  <x_dot = v, v_dot = a & v < V>
+# )**
+#
+# {v <= V}
+pre [v <= V] [A > 0];
+{a := A;
+<x_dot = v, v_dot = a & v < V>
+invariant [true]; 
+ }*
+ invariant [v <= V];
+post [v <= V];

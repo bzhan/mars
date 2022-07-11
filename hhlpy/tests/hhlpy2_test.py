@@ -1,6 +1,7 @@
 """Unit test for hhlpy."""
 
 import unittest
+import os
 from wolframclient.evaluation import WolframLanguageSession
 
 from ss2hcsp.hcsp import expr
@@ -28,6 +29,67 @@ def runVerify(self, *, pre, hp, post, constants=set(),
             if isinstance(andR, str):
                 andR = parse_bexpr_with_meta(andR)
             verifier.set_andR_rule(pos, andR)
+    # Compute wp and verify
+    verifier.compute_wp()
+
+    # Optional: Print verification conditions
+    if print_vcs:
+        for pos, vcs in verifier.get_all_vcs().items():
+            print("%s:" % str(pos))
+            for vc in vcs:
+                print(vc.expr, 
+                "pos:", vc.pos, 
+                "seq_labels:", [str(lb) for lb in vc.seq_labels], 
+                "nest_label:", vc.nest_label,
+                "annot_pos:", vc.annot_pos,
+                "categ:", vc.categ,
+                "branch_label:", str(vc.branch_label),
+                "comp_label:", str(vc.comp_label))
+
+    # Use SMT to verify all verification conditions
+    self.assertTrue(verifier.verify())
+
+    # Optional: check the verification conditions are expected
+    def is_trivial(vc):
+        if isinstance(vc, expr.LogicExpr) and vc.op == "->" and vc.exprs[0] == vc.exprs[1]:
+            return True
+        else:
+            return False
+
+    if expected_vcs:
+        for pos, vcs in expected_vcs.items():
+            vcs = [parse_bexpr_with_meta(vc) for vc in vcs]
+            actual_vcs = [vc.expr for vc in verifier.infos[pos].vcs if not is_trivial(vc.expr)]
+            self.assertEqual(set(vcs), set(actual_vcs), 
+            "\nExpect: {}\nActual: {}".format([str(vc) for vc in vcs],[str(vc) for vc in actual_vcs]))
+
+def runFile(self, file, 
+              wolfram_engine = False, z3 = True,
+              andR_rule=None,
+              print_vcs=False, expected_vcs=None):
+    # Read the file
+    file = os.path.join(os.path.dirname(__file__), "../examples", file)
+    file = open(file,mode='r')
+    file_contents = file.readlines()
+    file_contents = '\n'.join([l.rstrip('\n').split('#',1)[0] for l in file_contents])
+    file.close()
+
+    # Parse pre-condition, HCSP program, and post-condition
+    hoare_triple = parse_hoare_triple_with_meta(file_contents)
+
+    # Initialize the verifier
+    verifier = CmdVerifier(
+        pre=expr.list_conj(*hoare_triple.pre), 
+        hp=hoare_triple.hp,
+        post=expr.list_conj(*hoare_triple.post),
+        wolfram_engine=wolfram_engine, z3=z3)
+    
+    if andR_rule:
+        for pos, andR in andR_rule.items():
+            if isinstance(andR, str):
+                andR = parse_bexpr_with_meta(andR)
+            verifier.set_andR_rule(pos, andR)
+
     # Compute wp and verify
     verifier.compute_wp()
 
@@ -104,118 +166,61 @@ class BasicHHLPyTest(unittest.TestCase):
         self.assertEqual(str(res.predicates["bar"]), "bar(x,y) = 2 * x == y")
 
     def testVerify1(self):
-        # Baisc benchmark, problem 1 
-        # {x >= 0} x := x + 1 {x >= 1}
-        runVerify(self, pre="x >= 0.12345", hp="x := x+1.23456;", post="x >= 1")
+        runFile(self, file="example1.hhl")
                   #expected_vcs={((), ()): ["x >= 0 -> x + 1 >= 1"]})
 
     def testVerify2(self):
-        # {x >= 0} x := x+1 ++ x := x+2 {x >= 1}
-        runVerify(self, pre="x >= 0", hp="x := x+1; ++ x := x+2;", post="x >= 1",
+        runFile(self, file="example2.hhl",
                   expected_vcs={((), ()): ["x >= 0 -> x + 1 >= 1", "x >= 0 -> x + 2 >= 1"]},
                   print_vcs=False)
 
     def testVerify2_1(self):
-        # {x >= 0} x := x+1 ++ x := x+2 ++ x := x + 3 {x >= 1}
-        runVerify(self, pre="x >= 0", hp="x := x+1; ++ x := x+2; ++ x := x+3;", post="x >= 1",
+        runFile(self, file="example2_1.hhl",
         print_vcs=False)
 
     def testVerify2_2(self):
-        # {x >= 0} x := x+1 ++ x := x+2; x := x+1 ++ x := x+2 ++ x := x + 3 {x >= 1}
-        runVerify(self, pre="x >= 0", 
-                  hp="x := x+1; ++ x := x+2; x := x + 1; x := x+3; ++ x := x+4; ++ x := x+5;", 
-                  post="x >= 2",
+        runFile(self, file="example2_2.hhl",
                 print_vcs=False)
 
     def testVerify3(self):
-        # {x >= 0} x := x+1; y := x+2 {x >= 1 & y >= 3}
-        runVerify(self, pre="x >= 0", hp="x := x+1; y := x+2;", post="x >= 1 & y >= 3",
+        runFile(self, file="example3.hhl",
                   expected_vcs={((), ()): ["x >= 0 -> x + 1 >= 1 & x + 1 + 2 >= 3"]})
 
     def testVerify4(self):
-        # Basic benchmark, problem 2
-        # {x >= 0} x := x+1; x := x+1 ++ y := x+1 {x >= 1}
-        runVerify(self, pre="x >= 0", hp="x := x+1; x := x+1; ++ y := x+1;", post="x >= 1",
+        runFile(self, file="example4.hhl",
                   expected_vcs={((), ()): ["x >= 0 -> x + 1 + 1 >= 1", "x >= 0 -> x + 1 >= 1"]})
 
     def testVerify4_1(self):
-        #  {x >= 0} x := x+1; (x := x+1 ++ y := x+1)** {x >= 1}
-        runVerify(self, pre="x >= 0", 
-                  hp="x := x+1; {x := x+1; ++ y := x+1;}* invariant[x >= 1];", 
-                  post="x >= 1",
+        runFile(self, file="example4_1.hhl",
                   print_vcs=False)
 
     def testVerify4_2(self):
-        # ITE
-        # {x == 1}
-        # if (x > 0){
-        #   if (x > 1){
-        #        x := x - 1;
-        #   }
-        #    else{
-        #        skip;
-        #    }
-        # }
-        # else {
-        #    x := x + 1;
-        # }
-        # {x >= 0}
-        runVerify(self, pre="x == 1",
-                  hp="if (x > 0){ \
-                        if (x > 1){ \
-                            x := x - 1; \
-                        } \
-                        else {\
-                            skip; \
-                        } \
-                      } \
-                      else { \
-                        x := x + 1; \
-                      }",
-                  post="x >= 0",
+        runFile(self, file="example4_2.hhl",
                   print_vcs=False)
 
     def testVerify5(self):
-        # {x >= 0} (x := x+1)** {x >= 0}
-        runVerify(self, pre="x >= 0", hp="{x := x+1;}* invariant [x >= 0]{{init 1.1(2).skip: z3}};", post="x >= 0", print_vcs=True,
+        runFile(self, file="example5.hhl", print_vcs=True,
                   expected_vcs={((), (0,)): ["x >= 0 -> x + 1 >= 0"]})
 
     def testVerify5_1(self):
-        # {x >= 0 & y >= 0} (x := x + 1; y := y + 1)** {x >= 0 & y >= 0}
-        runVerify(self, pre="x >= 0 & y >= 0",
-                  hp="{x := x + 1; y := y + 1;}* invariant[x >= 0] [y >= 0];",
-                  post="x >= 0 & y >= 0",
+        runFile(self, file="example5_1.hhl",
                   print_vcs=False)
 
     def testVerify5_2(self):
-        # {x >= 0} (x := x + 1)**;  x := x + 1; (x := x + 2)** {x >= 1}
-        runVerify(self, pre="x >= 0",
-                  hp="{x := x + 1;}* invariant[x >= 0]; x := x + 1; {x := x + 2;}* invariant[x >= 1];",
-                  post="x >= 1",
+        runFile(self, file="example5_2.hhl",
                   print_vcs=False)
 
     def testVerify5_3(self):
-         runVerify(self, pre="x >= 0 & y >= 0",
-                  hp="{x := x + 1; y := y + 1;}* invariant[x >= 0][y >= 0]; \
-                      x := x + 1; \
-                      y := y + 1; \
-                      {x := x + 2; y := y + 2;}* invariant[x >= 1] [y >= 1];",
-                  post="x >= 1 & y >= 1",
+         runFile(self, file="example5_3.hhl",
                   print_vcs=False)
 
     def testVerify6(self):
-        # Basic benchmark, problem 3
-        # {x >= 0} x := x+1; (x := x+1)** {x >= 1}
-        # Invariant for loop is x >= 1.
-        runVerify(self, pre="x >= 0", hp="x := x+1; {x := x+1;}* invariant [x >= 1];", post="x >= 1",
+        runFile(self, file="example6.hhl",
                   expected_vcs={((), ()): ["x >= 0 -> x + 1 >= 1"],
                                 ((1,), (0,)): ["x >= 1 -> x + 1 >= 1"]})
 
     def testVerify7(self):
-        # {x >= 0} <x_dot=2 & x < 10> {x >= 0}
-        # Use the boundary x == 10 to imply the post x >= 0.
-        # No invariant attached.
-        runVerify(self, pre="x >= 0", hp="<x_dot=2 & x < 10>", post="x >= 0", print_vcs=True)
+        runFile(self, file="example7.hhl", print_vcs=True)
 
     # TODO: 
     # def testVerify7_1(self):
@@ -223,160 +228,67 @@ class BasicHHLPyTest(unittest.TestCase):
     #     runVerify(self, pre="true", hp="<x_dot = 2 & x < 10>", post="true", print_vcs=True)
 
     def testVerify7_2(self):
-        # {x > 2} <x_dot = 1 & x < 1> {x > 2}
-        runVerify(self, pre="x > 2",    
-                  hp="<x_dot = 1 & x < 1> invariant [false];", 
-                  post="x > 2",
+        runFile(self, file="example7_2.hhl",
                   print_vcs=False)
 
     def testVerify8(self):
-        # {x * x + y * y == 1} <x_dot=y, y_dot=-x & x > 0> {x * x + y * y = 1}
-        # Invariant for ODE is x * x + y * y == 1
-        runVerify(self, pre="x * x + y * y == 1", 
-                  hp="<x_dot=y, y_dot=-x & x > 0> \
-                      invariant [x * x + y * y == 1] {di};",
-                  post="x * x + y * y == 1",
+        runFile(self, file="example8.hhl",
                   print_vcs=True)
 
     def testVerify9(self):
-        # Basic benchmark, problem 4
-        # {x >= 0} x := x+1; <x_dot=2 & x < 10> {x >= 1}
-        runVerify(self, pre="x >= 0", 
-                  hp="x := x+1; <x_dot=2 & x < 10> invariant [x >= 1];", 
-                  post="x >= 1",
+        runFile(self, file="example9.hhl",
                   print_vcs=False)
 
     def testVerify9_1(self):
-        # Basic bencmark, problem10
-        # Several ODEs in sequence.
-        # {x > 0} <x_dot = 5>; <x_dot = 2> {x > 0}
-        runVerify(self, pre="x > 0",
-                  hp="<x_dot = 5 & x < 1> invariant [x > 0]; \
-                      <x_dot = 2 & x < 2> invariant [x > 0];",
-                  post="x > 0",
+        runFile(self, file="example9_1.hhl",
                   print_vcs=True)
 
     def testVerify10(self):
-        # Basic Benchmark, problem5
-        # {x >= 0} x := x+1; x := {x >= 1} {x >= 1}
-        runVerify(self, pre="x >= 0", hp="x := x+1; x := *(x >= 1);", post="x >= 1",
+        runFile(self, file="example10.hhl",
                   expected_vcs={((), ()): ["x >= 0 -> x0 >= 1 -> x0 >= 1"]})
 
     def testVerify11(self):
-        # {x0 >= 0} x := x+1; x := {x >= 1} {x >= 1}
-        runVerify(self, pre="x0 >= 0", hp="x := x+1; x := *(x >= 1);", post="x >= 1",
+        runFile(self, file="example11.hhl",
                   expected_vcs={((), ()): ["x0 >= 0 -> x0 >= 0 -> x1 >= 1 -> x1 >= 1"]})
 
     def testVerify12(self):
-        # {x >= 0} x := x+1; y := {y >= x} {y >= 1}
-        runVerify(self, pre="x >= 0", hp="x := x+1; y := *(y >= x);", post="y >= 1",
+        runFile(self, file="example12.hhl",
                   expected_vcs={((), ()): ["x >= 0 -> y0 >= x + 1 -> y0 >= 1"]})
 
     def testVerify13(self):
-        # {x >= 0} x := x+1; y := {y >= x}; y := {y >= x + 1} {y >= 2}
-        runVerify(self, pre="x >= 0", hp="x := x+1; y := *(y >= x); y := *(y >= x+1);", post="y >= 2",
+        runFile(self, file="example13.hhl",
                   expected_vcs={((), ()): ["x >= 0 -> y1 >= x + 1 ->y0 >= x + 1 + 1 -> y0 >= 2"]})
 
     # TODO: Basic benchmark problem 6 is hard to translate into HCSP program.
 
     def testVerify14(self):
-        # Basic Benchmark, problem7
-        # confusion about the inv of loop
-        # {x >= 0 & y >= 1} 
-
-        # x := x + 1; 
-        # (x := x + 1)**@invariant(x >= 1) ++ y:= x + 1; 
-        # <y_dot = 2>@invariant(y >= 1);
-        #  x := y
-
-        # {x >= 1}
-        runVerify(self, pre="x >= 0 & y >= 1", 
-                  hp="x := x + 1; \
-                    {x := x + 1;}* invariant [x >= 1] [y >= 1]; ++ y := x + 1; \
-                    <y_dot = 2 & y < 10> invariant [y >= 1]; \
-                    x := y;", 
-                  post="x >= 1") 
+        runFile(self, file="example14.hhl") 
 
     def testVerify14_1(self):
-         # {x >= 0 & y >= 1} 
-
-        # x := x + 1; 
-        # (x := x + 1)**@invariant(x >= 1) ++ y:= x + 1; 
-
-        # {x >= 1 & y >= 1}
-        runVerify(self, pre="x >= 0 & y >= 1", 
-                  hp="x := x + 1; \
-                    {x := x + 1;}* invariant [x >= 1] [y >= 1]; ++ y := x + 1;", 
-                  post="x >= 1 & y >= 1",
+        runFile(self, file="example14_1.hhl",
                   print_vcs=False) 
 
     def testVerify15(self):
-        # Basic benchmark, problem8
-        # {x > 0 & y > 0} 
-
-        # <x_dot = 5 & x < 10>@invariant(x > 0); 
-        # (x := x + 3)**@invariant(x > 0) ++ y := x
-
-        # {x > 0 & y > 0}
-        runVerify(self, pre="x > 0 & y > 0", 
-                  hp="<x_dot = 5 & x < 10> invariant [x > 0] [y > 0]; \
-                      {x := x + 3;}* invariant [x > 0] [y > 0]; ++ y := x;", 
-                  post="x > 0 & y > 0")
+        runFile(self, file="example15.hhl")
 
     def testVerify16(self):
-        # Test case containing ghost variables
-        # Basic benchmark, problem15
-        # dG Rule
-        # {x > 0} <x_dot = -x> {x > 0}
-        runVerify(self, pre="x > 0", hp="t := 0; <x_dot = -x, t_dot=1 & t < 1> invariant ghost y [x * y * y == 1];", post="x > 0",
+        runFile(self, file="example16.hhl",
                 expected_vcs={((), ()): ["x > 0 -> 0 < 1 -> (\exists y. x * y * y == 1)", \
                                          "x > 0 -> 0 >= 1 -> x > 0"],
                               ((1,), ()): ["(\exists y. x * y * y == 1) & t == 1 -> x > 0"]})
 
     def testVerify17(self):
-        # Basic benchmark, problem9
-        # dG Rule
-        # {x>0 & y>0} 
-        #
-        #   t := 0; 
-        #   <x_dot = -x, t_dot = 1 & t < 1>;
-        #   (x := x+3)**@invariant(x > 0) ++ y := x 
-        #
-        # {x>0 & y>0}
-        runVerify(self, pre="x > 0 & y > 0", 
-                  hp="t := 0; \
-                      <x_dot = -x, t_dot = 1 & t < 1> \
-                      invariant \
-                          ghost z \
-                          [x * z * z == 1] \
-                          [x > 0] \
-                          [y > 0]; \
-                      {x := x+3;}* invariant [x > 0] [y > 0]; ++ y := x;",
-                  post="x > 0 & y > 0")
+        runFile(self, file="example17.hhl")
 
     def testVerify18(self):
-        # Basic bencmark, problem10
-        # dG Rule
-        # {x > 0} <x_dot = 5>; <x_dot = 2>; <x_dot = x> {x > 0}
-        runVerify(self, pre="x > 0",
-                  hp="<x_dot = 5 & x < 1> invariant [x > 0]; \
-                      <x_dot = 2 & x < 2> invariant [x > 0]; \
-                      <x_dot = x & x < 5> invariant ghost y [x * y * y == 1];",
-                  post="x > 0",
+        runFile(self, file="example18.hhl",
                   print_vcs=False)
 
     def testVerify19(self):
-        # Basic benchmark, problem11
-        # {x = 0} <x_dot = 1 & x < 10> {x >= 0}
-        runVerify(self, pre="x == 0", hp="<x_dot = 1 & x < 10> invariant [x >= 0];", post="x >= 0",)
+        runFile(self, file="example19.hhl",)
 
     def testVerify20(self):
-        # Basic benchmark, problem12
-        # dC Rule
-        # {x >= 0 & y >= 0} <x_dot = y> {x >= 0}
-        runVerify(self, pre="x >= 0 & y >= 0", 
-                  hp="<x_dot = y & x < 10> invariant [y >= 0] [x >= 0];", 
-                  post="x >= 0",
+        runFile(self, file="example20.hhl",
                   expected_vcs={((), ()): ["y >= 0 -> x >= 0 & y >= 0 -> \
                                             x < 10 -> y >= 0 & x >= 0",
                                            "y >= 0 -> x >= 0 & y >= 0 -> \
@@ -385,39 +297,19 @@ class BasicHHLPyTest(unittest.TestCase):
                                             x >= 0"]})
 
     def testVerify21(self):
-        # Basic benchmark, problem13
-        # dC Rule
-        # {x >= 0 & y >= 0 & z >= 0} <x_dot = y, y_dot = z & x < 10> {x >= 0}
-        runVerify(self, pre="x >= 0 & y >= 0 & z >= 0", 
-                  hp="<x_dot = y, y_dot = z & x < 10> invariant [z >= 0] [y >= 0] [x >= 0];", post="x >= 0")
+        runFile(self, file="example21.hhl",)
 
 
     def testVerify22(self):
-        # Basic benchmark, problem14
-        # dC Rule
-        # {x >= 0 & y >= 0 & z >= 0 & j >= 0} 
-        # <x_dot = y, y_dot = z, z_dot = j, j_dot = j * j & x < 10>
-        # {x >= 0}
-        runVerify(self, pre="x >= 0 & y >= 0 & z >= 0 & j >= 0",
-                  hp="<x_dot = y, y_dot = z, z_dot = j, j_dot = j * j & x < 10> \
-                      invariant [j >= 0] [z >= 0] [y >= 0] [x >= 0];", post="x >= 0")
+        runFile(self, file="example22.hhl",)
 
     # Basic benchmark problem15 is verified in testVerify16
 
     def testVerify23(self):
-        # Basic benchmark, problem16
-        # dbx inequality Rule
-        # {x > 0} t := 0; <x_dot = -x + 1, t_dot = 1 & t < 10> {x > 0}
-        runVerify(self, pre="x > 0", hp="t := 0; <x_dot = -x + 1, t_dot = 1 & t < 10> invariant [x > 0] {dbx -1};", post="x > 0")
+        runFile(self, file="example23.hhl",)
 
     def testVerify24(self):
-        # Basic benchmark, problem17
-        # {x > 0 & y > 0} t := 0; <x_dot = -y * x, t_dot = 1 & t < 10> {x > 0}
-        runVerify(self, pre="x > 0 & y > 0", 
-                  hp="t := 0; \
-                      <x_dot = -y * x, t_dot = 1 & t < 10> \
-                      invariant ghost z [x * z * z == 1];", 
-                  post="x > 0",
+        runFile(self, file="example24.hhl",
                   expected_vcs={((), ()): ["y > 0 -> x > 0 & y > 0 -> \
                                             (0 < 10 -> (\exists z. x * z * z == 1))",
                                             "y > 0 -> x > 0 & y > 0 -> \
@@ -426,105 +318,33 @@ class BasicHHLPyTest(unittest.TestCase):
                                               -> x > 0"]})
 
     def testVerify25(self):
-        # Basic benchmark, problem 18
-        # {x >= 0} <x_dot = x & x < 10> {x >= 0}
-        # dG and Conjunction Rule
-        # Question remained: the form of ghost_equations.
-        runVerify(self, pre="x >= 0", 
-                hp="<x_dot = x & x < 10> \
-                    invariant \
-                        ghost <y_dot = - y> \
-                        ghost z \
-                        [y * z * z == 1] \
-                        [y > 0] \
-                        [x * y >= 0];",
-                post="x >= 0")
+        runFile(self, file="example25.hhl",)
 
     def testVerify26(self):
-        # Basic benchmark, problem 19
-        # dC Rule
-        # {x >= 0 & y >= 0} <x_dot = y, y_dot = y * y & x < 10> {x >= 0}
-        runVerify(self, pre="x >= 0 & y >= 0",
-                  hp="<x_dot = y, y_dot = y * y & x < 10> invariant [y >= 0] [x >= 0];", post="x >= 0")
+        runFile(self, file="example26.hhl",)
 
     # TODO: Basic benchmark, problem 20. The expression is not a polynomial.
 
     def testVerify28(self):
-        # Basic benchmark, problem 21
-        # dI Rule
-        # {x >= 1} <x_dot = x ^ 2 + 2 * x ^ 4 & x < 10> {x ^ 3 >= x ^ 2}
-        runVerify(self, pre="x >= 1", 
-                  hp="<x_dot = x ^ 2 + 2 * x ^ 4 & x < 10> invariant [x >= 1];",
-                  post="x ^ 3 >= x ^ 2")
+        runFile(self, file="example28.hhl",)
 
     def testVerify29(self):
-        # Basic benchmark, problem 22
-        # dI Rule
-        # {x * x + y * y == 1} t := 0; <x_dot = -y, y_dot = x, t_dot = 1 & t < 10> {x * x + y * y == 1}
-        runVerify(self, pre="x * x + y * y == 1", 
-                  hp="t := 0; <x_dot = -y, y_dot = x, t_dot = 1 & t < 10> invariant [x * x + y * y == 1];",
-                  post="x * x + y * y == 1")
+        runFile(self, file="example29.hhl",)
 
     def testVerify30(self):
-        # Basic benchmark, problem 23
-        # dC and dI rule
-        # {x^2 + y^2 == 1 & e == x} 
-        # t:=0; <x_dot = -y, y_dot = e, e_dot = -y, t_dot = 1 & t < 10>
-        # {x^2 + y^2 == 1 & e == x}
-        runVerify(self, pre="x^2 + y^2 == 1 & e == x",
-                  hp="t:=0; \
-                      <x_dot = -y, y_dot = e, e_dot = -y, t_dot = 1 & t < 10> \
-                      invariant \
-                        [e == x] [x^2 + y^2 == 1];",
-                  post="x^2 + y^2 == 1 & e == x")
+        runFile(self, file="example30.hhl",)
 
     def testVerify31(self):
-        # Basic benchmark, problem 24
-        # Conjunction rule and dI rule
-        # {d1^2 + d2^2 == w^2 * p^2 & d1 == -w * x2 & d2 == w * x1}
-        # t := 0; <x1_dot = d1, x2_dot = d2, d1_dot = -w * d2, d2_dot = w * d1, t_dot = 1 & t < 10>
-        # {d1^2 + d2^2 == w^2 * p^2 & d1 == -w * x2 & d2 == w * x1}
-        runVerify(self, pre="d1^2 + d2^2 == w^2 * p^2 & d1 == -w * x2 & d2 == w * x1",
-                  hp="t := 0; \
-                      <x1_dot = d1, x2_dot = d2, d1_dot = -w * d2, d2_dot = w * d1, t_dot = 1 & t < 10>\
-                      invariant [d1^2 + d2^2 == w^2 * p^2] [d1 == -w * x2 & d2 == w * x1];",
-                  post="d1^2 + d2^2 == w^2 * p^2 & d1 == -w * x2 & d2 == w * x1")
+        runFile(self, file="example31.hhl",)
 
     def testVerify32(self):
-        # Benchmark, problem 25
-        # dC rule? and dI rule
-        # {w >= 0 & x == 0 & y == 3} 
-        # t := 0; <x_dot = y, y_dot = -w^2 * x - 2 * w * y, t_dot = 1 & t < 10>
-        # {w^2 * x^2 + y^2 <= 9}
-        runVerify(self, pre="w >= 0 & x == 0 & y == 3",
-                  hp="t := 0; \
-                      <x_dot = y, y_dot = -w^2 * x - 2 * w * y, t_dot = 1 & t < 10> \
-                      invariant [w >= 0] [w^2 * x^2 + y^2 <= 9];",
-                  post="w^2 * x^2 + y^2 <= 9")
+        runFile(self, file="example32.hhl",)
 
     def testVerify33(self):
-    # Benchmark, problem 26
-    # Barrier Rule
-    # {x^3 > 5 & y > 2} 
-    # t := 0; <x_dot = x^3 + x^4, y_dot = 5 * y + y^2, t_dot = 1 & t < 10>
-    # {x^3 > 5 & y > 2}
-        runVerify(self, pre="x^3 > 5 & y > 2",
-                  hp="t := 0; \
-                      <x_dot = x^3 + x^4, y_dot = 5 * y + y^2, t_dot = 1 & t < 10> \
-                      invariant [x^3 > 5] {bc} [y > 2] {bc};",
-                  post="x^3 > 5 & y > 2")
+        runFile(self, file="example33.hhl",)
 
     def testVerify34(self):
-        # Benchmark, problem 27
-        # dW rule
-        # {x >= 1 & y == 10 & z == -2} 
-        # <x_dot = y, y_dot = z + y^2 - y & y > 0>
-        # {x >= 1 & y >= 0}
-        runVerify(self, pre="x >= 1 & y == 10 & z == -2", 
-                  hp="<x_dot = y, y_dot = z + y^2 - y & y > 0> \
-                      invariant \
-                        [x >= 1];",
-                  post="x >= 1 & y >= 0",
+        runFile(self, file="example34.hhl",
                   expected_vcs={((),()): ["z == -2 -> x >= 1 & y == 0 -> x >= 1 & y >= 0", 
                                           # `y == 0` comes from implicit dW
                                           "z == -2 -> y > 0 -> y >= 0", 
@@ -536,444 +356,109 @@ class BasicHHLPyTest(unittest.TestCase):
                                           # `y <= 0 -> x >= 1 & y >= 0` is the dW precondition
 
     def testVerify35(self):
-        # Benchmark, problem 28
-        # {x1^4 * x2^2 + x1^2 * x2^4 - 3 * x1^2 * x2^2 + 1 <= c}
-        # t := 0;
-        # <x1_dot = 2 * x1^4 * x2 + 4 * x1^2 * x2^3 - 6 * x1^2 * x2, 
-        # x2_dot = -4 * x1^3 * x2^2 - 2 * x1 * x2^4 + 6 * x1 * x2^2, 
-        # t_dot = 1 & t < 10>
-        # {x1^4 * x2^2 + x1^2 * x2^4 - 3 * x1^2 * x2^2 + 1 <= c}
-        runVerify(self, pre="x1^4 * x2^2 + x1^2 * x2^4 - 3 * x1^2 * x2^2 + 1 <= c",
-                  hp="t := 0;\
-                  <x1_dot = 2 * x1^4 * x2 + 4 * x1^2 * x2^3 - 6 * x1^2 * x2, \
-                   x2_dot = -4 * x1^3 * x2^2 - 2 * x1 * x2^4 + 6 * x1 * x2^2, \
-                   t_dot = 1 & t < 10> \
-                       invariant [x1^4 * x2^2 + x1^2 * x2^4 - 3 * x1^2 * x2^2 + 1 <= c];",
-                  post="x1^4 * x2^2 + x1^2 * x2^4 - 3 * x1^2 * x2^2 + 1 <= c")
+        runFile(self, file="example35.hhl",)
 
     def testVerify36(self):
-        # Benchmark, problem 29
-        # constants: {"B()"}
-        # {x + z == 0} 
-        # t := 0; <x_dot = (A * x^2 + B() * x), z_dot = A * z * x + B() * z, t_dot = 1 & t < 10> 
-        # {0 == -x - z}
-        runVerify(self, pre="x + z == 0", 
-                  hp="t := 0; <x_dot = (A * x^2 + B() * x), z_dot = A * z * x + B() * z, t_dot = 1 & t < 10> invariant [x + z == 0] {dbx};",
-                  post="0 == -x - z",)
+        runFile(self, file="example36.hhl",)
                 #   constants={"B()"})
 
     # TODO: Benchmark, problem 30, 32 are hard to translate into hcsp programs.
 
     def testVerify38(self):
-        # Basic benchmark, problem 31
-        # {x + z >= 0} 
-        # <x_dot = x^2, z_dot = z * x + y & y > x^2>
-        # {x + z >= 0}
-        # tag, info, str1 = 
-        runVerify(self, pre="x + z >= 0",
-                  hp="<x_dot = x^2, z_dot = z * x + y & y > x^2> invariant [x + z >= 0] {dbx x};",
-                  post="x + z >= 0")
+        runFile(self, file="example38.hhl",)
 
     def testVerify40(self):
-        # Condition rule
-        # {x >= 0} x >= -2 -> (x := x+1 ++ x := x+2; x := x+1) {x >= 2}
-        runVerify(self, pre="x >= 0", hp="if (x >= -2) { x := x+1; ++ x := x+2; x := x+1;}", post="x >= 2")
+        runFile(self, file="example40.hhl",)
 
     def testVerify41(self):
-        # Benchmark, problem 33
-        # {w>=0 & d>=0
-        #   & -2<=a&a<=2
-        #   & b^2>=1/3
-        #   & w^2*x^2+y^2 <= c}
-        #   [{
-        #     {x'=y, y'=-w^2*x-2*d*w*y};
-        #     {  { ?(x=y*a); w:=2*w; d:=d/2; c := c * ((2*w)^2+1^2) / (w^2+1^2); }
-        #     ++ { ?(x=y*b); w:=w/2; d:=2*d; c := c * (w^2+1^2) / ((2*w^2)+1^2); }
-        #     ++ { ?true; } }
-        #    }*@invariant(w^2*x^2+y^2<=c&d>=0&w>=0)
-        #   ] 
-        # {w^2*x^2+y^2 <= c}
-        runVerify(self, 
-                  pre="w >= 0 & d >= 0 & -2 <= a & a <= 2 & b^2 >= 1/3 & w^2 * x^2 + y^2 <= c",
-                  hp="t := 0; \
-                      <x_dot = y, y_dot = -w^2 * x - 2 * d * w * y, t_dot = 1 & t < 10> \
-                      invariant [w >= 0 & d >= 0] [w^2 * x^2 + y^2 <= c] [d >= 0] [w >= 0] [-2 <= a] [a <= 2] [b^2 >= 1/3]; \
-                      {if (x == y * a) {w := 2 * w; d := d/2; c := c * ((2 * w)^2 + 1^2) / (w^2 + 1^2);}\
-                      ++ if (x == y * b) {w := w/2; d := 2 * d; c := c * (w^2 + 1^2) / ((2 * w^2) + 1^2);} \
-                      ++ skip;}* \
-                      invariant [w^2 * x^2 + y^2 <= c] [d >= 0] [w >= 0] [-2 <= a] [a <= 2] [b^2 >= 1/3];",
-                  post="w^2 * x^2 + y^2 <= c")
+        runFile(self, file="example41.hhl",)
 
     def testVerify42(self):
-        runVerify(self,
-                  pre="w >= 0 & d >= 0 & -2 <= a & a <= 2 & b^2 >= 1/3 & w^2 * x^2 + y^2 <= c",
-                  hp=
-                   "{if (x == y * a) {w := 2 * w; d := d/2; c := c * ((2 * w)^2 + 1^2) / (w^2 + 1^2);}\
-                  ++ if (x == y * b) {w := w/2; d := 2*d; c := c * (w^2+1^2) / ((2*w^2)+1^2);}}*\
-                  invariant [w^2 * x^2 + y^2 <= c] [d >= 0] [w >= 0] [-2 <= a] [a <= 2] [b^2 >= 1/3];",
-                  post="w^2 * x^2 + y^2 <= c")
-
+        runFile(self,file="example42.hhl",)
 
     def testVerify43(self):
-        # Basic benchmark, problem 34
-        # {x^3 >= -1} <x_dot = (x-3)^4 + a & a > 0> x^3 >= -1
-        runVerify(self, pre="x^3 >= -1", hp="<x_dot = (x-3)^4 + a & a > 0> invariant [x^3 >= -1];", post="x^3 >= -1")
+        runFile(self, file="example43.hhl",)
 
     def testVerify44(self):
-        # Basic benchmark, problem 35
-        # {x1 + x2^2 / 2 == a} 
-        # t := 0; <x1_dot = x1 * x2 , x2_dot = -x1, t_dot = 1 & t < 10> 
-        # {x1 + x2^2 / 2 == a}
-        runVerify(self, pre="x1 + x2^2 / 2 == a",
-                  hp="t := 0; <x1_dot = x1 * x2 , x2_dot = -x1, t_dot = 1 & t < 10>\
-                        invariant [x1 + x2^2 / 2 == a];",
-                  post="x1 + x2^2 / 2 == a")
+        runFile(self, file="example44.hhl",)
 
     def testVerify45(self):
-        # Basic benchmark, problem 36
-        # {x1^2 / 2 - x2^2 / 2 >= a}
-        # <x1_dot = x2 + x1 * x2^2, x2_dot = -x1 + x1^2 * x2 & x1 > 0 & x2 > 0>
-        # {x1^2 / 2 - x2^2 / 2 >= a}
-        runVerify(self, pre="x1^2 / 2 - x2^2 / 2 >= a", 
-                  hp="<x1_dot = x2 + x1 * x2^2, x2_dot = -x1 + x1^2 * x2 & x1 > 0 & x2 > 0>\
-                        invariant [x1^2 / 2 - x2^2 / 2 >= a];",
-                  post="x1^2 / 2 - x2^2 / 2 >= a")
+        runFile(self, file="example45.hhl",)
 
     def testVerify46(self):
-        # Basic benchmark, problem 37
-        # {-x1 * x2 >= a}
-        # t := 0; <x1_dot = x1 - x2 + x1 * x2, x2_dot = -x2 - x2^2, t_dot = 1 & t < 10>
-        # {-x1 * x2 >= a}
-        runVerify(self, pre="-x1 * x2 >= a", 
-                  hp="t := 0; <x1_dot = x1 - x2 + x1 * x2, x2_dot = -x2 - x2^2, t_dot = 1 & t < 10> \
-                      invariant [-x1 * x2 >= a];",
-                  post="-x1 * x2 >= a")
+        runFile(self, file="example46.hhl",)
 
     def testVerify47(self):
-        # Basic benchmark, problem 38
-        # {2 * x^3 >= 1/4} t := 0; <x_dot = x^2 + x^4, t_dot = 1 & t < 10> {2 * x^3 >= 1/4}
-        runVerify(self, pre="2 * x^3 >= 1/4",
-                  hp="t := 0; <x_dot = x^2 + x^4, t_dot = 1 & t < 10> \
-                        invariant [2 * x^3 >= 1/4];",
-                  post="2 * x^3 >= 1/4")
+        runFile(self, file="example47.hhl",)
 
     def testVerify48(self):
-        # Basic benchmark, problem 39
-        # {x^3 >= -1 & y^5 >= 0} 
-        # t := 0; <x_dot = (x - 3)^4 + y^5, y_dot = y^2, t_dot = 1 & t < 10> 
-        # {x^3 >= -1 & y^5 >= 0}
-        runVerify(self, pre="x^3 >= -1 & y^5 >= 0",
-                  hp="t := 0; \
-                      <x_dot = (x - 3)^4 + y^5, y_dot = y^2, t_dot = 1 & t < 10> \
-                      invariant \
-                        [y^5 >= 0] \
-                        [x^3 >= -1];",
-                  post="x^3 >= -1 & y^5 >= 0")
+        runFile(self, file="example48.hhl",)
 
     def testVerify49(self):
-        # Basic benchmark, problem 40
-        # A is a constant.
-        # {v >= 0 & A > 0} <x_dot = v, v_dot = A & x < 10> {v >= 0}
-        runVerify(self, pre="v >= 0 & A > 0", 
-                  hp="<x_dot = v, v_dot = A & x < 10> \
-                      invariant [A > 0] [v >= 0];",
-                  post="v >= 0", )
+        runFile(self, file="example49.hhl",)
                 #   constants={'A'})
 
     def testVerify50(self):
-        # Basic bencnmark, problem 41
-        # A, B are constants.
-        # {v >= 0 & A > 0 & B > 0}
-        # (
-        #  a := A ++ a := 0 ++ a := -B; 
-        #  <x_dot = v, v_dot = a & v > 0>
-        # )**
-        # {v >= 0}
-        runVerify(self, pre="v >= 0 & A > 0 & B > 0",
-                  hp="{a := A; ++ a := 0; ++ a := -B; <x_dot = v, v_dot = a & v > 0> invariant [true];}*\
-                      invariant [v >= 0];",
-                  post="v >= 0",)
+        runFile(self, file="example50.hhl",)
                 #   constants={'A', 'B'})
 
     def testVerify51(self):
-        # ITE
-        # {x >= 0} if (x < 5) x := x + 1; else x := x; {x > 0}
-        runVerify(self, pre="x >= 0", hp="if (x < 5) { x := x + 1; } else { x := x; }",
-                  post="x > 0")
+        runFile(self, file="example51.hhl",)
 
     def testVerify52(self):
-        # Basic benchmark, problem 42 
-        # constants = {'A', 'B', 'S'}
-
-        # another version
-        # {v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) < S}
-        # 
-        # (if x + v^2 / (2*B) < S 
-        #     then a := A; <x_dot = v, v_dot = a & v > 0 & x + v^2 / (2*B) < S>
-        #  elif v == 0
-        #     then a := 0
-        #  else a := -B; <x_dot = v, v_dot = a & v > 0>
-        #  endif
-        # )**
-        #
-        # {x <= S}
-        runVerify(self, pre="v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) < S",
-                  hp="{\
-                        if (x + v^2 / (2*B) < S) {\
-                            a := A; \
-                            <x_dot = v, v_dot = a & v > 0 & x + v^2 / (2*B) < S> \
-                                invariant [true]; \
-                        } else if (v == 0) { \
-                            a := 0; \
-                        } else {\
-                            a := -B; \
-                            <x_dot = v, v_dot = a & v > 0> \
-                            invariant [a == -B] [x+v^2/(2*B) <= S]; \
-                        } \
-                      }* \
-                      invariant [v >= 0] [x+v^2/(2*B) <= S];",
-                  post="x <= S",)
+        runFile(self, file="example52.hhl",)
                 #   constants={'A', 'B', 'S'})
 
     def testVerify52_1(self):
-         runVerify(self, pre="v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) < S",
-                  hp="{a := -B; \
-                       <x_dot = v, v_dot = a & v > 0> \
-                           invariant [a == -B] [x+v^2/(2*B) <= S]; \
-                      }* \
-                      invariant [x+v^2/(2*B) <= S] [v >= 0];",
-                  post="x <= S")
+         runFile(self, file="example52_1.hhl",)
 
     def testVerify53(self):
-        # Basic benchmark, problem 43
-        # contants = {'A', 'V'}
-        # {v <= V & A > 0}
-        #
-        # (   if v == V then a := 0 else a := A endif
-        #  ++ if v != V then a := A else a := 0 endif;
-
-        #     <x_dot = v, v_dot = a & v <= V>
-        # )**@invariant(v <= V)
-        #
-        # {v <= V}
-        runVerify(self, pre="v <= V & A > 0", 
-                  hp="{   if (v == V) { a := 0; } else { a := A; } \
-                       ++ if (v != V) { a := A; } else { a := 0; } \
-                          <x_dot = v, v_dot = a & v < V> \
-                          invariant [true]; \
-                      }* \
-                      invariant [v <= V];",
-                  post="v <= V",)
+        runFile(self, file="example53.hhl",)
                 #   constants={'A', 'V'})
 
     def testVerify54(self):
-        # Basic benchmark, problem 44
-        # constants = {'A', 'V'}
-        # {v <= V & A > 0}
-        #
-        # (a := A;
-        #  <x_dot = v, v_dot = a & v < V>
-        # )**
-        #
-        # {v <= V}
-        runVerify(self, pre="v <= V & A > 0", 
-                  hp="{a := A;\
-                      <x_dot = v, v_dot = a & v < V>\
-                      invariant [true]; \
-                       }*\
-                       invariant [v <= V];",
-                  post="v <= V",)
+        runFile(self, file="example54.hhl",)
                 #   constants={'A', 'V'})
 
     def testVerify55(self):
-        # Basic benchmark, problem 45
-        # constants = {'A', 'V'}
-        # {v <= V & A > 0}
-        #     (
-        #         if v == V then a := 0; t := 0; <x_dot = v, v_dot = a & t < 10>
-        #         else a := A; <x_dot = v, v_dot = a & v < V>
-        #         endif        
-        #     )**@invariant(v <= V)
-        # {v <= V}
-        runVerify(self, pre="v <= V & A > 0",
-                  hp="{if (v == V) { \
-                           a := 0; t := 0; \
-                           <x_dot = v, v_dot = a & t < 10> \
-                           invariant [a == 0] [v <= V];\
-                       } else { \
-                           a := A; \
-                           <x_dot = v, v_dot = a & v < V> \
-                           invariant [true];\
-                       } \
-                       }* \
-                       invariant [v <= V];",
-                  post="v <= V",
-                  constants={'A', 'V'}
+        runFile(self, file="example55.hhl",
+                #  constants={'A', 'V'}
                 ) 
 
     def testVerify36_1(self):
-        # Benchmark, problem 29
-        # constants: {"B()"}
-        # {x + z == 0} 
-        # t := 0; <x_dot = (A * x^2 + B() * x), z_dot = A * z * x + B() * z, t_dot = 1 & t < 10> 
-        # {0 == -x - z}
-        runVerify(self, pre="x + z == 0", 
-                  hp="t := 0; <x_dot = (A * x^2 + B() * x), z_dot = A * z * x + B() * z, t_dot = 1 & t < 10> invariant [x + z == 0] {dbx};",
-                  post="0 == -x - z",
-                  constants={"B()"},
+        runFile(self, file="example36_1.hhl",
+                #  constants={"B()"},
                   wolfram_engine=True)
 
     def testVerify56(self):
-        # Basic benchcmark, problem 46
-        # constants = {'A', 'B', 'S', 'ep'}
-        # {v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) <= S & ep > 0}
-        #     (      if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := A 
-        #               else a := -B endif
-        #         ++ if v == 0 then a := 0 else a := -B endif
-        #         ++ a := -B
-        #         ;
-
-        #         c := 0;
-        #         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 & c < ep >
-        #     )**@invariant(v >= 0 & x+v^2/(2*B) <= S)
-        # {x <= S}
-        runVerify(self,  pre="v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) <= S & ep > 0",
-                  hp="{   if (x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S) { a := A; } else { a := -B; } \
-                       ++ if (v == 0) { a := 0; } else { a := -B; } \
-                       ++ a := -B; \
-                        c := 0; \
-                        < x_dot = v, v_dot = a, c_dot = 1 & v > 0 & c < ep > \
-                        invariant [x+v^2/(2*B) <= S] {sln};\
-                     }* \
-                     invariant [v >= 0] [x+v^2/(2*B) <= S];",
-                  post="x <= S",
+        runFile(self, file="example56.hhl",
                 #   constants={'A', 'B', 'S', 'ep'},
                   wolfram_engine=True)
 
     def testVerify56_1(self):
-        # Test the andR Rule
-        # {x >= 1 & y >= 0 & a == 1}
-        #   (x := x + a)**
-        # {x >= 0 & y >= 0}
-        runVerify(self, pre="x >= 1 & y >= 0 & a == 1",
-                  hp="{x := x + a; }* invariant [x >= 0] [y >= 0];",
-                  post="x >= 0 & y >= 0",
+        runFile(self, file="example56_1.hhl",
                   andR_rule={((), ()): "true"})
 
     def testVerify57(self):
-        # Basic benchcmark, problem 47
-        # constants = {'A', 'B', 'S', 'ep'}
-        # {v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) <= S & ep > 0}
-        #     (      if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := {-B <= a & a <= A}
-        #              else a := -B endif
-        #         ++ if v == 0 then a := 0 else a := -B endif
-        #         ++ a := -B
-        #         ;
-
-        #         c := 0;
-        #         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 & c < ep >
-        #     )**@invariant(v >= 0 & x+v^2/(2*B) <= S)
-        # {x <= S}
-        runVerify(self,  pre="v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) <= S & ep > 0",
-                  hp="{   if (x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S) {\
-                            a := *(-B <= a & a <= A); \
-                          } else { a := -B; } \
-                       ++ if (v == 0) { a := 0; } else { a := -B; } \
-                       ++ a := -B; \
-                        c := 0; \
-                        < x_dot = v, v_dot = a, c_dot = 1 & v > 0 & c < ep > \
-                        invariant [x+v^2/(2*B) <= S] {sln};\
-                      }* \
-                      invariant [v >= 0] [x+v^2/(2*B) <= S];",
-                  post="x <= S",
-                  constants={'A', 'B', 'S', 'ep'},
+        runFile(self, file="example57.hhl",
+                  # constants={'A', 'B', 'S', 'ep'},
                   wolfram_engine=True)
 
     def testVerify58(self):
-        # Basic benchmark, problem 48
-        #         v >= 0 & A > 0 & B >= b & b > 0 & x+v^2/(2*b) <= S & ep > 0
-        #  -> [
-        #       { {   ?x+v^2/(2*b) + (A/b+1)*(A/2*ep^2+ep*v) <= S; a :=*; ?-B <= a & a <= A;
-        #          ++ ?v=0; a := 0;
-        #          ++ a :=*; ?-B <=a & a <= -b;
-        #         };
-
-        #         c := 0;
-        #         { x' = v, v' = a, c' = 1 & v >= 0 & c <= ep }
-        #       }*@invariant(v >= 0 & x+v^2/(2*b) <= S)
-        #     ] x <= S
-        runVerify(self, pre="v >= 0 & A > 0 & B >= b & b > 0 & x+v^2/(2*b) <= S & ep > 0",
-                  hp="{   if (x+v^2/(2*b) + (A/b+1)*(A/2*ep^2+ep*v) <= S) {\
-                            a := *(-B <= a & a <= A); \
-                          } else { \
-                            a := *(-B <= a & a <= -b); \
-                          } \
-                       ++ if (v == 0) { a := 0; } else { a := *(-B <= a & a <= -b); } \
-                       ++ a := *(-B <= a & a <= -b); \
-                        c := 0; \
-                        < x_dot = v, v_dot = a, c_dot = 1 & v > 0 & c < ep > \
-                        invariant [x+v^2/(2*b) <= S] {sln};\
-                      }* \
-                      invariant [x+v^2/(2*b) <= S] [v >= 0];",
-                  post="x <= S",
+        runFile(self, file="example58.hhl",
                   wolfram_engine=True
         )
 
     def testVerify59(self):
-        # Basic benchmark, problem 49
-        # Constants = {'Kp()', 'Kd()', 'xr()', 'c()'}
-        # {v >= 0 & c() > 0 & Kp() == 2 & Kd() == 3 & 5/4*(x1-xr())^2 + (x1-xr())*v/2 + v^2/4 < c()}
-        # t := 0; 
-        # <x1_dot = v, v_dot = -Kp()*(x1-xr()) - Kd()*v, t_dot = 1 & t < 10>
-        # {5/4*(x1-xr())^2 + (x1-xr())*v/2 + v^2/4 < c()}
-        runVerify(self, \
-                  pre="v >= 0 & c() > 0 & Kp() == 2 & Kd() == 3 \
-                      & 5/4*(x1-xr())^2 + (x1-xr())*v/2 + v^2/4 < c()",
-                  hp="t := 0; \
-                      <x1_dot = v, v_dot = -Kp()*(x1-xr()) - Kd()*v, t_dot = 1 & t < 10> \
-                      invariant [5/4*(x1-xr())^2 + (x1-xr())*v/2 + v^2/4 < c()];",
-                  post="5/4*(x1-xr())^2 + (x1-xr())*v/2 + v^2/4 < c()",
+        runFile(self, file="example59.hhl",
                 #   constants={'Kp()', 'Kd()', 'xr()', 'c()'}
                   )
 
     def testVerify60(self):
-        # Basic benchmark, problem 50
-        #         v >= 0 & xm <= x2 & x2 <= S & xr = (xm + S)/2 & Kp = 2 & Kd = 3
-        #            & 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2
-        #  -> [ { {  xm := x2;
-        #            xr := (xm + S)/2;
-        #            ?5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2;
-        #         ++ ?true;
-        #         };
-        #         {{ x2' = v, v' = -Kp*(x2-xr) - Kd*v & v >= 0 }
-        #           @invariant(
-        #             xm<=x2,
-        #             5/4*(x2-(xm+S())/2)^2 + (x2-(xm+S())/2)*v/2 + v^2/4 < ((S()-xm)/2)^2
-        #          )
-        #         }
-        #       }*@invariant(v >= 0 & xm <= x2 & xr = (xm + S)/2 & 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2)
-        #     ] x2 <= S
-        runVerify(self, \
-                  pre="v >= 0 & xm <= x2 & x2 <= S & xr == (xm + S)/2 & Kp == 2 & Kd == 3 \
-                    & 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2",\
-                  hp="{ \
-                        if (5/4*(x2-(x2 + S)/2)^2 + (x2-(x2 + S)/2)*v/2 + v^2/4 < ((S - x2)/2)^2) {\
-                            xm := x2; \
-                            xr := (xm + S)/2; \
-                        } else {\
-                            skip; \
-                        } \
-                        ++ \
-                        skip; \
-                        <x2_dot = v, v_dot = -Kp * (x2 - xr) - Kd * v & v > 0> \
-                        invariant [xm <= x2] \
-                                  [xr == (xm + S)/2] \
-                                  [5/4*(x2-(xm+S)/2)^2 + (x2-(xm+S)/2)*v/2 + v^2/4 < ((S-xm)/2)^2]; \
-                      }* \
-                      invariant [v >= 0] [xm <= x2] [xr == (xm + S)/2]\
-                                [5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2];",
-                  post="x2 <= S",
-                  constants={'Kp', 'Kd', 'S'})
+        runFile(self, \
+                  file="example60.hhl",
+                #  constants={'Kp', 'Kd', 'S'}
+                  )
 
     # TODO: Basic benchmark, problem 51. The ODE invariant cannot imply loop invariant.
     # def testVerify61(self):
@@ -1040,112 +525,31 @@ class BasicHHLPyTest(unittest.TestCase):
     #                 wolfram_engine=True)
 
     def testVerify62(self):
-        # Basic benchmark, problem 52
-        # {v >= 0 & a >= 0}
-        # <x_dot = v, v_dot = a & v > 0>
-        # {v >= 0}
-        runVerify(self, pre="v >= 0 & a >= 0",
-                  hp="<x_dot = v, v_dot = a & v > 0> invariant [true];",
-                  post="v >= 0")
+        runFile(self, file="example62.hhl",)
 
     def testVerify63(self):
-        # Basic benchmark, problem 53
-        #         v>=0  & A>=0 & b>0
-        #  -> [
-        #       {
-        #         {a:=A; ++ a:=-b;}
-        #         {x'=v, v'=a & v>=0}
-        #       }*@invariant(v>=0)
-        #     ] v>=0
-        runVerify(self, pre="v >= 0 & A >= 0 & b > 0",
-                  hp="{ \
-                        a := A; ++ a := -b; \
-                        <x_dot = v, v_dot = a & v > 0> invariant [true];\
-                      }* invariant [v >= 0];",
-                  post="v >= 0",
-                  constants={'A', 'b'})
+        runFile(self, file="example63.hhl",
+                #   constants={'A', 'b'}
+                  )
 
     def testVerify64(self):
-        # Basic benchmark, problem 54
-        # {v >= 0 & A >= 0 & b > 0}
-        # (
-        #    {  ?(m-x>=2); a := A;
-        #   ++ a := -b;
-        #   };
-        #   {x' = v, v' = a & v >= 0}
-        #  )**@invariant(v >= 0)
-        # {v >= 0}
-        runVerify(self, pre="v >= 0 & A >= 0 & b > 0",
-                  hp="{ \
-                      if (m-x >= 2) { \
-                          a := A; \
-                          t := 0; \
-                          <x_dot = v, v_dot = a & t < 10> \
-                          invariant [a >= 0] [v >= 0 & A >= 0]; \
-                      } else {\
-                          a := -b; <x_dot = v, v_dot = a & v > 0> \
-                          invariant [A >= 0]; \
-                      } \
-                      }* \
-                      invariant [v >= 0] [A >= 0];",
-                  post="v >= 0")
+        runFile(self, file="example64.hhl",)
 
     def testVerify65(self):
-        # Solution Axiom
-        # {v >= 0}
-        # <v_dot = 1 & v < 10>
-        # {v >= 0}
-        runVerify(self, pre="v >= 0",
-                  hp="<v_dot = 1 & v < 10> invariant [v >= 0] {sln};",
-                  post="v >= 0")
+        runFile(self, file="example65.hhl",)
 
     def testVerify66(self):
-        # Solution Axiom
-        # {x >= 0 & v >= 0 & a >= 0}
-        # <x_dot = v, v_dot = a & x < 10>
-        # {x >= 0}
-        runVerify(self, pre="x >= 0 & v >= 0 & a >= 0",
-                  hp="<x_dot = v, v_dot = a & x < 10> invariant [x >= 0] {sln};",
-                  post="x >= 0")
+        runFile(self, file="example66.hhl",)
 
     def testVerify67(self):
-        # Solution Axiom
-        # {x >= 0 & v >= 0 & a >= 0 & c == 0}
-        # <x_dot = v, v_dot = a, c_dot = 1 & c < 10>
-        # {x >= 0}
-        runVerify(self, pre="x >= 0 & v >= 0 & a >= 0 & c == 0",
-                  hp="<x_dot = v, v_dot = a, c_dot = 1 & c < 10> invariant [x >= 0] {sln};",
-                  post="x >= 0")
+        runFile(self, file="example67.hhl",)
 
     def testVerify68(self):
-        # Strengthened post
-        # {x == 0}
-        # t := 0; <x_dot = 2, t_dot = 1 & t < 1>
-        # stren_post: {x == 2*t & t == 1}
-        # {x == 2}
-        runVerify(self, pre="x == 0",
-                  hp="t := 0; <x_dot = 2, t_dot = 1 & t < 1> invariant [x == 2 * t];",
-                  post="x == 2")
+        runFile(self, file="example68.hhl",)
 
     def testVerify69(self):
-        # Basic benchmark, problem 55
-        # {v^2 <= 2*b*(m-x) & v >= 0  & A >= 0 & b > 0}
-        #     (
-        #         if 2*b*(m-x) >= v^2 + (A+b)*(A*ep^2+2*ep*v) then a := A else a := -b endif 
-        #      ++ a := -b; 
-        #         t := 0;
-        #         <x_dot = v, v_dot = a, t_dot = 1 & v > 0 & t < ep>
-        #     )**@invariant(v^2 <= 2*b*(m-x))
-        # {x <= m}
-        runVerify(self, pre="v^2 <= 2*b*(m-x) & v >= 0  & A >= 0 & b > 0",
-                  hp="{ \
-                        if (2*b*(m-x) >= v^2 + (A+b)*(A*ep^2+2*ep*v)) { a := A; } else { a := -b; } \
-                    ++ a := -b; \
-                        t := 0; \
-                        <x_dot = v, v_dot = a, t_dot = 1 & v > 0 & t < ep> invariant [v^2 <= 2*b*(m-x)] {sln};\
-                    }* invariant [v^2 <= 2*b*(m-x)];",
-                  post="x <= m",
-                  constants={'b', 'A', 'ep'},
+        runFile(self, file="example69.hhl",
+                #   constants={'b', 'A', 'ep'},
                   wolfram_engine=True
                   )
     

@@ -1,0 +1,7 @@
+# Test the andR Rule
+# {x >= 1 & y >= 0 & a == 1}
+#   (x := x + a)**
+# {x >= 0 & y >= 0}
+pre [x >= 1] [y >= 0] [a == 1];
+{x := x + a; }* invariant [x >= 0] [y >= 0];
+post [x >= 0] [y >= 0];

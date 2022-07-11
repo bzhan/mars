@@ -1,0 +1,27 @@
+# ITE
+# {x == 1}
+# if (x > 0){
+#   if (x > 1){
+#        x := x - 1;
+#   }
+#    else{
+#        skip;
+#    }
+# }
+# else {
+#    x := x + 1;
+# }
+# {x >= 0}
+pre [x == 1];
+if (x > 0){ 
+  if (x > 1){ 
+      x := x - 1; 
+  } 
+  else {
+      skip; 
+  } 
+} 
+else { 
+  x := x + 1; 
+}
+post [x >= 0];
