@@ -149,7 +149,7 @@ atom_cmd {
   | LogCmd { "log" "(" expr ("," expr)* ")" ";" }
   | comm_cmd ";"
   | RepeatCmd { "{" cmd "}" "*" maybe_loop_invariant }
-  | RepeatCondCmd { "{" cmd "}" "*(" cond ")" maybe_loop_invariant}
+  | RepeatCondCmd { "{" cmd "}*(" cond ")" maybe_loop_invariant}
   | Ode { OdeNoInv maybe_ode_invariant }
   | OdeCommConst { "<" "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant}
   | OdeComm { "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant} 
@@ -249,7 +249,7 @@ Decls {
   "%type: module" (Module | Import | System)*
 }
 
-@skip { ws | line_comment }
+@skip { ws | LineComment }
 
 @tokens {
   digit { $[0-9] }
@@ -275,7 +275,7 @@ Decls {
 
   CNAME { ("_"|letter) ("_"|letter|digit)* }
 
-  line_comment { "#" ![\n]* }
+  LineComment { "#" ![\n]* }
 
   ws { $[ \t\f\r\n]+ }
 
@@ -284,7 +284,7 @@ Decls {
   "=" ":="
   "==" "!=" "<" "<=" ">" ">="
 
-  "(" ")" "[" "]" "{" "}" "*(" "){" "invariant" "|>" "[]" ".("
+  "(" ")" "[" "]" "{" "}" "invariant" "|>" "[]" "}*("
   "if" "then" "else" "elif" "endif"
   "true" "false" "pre" "post"
   "gcd" "log" "max" "min" "rec" "skip" "test" "wait" "\\exists" "\\forall" "assert"

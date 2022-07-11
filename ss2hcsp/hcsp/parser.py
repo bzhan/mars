@@ -205,7 +205,10 @@ grammar = r"""
     %import common.SIGNED_NUMBER
     %import common.ESCAPED_STRING
 
+    COMMENT: /#.*/
+
     %ignore WS
+    %ignore COMMENT
 """
 
 def _vargs_meta_inline(f, _data, children, meta):
