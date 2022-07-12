@@ -280,8 +280,8 @@ class BasicHHLPyTest(unittest.TestCase):
     def testBasic9(self):
         runFile(self, file="basic9.hhl")
 
-    def testBasic10_1(self):
-        runFile(self, file="basic10_1.hhl",
+    def testVerify18(self):
+        runFile(self, file="test18.hhl",
                   print_vcs=False)
 
     def testBasic11(self):
