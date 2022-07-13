@@ -70,8 +70,7 @@ def runFile(self, file,
     # Read the file
     file = os.path.join(os.path.dirname(__file__), "../examples", file)
     file = open(file,mode='r')
-    file_contents = file.readlines()
-    file_contents = '\n'.join([l.rstrip('\n').split('#',1)[0] for l in file_contents])
+    file_contents = file.read()
     file.close()
 
     # Parse pre-condition, HCSP program, and post-condition
