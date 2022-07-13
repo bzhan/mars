@@ -13,7 +13,7 @@ def compute_diff(e, eqs_dict):
         if isinstance(e, expr.LogicExpr):
             if e.op == "&&":
                 return expr.LogicExpr("&&", rec(e.exprs[0]), rec(e.exprs[1]))
-            elif e.op == "|":
+            elif e.op == "||":
                  return expr.LogicExpr("&&", rec(e.exprs[0]), rec(e.exprs[1]))
         elif isinstance(e, expr.RelExpr):
             if e.op == '<' or e.op == '<=':

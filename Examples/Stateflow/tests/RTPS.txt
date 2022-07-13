@@ -102,7 +102,7 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
       Chart_model_RTPS_Writer_Writer_repair_repairing_done := 1;
     }
   }
-  if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing" && Chart_model_RTPS_Writer_Writer_repair_repairing_done == 0 && (cansend == 0 | repair_num[id - 1] > request_num[id - 1])) {
+  if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing" && Chart_model_RTPS_Writer_Writer_repair_repairing_done == 0 && (cansend == 0 || repair_num[id - 1] > request_num[id - 1])) {
     if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing") {
       Chart_model_RTPS_Writer_Writer_repair_st := "";
       if (Chart_st == "Chart_model") {
@@ -128,7 +128,7 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_waiting begin
       Chart_model_RTPS_Writer_Writer_repair_waiting_done := 1;
     }
   }
-  if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_waiting" && Chart_model_RTPS_Writer_Writer_repair_waiting_done == 0 && (ChartEL != [] && top(ChartEL) == "ACKNACK2") && (id <= 0 | request_num[id - 1] <= acked_num[id - 1])) {
+  if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_waiting" && Chart_model_RTPS_Writer_Writer_repair_waiting_done == 0 && (ChartEL != [] && top(ChartEL) == "ACKNACK2") && (id <= 0 || request_num[id - 1] <= acked_num[id - 1])) {
     id := ack_id;
     wid := WriterId;
     rid := id;

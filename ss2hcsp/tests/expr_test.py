@@ -46,10 +46,10 @@ class ExprTest(unittest.TestCase):
             "a == 1 && true",
             "a == 1 && b == 2 && c == 3",
             "(a == 1 && b == 2) && c == 3",
-            "a == 1 && b == 2 | c == 3",
-            "a == 1 | b == 2 && c == 3",
-            "(a == 1 | b == 2) && c == 3",
-            "(a == 1 | b == 2 | c == 3) && d == 4",
+            "a == 1 && b == 2 || c == 3",
+            "a == 1 || b == 2 && c == 3",
+            "(a == 1 || b == 2) && c == 3",
+            "(a == 1 || b == 2 || c == 3) && d == 4",
         ]
 
         for s in test_data:
@@ -91,8 +91,8 @@ class ExprTest(unittest.TestCase):
 
         res = [
             ("w", [("in >= 5", "a"), ("in < 5", "b")]),
-            ("z", [("a >= 10 && in >= 5 | b >= 10 && in < 5", "x"),
-                   ("a < 10 && in >= 5 | b < 10 && in < 5", "y")]),
+            ("z", [("a >= 10 && in >= 5 || b >= 10 && in < 5", "x"),
+                   ("a < 10 && in >= 5 || b < 10 && in < 5", "y")]),
         ]
 
         self.assertConditionalInst(test_data, res)

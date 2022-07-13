@@ -193,17 +193,17 @@ begin
       Signal_Builder1_tick := Signal_Builder1_tick + 1;
     }
     x0 := push(push(Signal_Builder_Signal_1,Signal_Builder1_Signal_1),tick);
-    if (pre_x0[0] < 0 && x0[0] >= 0 | pre_x0[0] == 0 && x0[0] > 0) {
+    if (pre_x0[0] < 0 && x0[0] >= 0 || pre_x0[0] == 0 && x0[0] > 0) {
       ChartEL := push(ChartEL,"START");
       @exec_Chart;
       ChartEL := pop(ChartEL);
     }
-    if (pre_x0[1] < 0 && x0[1] >= 0 | pre_x0[1] == 0 && x0[1] > 0) {
+    if (pre_x0[1] < 0 && x0[1] >= 0 || pre_x0[1] == 0 && x0[1] > 0) {
       ChartEL := push(ChartEL,"LAP");
       @exec_Chart;
       ChartEL := pop(ChartEL);
     }
-    if (pre_x0[2] < 0 && x0[2] >= 0 | pre_x0[2] == 0 && x0[2] > 0) {
+    if (pre_x0[2] < 0 && x0[2] >= 0 || pre_x0[2] == 0 && x0[2] > 0) {
       ChartEL := push(ChartEL,"TIC");
       @exec_Chart;
       ChartEL := pop(ChartEL);

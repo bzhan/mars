@@ -111,7 +111,7 @@ class SimulatorTest(unittest.TestCase):
         test_data = [
             ("x >= y", {"x": 3, "y": 2}, True),
             ("x >= y", {"x": 2, "y": 3}, False),
-            ("x > y | x < y", {"x": 2, "y": 2}, False),
+            ("x > y || x < y", {"x": 2, "y": 2}, False),
             ("x == 2 -> y == 3", {"x": 2, "y": 3}, True),
             ("x == 2 -> y == 3", {"x": 2, "y": 4}, False),
             ("x == 2 -> y == 3", {"x": 3, "y": 4}, True),

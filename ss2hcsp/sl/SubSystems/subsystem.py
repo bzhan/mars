@@ -159,7 +159,7 @@ class Triggered_Subsystem(Subsystem):
             raise NotImplementedError("Unknown trigger type: %s" % trigger_type)
 
         return LogicExpr(
-            "|", LogicExpr("&&", RelExpr(op0, pre_sig, AConst(0)), RelExpr(op1, cur_sig, AConst(0))),
+            "||", LogicExpr("&&", RelExpr(op0, pre_sig, AConst(0)), RelExpr(op1, cur_sig, AConst(0))),
                  LogicExpr("&&", RelExpr(op2, pre_sig, AConst(0)), RelExpr(op3, cur_sig, AConst(0))))
 
     def get_continuous_triggered_condition(self):

@@ -19,7 +19,7 @@ def simplify_expr(e):
     elif isinstance(e, expr.LogicExpr):
         if e.op == '&&':
             return expr.conj(*(simplify_expr(arg) for arg in e.exprs))
-        elif e.op == '|':
+        elif e.op == '||':
             return expr.disj(*(simplify_expr(arg) for arg in e.exprs))
         elif e.op == '->':
             return expr.imp(simplify_expr(e.exprs[0]), simplify_expr(e.exprs[1]))

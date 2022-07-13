@@ -129,7 +129,7 @@ def convert_expr(e, *, procedures=None, arrays=None, messages=None,states=None):
                 return expr.AConst("0")
         elif isinstance(e, function.LogicExpr):
             exprs = [rec(ex) for ex in e.exprs]
-            op_name = {"&&":"&&", "||":"|", "-->":"->", "<-->":"<->", "~":"!"}[e.op_name]
+            op_name = {"&&":"&&", "||":"||", "-->":"->", "<-->":"<->", "~":"!"}[e.op_name]
             return expr.LogicExpr(op_name, *exprs)
         elif isinstance(e, function.RelExpr):
                 return expr.RelExpr(e.op, rec(e.expr1), rec(e.expr2))

@@ -561,7 +561,7 @@ class PredCond(Expr):
 class LogicExpr(Expr):
     def __init__(self, op, *exprs, meta=None):
         super(LogicExpr, self).__init__()
-        assert op in ["&&", "|", "->", "<->", "!"]
+        assert op in ["&&", "||", "->", "<->", "!"]
         assert all(isinstance(expr, Expr) for expr in exprs), \
             "Expected Expr: {}".format(exprs)
         assert len(exprs) > 0 and len(exprs) <= 2, \
@@ -603,7 +603,7 @@ class LogicExpr(Expr):
             return 20
         elif self.op == '&&':
             return 35
-        elif self.op == '|':
+        elif self.op == '||':
             return 30
         elif self.op == '!':
             return 40
@@ -656,12 +656,12 @@ def list_disj(*args):
         return false_expr
     if len(args) == 1:
         return args[0]
-    return LogicExpr("|", args[0], list_disj(*args[1:]))
+    return LogicExpr("||", args[0], list_disj(*args[1:]))
 
 def disj(*args):
     """Form the disjunction of the list of arguments.
     
-    Example: disj("x > 1", "x < 3") forms "x > 1 | x < 3"
+    Example: disj("x > 1", "x < 3") forms "x > 1 || x < 3"
 
     """
     assert isinstance(args, tuple) and all(isinstance(arg, Expr) for arg in args)
@@ -674,7 +674,7 @@ def disj(*args):
     return list_disj(*new_args)
 
 def split_disj(e):
-    if isinstance(e, LogicExpr) and e.op == '|':
+    if isinstance(e, LogicExpr) and e.op == '||':
         return [e.exprs[0]] + split_disj(e.exprs[1])
     else:
         return [e]
@@ -845,8 +845,8 @@ def neg_expr(e):
         return true_expr
     elif isinstance(e, LogicExpr):
         if e.op == '&&':
-            return LogicExpr('|', neg_expr(e.exprs[0]), neg_expr(e.exprs[1]))
-        elif e.op == '|':
+            return LogicExpr('||', neg_expr(e.exprs[0]), neg_expr(e.exprs[1]))
+        elif e.op == '||':
             return LogicExpr('&&', neg_expr(e.exprs[0]), neg_expr(e.exprs[1]))
         elif e.op == '->':
             return LogicExpr('&&', e.exprs[0], neg_expr(e.exprs[1]))

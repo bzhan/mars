@@ -7,7 +7,7 @@
 #  x1right_dot = -x1right+x1right*x2right,
 #  x2right_dot = -x2right & 
 #  -2<=x1right & x1right<=2 & -2<=x2right & x2right<=2}
-# {!(xleft<=-2|yleft<=-1) & 
+# {!(xleft<=-2||yleft<=-1) & 
 # !(-1/2<=x1right & x1right<=1/2 & 1/2<=x2right & x2right<=3/2)}
 pre [xleft^2+(-2+yleft)^2 < 1/24]
     [-3/2<=x1right] [x1right<=-1/2]
@@ -25,5 +25,5 @@ invariant
     [xleft*yleft < 1] {dbx} 
     [xleft > -2] {dbx} 
     [yleft > -1] {dbx};
-post [!(xleft<=-2|yleft<=-1)]
+post [!(xleft<=-2||yleft<=-1)]
      [!(-1/2<=x1right && x1right<=1/2 && 1/2<=x2right && x2right<=3/2)];

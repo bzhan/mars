@@ -31,7 +31,7 @@ def convert(e):
             return z3.Implies(convert(e.exprs[0]), convert(e.exprs[1]))
         elif e.op == '&&':
             return z3.And(convert(e.exprs[0]), convert(e.exprs[1]))
-        elif e.op == '|':
+        elif e.op == '||':
             return z3.Or(convert(e.exprs[0]), convert(e.exprs[1]))
         elif e.op == '<->':
             return convert(e.exprs[0]) == convert(e.exprs[1])

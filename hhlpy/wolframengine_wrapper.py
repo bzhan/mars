@@ -85,7 +85,7 @@ def toWLexpr(e):
     elif isinstance(e, expr.LogicExpr):
         if e.op == '&&':
             return wl.And(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
-        elif e.op == '|':
+        elif e.op == '||':
             return wl.Or(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
         elif e.op == '!':
             return wl.Not(toWLexpr(e.exprs[0]))
@@ -169,9 +169,9 @@ def toHcsp(e):
                 raise AssertionError
         elif e.head == WLSymbol("Or"):
             if len(e.args) == 2:
-                return expr.LogicExpr('|', toHcsp(e.args[0]), toHcsp(e.args[1]))
+                return expr.LogicExpr('||', toHcsp(e.args[0]), toHcsp(e.args[1]))
             elif len(e.args) > 2:
-                return expr.LogicExpr("|", toHcsp(WLFunction(WLSymbol("Or"), *e.args[:-1])),
+                return expr.LogicExpr("||", toHcsp(WLFunction(WLSymbol("Or"), *e.args[:-1])),
                                             toHcsp(e.args[-1]))
             else:
                 raise AssertionError

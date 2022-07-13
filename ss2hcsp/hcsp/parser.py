@@ -62,7 +62,7 @@ grammar = r"""
 
     ?conj: neg_expr "&&" conj | neg_expr         // Conjunction: priority 35
 
-    ?disj: conj "|" disj | conj                 // Disjunction: priority 30
+    ?disj: conj "||" disj | conj                 // Disjunction: priority 30
 
     ?equiv: disj "<->" equiv | disj             // Equivalent: priority 25
 
@@ -344,7 +344,7 @@ class HPTransformer(Transformer):
         return expr.LogicExpr("&&", b1, b2, meta=meta)
 
     def disj(self, meta, b1, b2):
-        return expr.LogicExpr("|", b1, b2, meta=meta)
+        return expr.LogicExpr("||", b1, b2, meta=meta)
 
     def imp(self, meta, b1, b2):
         return expr.LogicExpr("->", b1, b2, meta=meta)

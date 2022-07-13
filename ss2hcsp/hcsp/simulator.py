@@ -510,7 +510,7 @@ class SimInfo:
         elif isinstance(expr, LogicExpr):
             if expr.op == "&&":
                 return self.eval_expr(expr.exprs[0]) and self.eval_expr(expr.exprs[1])
-            elif expr.op == "|":
+            elif expr.op == "||":
                 return self.eval_expr(expr.exprs[0]) or self.eval_expr(expr.exprs[1])
             elif expr.op == "->":
                 return (not self.eval_expr(expr.exprs[0])) or self.eval_expr(expr.exprs[1])
@@ -681,7 +681,7 @@ class SimInfo:
         def test_cond(e):
             # Case where the condition is a disjunction: take the maximum of
             # two delays
-            if isinstance(e, LogicExpr) and e.op == '|':
+            if isinstance(e, LogicExpr) and e.op == '||':
                 delay1 = test_cond(e.exprs[0])
                 delay2 = test_cond(e.exprs[1])
                 return max(delay1, delay2)

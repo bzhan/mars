@@ -109,22 +109,22 @@ begin
     b := push(x,y);
     c := push(z,w);
     d := push(b,c);
-    if (pre_d[0] < 0 && d[0] >= 0 | pre_d[0] == 0 && d[0] > 0) {
+    if (pre_d[0] < 0 && d[0] >= 0 || pre_d[0] == 0 && d[0] > 0) {
       Trig_SFEL := push(Trig_SFEL,"event");
       @exec_Trig_SF;
       Trig_SFEL := pop(Trig_SFEL);
     }
-    if (pre_d[1] < 0 && d[1] >= 0 | pre_d[1] == 0 && d[1] > 0) {
+    if (pre_d[1] < 0 && d[1] >= 0 || pre_d[1] == 0 && d[1] > 0) {
       Trig_SFEL := push(Trig_SFEL,"event1");
       @exec_Trig_SF;
       Trig_SFEL := pop(Trig_SFEL);
     }
-    if (pre_d[2] < 0 && d[2] >= 0 | pre_d[2] == 0 && d[2] > 0) {
+    if (pre_d[2] < 0 && d[2] >= 0 || pre_d[2] == 0 && d[2] > 0) {
       Trig_SFEL := push(Trig_SFEL,"event2");
       @exec_Trig_SF;
       Trig_SFEL := pop(Trig_SFEL);
     }
-    if (pre_d[3] < 0 && d[3] >= 0 | pre_d[3] == 0 && d[3] > 0) {
+    if (pre_d[3] < 0 && d[3] >= 0 || pre_d[3] == 0 && d[3] > 0) {
       Trig_SFEL := push(Trig_SFEL,"event3");
       @exec_Trig_SF;
       Trig_SFEL := pop(Trig_SFEL);

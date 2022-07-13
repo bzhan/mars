@@ -32,7 +32,7 @@ begin
     }
     Signal_Builder_tick := Signal_Builder_tick + 1;
     x0 := push(Signal_Builder_Signal_1,Signal_Builder_Signal_2);
-    if (pre_x0[0] < 0 && x0[0] >= 0 | pre_x0[0] == 0 && x0[0] > 0) {
+    if (pre_x0[0] < 0 && x0[0] >= 0 || pre_x0[0] == 0 && x0[0] > 0) {
       Chart1EL := push(Chart1EL,"out_cmd1");
       Chart1_done := 0;
       Chart1_AA_done := 0;
@@ -40,7 +40,7 @@ begin
       Chart1_ret := 0;
       Chart1EL := pop(Chart1EL);
     }
-    if (pre_x0[1] < 0 && x0[1] >= 0 | pre_x0[1] == 0 && x0[1] > 0) {
+    if (pre_x0[1] < 0 && x0[1] >= 0 || pre_x0[1] == 0 && x0[1] > 0) {
       Chart1EL := push(Chart1EL,"out_cmd2");
       Chart1_done := 0;
       Chart1_AA_done := 0;

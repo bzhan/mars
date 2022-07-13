@@ -25,10 +25,10 @@ def compute_diff(e, eqs_dict):
         if isinstance(e, expr.LogicExpr):
             if e.op == "&&":
                 return expr.LogicExpr("&&", rec(e.exprs[0]), rec(e.exprs[1]))
-            elif e.op == "|":
+            elif e.op == "||":
                 return expr.LogicExpr("&&", rec(e.exprs[0]), rec(e.exprs[1]))
             elif e.op == "->":
-                return rec(expr.LogicExpr("|", expr.neg_expr(e.exprs[0]), e.exprs[1]))
+                return rec(expr.LogicExpr("||", expr.neg_expr(e.exprs[0]), e.exprs[1]))
             elif e.op == "!":
                 return rec(expr.neg_expr(e.exprs[0]))
             else:
@@ -103,7 +103,7 @@ def constraint_examination(e):
         elif isinstance(e, expr.LogicExpr):
             if e.op == '!':
                 return not rec(e.exprs[0])
-            elif e.op == '&&' or e.op == '|':
+            elif e.op == '&&' or e.op == '||':
                 return rec(e.exprs[0] and e.exprs[1])
     return rec(e)
 
@@ -120,14 +120,14 @@ def compute_boundary(e):
             disj2 = expr.LogicExpr('&&', e.exprs[1], boundary1)
             disj3 = expr.LogicExpr('&&', boundary1, boundary2)
             return expr.list_disj(disj1, disj2, disj3)
-        elif e.op == '|':
+        elif e.op == '||':
             boundary1 = compute_boundary(e.exprs[0])
             boundary2 = compute_boundary(e.exprs[1])
             neg1 = expr.neg_expr(e.exprs[0])
             neg2 = expr.neg_expr(e.exprs[1])
             disj1 = expr.LogicExpr('&&', neg1, boundary2)
             disj2 = expr.LogicExpr('&&', neg2, boundary1)
-            return expr.LogicExpr('|', disj1, disj2)
+            return expr.LogicExpr('||', disj1, disj2)
         elif e.op == '!':
             return compute_boundary(expr.neg_expr(e.exprs[0]))
 
