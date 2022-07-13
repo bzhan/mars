@@ -144,7 +144,7 @@ grammar = r"""
     ?maybe_ode_invariant: ("invariant" ode_invariant+ ";")? -> maybe_ode_invariant
     ?ode_invariant: "[" expr "]" ("{" ode_rule expr? "}")? -> ode_invariant
         | "ghost" CNAME -> ghost_intro
-        | "ghost" CNAME "=" expr -> ghost_intro_eq
+        | "ghost" "(" CNAME "=" expr ")" -> ghost_intro_eq
     ?ode_rule: "di" -> ode_rule_di
       | "dbx" -> ode_rule_dbx
       | "bc" -> ode_rule_bc

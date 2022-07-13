@@ -78,7 +78,7 @@ conj {
 }
 
 disj {
-  DisjCond { conj !disj "|" disj }
+  DisjCond { conj !disj "||" disj }
   | conj                 // Disjunction: priority 30
 }
 
@@ -207,15 +207,14 @@ label {
 
 maybe_ode_invariant{ ("invariant" Ode_invariant+ ";")?}
 
-//TODO: Do we need 'expr?' after 'ode_rule'?
 Ode_invariant { InvariantWithRule
               | "ghost" CNAME
-              | "ghost" "<" CNAME "=" expr ">"
+              | "ghost" "(" CNAME "=" expr ")"
 }
 
-InvariantWithRule { Invariant ("{" ode_rule "}")? }
+InvariantWithRule { Invariant ("{" ode_rule expr? "}")? }
 
-OdeNoInv { "<" ode_seq "&" cond ">" }
+OdeNoInv { "{" ode_seq "&" cond "}" }
 
 ode_rule {
   "di" | "dbx" | "bc" | "dw" | "sln"

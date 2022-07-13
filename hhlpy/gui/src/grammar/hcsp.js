@@ -36,7 +36,7 @@ export const HCSPLanguage = LRLanguage.define({
         "{ }": t.paren,
         "if then else rec log test assert pre post": t.controlKeyword,
         "+ - %": t.operator,
-        "| & -> <->": t.logicOperator,
+        "|| && -> <->": t.logicOperator,
         "> >= < <=" : t.compareOperator,
         "min max gcd" : t.operatorKeyword,
         "skip wait assert test log" : t.keyword
