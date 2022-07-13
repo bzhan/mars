@@ -70,8 +70,7 @@ def runFile(self, file,
     # Read the file
     file = os.path.join(os.path.dirname(__file__), "../examples", file)
     file = open(file,mode='r')
-    file_contents = file.readlines()
-    file_contents = '\n'.join([l.rstrip('\n').split('#',1)[0] for l in file_contents])
+    file_contents = file.read()
     file.close()
 
     # Parse pre-condition, HCSP program, and post-condition
@@ -165,62 +164,62 @@ class BasicHHLPyTest(unittest.TestCase):
         """)
         self.assertEqual(str(res.predicates["bar"]), "bar(x,y) = 2 * x == y")
 
-    def testVerify1(self):
-        runFile(self, file="example1.hhl")
+    def testBasic1(self):
+        runFile(self, file="basic1.hhl")
                   #expected_vcs={((), ()): ["x >= 0 -> x + 1 >= 1"]})
 
     def testVerify2(self):
-        runFile(self, file="example2.hhl",
+        runFile(self, file="test2.hhl",
                   expected_vcs={((), ()): ["x >= 0 -> x + 1 >= 1", "x >= 0 -> x + 2 >= 1"]},
                   print_vcs=False)
 
     def testVerify2_1(self):
-        runFile(self, file="example2_1.hhl",
+        runFile(self, file="test2_1.hhl",
         print_vcs=False)
 
     def testVerify2_2(self):
-        runFile(self, file="example2_2.hhl",
+        runFile(self, file="test2_2.hhl",
                 print_vcs=False)
 
     def testVerify3(self):
-        runFile(self, file="example3.hhl",
+        runFile(self, file="test3.hhl",
                   expected_vcs={((), ()): ["x >= 0 -> x + 1 >= 1 & x + 1 + 2 >= 3"]})
 
-    def testVerify4(self):
-        runFile(self, file="example4.hhl",
+    def testBasic2(self):
+        runFile(self, file="basic2.hhl",
                   expected_vcs={((), ()): ["x >= 0 -> x + 1 + 1 >= 1", "x >= 0 -> x + 1 >= 1"]})
 
     def testVerify4_1(self):
-        runFile(self, file="example4_1.hhl",
+        runFile(self, file="test4_1.hhl",
                   print_vcs=False)
 
     def testVerify4_2(self):
-        runFile(self, file="example4_2.hhl",
+        runFile(self, file="test4_2.hhl",
                   print_vcs=False)
 
     def testVerify5(self):
-        runFile(self, file="example5.hhl", print_vcs=True,
+        runFile(self, file="test5.hhl", print_vcs=True,
                   expected_vcs={((), (0,)): ["x >= 0 -> x + 1 >= 0"]})
 
     def testVerify5_1(self):
-        runFile(self, file="example5_1.hhl",
+        runFile(self, file="test5_1.hhl",
                   print_vcs=False)
 
     def testVerify5_2(self):
-        runFile(self, file="example5_2.hhl",
+        runFile(self, file="test5_2.hhl",
                   print_vcs=False)
 
     def testVerify5_3(self):
-         runFile(self, file="example5_3.hhl",
+         runFile(self, file="test5_3.hhl",
                   print_vcs=False)
 
-    def testVerify6(self):
-        runFile(self, file="example6.hhl",
+    def testBasic3(self):
+        runFile(self, file="basic3.hhl",
                   expected_vcs={((), ()): ["x >= 0 -> x + 1 >= 1"],
                                 ((1,), (0,)): ["x >= 1 -> x + 1 >= 1"]})
 
     def testVerify7(self):
-        runFile(self, file="example7.hhl", print_vcs=True)
+        runFile(self, file="test7.hhl", print_vcs=True)
 
     # TODO: 
     # def testVerify7_1(self):
@@ -228,67 +227,67 @@ class BasicHHLPyTest(unittest.TestCase):
     #     runVerify(self, pre="true", hp="<x_dot = 2 & x < 10>", post="true", print_vcs=True)
 
     def testVerify7_2(self):
-        runFile(self, file="example7_2.hhl",
+        runFile(self, file="test7_2.hhl",
                   print_vcs=False)
 
     def testVerify8(self):
-        runFile(self, file="example8.hhl",
+        runFile(self, file="test8.hhl",
                   print_vcs=True)
 
-    def testVerify9(self):
-        runFile(self, file="example9.hhl",
+    def testBasic4(self):
+        runFile(self, file="basic4.hhl",
                   print_vcs=False)
 
-    def testVerify9_1(self):
-        runFile(self, file="example9_1.hhl",
+    def testBasic10(self):
+        runFile(self, file="basic10.hhl",
                   print_vcs=True)
 
-    def testVerify10(self):
-        runFile(self, file="example10.hhl",
+    def testBasic5(self):
+        runFile(self, file="basic5.hhl",
                   expected_vcs={((), ()): ["x >= 0 -> x0 >= 1 -> x0 >= 1"]})
 
     def testVerify11(self):
-        runFile(self, file="example11.hhl",
+        runFile(self, file="test11.hhl",
                   expected_vcs={((), ()): ["x0 >= 0 -> x0 >= 0 -> x1 >= 1 -> x1 >= 1"]})
 
     def testVerify12(self):
-        runFile(self, file="example12.hhl",
+        runFile(self, file="test12.hhl",
                   expected_vcs={((), ()): ["x >= 0 -> y0 >= x + 1 -> y0 >= 1"]})
 
     def testVerify13(self):
-        runFile(self, file="example13.hhl",
+        runFile(self, file="test13.hhl",
                   expected_vcs={((), ()): ["x >= 0 -> y1 >= x + 1 ->y0 >= x + 1 + 1 -> y0 >= 2"]})
 
     # TODO: Basic benchmark problem 6 is hard to translate into HCSP program.
 
-    def testVerify14(self):
-        runFile(self, file="example14.hhl") 
+    def testBasic7(self):
+        runFile(self, file="basic7.hhl") 
 
     def testVerify14_1(self):
-        runFile(self, file="example14_1.hhl",
+        runFile(self, file="test14_1.hhl",
                   print_vcs=False) 
 
-    def testVerify15(self):
-        runFile(self, file="example15.hhl")
+    def testBasic8(self):
+        runFile(self, file="basic8.hhl")
 
-    def testVerify16(self):
-        runFile(self, file="example16.hhl",
+    def testBasic15(self):
+        runFile(self, file="basic15.hhl",
                 expected_vcs={((), ()): ["x > 0 -> 0 < 1 -> (\exists y. x * y * y == 1)", \
                                          "x > 0 -> 0 >= 1 -> x > 0"],
                               ((1,), ()): ["(\exists y. x * y * y == 1) & t == 1 -> x > 0"]})
 
-    def testVerify17(self):
-        runFile(self, file="example17.hhl")
+    def testBasic9(self):
+        runFile(self, file="basic9.hhl")
 
     def testVerify18(self):
-        runFile(self, file="example18.hhl",
+        runFile(self, file="test18.hhl",
                   print_vcs=False)
 
-    def testVerify19(self):
-        runFile(self, file="example19.hhl",)
+    def testBasic11(self):
+        runFile(self, file="basic11.hhl",)
 
-    def testVerify20(self):
-        runFile(self, file="example20.hhl",
+    def testBasic12(self):
+        runFile(self, file="basic12.hhl",
                   expected_vcs={((), ()): ["y >= 0 -> x >= 0 & y >= 0 -> \
                                             x < 10 -> y >= 0 & x >= 0",
                                            "y >= 0 -> x >= 0 & y >= 0 -> \
@@ -296,20 +295,20 @@ class BasicHHLPyTest(unittest.TestCase):
                                            "y >= 0 -> (y >= 0 & x >= 0) & x == 10 ->\
                                             x >= 0"]})
 
-    def testVerify21(self):
-        runFile(self, file="example21.hhl",)
+    def testBasic13(self):
+        runFile(self, file="basic13.hhl",)
 
 
-    def testVerify22(self):
-        runFile(self, file="example22.hhl",)
+    def testBasic14(self):
+        runFile(self, file="basic14.hhl",)
 
     # Basic benchmark problem15 is verified in testVerify16
 
-    def testVerify23(self):
-        runFile(self, file="example23.hhl",)
+    def testBasic16(self):
+        runFile(self, file="basic16.hhl",)
 
-    def testVerify24(self):
-        runFile(self, file="example24.hhl",
+    def testBasic17(self):
+        runFile(self, file="basic17.hhl",
                   expected_vcs={((), ()): ["y > 0 -> x > 0 & y > 0 -> \
                                             (0 < 10 -> (\exists z. x * z * z == 1))",
                                             "y > 0 -> x > 0 & y > 0 -> \
@@ -317,34 +316,34 @@ class BasicHHLPyTest(unittest.TestCase):
                                 ((1,), ()): ["y > 0 -> (\exists z. x * z * z == 1) & t == 10 \
                                               -> x > 0"]})
 
-    def testVerify25(self):
-        runFile(self, file="example25.hhl",)
+    def testBasic18(self):
+        runFile(self, file="basic18.hhl",)
 
-    def testVerify26(self):
-        runFile(self, file="example26.hhl",)
+    def testBasic19(self):
+        runFile(self, file="basic19.hhl",)
 
     # TODO: Basic benchmark, problem 20. The expression is not a polynomial.
 
-    def testVerify28(self):
-        runFile(self, file="example28.hhl",)
+    def testBasic21(self):
+        runFile(self, file="basic21.hhl",)
 
-    def testVerify29(self):
-        runFile(self, file="example29.hhl",)
+    def testBasic22(self):
+        runFile(self, file="basic22.hhl",)
 
-    def testVerify30(self):
-        runFile(self, file="example30.hhl",)
+    def testBasic23(self):
+        runFile(self, file="basic23.hhl",)
 
-    def testVerify31(self):
-        runFile(self, file="example31.hhl",)
+    def testBasic24(self):
+        runFile(self, file="basic24.hhl",)
 
     def testVerify32(self):
-        runFile(self, file="example32.hhl",)
+        runFile(self, file="test32.hhl",)
 
     def testVerify33(self):
-        runFile(self, file="example33.hhl",)
+        runFile(self, file="test33.hhl",)
 
     def testVerify34(self):
-        runFile(self, file="example34.hhl",
+        runFile(self, file="test34.hhl",
                   expected_vcs={((),()): ["z == -2 -> x >= 1 & y == 0 -> x >= 1 & y >= 0", 
                                           # `y == 0` comes from implicit dW
                                           "z == -2 -> y > 0 -> y >= 0", 
@@ -356,107 +355,107 @@ class BasicHHLPyTest(unittest.TestCase):
                                           # `y <= 0 -> x >= 1 & y >= 0` is the dW precondition
 
     def testVerify35(self):
-        runFile(self, file="example35.hhl",)
+        runFile(self, file="test35.hhl",)
 
     def testVerify36(self):
-        runFile(self, file="example36.hhl",)
+        runFile(self, file="test36.hhl",)
                 #   constants={"B()"})
 
     # TODO: Benchmark, problem 30, 32 are hard to translate into hcsp programs.
 
-    def testVerify38(self):
-        runFile(self, file="example38.hhl",)
+    def testBasic31(self):
+        runFile(self, file="basic31.hhl",)
 
     def testVerify40(self):
-        runFile(self, file="example40.hhl",)
+        runFile(self, file="test40.hhl",)
 
     def testVerify41(self):
-        runFile(self, file="example41.hhl",)
+        runFile(self, file="test41.hhl",)
 
     def testVerify42(self):
-        runFile(self,file="example42.hhl",)
+        runFile(self,file="test42.hhl",)
 
-    def testVerify43(self):
-        runFile(self, file="example43.hhl",)
+    def testBasic34(self):
+        runFile(self, file="basic34.hhl",)
 
-    def testVerify44(self):
-        runFile(self, file="example44.hhl",)
+    def testBasic35(self):
+        runFile(self, file="basic35.hhl",)
 
-    def testVerify45(self):
-        runFile(self, file="example45.hhl",)
+    def testBasic36(self):
+        runFile(self, file="basic36.hhl",)
 
-    def testVerify46(self):
-        runFile(self, file="example46.hhl",)
+    def testBasic37(self):
+        runFile(self, file="basic37.hhl",)
 
-    def testVerify47(self):
-        runFile(self, file="example47.hhl",)
+    def testBasic38(self):
+        runFile(self, file="basic38.hhl",)
 
-    def testVerify48(self):
-        runFile(self, file="example48.hhl",)
+    def testBasic39(self):
+        runFile(self, file="basic39.hhl",)
 
-    def testVerify49(self):
-        runFile(self, file="example49.hhl",)
+    def testBasic40(self):
+        runFile(self, file="basic40.hhl",)
                 #   constants={'A'})
 
-    def testVerify50(self):
-        runFile(self, file="example50.hhl",)
+    def testBasic41(self):
+        runFile(self, file="basic41.hhl",)
                 #   constants={'A', 'B'})
 
     def testVerify51(self):
-        runFile(self, file="example51.hhl",)
+        runFile(self, file="test51.hhl",)
 
-    def testVerify52(self):
-        runFile(self, file="example52.hhl",)
+    def testBasic42(self):
+        runFile(self, file="basic42.hhl",)
                 #   constants={'A', 'B', 'S'})
 
     def testVerify52_1(self):
-         runFile(self, file="example52_1.hhl",)
+         runFile(self, file="test52_1.hhl",)
 
-    def testVerify53(self):
-        runFile(self, file="example53.hhl",)
+    def testBasic43(self):
+        runFile(self, file="basic43.hhl",)
                 #   constants={'A', 'V'})
 
-    def testVerify54(self):
-        runFile(self, file="example54.hhl",)
+    def testBasic44(self):
+        runFile(self, file="basic44.hhl",)
                 #   constants={'A', 'V'})
 
-    def testVerify55(self):
-        runFile(self, file="example55.hhl",
+    def testBasic45(self):
+        runFile(self, file="basic45.hhl",
                 #  constants={'A', 'V'}
                 ) 
 
     def testVerify36_1(self):
-        runFile(self, file="example36_1.hhl",
+        runFile(self, file="test36_1.hhl",
                 #  constants={"B()"},
                   wolfram_engine=True)
 
-    def testVerify56(self):
-        runFile(self, file="example56.hhl",
+    def testBasic46(self):
+        runFile(self, file="basic46.hhl",
                 #   constants={'A', 'B', 'S', 'ep'},
                   wolfram_engine=True)
 
     def testVerify56_1(self):
-        runFile(self, file="example56_1.hhl",
+        runFile(self, file="test56_1.hhl",
                   andR_rule={((), ()): "true"})
 
-    def testVerify57(self):
-        runFile(self, file="example57.hhl",
+    def testBasic47(self):
+        runFile(self, file="basic47.hhl",
                   # constants={'A', 'B', 'S', 'ep'},
                   wolfram_engine=True)
 
-    def testVerify58(self):
-        runFile(self, file="example58.hhl",
+    def testBasic48(self):
+        runFile(self, file="basic48.hhl",
                   wolfram_engine=True
         )
 
-    def testVerify59(self):
-        runFile(self, file="example59.hhl",
+    def testBasic49(self):
+        runFile(self, file="basic49.hhl",
                 #   constants={'Kp()', 'Kd()', 'xr()', 'c()'}
                   )
 
-    def testVerify60(self):
+    def testBasic50(self):
         runFile(self, \
-                  file="example60.hhl",
+                  file="basic50.hhl",
                 #  constants={'Kp', 'Kd', 'S'}
                   )
 
@@ -524,31 +523,31 @@ class BasicHHLPyTest(unittest.TestCase):
     #                 constants={'A', 'B', 'b', 'ep', 'lw', 'ly'},
     #                 wolfram_engine=True)
 
-    def testVerify62(self):
-        runFile(self, file="example62.hhl",)
+    def testBasic52(self):
+        runFile(self, file="basic52.hhl",)
 
-    def testVerify63(self):
-        runFile(self, file="example63.hhl",
+    def testBasic53(self):
+        runFile(self, file="basic53.hhl",
                 #   constants={'A', 'b'}
                   )
 
-    def testVerify64(self):
-        runFile(self, file="example64.hhl",)
+    def testBasic54(self):
+        runFile(self, file="basic54.hhl",)
 
     def testVerify65(self):
-        runFile(self, file="example65.hhl",)
+        runFile(self, file="test65.hhl",)
 
     def testVerify66(self):
-        runFile(self, file="example66.hhl",)
+        runFile(self, file="test66.hhl",)
 
     def testVerify67(self):
-        runFile(self, file="example67.hhl",)
+        runFile(self, file="test67.hhl",)
 
     def testVerify68(self):
-        runFile(self, file="example68.hhl",)
+        runFile(self, file="test68.hhl",)
 
-    def testVerify69(self):
-        runFile(self, file="example69.hhl",
+    def testBasic55(self):
+        runFile(self, file="basic55.hhl",
                 #   constants={'b', 'A', 'ep'},
                   wolfram_engine=True
                   )
