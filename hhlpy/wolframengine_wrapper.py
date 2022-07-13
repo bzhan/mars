@@ -1,5 +1,7 @@
 """Wrapper for Wolfram Engine."""
 
+import os
+
 from decimal import Decimal
 from wolframclient.evaluation import WolframLanguageSession
 from wolframclient.language import wl, wlexpr
@@ -14,11 +16,14 @@ found_wolfram = False
 path = None
 session = None
 
+dirname = os.path.dirname(__file__)
+filename = os.path.join(dirname, './wolframpath.txt')
+
 if platform.system() == "Darwin":
     path = "/Applications/Wolfram Engine.app/Contents/Resources/Wolfram Player.app/Contents/MacOS/WolframKernel"
 else:
     try:
-        with open('../wolframpath.txt', 'r') as f:
+        with open(filename, 'r') as f:
             path = f.readline().strip()
     except FileNotFoundError as e:
         print("Please add a file wolframpath.txt under hhlpy and place path to Wolfram Engine there.")
