@@ -115,7 +115,8 @@ grammar = r"""
     ?invariant: "[" expr "]"
     
     ?maybe_loop_invariant: ("invariant" loop_invariant+ ";")? -> maybe_loop_invariant
-    ?loop_invariant: "[" expr "]" ("{{" proof_method ("," proof_method)* "}}")? -> loop_invariant
+    ?loop_invariant: "[" expr "]" maybe_proof_methods         -> loop_invariant
+    ?maybe_proof_methods: ("{{" proof_method ("," proof_method)* "}}")?    ->maybe_proof_methods
     ?proof_method: (label ":")? method   -> proof_method
 
     
@@ -138,7 +139,7 @@ grammar = r"""
         | categ_label branch_label       -> comp_label
     
     ?method: "z3"        -> method_z3
-      | "wolfram_engine" -> method_wolfram_engine
+      | "wolfram"        -> method_wolfram
 
     ?maybe_ode_invariant: ("invariant" ode_invariant+ ";")? -> maybe_ode_invariant
     ?ode_invariant: "[" expr "]" ("{" ode_rule expr? "}")? -> ode_invariant
@@ -426,11 +427,9 @@ class HPTransformer(Transformer):
         else:
             return args
 
-    def loop_invariant(self, meta, inv, *args):
-        if len(args) == 0:
-            return invariant.LoopInvariant(inv=inv, meta=meta)
-        else:
-            return invariant.LoopInvariant(inv=inv, proof_methods=args, meta=meta)
+    def loop_invariant(self, meta, inv, proof_methods):
+       
+        return invariant.LoopInvariant(inv=inv, proof_methods=proof_methods, meta=meta)
 
     def maybe_ode_invariant(self, meta, *args):
         if len(args) == 0:
@@ -460,7 +459,7 @@ class HPTransformer(Transformer):
     def ode_rule_sln(self, meta): return "sln"
 
     def method_z3(self, meta): return "z3"
-    def method_wolfram_engine(self, meta): return "wolfram_engine"
+    def method_wolfram(self, meta): return "wolfram"
 
     def label_categ_init(self, meta): return "init"
     def label_categ_maintain(self, meta): return "maintain"
@@ -489,6 +488,12 @@ class HPTransformer(Transformer):
             return invariant.ProofMethod(method=args[0], meta=meta)
         else:
             return invariant.ProofMethod(label=args[0], method=args[1], meta=meta)
+
+    def maybe_proof_methods(self, meta, *args):
+        if len(args) == 0:
+            return invariant.ProofMethods(meta=meta)
+        else:
+            return invariant.ProofMethods(*args, meta=meta)
             
     def repeat_cmd(self, meta, cmd, inv):
         return hcsp.Loop(cmd, meta=meta, inv=inv)

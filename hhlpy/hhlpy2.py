@@ -768,7 +768,7 @@ class CmdVerifier:
                     if sub_pos not in self.infos:
                         self.infos[sub_pos] = CmdInfo()
                     sub_info = self.infos[sub_pos]
-                    sub_info.inv = [Predicate(expr=sub_inv.inv, pos=[pos], annot_pos=(i,))]
+                    sub_info.inv = [Predicate(expr=sub_inv.inv, pos=[pos], annot_pos=i)]
                     sub_info.assume += self.infos[pos].assume
                                     #   [cur_hp.inv[index].inv for index in range(i)]
                     
@@ -778,7 +778,7 @@ class CmdVerifier:
                 for i, vc in enumerate(post):
                     last_hp = get_pos(self.hp, vc.pos[0][0])
                     if isinstance(last_hp, hcsp.Loop) and vc.pos[0] != ((), ()):
-                        annot_pos = (i,)
+                        annot_pos = i
                     else:
                         annot_pos = None
 
@@ -791,7 +791,7 @@ class CmdVerifier:
                                             categ=vc.categ,
                                             vc=True))
 
-                pre = [Predicate(expr=sub_inv.inv, pos=[pos], annot_pos=(i,), categ="init") \
+                pre = [Predicate(expr=sub_inv.inv, pos=[pos], annot_pos=i, categ="init") \
                        for i, sub_inv in enumerate(cur_hp.inv)]
 
             # self.infos[pos].inv is set after creating branches.
@@ -1373,7 +1373,7 @@ class CmdVerifier:
             for i, vc in enumerate(pre):
                 last_hp = get_pos(self.hp, vc.pos[0][0])
                 if isinstance(last_hp, hcsp.Loop):
-                    annot_pos = (i,)
+                    annot_pos = i
                 else:
                     annot_pos = None
                 self.infos[pos].vcs.append(

@@ -2,7 +2,7 @@
 <template>
     <div class="verification-condition">
         <ul>
-            <li v-for="vc_info in vc_infos" :key="vc_info.formula">
+            <li v-for="vc_info in vc_infos" :key="vc_info.index">
             <!-- TODO: change the key -->
                 <span class="vc-icon">
                     <v-icon name="check-circle" style="fill:green" v-show="vc_info.result === true" scale="1.5"></v-icon>
@@ -13,9 +13,9 @@
                 {{ vc_info.formula }}
                 </span> 
                 <!-- vc_info.solver(the solver in vc_infos in Editor.vue) is also changed by using v-model -->
-                <select v-model="vc_info.solver" @change="changeSolver" class="vc-button">
-                    <option>Z3</option>
-                    <option>Wolfram Engine</option>
+                <select v-model="vc_info.solver" @change="changeSolver(vc_info.index, vc_info.solver)" class="vc-button">
+                    <option value="z3">Z3</option>
+                    <option value="wolfram">Wolfram Engine</option>
                 </select>
 
             </li>
@@ -41,8 +41,12 @@ export default ({
     },
 
     methods: {
-    changeSolver() {
-    //   this.$emit("changeSolver", this.vcSolver)
+    changeSolver(index, solver) {
+      let data = {
+        index: index,
+        solver: solver,
+      }
+      this.$emit("changeSolver", data)
     },
     showOrigin(origin) {
       let effects = origin.map((range) => showOrigin.of(range));

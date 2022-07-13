@@ -2,7 +2,7 @@
   <div class="editor">
     <div id="code"></div>
 
-    <vcs :vc_infos="vc_infos" :view="editorView"></vcs>
+    <vcs :vc_infos="vc_infos" :view="editorView" @changeSolver="changeSolver"></vcs>
     <!-- {{vc_infos}} -->
 
     <div class="toolbar">
@@ -144,7 +144,6 @@ export default {
     compute: function () {
       // Send the doc in editor to server with type "compute".
       let code = this.editorView.state.doc.toString();
-      
       this.socket.send(JSON.stringify({code: code, type: "compute"}));
     },
     verify: function () {
@@ -159,13 +158,126 @@ export default {
     add_vc_infos: function(){
       for (let i in this.vc_info_received){
         let vcData = this.vc_info_received[i]  // vcData is object
+        let label = vcData.label
+        let solver = "z3"
+        
+        if (vcData.method){
+          solver = vcData.method
+        }
+
         this.vc_infos.push({
+          index: i,
           formula: vcData.formula,
-          solver: "Z3",  //TODO: set the solver
+          label: label,
+          solver: solver,  //TODO: set the solver
           result: null,
-          origin: vcData.origin
+          origin: vcData.origin,
+          pred_end_pos: vcData.pred_end_pos,
+          pms_start_pos: vcData.pms_start_pos,
+          pms_end_pos: vcData.pms_end_pos
         })
       }
+    },
+
+    changeSolver(data) {
+      let index = data.index
+      // The label of the verification condition of which solver is changed.
+      let label = this.vc_infos[index].label
+      // The new solver
+      let solver = data.solver     
+
+      let pms_start_pos = this.vc_infos[index].pms_start_pos
+      let pms_end_pos = this.vc_infos[index].pms_end_pos
+      let old_proof_methods = this.editorView.state.sliceDoc(pms_start_pos+2, pms_end_pos-2)
+      console.log("old_proof_methods:", old_proof_methods)
+
+      // Transfer the proof method string into a dictionary.
+      let pm_dict = this.to_proof_method_dict(old_proof_methods)
+      
+      // Set the value on label as solver
+      pm_dict.set(label, solver)
+      console.log("pm_dict:", pm_dict)
+
+      let new_proof_methods = this.to_proof_method_string(pm_dict)
+
+      // Change the document in the editor into new_proof_methods
+      this.editorView.dispatch(this.editorView.state.update({
+        changes: {from: pms_start_pos, to: pms_end_pos, insert: "{{" + new_proof_methods + "}}"}}))
+
+      // The proof method start position and end position of each verification condition
+      // may be changed after inserting.
+      // Therefore call the compute() function to get the new position.
+      // TODO: is there a better solution?
+      this.compute()
+    },
+
+    to_proof_method_dict(pms)
+    // Transfer a proof method string into a Map object.
+    // Example: transfer "init: z3, maintain: wolfram" 
+    //          into Map([[init, z3], [maintain, wolfram]])
+    // Note that if the proof method is "z3", without label, 
+    // the key for it would be set as "None" in the Map object.      
+    {
+      console.assert(typeof(pms) === "string", "The parameter should be a string")
+      pms = pms.trim()
+      let pm_dict = new Map()
+
+      if (pms === ""){
+        return pm_dict
+      }
+
+      else{
+        // pm_list is, for example ["init: z3", "maintain: wolfram"]
+        let pm_list = pms.split(",")
+
+        console.log("pm_list:", pm_list)
+
+        for (let pm of pm_list){
+          let key, value
+          // Case when pm is with a label, set the key as label
+          if (pm.includes(":")){
+            key = pm.split(":")[0].trim()
+            value = pm.split(":")[1].trim()
+          }
+          // Case when pm is without a label, set the key as None
+          else{
+            key = "None"
+            value = pm.trim()
+          }
+          pm_dict.set(key, value)
+        }
+
+        return pm_dict
+      }
+    },
+
+    to_proof_method_string(pm_dict)
+    // Transfer a proof method Map object into a string.
+    // Example: transfer Map([[init, z3], [maintain, wolfram]])
+    //          into "init: z3, maintain: wolfram"
+    // Note that if the key is "None" in the Map object, for example, Map([["None", "z3"],])
+    // the string for it would be only the method, without a label, i.e. "z3".   
+    {
+      let pm_str = ""
+      let i = 0
+      let end_str = ", "
+      for (let [key, value] of pm_dict){
+        // Each "key: value" ends with ", " except the last one.
+        console.log(i)
+        if (i === pm_dict.size - 1){
+          end_str = ""
+        }
+        i ++;
+        
+        if (key === "None"){
+          pm_str += value + end_str
+        }
+        else{
+          pm_str += key + ": " + value + end_str
+        }
+      }
+
+      return pm_str
     }
   }
 }
