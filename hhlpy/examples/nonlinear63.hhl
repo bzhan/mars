@@ -1,11 +1,11 @@
 # Nonlinear benchmark, problem 63
 # {(x - 4)^2 + (y - 4)^2 <= 1}
 #    t := 0;
-#   <x_dot = x+y+x^2, y_dot = x*(1+y), t_dot = 1 & t < 10>
+#   {x_dot = x+y+x^2, y_dot = x*(1+y), t_dot = 1 & t < 10}
 #   @invariant(1+y>0, x^2 < y*(x+y), 387150000+426*x^2+85*y < 36465000*x*y)
 # {(x - 2)^2 + (y - 2)^2 > 3}
 pre [(x - 4)^2 + (y - 4)^2 <= 1];
 t := 0; 
- <x_dot = x+y+x^2, y_dot = x*(1+y), t_dot = 1 & t < 10> 
+ {x_dot = x+y+x^2, y_dot = x*(1+y), t_dot = 1 & t < 10} 
 invariant [1+y>0] {dbx} [x^2 < y*(x+y)] {dbx} [387150000+426*x^2+85*y < 36465000*x*y] {bc};
 post [(x - 2)^2 + (y - 2)^2 > 3];

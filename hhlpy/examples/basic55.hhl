@@ -1,10 +1,10 @@
 # Basic benchmark, problem 55
-# {v^2 <= 2*b*(m-x) & v >= 0  & A >= 0 & b > 0}
+# {v^2 {= 2*b*(m-x) & v }= 0  & A >= 0 & b > 0}
 #     (
 #         if 2*b*(m-x) >= v^2 + (A+b)*(A*ep^2+2*ep*v) then a := A else a := -b endif 
 #      ++ a := -b; 
 #         t := 0;
-#         <x_dot = v, v_dot = a, t_dot = 1 & v > 0 & t < ep>
+#         {x_dot = v, v_dot = a, t_dot = 1 & v > 0 & t < ep}
 #     )**@invariant(v^2 <= 2*b*(m-x))
 # {x <= m}
 pre [v^2 <= 2*b*(m-x)] [v >= 0 ] [A >= 0] [b > 0];
@@ -12,6 +12,6 @@ pre [v^2 <= 2*b*(m-x)] [v >= 0 ] [A >= 0] [b > 0];
   if (2*b*(m-x) >= v^2 + (A+b)*(A*ep^2+2*ep*v)) { a := A; } else { a := -b; } 
 ++ a := -b; 
   t := 0; 
-  <x_dot = v, v_dot = a, t_dot = 1 & v > 0 & t < ep> invariant [v^2 <= 2*b*(m-x)] {sln};
+  {x_dot = v, v_dot = a, t_dot = 1 & v > 0 && t < ep} invariant [v^2 <= 2*b*(m-x)] {sln};
 }* invariant [v^2 <= 2*b*(m-x)];
 post [x <= m];

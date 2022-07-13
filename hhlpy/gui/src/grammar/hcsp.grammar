@@ -73,7 +73,7 @@ atom_cond {
 } 
 
 conj {
-  ConjCond { atom_cond !conj "&" conj }
+  ConjCond { atom_cond !conj "&&" conj }
   | atom_cond       // Conjunction: priority 35
 }
 
@@ -151,8 +151,8 @@ atom_cmd {
   | RepeatCmd { "{" cmd "}" "*" maybe_loop_invariant }
   | RepeatCondCmd { "{" cmd "}*(" cond ")" maybe_loop_invariant}
   | Ode { OdeNoInv maybe_ode_invariant }
-  | OdeCommConst { "<" "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant}
-  | OdeComm { "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant} 
+  | OdeCommConst { "{" "&" cond "}" "|>" "[]" "(" interrupt ")" maybe_ode_invariant}
+  | OdeComm { "{" ode_seq "&" cond "}" "|>" "[]" "(" interrupt ")" maybe_ode_invariant} 
   | RecCmd { "rec" CNAME "{" cmd "}" }
   | IteCmd { "if" "(" cond ")" "{" cmd "}" ("else" "if" "(" cond ")" "{" cmd "}")* ("else" "{" cmd "}")? }
   | ParenCmd { "{" cmd "}" }
@@ -280,7 +280,7 @@ Decls {
   ws { $[ \t\f\r\n]+ }
 
   "+" "-" "^" "*" "/" "%"
-  "&&" "||" "-->" "->" "$" ";" "++" "skip" "." "," ":" "?" "~" "&"
+  "&&" "||" "-->" "->" "$" ";" "++" "skip" "." "," ":" "?" "~" "&" "&&"
   "=" ":="
   "==" "!=" "<" "<=" ">" ">="
 

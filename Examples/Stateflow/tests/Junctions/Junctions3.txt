@@ -18,7 +18,7 @@ procedure J4_1 begin
     Chart_ret := 1;
     J5_done := 1;
   }
-  if (J5_done == 0 & x > 0) {
+  if (J5_done == 0 && x > 0) {
     s := "t2";
     log("t2" + "\n");
     @J4_1;

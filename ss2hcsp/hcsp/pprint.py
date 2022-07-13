@@ -96,24 +96,24 @@ def pprint_lines(hp, *, max_line=None, record_pos=False):
             str_eqs = ", ".join(var_name + "_dot = " + str(expr) for var_name, expr in hp.eqs)
             conjs = expr.split_conj(hp.constraint)
             if len(conjs) == 1:
-                add_str("<%s & %s>" % (str_eqs, hp.constraint))
+                add_str("{%s & %s}" % (str_eqs, hp.constraint))
             else:
-                add_str("<%s &" % str_eqs)
+                add_str("{%s &" % str_eqs)
                 for i, constraint in enumerate(conjs):
                     new_line(indent+2)
                     if i != len(conjs)-1:
-                        add_str("%s &" % constraint)
+                        add_str("%s &&" % constraint)
                     else:
                         add_str("%s" % constraint)
                 new_line(indent)
-                add_str(">")
+                add_str("}")
             end_pos(pos)
 
         elif hp.type == 'ode_comm':
             new_line(indent)
             start_pos(pos)
             str_eqs = ", ".join(var_name + "_dot = " + str(expr) for var_name, expr in hp.eqs)
-            add_str("<%s & %s> |> [] (" % (str_eqs, hp.constraint))
+            add_str("{%s & %s} |> [] (" % (str_eqs, hp.constraint))
             for i, (comm_hp, out_hp) in enumerate(hp.io_comms):
                 new_line(indent+2)
                 add_str("%s -->" % str(comm_hp)[:-1])

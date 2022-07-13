@@ -15,7 +15,7 @@ class ModuleTest(unittest.TestCase):
                 output x;
                 begin
                     x := 0;
-                    { <x_dot = 1 & true> |> [](p2c!x --> skip;) c2p?x; }*
+                    { {x_dot = 1 & true} |> [](p2c!x --> skip;) c2p?x; }*
                 end
             endmodule
         """)
@@ -53,7 +53,7 @@ class ModuleTest(unittest.TestCase):
                 output x;
                 begin
                     x := 0;
-                    {<x_dot = 1 & true> |> [](p2c!x --> skip;) c2p?x;}*
+                    {{x_dot = 1 & true} |> [](p2c!x --> skip;) c2p?x;}*
                 end
             endmodule
 
@@ -78,7 +78,7 @@ class ModuleTest(unittest.TestCase):
             output x;
             begin
                 x := 0;
-                { <x_dot = 1 & true> |> [](p2c!x --> skip;) c2p?x; }*
+                { {x_dot = 1 & true} |> [](p2c!x --> skip;) c2p?x; }*
             end
             endmodule
         """)
@@ -94,7 +94,7 @@ class ModuleTest(unittest.TestCase):
             output x;
             begin
                 x := 0;
-                { <x_dot = 1 & true> |> [](p2c!x --> skip;) c2p?x; }*
+                { {x_dot = 1 & true} |> [](p2c!x --> skip;) c2p?x; }*
             end
             endmodule
 
@@ -119,7 +119,7 @@ class ModuleTest(unittest.TestCase):
 
     def testGenerateHCSPInfo(self):
         decls = HCSPDeclarations([
-            HCSPModule("P0", "x := 0; { <x_dot = 1 & true> |> [](p2c!x --> skip;) c2p?x; }*",
+            HCSPModule("P0", "x := 0; { {x_dot = 1 & true} |> [](p2c!x --> skip;) c2p?x; }*",
                        params=("p2c", "c2p"), outputs=(("x",),)),
             HCSPModule("P1", "{ wait(2); p2c?x; c2p!x-1; }*",
                        params=("p2c", "c2p")),
@@ -132,9 +132,9 @@ class ModuleTest(unittest.TestCase):
         ])
 
         infos = decls.generateHCSPInfo()
-        self.assertEqual(str(infos[0].hp), "x := 0; {<x_dot = 1 & true> |> [] (ch1!x --> skip;) ch2?x;}*")
+        self.assertEqual(str(infos[0].hp), "x := 0; {{x_dot = 1 & true} |> [] (ch1!x --> skip;) ch2?x;}*")
         self.assertEqual(str(infos[1].hp), "{wait(2); ch1?x; ch2!x - 1;}*")
-        self.assertEqual(str(infos[2].hp), "x := 0; {<x_dot = 1 & true> |> [] (ch3!x --> skip;) ch4?x;}*")
+        self.assertEqual(str(infos[2].hp), "x := 0; {{x_dot = 1 & true} |> [] (ch3!x --> skip;) ch4?x;}*")
         self.assertEqual(str(infos[3].hp), "{wait(2); ch3?x; ch4!x - 1;}*")
 
     def testParseSystem2(self):
@@ -150,7 +150,7 @@ class ModuleTest(unittest.TestCase):
 
     def testGenerateHCSPInfo2(self):
         decls = HCSPDeclarations([
-            HCSPModule("P0", "x := init_x; {<x_dot = slope & true> |> [](p2c!x --> skip;) c2p?x;}*",
+            HCSPModule("P0", "x := init_x; {{x_dot = slope & true} |> [](p2c!x --> skip;) c2p?x;}*",
                        params=("p2c", "c2p", "init_x", "slope"), outputs=(("x",),),),
             HCSPModule("P1", "{wait(dly); p2c?x; c2p!x-1;}*",
                        params=("p2c", "c2p", "dly")),
@@ -163,9 +163,9 @@ class ModuleTest(unittest.TestCase):
         ])
 
         infos = decls.generateHCSPInfo()
-        self.assertEqual(str(infos[0].hp), "x := 0; {<x_dot = 1 & true> |> [] (ch1!x --> skip;) ch2?x;}*")
+        self.assertEqual(str(infos[0].hp), "x := 0; {{x_dot = 1 & true} |> [] (ch1!x --> skip;) ch2?x;}*")
         self.assertEqual(str(infos[1].hp), "{wait(2); ch1?x; ch2!x - 1;}*")
-        self.assertEqual(str(infos[2].hp), "x := 1; {<x_dot = 2 & true> |> [] (ch3!x --> skip;) ch4?x;}*")
+        self.assertEqual(str(infos[2].hp), "x := 1; {{x_dot = 2 & true} |> [] (ch3!x --> skip;) ch4?x;}*")
         self.assertEqual(str(infos[3].hp), "{wait(3); ch3?x; ch4!x - 1;}*")
 
     def testReadFile(self):

@@ -31,7 +31,7 @@ begin
           Chart1_A_done := 1;
         }
       }
-      if (Chart1_st == "Chart1_A" & Chart1_A_done == 0) {
+      if (Chart1_st == "Chart1_A" && Chart1_A_done == 0) {
         s := "du_chart1";
         log("du_chart1" + "\n");
         Chart2_done := 0;
@@ -55,7 +55,7 @@ begin
           Chart1_B_done := 1;
         }
       }
-      if (Chart1_st == "Chart1_B" & Chart1_B_done == 0) {
+      if (Chart1_st == "Chart1_B" && Chart1_B_done == 0) {
         s := "du_B";
         log("du_B" + "\n");
         if (Chart1_B_tick != -1) {
@@ -64,7 +64,7 @@ begin
       }
       Chart1_ret := Chart1_B_done;
     }
-    <tt_dot = 1 & tt < 0.1>
+    {tt_dot = 1 & tt < 0.1}
     t := t + tt;
     _tick := _tick + 1;
     tt := 0;

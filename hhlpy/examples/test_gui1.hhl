@@ -5,6 +5,6 @@ if (true) {
 } else {
   y := 1;
 }
-<x_dot=1 & x < 5>
+{x_dot=1 & x < 5}
   invariant [x >= 1];
 post [x >= 1];

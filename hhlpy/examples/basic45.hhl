@@ -2,19 +2,19 @@
 # constants = {'A', 'V'}
 # {v <= V & A > 0}
 #     (
-#         if v == V then a := 0; t := 0; <x_dot = v, v_dot = a & t < 10>
-#         else a := A; <x_dot = v, v_dot = a & v < V>
+#         if v == V then a := 0; t := 0; {x_dot = v, v_dot = a & t < 10}
+#         else a := A; {x_dot = v, v_dot = a & v < V}
 #         endif        
 #     )**@invariant(v <= V)
 # {v <= V}
 pre [v <= V] [A > 0];
 {if (v == V) { 
      a := 0; t := 0; 
-     <x_dot = v, v_dot = a & t < 10> 
+     {x_dot = v, v_dot = a & t < 10} 
      invariant [a == 0] [v <= V];
  } else { 
      a := A; 
-     <x_dot = v, v_dot = a & v < V> 
+     {x_dot = v, v_dot = a & v < V} 
      invariant [true];
  } 
  }* 

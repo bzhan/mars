@@ -5,14 +5,14 @@
 # (   if v == V then a := 0 else a := A endif
 #  ++ if v != V then a := A else a := 0 endif;
 
-#     <x_dot = v, v_dot = a & v <= V>
+#     {x_dot = v, v_dot = a & v <= V}
 # )**@invariant(v <= V)
 #
 # {v <= V}
 pre [v <= V] [A > 0];
 {   if (v == V) { a := 0; } else { a := A; } 
  ++ if (v != V) { a := A; } else { a := 0; } 
-    <x_dot = v, v_dot = a & v < V> 
+    {x_dot = v, v_dot = a & v < V} 
     invariant [true]; 
 }* 
 invariant [v <= V];

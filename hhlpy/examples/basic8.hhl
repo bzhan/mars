@@ -1,11 +1,11 @@
 # Basic benchmark, problem8
 # {x > 0 & y > 0} 
 
-# <x_dot = 5 & x < 10>@invariant(x > 0); 
+# {x_dot = 5 & x < 10}@invariant(x > 0); 
 # (x := x + 3)**@invariant(x > 0) ++ y := x
 
 # {x > 0 & y > 0}
 pre [x > 0] [y > 0];
-<x_dot = 5 & x < 10> invariant [x > 0] [y > 0]; 
+{x_dot = 5 & x < 10} invariant [x > 0] [y > 0]; 
 {x := x + 3;}* invariant [x > 0] [y > 0]; ++ y := x;
 post [x > 0] [y > 0];

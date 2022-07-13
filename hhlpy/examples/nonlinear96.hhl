@@ -8,9 +8,9 @@
 # {y^2 + 2*z5^2 <= 5}
 pre [2*y^2 + z5^2 <= 0.5] [b==1] [r==0];
 t := 0; 
- <x_dot = s*(y-x), 
+ {x_dot = s*(y-x), 
 y_dot = r*x-y-x*z5, 
 z5_dot = -b*z5+x*y, 
-t_dot = 1 & t < 10> 
+t_dot = 1 & t < 10}
 invariant [y^2+z5^2<=1] {bc};
 post [y^2 + 2*z5^2 <= 5];

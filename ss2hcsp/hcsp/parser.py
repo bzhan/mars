@@ -27,6 +27,8 @@ grammar = r"""
         | "min" "(" expr "," expr ")" -> min_expr
         | "max" "(" expr "," expr ")" -> max_expr
         | "gcd" "(" expr ("," expr)+ ")" -> gcd_expr
+        | "true" -> true_cond
+        | "false" -> false_cond
         | CNAME "(" (expr)? ("," expr)* ")" -> fun_expr
         | "(" expr ")"
 
@@ -44,28 +46,21 @@ grammar = r"""
         | plus_expr "-" times_expr -> minus_expr
         | times_expr
 
-    ?if_expr: "(" cond "?" if_expr ":" if_expr ")"         // priority 40
+    ?if_expr: "(" expr "?" if_expr ":" if_expr ")"         // priority 40
         | plus_expr
 
-    ?expr: if_expr
+    ?rel_expr: if_expr "==" if_expr -> eq_cond         // priority 50
+        | if_expr "!=" if_expr -> ineq_cond
+        | if_expr "<=" if_expr -> less_eq_cond
+        | if_expr "<" if_expr -> less_cond
+        | if_expr ">=" if_expr -> greater_eq_cond
+        | if_expr ">" if_expr -> greater_cond
+        | if_expr
 
-    ?atom_cond: "true" -> true_cond
-        | "false" -> false_cond
-        | CNAME "((" (expr)? ("," expr)* "))" -> pred_cond
-        | "(" cond ")"
+    ?neg_expr: "!" neg_expr -> not_cond          // priority 40
+        | rel_expr
 
-    ?rel_cond: expr "==" expr -> eq_cond         // priority 50
-        | expr "!=" expr -> ineq_cond
-        | expr "<=" expr -> less_eq_cond
-        | expr "<" expr -> less_cond
-        | expr ">=" expr -> greater_eq_cond
-        | expr ">" expr -> greater_cond
-        | atom_cond
-
-    ?neg_cond: "!" neg_cond -> not_cond          // priority 40
-        | rel_cond
-
-    ?conj: neg_cond "&" conj | neg_cond         // Conjunction: priority 35
+    ?conj: neg_expr "&&" conj | neg_expr         // Conjunction: priority 35
 
     ?disj: conj "|" disj | conj                 // Disjunction: priority 30
 
@@ -79,7 +74,7 @@ grammar = r"""
         | "\\forall" "{" CNAME ("," CNAME)+ "}" "." quant  -> forall_expr
         | imp
 
-    ?cond: quant
+    ?expr: quant
 
     ?comm_cmd: CNAME "?" lname -> input_cmd
         | CNAME "[" expr "]" "?" lname -> input_cmd
@@ -103,24 +98,24 @@ grammar = r"""
         | "wait" "(" expr ")" ";" -> wait_cmd
         | lname ":=" expr ";" -> assign_cmd
         | "(" lname ("," lname)* ")" ":=" expr ";" -> multi_assign_cmd
-        | lname ":=" "*" "(" cond ")" ";" -> random_assign_cmd
-        | "assert" "(" cond ("," expr)* ")" ";" -> assert_cmd
-        | "test" "(" cond ("," expr)* ")" ";" -> test_cmd
+        | lname ":=" "*" "(" expr ")" ";" -> random_assign_cmd
+        | "assert" "(" expr ("," expr)* ")" ";" -> assert_cmd
+        | "test" "(" expr ("," expr)* ")" ";" -> test_cmd
         | "log" "(" expr ("," expr)* ")" ";" -> log_cmd
         | comm_cmd ";"
         | "{" cmd "}" "*" maybe_loop_invariant -> repeat_cmd
-        | "{" cmd "}" "*" "(" cond ")" maybe_loop_invariant -> repeat_cond_cmd
-        | "<" ode_seq "&" cond ">" maybe_ode_invariant -> ode
-        | "<" "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm_const
-        | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm
-        | "if" "(" cond ")" "{" cmd "}" ("else" "if" "(" cond ")" "{" cmd "}")* ("else" "{" cmd "}")? -> ite_cmd
+        | "{" cmd "}" "*" "(" expr ")" maybe_loop_invariant -> repeat_cond_cmd
+        | "{" ode_seq "&" expr "}" maybe_ode_invariant -> ode
+        | "{" "&" expr "}" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm_const
+        | "{" ode_seq "&" expr "}" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm
+        | "if" "(" expr ")" "{" cmd "}" ("else" "if" "(" expr ")" "{" cmd "}")* ("else" "{" cmd "}")? -> ite_cmd
         | "{" cmd "}" -> paren_cmd
 
     ?maybe_invariant: ("invariant" invariant+ ";")? -> maybe_invariant
-    ?invariant: "[" cond "]"
+    ?invariant: "[" expr "]"
     
     ?maybe_loop_invariant: ("invariant" loop_invariant+ ";")? -> maybe_loop_invariant
-    ?loop_invariant: "[" cond "]" ("{{" proof_method ("," proof_method)* "}}")? -> loop_invariant
+    ?loop_invariant: "[" expr "]" ("{{" proof_method ("," proof_method)* "}}")? -> loop_invariant
     ?proof_method: (label ":")? method   -> proof_method
 
     
@@ -146,9 +141,9 @@ grammar = r"""
       | "wolfram_engine" -> method_wolfram_engine
 
     ?maybe_ode_invariant: ("invariant" ode_invariant+ ";")? -> maybe_ode_invariant
-    ?ode_invariant: "[" cond "]" ("{" ode_rule expr? "}")? -> ode_invariant
+    ?ode_invariant: "[" expr "]" ("{" ode_rule expr? "}")? -> ode_invariant
         | "ghost" CNAME -> ghost_intro
-        | "ghost" "<" CNAME "=" expr ">" -> ghost_intro_eq
+        | "ghost" CNAME "=" expr -> ghost_intro_eq
     ?ode_rule: "di" -> ode_rule_di
       | "dbx" -> ode_rule_dbx
       | "bc" -> ode_rule_bc
@@ -165,10 +160,10 @@ grammar = r"""
 
     ?function_decl: "function" CNAME "(" CNAME ("," CNAME)* ")" "=" expr ";"
 
-    ?predicate_decl: "predicate" CNAME "(" CNAME ("," CNAME)* ")" "=" cond ";"
+    ?predicate_decl: "predicate" CNAME "(" CNAME ("," CNAME)* ")" "=" expr ";"
 
-    ?hoare_pre : "pre" ("[" cond "]")* ";" -> hoare_pre
-    ?hoare_post : "post" ("[" cond "]")* ";" -> hoare_post
+    ?hoare_pre : "pre" ("[" expr "]")* ";" -> hoare_pre
+    ?hoare_post : "post" ("[" expr "]")* ";" -> hoare_post
     ?hoare_triple: (function_decl)* (predicate_decl)* hoare_pre cmd hoare_post
 
     ?procedure: "procedure" CNAME "begin" cmd "end"
@@ -344,11 +339,8 @@ class HPTransformer(Transformer):
     def false_cond(self, meta):
         return expr.BConst(False, meta=meta)
 
-    def pred_cond(self, meta, pred_name, *exprs):
-        return expr.PredCond(str(pred_name), exprs, meta=meta)
-
     def conj(self, meta, b1, b2):
-        return expr.LogicExpr("&", b1, b2, meta=meta)
+        return expr.LogicExpr("&&", b1, b2, meta=meta)
 
     def disj(self, meta, b1, b2):
         return expr.LogicExpr("|", b1, b2, meta=meta)
@@ -674,8 +666,7 @@ class HPTransformer(Transformer):
 
 hp_transformer = HPTransformer()
 
-aexpr_parser = Lark(grammar, start="expr", parser="lalr", transformer=hp_transformer)
-bexpr_parser = Lark(grammar, start="cond", parser="lalr", transformer=hp_transformer)
+expr_parser = Lark(grammar, start="expr", parser="lalr", transformer=hp_transformer)
 hp_parser = Lark(grammar, start="parallel_cmd", parser="lalr", transformer=hp_transformer)
 module_parser = Lark(grammar, start="module", parser="lalr", transformer=hp_transformer)
 system_parser = Lark(grammar, start="system", parser="lalr", transformer=hp_transformer)
@@ -683,16 +674,14 @@ decls_parser = Lark(grammar, start="decls", parser="lalr", transformer=hp_transf
 
 # Variants of the parsers without internal transformer, returning a Lark Tree instead of a HCSP expression.
 # They allow us to get meta information about line and character numbers of the parsed code.
-aexpr_tree_parser = Lark(grammar, start="expr", parser="lalr", propagate_positions=True)
-bexpr_tree_parser = Lark(grammar, start="cond", parser="lalr", propagate_positions=True)
+expr_tree_parser = Lark(grammar, start="expr", parser="lalr", propagate_positions=True)
 hp_tree_parser = Lark(grammar, start="parallel_cmd", parser="lalr", propagate_positions=True)
 hoare_triple_tree_parser = Lark(grammar, start="hoare_triple", parser="lalr", propagate_positions=True)
 module_tree_parser = Lark(grammar, start="module", parser="lalr", propagate_positions=True)
 system_tree_parser = Lark(grammar, start="system", parser="lalr", propagate_positions=True)
 decls_tree_parser = Lark(grammar, start="decls", parser="lalr", propagate_positions=True)
 
-def parse_aexpr_with_meta(text): return hp_transformer.transform(aexpr_tree_parser.parse(text))
-def parse_bexpr_with_meta(text): return hp_transformer.transform(bexpr_tree_parser.parse(text))
+def parse_expr_with_meta(text): return hp_transformer.transform(expr_tree_parser.parse(text))
 def parse_hp_with_meta(text): return hp_transformer.transform(hp_tree_parser.parse(text))
 def parse_hoare_triple_with_meta(text): return hp_transformer.transform(hoare_triple_tree_parser.parse(text))
 def parse_module_with_meta(text): return hp_transformer.transform(module_tree_parser.parse(text))

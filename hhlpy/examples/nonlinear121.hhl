@@ -24,11 +24,11 @@ pre [x1 == xi1]
     [e1 == ei1] 
     [e2 == ei2];
 t := 0; 
- <x1_dot=d1, x2_dot=d2, 
+ {x1_dot=d1, x2_dot=d2, 
 d1_dot=-w1*d2, d2_dot=w1*d1, 
 y1_dot=e1, y2_dot=e2, 
 e1_dot=-w2*e2, e2_dot=w2*e1, 
-t_dot = 1 & t < 10> 
+t_dot = 1 & t < 10}
 invariant 
     [w1*x2 + d1 - w1*xi2 - di1 == 0] 
     [-w1*x1 + d2 + w1*xi1 - di2 == 0] 

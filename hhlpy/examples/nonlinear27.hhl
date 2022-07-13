@@ -1,10 +1,10 @@
 # Nonlinear benchmark, problem 27
 # {(x+15)^2+(y-17)^2-1 <= 0}
 #      t := 0;
-#     <x_dot = y^2, y_dot = x*y, t_dot = 1 & t < 10>@invariant(4490/41+x^2>=y^2)
+#     {x_dot = y^2, y_dot = x*y, t_dot = 1 & t < 10}@invariant(4490/41+x^2>=y^2)
 # {!((x-11)^2+(y-16.5)^2-1 <= 0)}
 pre [(x+15)^2+(y-17)^2-1 <= 0];
 t := 0; 
-<x_dot = y^2, y_dot = x*y, t_dot = 1 & t < 10> 
+{x_dot = y^2, y_dot = x*y, t_dot = 1 & t < 10} 
 invariant [4490/41+x^2>=y^2];
 post [!((x-11)^2+(y-16.5)^2-1 <= 0)];

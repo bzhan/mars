@@ -1,11 +1,11 @@
 # Basic benchmark, problem 23
 # dC and dI rule
 # {x^2 + y^2 == 1 & e == x} 
-# t:=0; <x_dot = -y, y_dot = e, e_dot = -y, t_dot = 1 & t < 10>
+# t:=0; {x_dot = -y, y_dot = e, e_dot = -y, t_dot = 1 & t < 10}
 # {x^2 + y^2 == 1 & e == x}
 pre [x^2 + y^2 == 1] [e == x];
 t:=0; 
-<x_dot = -y, y_dot = e, e_dot = -y, t_dot = 1 & t < 10> 
+{x_dot = -y, y_dot = e, e_dot = -y, t_dot = 1 & t < 10} 
 invariant 
   [e == x] [x^2 + y^2 == 1];
 post [x^2 + y^2 == 1] [e == x];

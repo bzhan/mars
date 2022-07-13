@@ -12,10 +12,10 @@ pre [v >= 0] [A >= 0] [b > 0];
 if (m-x >= 2) { 
     a := A; 
     t := 0; 
-    <x_dot = v, v_dot = a & t < 10> 
-    invariant [a >= 0] [v >= 0 & A >= 0]; 
+    {x_dot = v, v_dot = a & t < 10} 
+    invariant [a >= 0] [v >= 0 && A >= 0]; 
 } else {
-    a := -b; <x_dot = v, v_dot = a & v > 0> 
+    a := -b; {x_dot = v, v_dot = a & v > 0}
     invariant [A >= 0]; 
 } 
 }* 

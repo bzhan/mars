@@ -83,7 +83,7 @@ def toWLexpr(e):
             raise AssertionError
 
     elif isinstance(e, expr.LogicExpr):
-        if e.op == '&':
+        if e.op == '&&':
             return wl.And(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
         elif e.op == '|':
             return wl.Or(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
@@ -161,9 +161,9 @@ def toHcsp(e):
         # Translate into LogicExpr in hcsp.
         elif e.head == WLSymbol("And"):
             if len(e.args) == 2:
-                return expr.LogicExpr('&', toHcsp(e.args[0]), toHcsp(e.args[1]))
+                return expr.LogicExpr('&&', toHcsp(e.args[0]), toHcsp(e.args[1]))
             elif len(e.args) > 2:
-                return expr.LogicExpr("&", toHcsp(WLFunction(WLSymbol("And"), *e.args[:-1])),
+                return expr.LogicExpr("&&", toHcsp(WLFunction(WLSymbol("And"), *e.args[:-1])),
                                             toHcsp(e.args[-1]))
             else:
                 raise AssertionError
@@ -208,7 +208,7 @@ def solveODE(hp, names, time_var):
     Example: {'v': v + a * t}
 
     'v' : str, function name
-     v + a * t : AExpr
+     v + a * t : Expr
 
     """
     assert isinstance(hp, hcsp.ODE)
@@ -300,7 +300,7 @@ def Ode2Wlexpr(hp, names, time_var):
 
 def wl_prove(e):
     """Attempt to prove the given condition."""
-    if not isinstance(e, expr.BExpr):
+    if not isinstance(e, expr.Expr):
         raise NotImplementedError
 
     # If wolfram not found, just return failure

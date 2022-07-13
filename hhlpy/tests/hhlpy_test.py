@@ -2,7 +2,7 @@
 
 import unittest
 
-from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser, hp_parser
+from ss2hcsp.hcsp.parser import expr_parser, expr_parser, hp_parser
 from hhlpy.hhlpy import compute_diff, compute_wp, compute_vcs, verify
 
 
@@ -10,10 +10,10 @@ def runWpTest(self, *, post, hp, expected_pre, expected_vcs=None, print_res=Fals
     if expected_vcs is None:
         expected_vcs = []
 
-    post = bexpr_parser.parse(post)
+    post = expr_parser.parse(post)
     hp = hp_parser.parse(hp)
-    expected_pre = bexpr_parser.parse(expected_pre)
-    expected_vcs = [bexpr_parser.parse(vc) for vc in expected_vcs]
+    expected_pre = expr_parser.parse(expected_pre)
+    expected_vcs = [expr_parser.parse(vc) for vc in expected_vcs]
 
     pre, vcs = compute_wp(hp, post)
     if print_res:
@@ -24,17 +24,17 @@ def runWpTest(self, *, post, hp, expected_pre, expected_vcs=None, print_res=Fals
     self.assertEqual(vcs, expected_vcs)
 
 def runVerify(self, *, pre, hp, post):
-    pre = bexpr_parser.parse(pre)
+    pre = expr_parser.parse(pre)
     hp = hp_parser.parse(hp)
-    post = bexpr_parser.parse(post)
+    post = expr_parser.parse(post)
     self.assertTrue(verify(pre, hp, post))
 
 
 class HHLPyTest(unittest.TestCase):
     def testComputeDiff(self):
-        e1 = bexpr_parser.parse("x >= 0")
-        res = compute_diff(e1, {'x': aexpr_parser.parse("2")})
-        expected = bexpr_parser.parse("2 >= 0")
+        e1 = expr_parser.parse("x >= 0")
+        res = compute_diff(e1, {'x': expr_parser.parse("2")})
+        expected = expr_parser.parse("2 >= 0")
         self.assertEqual(res, expected)
 
     def testComputeWp1(self):
@@ -91,13 +91,13 @@ class HHLPyTest(unittest.TestCase):
 
     def testComputeVC(self):
         # {x >= 0} x := x+1; (x := x+1)** {x >= 1}
-        pre = bexpr_parser.parse("x >= 0")
+        pre = expr_parser.parse("x >= 0")
         hp = hp_parser.parse("x := x+1; (x := x+1)**@invariant(x >= 1)")
-        post = bexpr_parser.parse("x >= 1")
+        post = expr_parser.parse("x >= 1")
         vcs = compute_vcs(pre, hp, post)
-        expected_vcs = [bexpr_parser.parse("x >= 1 --> x+1 >= 1"),
-                        bexpr_parser.parse("x >= 1 --> x >= 1"),
-                        bexpr_parser.parse("x >= 0 --> x+1 >= 1")]
+        expected_vcs = [expr_parser.parse("x >= 1 --> x+1 >= 1"),
+                        expr_parser.parse("x >= 1 --> x >= 1"),
+                        expr_parser.parse("x >= 0 --> x+1 >= 1")]
         self.assertEqual(vcs, expected_vcs)
 
     def testVerify1(self):

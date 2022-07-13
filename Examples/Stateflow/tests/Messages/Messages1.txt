@@ -20,7 +20,7 @@ begin
       } else {
         M := {};
       }
-      if (M != {} & M.data == 3) {
+      if (M != {} && M.data == 3) {
         if (Chart_st == "Chart_A") {
           Chart_st := "Chart_B";
           s := "en_B";

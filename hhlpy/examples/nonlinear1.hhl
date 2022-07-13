@@ -1,9 +1,9 @@
 # Nonlinear benchmark, problem 1
 #  {0.5 <= x & x <= 0.7 & 0 <= y & y <= 0.3}
-#  t := 0; <x_dot = -x + x * y , y_dot = -y, t_dot = 1 & t < 10>
+#  t := 0; {x_dot = -x + x * y , y_dot = -y, t_dot = 1 & t < 10}
 #  {!(-0.8 >= x & x >= -1 & -0.7 >= y & y >= -1)}
 pre [0.5 <= x] [x <= 0.7] [0 <= y] [y <= 0.3];
 t := 0; 
-<x_dot = -x + x * y , y_dot = -y, t_dot = 1 & t < 10> 
+{x_dot = -x + x * y , y_dot = -y, t_dot = 1 & t < 10} 
 invariant [x >= 0] {dbx} [y >= 0] {dbx};
-post [!(-0.8 >= x & x >= -1 & -0.7 >= y & y >= -1)];
+post [!(-0.8 >= x && x >= -1 && -0.7 >= y && y >= -1)];

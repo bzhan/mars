@@ -11,10 +11,10 @@ def compute_diff(e, eqs_dict):
     """Compute differential of an arithmetic or boolean expression."""
     def rec(e):
         if isinstance(e, expr.LogicExpr):
-            if e.op == "&":
-                return expr.LogicExpr("&", rec(e.exprs[0]), rec(e.exprs[1]))
+            if e.op == "&&":
+                return expr.LogicExpr("&&", rec(e.exprs[0]), rec(e.exprs[1]))
             elif e.op == "|":
-                 return expr.LogicExpr("&", rec(e.exprs[0]), rec(e.exprs[1]))
+                 return expr.LogicExpr("&&", rec(e.exprs[0]), rec(e.exprs[1]))
         elif isinstance(e, expr.RelExpr):
             if e.op == '<' or e.op == '<=':
                 return expr.RelExpr("<=", rec(e.expr1), rec(e.expr2))
@@ -52,7 +52,7 @@ def compute_wp(hp, post):
     """Compute weakest preconditions for a given hybrid program.
     
     hp : HCSP - input hybrid program.
-    post : BExpr - postcondition.
+    post : Expr - postcondition.
 
     Returns a pair (pre, vcs), where pre is the computed precondition,
     and vcs is a list of verification conditions.
@@ -78,7 +78,7 @@ def compute_wp(hp, post):
             raise NotImplementedError
         var = hp.var_name.name
 
-        if not isinstance(hp.expr, expr.BExpr):
+        if not isinstance(hp.expr, expr.Expr):
             raise NotImplementedError
 
         # Create a new var       
@@ -112,7 +112,7 @@ def compute_wp(hp, post):
         if hp.constraint != expr.true_expr:
             raise NotImplementedError
         
-        if not isinstance(hp.inv, expr.BExpr):
+        if not isinstance(hp.inv, expr.Expr):
             raise NotImplementedError('Invalid Invariant for Loop!') 
 
         # Compute wp for loop body with respect to invariant
@@ -129,7 +129,7 @@ def compute_wp(hp, post):
         if hp.out_hp != hcsp.Skip():
             raise NotImplementedError
         
-        if not isinstance(hp.inv, expr.BExpr):
+        if not isinstance(hp.inv, expr.Expr):
             raise NotImplementedError("Invalid Invariant for ODE!")
             
         # Construct dictionary corresponding to eqs.
@@ -144,7 +144,7 @@ def compute_wp(hp, post):
     
     elif isinstance(hp, hcsp.Condition):
         # Condition
-        if not isinstance(hp.cond, expr.BExpr):
+        if not isinstance(hp.cond, expr.Expr):
             raise NotImplementedError
         
         # Compute wp of hp.hp

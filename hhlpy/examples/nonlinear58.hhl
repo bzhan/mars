@@ -1,12 +1,12 @@
 # Nonlinear benchmark, problem 58
 # {(x + 2)^2 + (y + 2)^2 <= 5}
 #    t := 0;
-#   <x_dot = x+2*y-y^2, y_dot = -y+y^2, t_dot = 1 & t < 10>
+#   {x_dot = x+2*y-y^2, y_dot = -y+y^2, t_dot = 1 & t < 10}
 #   @invariant(x+y < 0, x < ((-2)+y)*y)
 # {2*x+y < 0}
 pre [(x + 2)^2 + (y + 2)^2 <= 5];
 t := 0; 
-<x_dot = x+2*y-y^2, y_dot = -y+y^2, t_dot = 1 & t < 10> 
+{x_dot = x+2*y-y^2, y_dot = -y+y^2, t_dot = 1 & t < 10} 
 invariant 
     [x+y < 0] {dbx} 
     [x < ((-2)+y)*y] {bc} 

@@ -12,17 +12,17 @@ begin
   Signal_Builder_tick := 0;
   tt := 0;
   {
-    if (Signal_Builder_tick >= 0 & Signal_Builder_tick < 2) {
+    if (Signal_Builder_tick >= 0 && Signal_Builder_tick < 2) {
       Signal_Builder_Signal_1 := 0.0 * (Signal_Builder_tick - 0) + 0.0;
-    } else if (Signal_Builder_tick >= 2 & Signal_Builder_tick < 3) {
+    } else if (Signal_Builder_tick >= 2 && Signal_Builder_tick < 3) {
       Signal_Builder_Signal_1 := 0.0 * (Signal_Builder_tick - 2) + 1.0;
-    } else if (Signal_Builder_tick >= 3 & Signal_Builder_tick < 5) {
+    } else if (Signal_Builder_tick >= 3 && Signal_Builder_tick < 5) {
       Signal_Builder_Signal_1 := 0.0 * (Signal_Builder_tick - 3) + 0.0;
     } else {
       Signal_Builder_Signal_1 := 0.0;
     }
     Signal_Builder_tick := Signal_Builder_tick + 1;
-    if (pre_Signal_Builder_Signal_1 < 0 & Signal_Builder_Signal_1 >= 0 | pre_Signal_Builder_Signal_1 == 0 & Signal_Builder_Signal_1 > 0) {
+    if (pre_Signal_Builder_Signal_1 < 0 && Signal_Builder_Signal_1 >= 0 | pre_Signal_Builder_Signal_1 == 0 && Signal_Builder_Signal_1 > 0) {
       Chart1EL := push(Chart1EL,"out_cmd");
       Chart1_done := 0;
       Chart1_AA_done := 0;
@@ -31,7 +31,7 @@ begin
       Chart1EL := pop(Chart1EL);
     }
     pre_Signal_Builder_Signal_1 := Signal_Builder_Signal_1;
-    <tt_dot = 1 & tt < 2>
+    {tt_dot = 1 & tt < 2}
     t := t + tt;
     _tick := _tick + 1;
     tt := 0;

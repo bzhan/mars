@@ -12,9 +12,9 @@ pre [(x1-y1)^2 + (x2-y2)^2 >= p^2 ]
     [d1 ==-om*(x2-c2)] [d2==om*(x1-c1)]
     [e1 ==-om*(y2-c2)] [e2==om*(y1-c1)];
 t := 0; 
- <x1_dot=d1, x2_dot=d2, d1_dot=-om*d2, d2_dot=om*d1, 
+ {x1_dot=d1, x2_dot=d2, d1_dot=-om*d2, d2_dot=om*d1, 
 y1_dot=e1, y2_dot=e2, e1_dot=-om*e2, e2_dot=om*e1, 
-t_dot = 1 & t < 10> 
-invariant [d1-e1 == -om*(x2-y2) & d2-e2 == om*(x1-y1)] 
+t_dot = 1 & t < 10}
+invariant [d1-e1 == -om*(x2-y2) && d2-e2 == om*(x1-y1)] 
           [(x1-y1)^2 + (x2-y2)^2 >= p^2];
 post [(x1-y1)^2 + (x2-y2)^2 >= p^2];

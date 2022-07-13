@@ -11,13 +11,13 @@ def is_atomic(hp):
                        'input_channel', 'output_channel', 'ode')
 
 def simplify_expr(e):
-    assert isinstance(e, expr.BExpr)
+    assert isinstance(e, expr.Expr)
     if not e.get_vars():
         b = simulator.eval_expr(e, dict())
         assert isinstance(b, bool)
         return expr.true_expr if b else expr.false_expr
     elif isinstance(e, expr.LogicExpr):
-        if e.op == '&':
+        if e.op == '&&':
             return expr.conj(*(simplify_expr(arg) for arg in e.exprs))
         elif e.op == '|':
             return expr.disj(*(simplify_expr(arg) for arg in e.exprs))

@@ -3,5 +3,5 @@
 # dG Rule
 # {x > 0} <x_dot = -x> {x > 0}
 pre [x > 0];
-t := 0; <x_dot = -x, t_dot=1 & t < 1> invariant ghost y [x * y * y == 1];
+t := 0; {x_dot = -x, t_dot=1 & t < 1} invariant ghost y [x * y * y == 1];
 post [x > 0];

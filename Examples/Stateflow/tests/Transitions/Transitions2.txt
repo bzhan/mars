@@ -21,7 +21,7 @@ begin
           if (Chart_S_st == "Chart_S_A") {
             Chart_S_st := "";
           }
-          if (Chart_S_st == "" & Chart_st == "Chart_S") {
+          if (Chart_S_st == "" && Chart_st == "Chart_S") {
             Chart_S_st := "Chart_S_B";
             s := "enB";
             log("enB" + "\n");

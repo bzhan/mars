@@ -1,10 +1,10 @@
 # Nonlinear benchmark, problem 28
 # {1-(x+6)^2 - (y+6)^2 >= 0}
 #      t := 0;
-#     <x_dot = y^2-2*y, y_dot = x^2+2*x, t_dot = 1 & t < 10>@invariant(3*x^2*(3+x)<=1181+3*((-3)+y)*y^2)
+#     {x_dot = y^2-2*y, y_dot = x^2+2*x, t_dot = 1 & t < 10}@invariant(3*x^2*(3+x)<=1181+3*((-3)+y)*y^2)
 # {!(1-(x-8.2)^2 - (y-4)^2 >= 0)}
 pre [1-(x+6)^2 - (y+6)^2 >= 0];
 t := 0;
-<x_dot = y^2-2*y, y_dot = x^2+2*x, t_dot = 1 & t < 10>
+{x_dot = y^2-2*y, y_dot = x^2+2*x, t_dot = 1 & t < 10}
     invariant [3*x^2*(3+x) <= 1181+3*((-3)+y)*y^2];
 post [!(1-(x-8.2)^2 - (y-4)^2 >= 0)];

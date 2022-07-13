@@ -10,7 +10,7 @@ import math
 import random
 from decimal import Decimal
 from scipy.integrate import solve_ivp
-from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, OpExpr, FunExpr, IfExpr, \
+from ss2hcsp.hcsp.expr import Expr, AVar, AConst, OpExpr, FunExpr, IfExpr, \
     ListExpr, DictExpr, ArrayIdxExpr, FieldNameExpr, BConst, LogicExpr, \
     RelExpr, PredCond, true_expr, false_expr, opt_round, get_range, str_of_val
 from ss2hcsp.hcsp import hcsp
@@ -508,7 +508,7 @@ class SimInfo:
             return expr.value
 
         elif isinstance(expr, LogicExpr):
-            if expr.op == "&":
+            if expr.op == "&&":
                 return self.eval_expr(expr.exprs[0]) and self.eval_expr(expr.exprs[1])
             elif expr.op == "|":
                 return self.eval_expr(expr.exprs[0]) or self.eval_expr(expr.exprs[1])
@@ -688,7 +688,7 @@ class SimInfo:
             
             # Case where the condition is a conjunction: take the minimum of
             # two delays
-            if isinstance(e, LogicExpr) and e.op == '&':
+            if isinstance(e, LogicExpr) and e.op == '&&':
                 delay1 = test_cond(e.exprs[0])
                 delay2 = test_cond(e.exprs[1])
                 return min(delay1, delay2)
@@ -880,7 +880,7 @@ class SimInfo:
             
         elif cur_hp.type == "assign":
             # Perform assignment
-            if isinstance(cur_hp.var_name, AExpr):
+            if isinstance(cur_hp.var_name, Expr):
                 self.exec_assign(cur_hp.var_name, self.eval_expr(cur_hp.expr), cur_hp)
             else:
                 # Multiple assignment
