@@ -77,10 +77,10 @@ function addAnnotationButtons(view) {
       }
       else {
         inv_changes = {from: to-1, 
-          insert: "\n\t" + " ".repeat(inv_desc_len) + 
-                  "[" + " ".repeat(space_len) + "]"}
-          inv_selection = {anchor: to-1 + inv_desc_len + 3, 
-                           head: to-1 + inv_desc_len + 3 + space_len}
+                       insert: "\n\t" + " ".repeat(inv_desc_len) + 
+                                "[" + " ".repeat(space_len) + "]"}
+        inv_selection = {anchor: to-1 + inv_desc_len + 3, 
+                          head: to-1 + inv_desc_len + 3 + space_len}
       }
 
       let deco = Decoration.widget({

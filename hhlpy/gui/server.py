@@ -41,7 +41,7 @@ def runCompute(code, constants=set()):
 
         for vc in vcs:
             # Use the bottom-most position `vc.pos[0]` to attach the VC to
-
+            hp = get_pos(hoare_triple.hp, vc.pos[0][0])
             meta = get_pos(hoare_triple.hp, vc.pos[0][0]).meta
             if meta.empty:
                 # LARK can't determine position of empty elements
@@ -58,13 +58,41 @@ def runCompute(code, constants=set()):
                     if not originMeta.empty:
                         origin.append({"from": originMeta.start_pos, "to": originMeta.end_pos})
 
+            label_computed = vc.comp_label
+            method_stored = None
+            
+            pms_start_pos = -1
+            pms_end_pos = -1
+            # TODO: Cases when the bottom most predicate of vc is an ode invariant or post-condition.
+            # If the bottom most predicate of vc is a loop invariant.
+            if isinstance(hp, hcsp.Loop) and vc.annot_pos is not None:
+                if hp.inv:
+                    inv = hp.inv[vc.annot_pos]
+                    
+                    proof_methods = inv.proof_methods
+                    pms_meta = proof_methods.meta
+                    if pms_meta.empty:
+                        pms_meta.start_pos = inv.meta.end_pos
+                        pms_meta.end_pos = inv.meta.end_pos
+                    pms_start_pos = proof_methods.meta.start_pos
+                    pms_end_pos = proof_methods.meta.end_pos
+                    # If the method of this vc is stored in proof_methods,
+                    # send the method back to the client, which will be used as the default method.
+                    for proof_method in proof_methods.pms:
+                        if str(label_computed) == str(proof_method.label):
+                            method_stored = proof_method.method
+
             vc_infos.append({
                 "line": meta.end_line,
                 "column": meta.column,
                 "start_pos": meta.start_pos,
                 "end_pos": meta.end_pos,
                 "formula": str(vc.expr),
+                "label": str(vc.comp_label),
+                "method": method_stored,
                 "origin": origin,
+                "pms_start_pos": pms_start_pos,
+                "pms_end_pos": pms_end_pos
             })
     
     return vc_infos
@@ -75,10 +103,9 @@ def runVerify(formula, solver):
     """
     formula = parse_bexpr_with_meta(formula)
 
-    print('formula:', formula, "solver:", solver)
-    if solver == "Z3":
+    if solver == "z3":
         return z3_prove(formula)
-    elif solver == "Wolfram Engine":
+    elif solver == "wolfram":
         return wl_prove(formula)
     else:
         raise NotImplementedError

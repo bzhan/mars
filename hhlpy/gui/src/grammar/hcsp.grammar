@@ -160,7 +160,7 @@ atom_cmd {
 
 ichoice_cmd {
   atom_cmd 
-  | IchoiceCmd { ichoice_cmd "++" atom_cmd }
+  | IchoiceCmd { atom_cmd ("++" atom_cmd)+ }
 }   // Priority: 80
 
 SeqCmd {
@@ -182,10 +182,28 @@ Invariant { "[" cond "]"}
 
 maybe_loop_invariant { ("invariant" Loop_invariant+ ";")? }
 Loop_invariant { Invariant ("{{" proof_method ("," proof_method)* "}}")? }
-proof_method { label ":" method }
-label { CNAME? SIGNED_NUMBER? }    
-method { "Z3"       
-      | "Wolfram Engine" }
+proof_method { (label ":")? method }
+
+method { "z3"       
+      | "wolfram" }
+
+categ_label { "init"
+      | "maintain" }
+
+atom_label { int
+      | "execute"
+      | "skip" }
+
+branch_label {
+    atom_label ("(" branch_label ")")?
+  | branch_label "." atom_label ("(" branch_label ")")? 
+}
+
+label {
+    categ_label
+  | branch_label
+  | categ_label branch_label
+}
 
 maybe_ode_invariant{ ("invariant" Ode_invariant+ ";")?}
 
