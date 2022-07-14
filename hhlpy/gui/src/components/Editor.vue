@@ -1,9 +1,10 @@
 <template>
   <div class="editor">
-    <div id="code"></div>
-
-    <vcs :vc_infos="vc_infos" :view="editorView" @changeSolver="changeSolver"></vcs>
-    <!-- {{vc_infos}} -->
+    <div class="main"  @mouseup="isDragging = false" @mousemove="resizeH">
+      <div id="code"></div>
+      <div class="resizer" @mousedown="isDragging = true"></div>
+      <vcs :vc_infos="vc_infos" :view="editorView" @changeSolver="changeSolver" class="vcs"></vcs>
+    </div>
 
     <div class="toolbar">
       <div class="group">
@@ -64,7 +65,8 @@ export default {
     vc_info_received: "",   //An  array received from server, consisted of objects about vc information.
     vc_infos: [], // An array of verification condition information, each information object include formula, solver, result and origin.
     editorView: initEditor(),
-    examples: []
+    examples: [],
+    isDragging: false
   }},
   components: {
     vcs: VerificationCondition2
@@ -212,11 +214,11 @@ export default {
     },
 
     to_proof_method_dict(pms)
-    // Transfer a proof method string into a Map object.
-    // Example: transfer "init: z3, maintain: wolfram" 
-    //          into Map([[init, z3], [maintain, wolfram]])
-    // Note that if the proof method is "z3", without label, 
-    // the key for it would be set as "None" in the Map object.      
+    /* Transfer a proof method string into a Map object.
+       Example: transfer "init: z3, maintain: wolfram" 
+                into Map([[init, z3], [maintain, wolfram]])
+       Note that if the proof method is "z3", without label, 
+       the key for it would be set as "None" in the Map object.  **/    
     {
       console.assert(typeof(pms) === "string", "The parameter should be a string")
       pms = pms.trim()
@@ -252,11 +254,11 @@ export default {
     },
 
     to_proof_method_string(pm_dict)
-    // Transfer a proof method Map object into a string.
-    // Example: transfer Map([[init, z3], [maintain, wolfram]])
-    //          into "init: z3, maintain: wolfram"
-    // Note that if the key is "None" in the Map object, for example, Map([["None", "z3"],])
-    // the string for it would be only the method, without a label, i.e. "z3".   
+    /* Transfer a proof method Map object into a string.
+       Example: transfer Map([[init, z3], [maintain, wolfram]])
+                into "init: z3, maintain: wolfram"
+       Note that if the key is "None" in the Map object, for example, Map([["None", "z3"],])
+       the string for it would be only the method, without a label, i.e. "z3". */  
     {
       let pm_str = ""
       let i = 0
@@ -278,6 +280,26 @@ export default {
       }
 
       return pm_str
+    },
+
+    resizeH(e) {
+      /*Resize horizontally 
+      TODO: wrap this in a component?*/
+      if (!this.isDragging){
+        return false
+      }
+
+      let resizer = document.querySelector('.resizer')
+      let container = resizer.parentNode
+      let itemLeft = resizer.previousElementSibling
+
+      let itemLeftMinWidth = 200
+      let resizerWidth = 5
+
+      let pointerRelativeXpos = e.clientX - container.offsetLeft
+
+      itemLeft.style.width = (Math.max(itemLeftMinWidth, pointerRelativeXpos - resizerWidth)) + 'px'
+      itemLeft.style.flexGrow = 0
     }
   }
 }
@@ -295,11 +317,6 @@ export default {
 .toolbar {
   flex: 0 1 auto;
   background: rgb(67, 67, 67);
-}
-
-#code {
-  flex: 1 1 auto;
-  overflow: hidden;
 }
 
 .toolbar form {
@@ -337,8 +354,30 @@ export default {
   width: 0;
 }
 
+.main {
+  display: flex;
+  flex-direction: row;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+#code {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+}
 .vcs {
-  margin-top: 20px;
-  font-family: monospace;
+  box-sizing: border-box;
+  flex: 1 1 auto;
+}
+
+.resizer {
+    width: 5px;
+    padding: 0;
+    cursor: ew-resize;
+    flex: 0 0 auto;
+}
+
+.resizer:hover {
+  background: lightgray;
 }
 </style>
