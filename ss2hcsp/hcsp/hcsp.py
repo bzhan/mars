@@ -4,7 +4,7 @@ from collections import OrderedDict
 from typing import Union
 
 from ss2hcsp.hcsp.expr import Expr, AVar, AConst, Expr, true_expr, false_expr, RelExpr, LogicExpr, Expr
-from ss2hcsp.hcsp import invariant
+from ss2hcsp.hcsp import assertion
 from ss2hcsp.util.topsort import topological_sort
 import re
 
@@ -916,7 +916,7 @@ class ODE(HCSP):
         assert inv is None or isinstance(inv, tuple)
         if isinstance(inv, tuple):
             for sub_inv in inv:
-                assert isinstance(sub_inv, invariant.Assertion)
+                assert isinstance(sub_inv, assertion.Assertion)
         assert not out_hp or isinstance(out_hp, HCSP)
 
         self.type = "ode"
@@ -1075,7 +1075,7 @@ class Loop(HCSP):
     
     hp : HCSP - body of the loop.
     constraint : Expr - loop condition, default to true.
-    inv : tuple of LoopInvariants - invariants
+    inv : tuple of OrdinaryAssertions - invariants
 
     """
     def __init__(self, hp, *, inv=None, constraint=true_expr, meta=None):
@@ -1085,7 +1085,7 @@ class Loop(HCSP):
         if inv is not None:
             assert isinstance(inv, tuple)
             for sub_inv in inv:
-                assert isinstance(sub_inv, invariant.OrdinaryAssertion)
+                assert isinstance(sub_inv, assertion.OrdinaryAssertion)
         self.hp = hp
         self.inv = inv
         self.constraint = constraint
@@ -1393,7 +1393,7 @@ class HoareTriple:
     def __init__(self, pre, hp, post, functions=None, predicates=None, meta=None):
         self.pre = list(pre)
         self.post = list(post)
-        assert all(isinstance(subpost, invariant.OrdinaryAssertion) for subpost in post)
+        assert all(isinstance(subpost, assertion.OrdinaryAssertion) for subpost in post)
         self.hp = hp
         if functions is None:
             functions = dict()

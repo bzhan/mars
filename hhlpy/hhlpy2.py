@@ -14,7 +14,7 @@ from hhlpy.wolframengine_wrapper import solveODE
 from hhlpy.wolframengine_wrapper import wl_prove
 from hhlpy.wolframengine_wrapper import wl_simplify, wl_polynomial_div, wl_is_polynomial
 from hhlpy.z3wrapper import z3_prove
-from ss2hcsp.hcsp import hcsp, expr, invariant, label
+from ss2hcsp.hcsp import hcsp, expr, assertion, label
 from ss2hcsp.hcsp.parser import expr_parser, expr_parser
 from ss2hcsp.hcsp.simulator import get_pos
 
@@ -862,18 +862,18 @@ class CmdVerifier:
             # TODO: also run if no invariants are specified? testVerify62 testVerify54 testVerify53 testVerify52 testVerify50 testVerify55
 
                 if cur_hp.inv is None:
-                    cur_hp.inv = (invariant.CutInvariant(inv=expr.true_expr),)
+                    cur_hp.inv = (assertion.CutInvariant(inv=expr.true_expr),)
                 # Construct partial post conditions, e.g., for `[A] ghost x [B] [C]`, 
                 # they would be `C`, `B && C`, `EX x. B && C`, and `A && EX x. B && C``
                 subposts = []
                 subpost = None
                 for inv in reversed(cur_hp.inv):
-                    if isinstance(inv, invariant.CutInvariant):
+                    if isinstance(inv, assertion.CutInvariant):
                         if subpost is None:
                             subpost = inv.inv
                         else:
                             subpost = expr.LogicExpr('&&', inv.inv, subpost)
-                    elif isinstance(inv, invariant.GhostIntro):
+                    elif isinstance(inv, assertion.GhostIntro):
                         if subpost is None:
                             raise AssertionError("Ghost invariant cannot be last instruction.")
                         subpost = expr.ExistsExpr(inv.var, subpost)
@@ -927,7 +927,7 @@ class CmdVerifier:
                 # Add ghost variables and cuts to self.infos:
                 sub_pos = pos
                 for i, inv in enumerate(cur_hp.inv):
-                    if isinstance(inv, invariant.CutInvariant):
+                    if isinstance(inv, assertion.CutInvariant):
                         if i == len(cur_hp.inv) - 1:
                             sub_pos_left = sub_pos
                         else:
@@ -966,7 +966,7 @@ class CmdVerifier:
                             if inv.rule is not None:
                                 raise NotImplementedError("Unknown ODE method")
                     
-                    elif isinstance(inv, invariant.GhostIntro):
+                    elif isinstance(inv, assertion.GhostIntro):
                         subpost = subposts[-2-i]
                         self.infos[sub_pos].ghost_inv = subpost
                         self.infos[sub_pos].ghost_var = inv.var

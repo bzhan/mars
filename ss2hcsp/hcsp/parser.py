@@ -3,7 +3,7 @@
 from lark import Lark, Transformer, v_args, exceptions
 from lark.tree import Meta
 from ss2hcsp.hcsp import expr
-from ss2hcsp.hcsp import invariant, label
+from ss2hcsp.hcsp import assertion, label
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import module
 from decimal import Decimal
@@ -112,7 +112,7 @@ grammar = r"""
         | "{" cmd "}" -> paren_cmd
 
     ?maybe_loop_invariant: ("invariant" ord_assertion+ ";")? -> maybe_loop_invariant
-    
+
     ?ord_assertion: "[" expr "]" maybe_proof_methods          -> ord_assertion
     
     ?maybe_proof_methods: ("{{" proof_method ("," proof_method)* "}}")?    ->maybe_proof_methods
@@ -413,7 +413,7 @@ class HPTransformer(Transformer):
         return hcsp.OutputChannel(hcsp.Channel(str(ch_name), ch_args, meta=meta), meta=meta)
 
     def ord_assertion(self, meta, expr, proof_methods):
-        return invariant.OrdinaryAssertion(expr=expr, proof_methods=proof_methods, meta=meta)
+        return assertion.OrdinaryAssertion(expr=expr, proof_methods=proof_methods, meta=meta)
 
     def maybe_loop_invariant(self, meta, *args):
         if len(args) == 0:
@@ -429,18 +429,18 @@ class HPTransformer(Transformer):
 
     def ode_invariant(self, meta, *args):
         if len(args) == 1:
-            return invariant.CutInvariant(inv=args[0], meta=meta)
+            return assertion.CutInvariant(inv=args[0], meta=meta)
         elif len(args) == 2:
-            return invariant.CutInvariant(inv=args[0], rule=args[1], meta=meta)
+            return assertion.CutInvariant(inv=args[0], rule=args[1], meta=meta)
         else:
-            return invariant.CutInvariant(inv=args[0], rule=args[1], rule_arg=args[2], meta=meta)
+            return assertion.CutInvariant(inv=args[0], rule=args[1], rule_arg=args[2], meta=meta)
     
     def ghost_intro(self, meta, var):
-        return invariant.GhostIntro(var=var, diff=None, meta=meta)
+        return assertion.GhostIntro(var=var, diff=None, meta=meta)
     
     def ghost_intro_eq(self, meta, var, diff):
         assert var.endswith("_dot")
-        return invariant.GhostIntro(var=var[:-4], diff=diff, meta=meta)
+        return assertion.GhostIntro(var=var[:-4], diff=diff, meta=meta)
 
     def ode_rule_di(self, meta): return "di"
     def ode_rule_bc(self, meta): return "bc"
@@ -475,15 +475,15 @@ class HPTransformer(Transformer):
     def proof_method(self, meta, *args):
         assert(len(args) == 1 or len(args) == 2)
         if len(args) == 1:
-            return invariant.ProofMethod(method=args[0], meta=meta)
+            return assertion.ProofMethod(method=args[0], meta=meta)
         else:
-            return invariant.ProofMethod(label=args[0], method=args[1], meta=meta)
+            return assertion.ProofMethod(label=args[0], method=args[1], meta=meta)
 
     def maybe_proof_methods(self, meta, *args):
         if len(args) == 0:
-            return invariant.ProofMethods(meta=meta)
+            return assertion.ProofMethods(meta=meta)
         else:
-            return invariant.ProofMethods(*args, meta=meta)
+            return assertion.ProofMethods(*args, meta=meta)
             
     def repeat_cmd(self, meta, cmd, inv):
         return hcsp.Loop(cmd, meta=meta, inv=inv)
