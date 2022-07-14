@@ -56,7 +56,7 @@ def toSpexpr(e):
         elif e.op == '!=':
             return sympy.Rel(toSpexpr(e.expr1), toSpexpr(e.expr2), '!=')
     elif isinstance(e, expr.LogicExpr):
-        if e.op == '&':
+        if e.op == '&&':
             return sympy.And(toSpexpr(e.exprs[0]), toSpexpr(e.exprs[1]))
         elif e.op == '|':
             return sympy.Or(toSpexpr(e.exprs[0]), toSpexpr(e.exprs[1]))

@@ -1,5 +1,5 @@
 # Basic benchmark, problem 4
-# {x >= 0} x := x+1; <x_dot=2 & x < 10> {x >= 1}
+# {x >= 0} x := x+1; {x_dot=2 & x < 10} {x >= 1}
 pre [x >= 0];
-x := x+1; <x_dot=2 & x < 10> invariant [x >= 1];
+x := x+1; {x_dot=2 & x < 10} invariant [x >= 1];
 post [x >= 1];

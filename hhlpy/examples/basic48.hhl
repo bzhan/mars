@@ -12,14 +12,14 @@
 #     ] x <= S
 pre [v >= 0] [A > 0] [B >= b] [b > 0] [x+v^2/(2*b) <= S] [ep > 0];
 {   if (x+v^2/(2*b) + (A/b+1)*(A/2*ep^2+ep*v) <= S) {
-      a := *(-B <= a & a <= A); 
+      a := *(-B <= a && a <= A); 
     } else { 
-      a := *(-B <= a & a <= -b); 
+      a := *(-B <= a && a <= -b); 
     } 
- ++ if (v == 0) { a := 0; } else { a := *(-B <= a & a <= -b); } 
- ++ a := *(-B <= a & a <= -b); 
+ ++ if (v == 0) { a := 0; } else { a := *(-B <= a && a <= -b); } 
+ ++ a := *(-B <= a && a <= -b); 
   c := 0; 
-  < x_dot = v, v_dot = a, c_dot = 1 & v > 0 & c < ep > 
+  { x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep }
   invariant [x+v^2/(2*b) <= S] {sln};
 }* 
 invariant [x+v^2/(2*b) <= S] [v >= 0];

@@ -5,7 +5,7 @@ import os
 from wolframclient.evaluation import WolframLanguageSession
 
 from ss2hcsp.hcsp import expr
-from ss2hcsp.hcsp.parser import parse_aexpr_with_meta, parse_bexpr_with_meta, parse_hp_with_meta, \
+from ss2hcsp.hcsp.parser import parse_expr_with_meta, parse_expr_with_meta, parse_hp_with_meta, \
     parse_hoare_triple_with_meta
 from hhlpy.hhlpy2 import CmdVerifier
 from hhlpy.wolframengine_wrapper import found_wolfram, session
@@ -16,9 +16,9 @@ def runVerify(self, *, pre, hp, post, constants=set(),
               andR_rule=None,
               print_vcs=False, expected_vcs=None):
     # Parse pre-condition, HCSP program, and post-condition
-    pre = parse_bexpr_with_meta(pre)
+    pre = parse_expr_with_meta(pre)
     hp = parse_hp_with_meta(hp)
-    post = parse_bexpr_with_meta(post)
+    post = parse_expr_with_meta(post)
 
     # Initialize the verifier
     verifier = CmdVerifier(pre=pre, hp=hp, post=post, constants=constants, 
@@ -27,7 +27,7 @@ def runVerify(self, *, pre, hp, post, constants=set(),
     if andR_rule:
         for pos, andR in andR_rule.items():
             if isinstance(andR, str):
-                andR = parse_bexpr_with_meta(andR)
+                andR = parse_expr_with_meta(andR)
             verifier.set_andR_rule(pos, andR)
     # Compute wp and verify
     verifier.compute_wp()
@@ -58,7 +58,7 @@ def runVerify(self, *, pre, hp, post, constants=set(),
 
     if expected_vcs:
         for pos, vcs in expected_vcs.items():
-            vcs = [parse_bexpr_with_meta(vc) for vc in vcs]
+            vcs = [parse_expr_with_meta(vc) for vc in vcs]
             actual_vcs = [vc.expr for vc in verifier.infos[pos].vcs if not is_trivial(vc.expr)]
             self.assertEqual(set(vcs), set(actual_vcs), 
             "\nExpect: {}\nActual: {}".format([str(vc) for vc in vcs],[str(vc) for vc in actual_vcs]))
@@ -86,7 +86,7 @@ def runFile(self, file,
     if andR_rule:
         for pos, andR in andR_rule.items():
             if isinstance(andR, str):
-                andR = parse_bexpr_with_meta(andR)
+                andR = parse_expr_with_meta(andR)
             verifier.set_andR_rule(pos, andR)
 
     # Compute wp and verify
@@ -118,7 +118,7 @@ def runFile(self, file,
 
     if expected_vcs:
         for pos, vcs in expected_vcs.items():
-            vcs = [parse_bexpr_with_meta(vc) for vc in vcs]
+            vcs = [parse_expr_with_meta(vc) for vc in vcs]
             actual_vcs = [vc.expr for vc in verifier.infos[pos].vcs if not is_trivial(vc.expr)]
             self.assertEqual(set(vcs), set(actual_vcs), 
             "\nExpect: {}\nActual: {}".format([str(vc) for vc in vcs],[str(vc) for vc in actual_vcs]))
@@ -183,7 +183,7 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testVerify3(self):
         runFile(self, file="test3.hhl",
-                  expected_vcs={((), ()): ["x >= 0 -> x + 1 >= 1 & x + 1 + 2 >= 3"]})
+                  expected_vcs={((), ()): ["x >= 0 -> x + 1 >= 1 && x + 1 + 2 >= 3"]})
 
     def testBasic2(self):
         runFile(self, file="basic2.hhl",
@@ -274,7 +274,7 @@ class BasicHHLPyTest(unittest.TestCase):
         runFile(self, file="basic15.hhl",
                 expected_vcs={((), ()): ["x > 0 -> 0 < 1 -> (\exists y. x * y * y == 1)", \
                                          "x > 0 -> 0 >= 1 -> x > 0"],
-                              ((1,), ()): ["(\exists y. x * y * y == 1) & t == 1 -> x > 0"]})
+                              ((1,), ()): ["(\exists y. x * y * y == 1) && t == 1 -> x > 0"]})
 
     def testBasic9(self):
         runFile(self, file="basic9.hhl")
@@ -288,11 +288,11 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testBasic12(self):
         runFile(self, file="basic12.hhl",
-                  expected_vcs={((), ()): ["y >= 0 -> x >= 0 & y >= 0 -> \
-                                            x < 10 -> y >= 0 & x >= 0",
-                                           "y >= 0 -> x >= 0 & y >= 0 -> \
+                  expected_vcs={((), ()): ["y >= 0 -> x >= 0 && y >= 0 -> \
+                                            x < 10 -> y >= 0 && x >= 0",
+                                           "y >= 0 -> x >= 0 && y >= 0 -> \
                                             x >= 10 -> x >= 0",
-                                           "y >= 0 -> (y >= 0 & x >= 0) & x == 10 ->\
+                                           "y >= 0 -> (y >= 0 && x >= 0) && x == 10 ->\
                                             x >= 0"]})
 
     def testBasic13(self):
@@ -309,11 +309,11 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testBasic17(self):
         runFile(self, file="basic17.hhl",
-                  expected_vcs={((), ()): ["y > 0 -> x > 0 & y > 0 -> \
+                  expected_vcs={((), ()): ["y > 0 -> x > 0 && y > 0 -> \
                                             (0 < 10 -> (\exists z. x * z * z == 1))",
-                                            "y > 0 -> x > 0 & y > 0 -> \
+                                            "y > 0 -> x > 0 && y > 0 -> \
                                             (0 >= 10 -> x > 0)"],
-                                ((1,), ()): ["y > 0 -> (\exists z. x * z * z == 1) & t == 10 \
+                                ((1,), ()): ["y > 0 -> (\exists z. x * z * z == 1) && t == 10 \
                                               -> x > 0"]})
 
     def testBasic18(self):
@@ -344,15 +344,15 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testVerify34(self):
         runFile(self, file="test34.hhl",
-                  expected_vcs={((),()): ["z == -2 -> x >= 1 & y == 0 -> x >= 1 & y >= 0", 
+                  expected_vcs={((),()): ["z == -2 -> x >= 1 && y == 0 -> x >= 1 && y >= 0", 
                                           # `y == 0` comes from implicit dW
                                           "z == -2 -> y > 0 -> y >= 0", 
                                           # This is from dI (condition implies differential of invariant)
-                                          "z == -2 -> x >= 1 & y == 10 & z == -2 ->\
+                                          "z == -2 -> x >= 1 && y == 10 && z == -2 ->\
                                           (y > 0 -> x >= 1)", 
-                                          "z == -2 -> x >= 1 & y == 10 & z == -2 -> \
-                                          (y <= 0 -> x >= 1 & y >= 0)"]}) 
-                                          # `y <= 0 -> x >= 1 & y >= 0` is the dW precondition
+                                          "z == -2 -> x >= 1 && y == 10 && z == -2 -> \
+                                          (y <= 0 -> x >= 1 && y >= 0)"]}) 
+                                          # `y <= 0 -> x >= 1 && y >= 0` is the dW precondition
 
     def testVerify35(self):
         runFile(self, file="test35.hhl",)

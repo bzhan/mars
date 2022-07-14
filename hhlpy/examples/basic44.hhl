@@ -3,13 +3,13 @@
 # {v <= V & A > 0}
 #
 # (a := A;
-#  <x_dot = v, v_dot = a & v < V>
+#  {x_dot = v, v_dot = a & v < V}
 # )**
 #
 # {v <= V}
 pre [v <= V] [A > 0];
 {a := A;
-<x_dot = v, v_dot = a & v < V>
+{x_dot = v, v_dot = a & v < V}
 invariant [true]; 
  }*
  invariant [v <= V];

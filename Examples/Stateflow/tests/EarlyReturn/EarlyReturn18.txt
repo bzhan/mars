@@ -5,7 +5,7 @@ procedure exec_Chart begin
   Chart_ret := 0;
   if (Chart_st == "Chart_S") {
     Chart_S_done := 0;
-    if (ChartEL != [] & top(ChartEL) == "E") {
+    if (ChartEL != [] && top(ChartEL) == "E") {
       if (Chart_st == "Chart_S") {
         s := "exS";
         log("exS" + "\n");
@@ -21,11 +21,11 @@ procedure exec_Chart begin
         Chart_S_done := 1;
       }
     }
-    if (Chart_st == "Chart_S" & Chart_S_done == 0) {
+    if (Chart_st == "Chart_S" && Chart_S_done == 0) {
       s := "duS";
       log("duS" + "\n");
     }
-    if (Chart_st == "Chart_S" & Chart_S_done == 0) {
+    if (Chart_st == "Chart_S" && Chart_S_done == 0) {
       s := "ca1";
       log("ca1" + "\n");
       if (Chart_st == "Chart_S") {

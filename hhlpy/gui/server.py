@@ -8,7 +8,7 @@ from os.path import isfile, join, dirname
 from operator import pos
 
 from ss2hcsp.hcsp import expr, hcsp
-from ss2hcsp.hcsp.parser import parse_hoare_triple_with_meta, parse_bexpr_with_meta
+from ss2hcsp.hcsp.parser import parse_hoare_triple_with_meta, parse_expr_with_meta
 from ss2hcsp.hcsp.simulator import get_pos
 from hhlpy.hhlpy2 import CmdVerifier
 from hhlpy.wolframengine_wrapper import wl_prove
@@ -101,7 +101,7 @@ def runVerify(formula, solver):
     """Verify the given verification condition of the solver.
     Return True or False
     """
-    formula = parse_bexpr_with_meta(formula)
+    formula = parse_expr_with_meta(formula)
 
     if solver == "z3":
         return z3_prove(formula)

@@ -5,18 +5,18 @@ import unittest
 from ss2hcsp.hcsp.hcsp import HCSPInfo, Procedure
 from ss2hcsp.hcsp import module
 from ss2hcsp.hcsp.parser import hp_parser, module_parser, parse_file, parse_module_file, \
-                                bexpr_parser
+                                expr_parser
 
 
 class ParserTest(unittest.TestCase):
     def testParseFile(self):
         infos = parse_file("""
-            P0 ::= x := 0; { <x_dot = 1 & true> |> [](p2c!x --> skip;) c2p?x; }*
+            P0 ::= x := 0; { {x_dot = 1 & true} |> [](p2c!x --> skip;) c2p?x; }*
             P1 ::= { wait(2); p2c?x; c2p!x-1; }*
         """)
 
         self.assertEqual(infos, [
-            HCSPInfo("P0", hp_parser.parse("x := 0; { <x_dot = 1 & true> |> [](p2c!x --> skip;) c2p?x; }*")),
+            HCSPInfo("P0", hp_parser.parse("x := 0; { {x_dot = 1 & true} |> [](p2c!x --> skip;) c2p?x; }*")),
             HCSPInfo("P1", hp_parser.parse("{ wait(2); p2c?x; c2p!x-1; }*"))
         ])
 
@@ -28,7 +28,7 @@ class ParserTest(unittest.TestCase):
             output x;
             begin
                 x := 0;
-                { <x_dot = 1 & true> |> [](p2c!x --> skip; ) c2p?x; }*
+                { {x_dot = 1 & true} |> [](p2c!x --> skip; ) c2p?x; }*
             end
             endmodule
 
@@ -45,7 +45,7 @@ class ParserTest(unittest.TestCase):
         """)
 
         self.assertEqual(infos, [
-            HCSPInfo("P0", hp_parser.parse("x := 0; { <x_dot = 1 & true> |> [](p2c!x --> skip;) c2p?x; }*")),
+            HCSPInfo("P0", hp_parser.parse("x := 0; { {x_dot = 1 & true} |> [](p2c!x --> skip;) c2p?x; }*")),
             HCSPInfo("P1", hp_parser.parse("{ wait(2); p2c?x; c2p!x-1; }*"))
         ])
 
@@ -57,7 +57,7 @@ class ParserTest(unittest.TestCase):
             output x;
             begin
               x := 0;
-              {<x_dot = 1 & true> |> [](p2c!x --> skip;) c2p?x; }*
+              {{x_dot = 1 & true} |> [](p2c!x --> skip;) c2p?x; }*
             end
             endmodule
 
@@ -76,9 +76,9 @@ class ParserTest(unittest.TestCase):
         """)
 
         self.assertEqual(infos, [
-            HCSPInfo("P0a", hp_parser.parse("x := 0; { <x_dot = 1 & true> |> [](ch1!x --> skip;) ch2?x; }*")),
+            HCSPInfo("P0a", hp_parser.parse("x := 0; { {x_dot = 1 & true} |> [](ch1!x --> skip;) ch2?x; }*")),
             HCSPInfo("P1a", hp_parser.parse("{ wait(2); ch1?x; ch2!x-1; }*")),
-            HCSPInfo("P0b", hp_parser.parse("x := 0; { <x_dot = 1 & true> |> [](ch3!x --> skip;) ch4?x; }*")),
+            HCSPInfo("P0b", hp_parser.parse("x := 0; { {x_dot = 1 & true} |> [](ch3!x --> skip;) ch4?x; }*")),
             HCSPInfo("P1b", hp_parser.parse("{ wait(2); ch3?x; ch4!x-1; }*")),
         ])
 
@@ -90,7 +90,7 @@ class ParserTest(unittest.TestCase):
             output x;
             begin
               x := 0;
-              { <x_dot = 1 & true> |> [](p2c[i]!x --> skip; ) c2p[i]?x; }*
+              { {x_dot = 1 & true} |> [](p2c[i]!x --> skip; ) c2p[i]?x; }*
             end
             endmodule
 
@@ -107,9 +107,9 @@ class ParserTest(unittest.TestCase):
         """)
 
         self.assertEqual(infos, [
-            HCSPInfo("P0a", hp_parser.parse("x := 0; { <x_dot = 1 & true> |> [](p2c[0]!x --> skip;) c2p[0]?x; }*")),
+            HCSPInfo("P0a", hp_parser.parse("x := 0; { {x_dot = 1 & true} |> [](p2c[0]!x --> skip;) c2p[0]?x; }*")),
             HCSPInfo("P1a", hp_parser.parse("{ wait(2); p2c[0]?x; c2p[0]!x-1; }*")),
-            HCSPInfo("P0b", hp_parser.parse("x := 0; { <x_dot = 1 & true> |> [](p2c[1]!x --> skip;) c2p[1]?x; }*")),
+            HCSPInfo("P0b", hp_parser.parse("x := 0; { {x_dot = 1 & true} |> [](p2c[1]!x --> skip;) c2p[1]?x; }*")),
             HCSPInfo("P1b", hp_parser.parse("{ wait(2); p2c[1]?x; c2p[1]!x-1; }*")),
         ])
 
@@ -131,19 +131,19 @@ class ParserTest(unittest.TestCase):
         ))
 
     def testQuantifierExpr(self):
-        exprs = [bexpr_parser.parse("\\forall x. x != 0 -> 1/x != 0"),
-                 bexpr_parser.parse("\\forall {x, y}. x^2 + y^2 >= 0"),
-                 bexpr_parser.parse("\\exists x. x > 0 -> x * y^2 == 1"),
-                 bexpr_parser.parse("\\exists {x, y}. x^2 + y^2 == 0"),
-                 bexpr_parser.parse("\\forall x. \\exists y. x > 0 -> x * y^2 == 1"),
-                 bexpr_parser.parse("\\exists y. \\forall x. x > 0 -> x * y^2 == 1"),
-                 bexpr_parser.parse("\\forall x. \\forall y. x^2 + y^2 >= 0")]
+        exprs = [expr_parser.parse("\\forall x. x != 0 -> 1/x != 0"),
+                 expr_parser.parse("\\forall {x, y}. x^2 + y^2 >= 0"),
+                 expr_parser.parse("\\exists x. x > 0 -> x * y^2 == 1"),
+                 expr_parser.parse("\\exists {x, y}. x^2 + y^2 == 0"),
+                 expr_parser.parse("\\forall x. \\exists y. x > 0 -> x * y^2 == 1"),
+                 expr_parser.parse("\\exists y. \\forall x. x > 0 -> x * y^2 == 1"),
+                 expr_parser.parse("\\forall x. \\forall y. x^2 + y^2 >= 0")]
 
         for expr in exprs:
             print(expr) 
 
     def testNotExpr(self):
-        exprs = [bexpr_parser.parse("!(x >= 0)")]
+        exprs = [expr_parser.parse("!(x >= 0)")]
 
         for expr in exprs:
             print(expr)      

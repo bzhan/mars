@@ -1,11 +1,11 @@
 # Nonlinear benchmark, problem 11.
 # {-1/20 + (5/4 + x)^2 + (-5/4 + y)^2 <= 0}
 #     t := 0; 
-#     <x_dot = x + y, y_dot = x * y - y^2 / 2, t_dot = 1 & t < 10>@invariant(y>0, y*((-104420)+(-73565)*x+18407*y) < 44444)
+#     {x_dot = x + y, y_dot = x * y - y^2 / 2, t_dot = 1 & t < 10}@invariant(y>0, y*((-104420)+(-73565)*x+18407*y) < 44444)
 # {!((5/2 + x)^2 + (-4/5 + y)^2 <= 1/20)}
 pre [-1/20 + (5/4 + x)^2 + (-5/4 + y)^2 <= 0];
 t := 0; 
-<x_dot = x + y, y_dot = x * y - y^2 / 2, t_dot = 1 & t < 10> 
+{x_dot = x + y, y_dot = x * y - y^2 / 2, t_dot = 1 & t < 10} 
 invariant 
   [y > 0] {dbx} 
   [y*((-104420)+(-73565)*x+18407*y) < 44444] {bc};

@@ -6,17 +6,17 @@
 #  yleft_dot = -yleft,
 #  x1right_dot = -x1right+x1right*x2right,
 #  x2right_dot = -x2right & 
-#  -2<=x1right & x1right<=2 & -2<=x2right & x2right<=2>
-# {!(xleft<=-2|yleft<=-1) & 
+#  -2<=x1right & x1right<=2 & -2<=x2right & x2right<=2}
+# {!(xleft<=-2||yleft<=-1) & 
 # !(-1/2<=x1right & x1right<=1/2 & 1/2<=x2right & x2right<=3/2)}
 pre [xleft^2+(-2+yleft)^2 < 1/24]
     [-3/2<=x1right] [x1right<=-1/2]
     [-3/2<=x2right] [x2right<=-1/2];
-<xleft_dot = -xleft+2*xleft^2*yleft, 
+{xleft_dot = -xleft+2*xleft^2*yleft, 
  yleft_dot = -yleft, 
  x1right_dot = -x1right+x1right*x2right, 
  x2right_dot = -x2right &  
- -2< x1right & x1right< 2 & -2< x2right & x2right< 2> 
+ -2< x1right && x1right< 2 && -2< x2right && x2right< 2} 
 invariant 
     [x2right+yleft>0] {dbx} 
     [x2right^2+x2right*yleft+yleft^2>0] {dbx} 
@@ -25,5 +25,5 @@ invariant
     [xleft*yleft < 1] {dbx} 
     [xleft > -2] {dbx} 
     [yleft > -1] {dbx};
-post [!(xleft<=-2|yleft<=-1)]
-     [!(-1/2<=x1right & x1right<=1/2 & 1/2<=x2right & x2right<=3/2)];
+post [!(xleft<=-2||yleft<=-1)]
+     [!(-1/2<=x1right && x1right<=1/2 && 1/2<=x2right && x2right<=3/2)];

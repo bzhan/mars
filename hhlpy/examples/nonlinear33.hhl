@@ -1,12 +1,12 @@
 # Nonlinear benchmark, problem 33
 # {1.1<=x1 & x1 <= -0.7 & 0.5<=x2 & x2<=0.9}
 #       t := 0;
-#      <x1_dot = -x2^3, x2_dot = x1-x1^3, t_dot = 1 & t < 10>
+#      {x1_dot = -x2^3, x2_dot = x1-x1^3, t_dot = 1 & t < 10}
 #       @invariant(1-x1^2-x2^2 >= 0 & 1-x1^2+x2^2 >= 0)
 # {x1^2+x2-3 < 0}
 pre [1.1<=x1] [x1 <= -0.7] [0.5<=x2] [x2<=0.9];
 t := 0; 
-<x1_dot = -x2^3, x2_dot = x1-x1^3, t_dot = 1 & t < 10> 
+{x1_dot = -x2^3, x2_dot = x1-x1^3, t_dot = 1 & t < 10} 
 invariant 
     [1-x1^2-x2^2 >= 0] {dbx} 
     [1-x1^2+x2^2 >= 0] {dbx};

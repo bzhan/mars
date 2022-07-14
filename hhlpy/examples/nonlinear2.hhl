@@ -1,9 +1,9 @@
 # Nonlinear benchmark, problem 2
 # {x == 1 & y == 1/8}
-# t := 0; <x_dot = x - y^2, y_dot = y * (x - y^2) & t < 10>@invariant(y^2 < x)
+# t := 0; {x_dot = x - y^2, y_dot = y * (x - y^2) & t < 10}@invariant(y^2 < x)
 # {!(x < 0)}
 pre [x == 1] [y == 1/8];
 t := 0; 
-<x_dot = x - y^2, y_dot = y * (x - y^2) & t < 10> 
+{x_dot = x - y^2, y_dot = y * (x - y^2) & t < 10} 
 invariant [y^2 < x] {dbx};
 post [!(x < 0)];

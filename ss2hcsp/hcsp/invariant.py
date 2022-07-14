@@ -8,12 +8,12 @@ class Invariant:
 
 class LoopInvariant(Invariant):
     """Represents an invariant of a loop program.
-    inv : BExpr - invariant
+    inv : Expr - invariant
     proof_methods: tuple - methods used for proof. 
     """
     def __init__(self, inv, proof_methods, meta=None):
         super(Invariant, self).__init__()
-        assert isinstance(inv, expr.BExpr)
+        assert isinstance(inv, expr.Expr)
         assert isinstance(proof_methods, ProofMethods)
         self.meta = meta
         self.inv = inv

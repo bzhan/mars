@@ -1,11 +1,11 @@
 # Nonlinear benchmark, problem 23
 # {x^2 + (-1 + y)^2 < 1/8}
 #      t := 0;
-#     <x_dot = -2*x+y^4, y_dot = -y+3*x*y^3, t_dot = 1 & t < 10>@invariant(y>0)
+#     {x_dot = -2*x+y^4, y_dot = -y+3*x*y^3, t_dot = 1 & t < 10}@invariant(y>0)
 # {!(y <= -1)}
 pre [x^2 + (-1 + y)^2 < 1/8];
 t := 0; 
- <x_dot = -2*x+y^4, y_dot = -y+3*x*y^3, t_dot = 1 & t < 10> 
+ {x_dot = -2*x+y^4, y_dot = -y+3*x*y^3, t_dot = 1 & t < 10} 
 invariant 
     [y > 0] {dbx};
 post [!(y <= -1)];

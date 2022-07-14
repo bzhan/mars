@@ -26,7 +26,7 @@ begin
         }
         Chart_A_A1_done := 1;
       }
-      if (Chart_A_st == "Chart_A_A1" & Chart_A_A1_done == 0) {
+      if (Chart_A_st == "Chart_A_A1" && Chart_A_A1_done == 0) {
         s := "duA1";
         log("duA1" + "\n");
       }

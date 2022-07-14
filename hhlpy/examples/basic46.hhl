@@ -8,7 +8,7 @@
 #         ;
 
 #         c := 0;
-#         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 & c < ep >
+#         { x_dot = v, v_dot = a, c_dot = 1 & v > 0 & c < ep }
 #     )**@invariant(v >= 0 & x+v^2/(2*B) <= S)
 # {x <= S}
 pre [v >= 0] [A > 0] [B > 0] [x + v^2 / (2*B) <= S] [ep > 0];
@@ -16,7 +16,7 @@ pre [v >= 0] [A > 0] [B > 0] [x + v^2 / (2*B) <= S] [ep > 0];
  ++ if (v == 0) { a := 0; } else { a := -B; } 
  ++ a := -B; 
   c := 0; 
-  < x_dot = v, v_dot = a, c_dot = 1 & v > 0 & c < ep > 
+  { x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep }
   invariant [x+v^2/(2*B) <= S] {sln};
  }* 
  invariant [v >= 0] [x+v^2/(2*B) <= S];

@@ -104,7 +104,7 @@ begin
       num := num - 1;
   }*(num > 0)
   {
-    < & true> |> [] (
+    { & true} |> [] (
       ch_x2_0!1 -->
         skip;,
       ch_x3_0!2 -->

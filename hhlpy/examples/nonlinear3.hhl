@@ -1,10 +1,10 @@
 # Nonlinear benchmark, problem 3
 # {x == 1 & y == -1}
 #     t := 0;
-#     <x_dot = x^2 + (x+y)/2, y_dot = (-x + 3*y)/2 & t < 10>@invariant(y-x+1<=0 & y<=0)
+#     {x_dot = x^2 + (x+y)/2, y_dot = (-x + 3*y)/2 & t < 10}@invariant(y-x+1<=0 & y<=0)
 # {!(y>0)}
 pre [x == 1] [y == -1];
 t := 0; 
-<x_dot = x^2 + (x+y)/2, y_dot = (-x + 3*y)/2 & t < 10> 
+{x_dot = x^2 + (x+y)/2, y_dot = (-x + 3*y)/2 & t < 10} 
 invariant [y-x+1 <= 0] {dbx 1} [y <= 0] {dbx 1};
 post [!(y>0)];

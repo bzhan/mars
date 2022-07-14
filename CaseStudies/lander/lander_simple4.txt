@@ -15,13 +15,13 @@ m := 759.5;
 Fc := 2835;
 {
     if (Fc <= 4000) {
-        <v_dot = Fc/m - 3.732, m_dot = Fc/2500*(-1) & Fc <= 4000> |> [] (
+        {v_dot = Fc/m - 3.732, m_dot = Fc/2500*(-1) & Fc <= 4000} |> [] (
             ch_v!v --> skip;,
             ch_m!m --> skip;,
             ch_Fc?Fc --> skip;
         )
     } else {
-        <v_dot = Fc/m - 3.732, m_dot = Fc/2695*(-1) & Fc > 4000> |> [] (
+        {v_dot = Fc/m - 3.732, m_dot = Fc/2695*(-1) & Fc > 4000} |> [] (
             ch_v!v --> skip;,
             ch_m!m --> skip;,
             ch_Fc?Fc --> skip;

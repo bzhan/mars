@@ -2,13 +2,13 @@
 import unittest
 
 from hhlpy.hhlpy2 import CmdVerifier
-from ss2hcsp.hcsp.parser import parse_bexpr_with_meta, parse_hp_with_meta
+from ss2hcsp.hcsp.parser import parse_expr_with_meta, parse_hp_with_meta
 
 def runTest(self, hp, pre="true", post="true"):
 
-    pre = parse_bexpr_with_meta(pre)
+    pre = parse_expr_with_meta(pre)
     hp = parse_hp_with_meta(hp)
-    post = parse_bexpr_with_meta(post)
+    post = parse_expr_with_meta(post)
 
     verifier = CmdVerifier(pre=pre, hp=hp, post=post)
     verifier.get_i_pos(hp)

@@ -73,12 +73,12 @@ atom_cond {
 } 
 
 conj {
-  ConjCond { atom_cond !conj "&" conj }
+  ConjCond { atom_cond !conj "&&" conj }
   | atom_cond       // Conjunction: priority 35
 }
 
 disj {
-  DisjCond { conj !disj "|" disj }
+  DisjCond { conj !disj "||" disj }
   | conj                 // Disjunction: priority 30
 }
 
@@ -151,8 +151,8 @@ atom_cmd {
   | RepeatCmd { "{" cmd "}" "*" maybe_loop_invariant }
   | RepeatCondCmd { "{" cmd "}*(" cond ")" maybe_loop_invariant}
   | Ode { OdeNoInv maybe_ode_invariant }
-  | OdeCommConst { "<" "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant}
-  | OdeComm { "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant} 
+  | OdeCommConst { "{" "&" cond "}" "|>" "[]" "(" interrupt ")" maybe_ode_invariant}
+  | OdeComm { "{" ode_seq "&" cond "}" "|>" "[]" "(" interrupt ")" maybe_ode_invariant} 
   | RecCmd { "rec" CNAME "{" cmd "}" }
   | IteCmd { "if" "(" cond ")" "{" cmd "}" ("else" "if" "(" cond ")" "{" cmd "}")* ("else" "{" cmd "}")? }
   | ParenCmd { "{" cmd "}" }
@@ -207,15 +207,14 @@ label {
 
 maybe_ode_invariant{ ("invariant" Ode_invariant+ ";")?}
 
-//TODO: Do we need 'expr?' after 'ode_rule'?
 Ode_invariant { InvariantWithRule
               | "ghost" CNAME
-              | "ghost" "<" CNAME "=" expr ">"
+              | "ghost" "(" CNAME "=" expr ")"
 }
 
-InvariantWithRule { Invariant ("{" ode_rule "}")? }
+InvariantWithRule { Invariant ("{" ode_rule expr? "}")? }
 
-OdeNoInv { "<" ode_seq "&" cond ">" }
+OdeNoInv { "{" ode_seq "&" cond "}" }
 
 ode_rule {
   "di" | "dbx" | "bc" | "dw" | "sln"
@@ -298,7 +297,7 @@ Decls {
   ws { $[ \t\f\r\n]+ }
 
   "+" "-" "^" "*" "/" "%"
-  "&&" "||" "-->" "->" "$" ";" "++" "skip" "." "," ":" "?" "~" "&"
+  "&&" "||" "-->" "->" "$" ";" "++" "skip" "." "," ":" "?" "~" "&" "&&"
   "=" ":="
   "==" "!=" "<" "<=" ">" ">="
 

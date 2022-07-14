@@ -2,7 +2,7 @@
 
 import unittest
 
-from ss2hcsp.hcsp.parser import bexpr_parser
+from ss2hcsp.hcsp.parser import expr_parser
 from hhlpy.z3wrapper import z3_prove, convert
 
 
@@ -18,7 +18,7 @@ class Z3WrapperTest(unittest.TestCase):
         ]
 
         for e in test_case:
-            e = bexpr_parser.parse(e)
+            e = expr_parser.parse(e)
             self.assertTrue(z3_prove(e))
     
     def testZ3ProveFail(self):
@@ -28,7 +28,7 @@ class Z3WrapperTest(unittest.TestCase):
         ]
 
         for e in test_case:
-            e = bexpr_parser.parse(e)
+            e = expr_parser.parse(e)
             self.assertFalse(z3_prove(e))
 
 

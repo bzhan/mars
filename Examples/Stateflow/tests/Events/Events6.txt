@@ -15,7 +15,7 @@ procedure exec_Chart begin
   Chart_ret := 0;
   if (Chart_B_st == "Chart_B_B1") {
     Chart_B_B1_done := 0;
-    if ((ChartEL != [] & top(ChartEL) == "E") & x > 0) {
+    if ((ChartEL != [] && top(ChartEL) == "E") && x > 0) {
       x := x - 1;
       s := "a";
       log("a" + " %d\n",x);

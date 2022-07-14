@@ -9,9 +9,9 @@
 # {y^2 + 0.5*z6^2 <= 3}
 pre [y^2 + 2*z6^2 <= 1] [b==1] [r==0] [s==1];
 t := 0; 
- <x_dot=s*(y-x), 
+ {x_dot=s*(y-x), 
 y_dot=r*x-y-x*z6, 
 z6_dot=-b*z6+x*y, 
-t_dot = 1 & t < 10> 
+t_dot = 1 & t < 10}
 invariant [y^2+z6^2 <= 2] {bc};
 post [y^2 + 0.5*z6^2 <= 3];

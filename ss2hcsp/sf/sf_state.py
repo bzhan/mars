@@ -1,4 +1,4 @@
-from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
+from ss2hcsp.hcsp.parser import expr_parser, hp_parser
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.expr import RelExpr,LogicExpr,FunExpr
 import re

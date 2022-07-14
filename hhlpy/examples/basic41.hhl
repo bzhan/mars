@@ -3,10 +3,10 @@
 # {v >= 0 & A > 0 & B > 0}
 # (
 #  a := A ++ a := 0 ++ a := -B; 
-#  <x_dot = v, v_dot = a & v > 0>
+#  {x_dot = v, v_dot = a & v > 0}
 # )**
 # {v >= 0}
 pre [v >= 0] [A > 0] [B > 0];
-{a := A; ++ a := 0; ++ a := -B; <x_dot = v, v_dot = a & v > 0> invariant [true];}*
+{a := A; ++ a := 0; ++ a := -B; {x_dot = v, v_dot = a & v > 0} invariant [true];}*
 invariant [v >= 0];
 post [v >= 0];

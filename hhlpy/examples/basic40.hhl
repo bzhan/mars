@@ -1,7 +1,7 @@
 # Basic benchmark, problem 40
 # A is a constant.
-# {v >= 0 & A > 0} <x_dot = v, v_dot = A & x < 10> {v >= 0}
+# {v >= 0 & A > 0} {x_dot = v, v_dot = A & x < 10} {v >= 0}
 pre [v >= 0] [A > 0];
-<x_dot = v, v_dot = A & x < 10> 
+{x_dot = v, v_dot = A & x < 10} 
 invariant [A > 0] [v >= 0];
 post [v >= 0];

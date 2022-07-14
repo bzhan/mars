@@ -1,8 +1,8 @@
 # Basic benchmark, problem 37
 # {-x1 * x2 >= a}
-# t := 0; <x1_dot = x1 - x2 + x1 * x2, x2_dot = -x2 - x2^2, t_dot = 1 & t < 10>
+# t := 0; {x1_dot = x1 - x2 + x1 * x2, x2_dot = -x2 - x2^2, t_dot = 1 & t < 10}
 # {-x1 * x2 >= a}
 pre [-x1 * x2 >= a];
-t := 0; <x1_dot = x1 - x2 + x1 * x2, x2_dot = -x2 - x2^2, t_dot = 1 & t < 10> 
+t := 0; {x1_dot = x1 - x2 + x1 * x2, x2_dot = -x2 - x2^2, t_dot = 1 & t < 10} 
 invariant [-x1 * x2 >= a];
 post [-x1 * x2 >= a];

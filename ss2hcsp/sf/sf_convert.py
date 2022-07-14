@@ -335,7 +335,7 @@ class SFConvert:
         else:
             still_there = expr.BConst(True)
 
-        return expr.LogicExpr("&", still_there, self.get_still_there_cond(ancestor))
+        return expr.LogicExpr("&&", still_there, self.get_still_there_cond(ancestor))
 
     def get_en_proc(self, state):
         # For entry procedure, the early return logic is that the state that
@@ -477,7 +477,7 @@ class SFConvert:
         label : TransitionLabel - transition label to be converted.
         state : SF_State - current state, used only for determining temporal events
             in outgoing and inner transitions.
-        still_there : BExpr - when to continue execution of condition action.
+        still_there : Expr - when to continue execution of condition action.
 
         """
         pre_acts, conds, cond_act = [], [], hcsp.Skip()

@@ -1,11 +1,11 @@
 # Nonlinear benchmark, problem 62
 # {(x + 3)^2 + (y + 3)^2 <= 1}
 #    t := 0;
-#   <x_dot = x+y+x^2, y_dot = x*(1+y), t_dot = 1 & t < 10>
+#   {x_dot = x+y+x^2, y_dot = x*(1+y), t_dot = 1 & t < 10}
 #   @invariant(1+y < 0, 70030000+331*x^2+5*y*(4429100+61943*y) < 50*x*((-629110)+27787*y))]
 # {x+y < -2}
 pre [(x + 3)^2 + (y + 3)^2 <= 1];
 t := 0; 
- <x_dot = x+y+x^2, y_dot = x*(1+y), t_dot = 1 & t < 10> 
+ {x_dot = x+y+x^2, y_dot = x*(1+y), t_dot = 1 & t < 10} 
 invariant [1+y < 0] {dbx} [70030000+331*x^2+5*y*(4429100+61943*y) < 50*x*((-629110)+27787*y)] {bc};
 post [x+y < -2];

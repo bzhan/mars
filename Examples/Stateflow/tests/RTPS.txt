@@ -13,7 +13,7 @@ endmodule
 module Chart():
 procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
   Chart_model_RTPS_Writer_Writer_repair_repairing_done := 0;
-  if (cansend == 1 & repair_num[id - 1] <= request_num[id - 1]) {
+  if (cansend == 1 && repair_num[id - 1] <= request_num[id - 1]) {
     sn := repair_num[id - 1];
     i := 1;
     @J47;
@@ -34,7 +34,7 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
       ChartEL := pop(ChartEL);
       J462_done := 1;
     }
-    if (J462_done == 0 & i == 2) {
+    if (J462_done == 0 && i == 2) {
       ChartEL := push(ChartEL,"TRY");
       Chart_ret := 0;
       if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try") {
@@ -49,7 +49,7 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
       ChartEL := pop(ChartEL);
       J462_done := 1;
     }
-    if (J462_done == 0 & i == 3) {
+    if (J462_done == 0 && i == 3) {
       ChartEL := push(ChartEL,"TRY");
       Chart_ret := 0;
       if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try") {
@@ -64,7 +64,7 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
       ChartEL := pop(ChartEL);
       J462_done := 1;
     }
-    if (J462_done == 0 & i == 4) {
+    if (J462_done == 0 && i == 4) {
       ChartEL := push(ChartEL,"TRY");
       Chart_ret := 0;
       if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try") {
@@ -102,7 +102,7 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
       Chart_model_RTPS_Writer_Writer_repair_repairing_done := 1;
     }
   }
-  if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing" & Chart_model_RTPS_Writer_Writer_repair_repairing_done == 0 & (cansend == 0 | repair_num[id - 1] > request_num[id - 1])) {
+  if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing" && Chart_model_RTPS_Writer_Writer_repair_repairing_done == 0 && (cansend == 0 || repair_num[id - 1] > request_num[id - 1])) {
     if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing") {
       Chart_model_RTPS_Writer_Writer_repair_st := "";
       if (Chart_st == "Chart_model") {
@@ -116,7 +116,7 @@ end
 
 procedure during_Chart_model_RTPS_Writer_Writer_repair_waiting begin
   Chart_model_RTPS_Writer_Writer_repair_waiting_done := 0;
-  if (id > 0 & request_num[id - 1] > acked_num[id - 1]) {
+  if (id > 0 && request_num[id - 1] > acked_num[id - 1]) {
     if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_waiting") {
       Chart_model_RTPS_Writer_Writer_repair_st := "";
       if (Chart_st == "Chart_model") {
@@ -128,7 +128,7 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_waiting begin
       Chart_model_RTPS_Writer_Writer_repair_waiting_done := 1;
     }
   }
-  if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_waiting" & Chart_model_RTPS_Writer_Writer_repair_waiting_done == 0 & (ChartEL != [] & top(ChartEL) == "ACKNACK2") & (id <= 0 | request_num[id - 1] <= acked_num[id - 1])) {
+  if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_waiting" && Chart_model_RTPS_Writer_Writer_repair_waiting_done == 0 && (ChartEL != [] && top(ChartEL) == "ACKNACK2") && (id <= 0 || request_num[id - 1] <= acked_num[id - 1])) {
     id := ack_id;
     wid := WriterId;
     rid := id;
@@ -161,7 +161,7 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_must_repair begin
         Chart_model_RTPS_Writer_Writer_repair_must_repair_time := -1;
         Chart_model_RTPS_Writer_Writer_repair_st := "";
       }
-      if (Chart_model_RTPS_Writer_Writer_repair_st == "" & Chart_st == "Chart_model") {
+      if (Chart_model_RTPS_Writer_Writer_repair_st == "" && Chart_st == "Chart_model") {
         Chart_model_RTPS_Writer_Writer_repair_st := "Chart_model_RTPS_Writer_Writer_repair_repairing";
       }
       Chart_model_RTPS_Writer_Writer_repair_must_repair_done := 1;
@@ -172,7 +172,7 @@ end
 
 procedure during_Chart_model_RTPS_Writer_Writer_repair_must_repair_en begin
   Chart_model_RTPS_Writer_Writer_repair_must_repair_en_done := 0;
-  if (ChartEL != [] & top(ChartEL) == "ACKNACK2") {
+  if (ChartEL != [] && top(ChartEL) == "ACKNACK2") {
     id := ack_id;
     wid := WriterId;
     rid := id;
@@ -211,7 +211,7 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
   i := first_SN;
   @J11;
   empty_flag := flag;
-  if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_pushing" & Chart_model_RTPS_Writer_Writer_send_pushing_done == 0 & cansend == 1 & empty_flag == 0) {
+  if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_pushing" && Chart_model_RTPS_Writer_Writer_send_pushing_done == 0 && cansend == 1 && empty_flag == 0) {
     sn := index;
     i := 1;
     @J47;
@@ -232,7 +232,7 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
       ChartEL := pop(ChartEL);
       J462_done := 1;
     }
-    if (J462_done == 0 & i == 2) {
+    if (J462_done == 0 && i == 2) {
       ChartEL := push(ChartEL,"TRY");
       Chart_ret := 0;
       if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try") {
@@ -247,7 +247,7 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
       ChartEL := pop(ChartEL);
       J462_done := 1;
     }
-    if (J462_done == 0 & i == 3) {
+    if (J462_done == 0 && i == 3) {
       ChartEL := push(ChartEL,"TRY");
       Chart_ret := 0;
       if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try") {
@@ -262,7 +262,7 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
       ChartEL := pop(ChartEL);
       J462_done := 1;
     }
-    if (J462_done == 0 & i == 4) {
+    if (J462_done == 0 && i == 4) {
       ChartEL := push(ChartEL,"TRY");
       Chart_ret := 0;
       if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try") {
@@ -312,7 +312,7 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_announcing begin
   i := first_SN;
   @J11;
   empty_flag := flag;
-  if (Chart_model_RTPS_Writer_Writer_send_announcing_time >= heartbeatPeriod & acked_all_flag == 0 & empty_flag == 1) {
+  if (Chart_model_RTPS_Writer_Writer_send_announcing_time >= heartbeatPeriod && acked_all_flag == 0 && empty_flag == 1) {
     wid := WriterId;
     count := hb_count;
     J33_done := 0;
@@ -350,7 +350,7 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_announcing begin
         Chart_model_RTPS_Writer_Writer_send_announcing_time := -1;
         Chart_model_RTPS_Writer_Writer_send_st := "";
       }
-      if (Chart_model_RTPS_Writer_Writer_send_st == "" & Chart_st == "Chart_model") {
+      if (Chart_model_RTPS_Writer_Writer_send_st == "" && Chart_st == "Chart_model") {
         Chart_model_RTPS_Writer_Writer_send_st := "Chart_model_RTPS_Writer_Writer_send_announcing";
         Chart_model_RTPS_Writer_Writer_send_announcing_time := 0;
       }
@@ -364,7 +364,7 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_announcing begin
   i := first_SN;
   @J11;
   empty_flag := flag;
-  if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing" & Chart_model_RTPS_Writer_Writer_send_announcing_done == 0 & acked_all_flag == 0 & empty_flag == 0) {
+  if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing" && Chart_model_RTPS_Writer_Writer_send_announcing_done == 0 && acked_all_flag == 0 && empty_flag == 0) {
     if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing") {
       Chart_model_RTPS_Writer_Writer_send_announcing_time := -1;
       Chart_model_RTPS_Writer_Writer_send_st := "";
@@ -378,7 +378,7 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_announcing begin
   i := 1;
   @J625;
   acked_all_flag := flag;
-  if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing" & Chart_model_RTPS_Writer_Writer_send_announcing_done == 0 & acked_all_flag == 1) {
+  if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing" && Chart_model_RTPS_Writer_Writer_send_announcing_done == 0 && acked_all_flag == 1) {
     complete := 1;
     if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing") {
       Chart_model_RTPS_Writer_Writer_send_announcing_time := -1;
@@ -412,7 +412,7 @@ end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready begin
   Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready_done := 0;
-  if (ChartEL != [] & top(ChartEL) == "HEARTBEAT2") {
+  if (ChartEL != [] && top(ChartEL) == "HEARTBEAT2") {
     wid := 1;
     rid := 1;
     firstSN := buffer_heartbeat[1 - 1][2];
@@ -428,7 +428,7 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready begi
       Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready_done := 1;
     }
   }
-  if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready" & Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready_done == 0 & (ChartEL != [] & top(ChartEL) == "SUCCESS") & seq_num_1 > received_num) {
+  if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready" && Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready_done == 0 && (ChartEL != [] && top(ChartEL) == "SUCCESS") && seq_num_1 > received_num) {
     index := seq_num_1;
     received_set[WriterId - 1][index - 1] := 1;
     wid := WriterId;
@@ -495,7 +495,7 @@ end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting begin
   Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting_done := 0;
-  if (ChartEL != [] & top(ChartEL) == "HEARTBEAT2") {
+  if (ChartEL != [] && top(ChartEL) == "HEARTBEAT2") {
     hFlag := 1;
     if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting") {
       J224_done := 0;
@@ -503,18 +503,18 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting b
         if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting") {
           Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "";
         }
-        if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "" && Chart_st == "Chart_model") {
           Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack";
           Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_time := 0;
         }
         J224_done := 1;
       }
-      if (J224_done == 0 & buffer_heartbeat[WriterId - 1][finalFlag - 1] == SET) {
+      if (J224_done == 0 && buffer_heartbeat[WriterId - 1][finalFlag - 1] == SET) {
         hFlag := 0;
         if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting") {
           Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "";
         }
-        if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "" && Chart_st == "Chart_model") {
           Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting";
         }
         J224_done := 1;
@@ -523,7 +523,7 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting b
         if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting") {
           Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "";
         }
-        if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "" && Chart_st == "Chart_model") {
           Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack";
         }
         J224_done := 1;
@@ -547,7 +547,7 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_
       Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack_done := 1;
     }
   }
-  if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack" & Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack_done == 0 & missing_num <= received_num) {
+  if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack" && Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack_done == 0 && missing_num <= received_num) {
     hFlag := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack") {
       Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "";
@@ -562,7 +562,7 @@ end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready begin
   Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready_done := 0;
-  if (ChartEL != [] & top(ChartEL) == "HEARTBEAT2") {
+  if (ChartEL != [] && top(ChartEL) == "HEARTBEAT2") {
     wid := 1;
     rid := 2;
     firstSN := buffer_heartbeat[1 - 1][2];
@@ -578,7 +578,7 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready begi
       Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready_done := 1;
     }
   }
-  if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" & Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready_done == 0 & (ChartEL != [] & top(ChartEL) == "SUCCESS") & seq_num_2 > received_num2) {
+  if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" && Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready_done == 0 && (ChartEL != [] && top(ChartEL) == "SUCCESS") && seq_num_2 > received_num2) {
     index2 := seq_num_2;
     received_set[ReaderId_2 - 1][index2 - 1] := 1;
     wid := WriterId;
@@ -655,7 +655,7 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_
       Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack_done := 1;
     }
   }
-  if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack" & Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack_done == 0 & missing_num2 <= received_num2) {
+  if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack" && Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack_done == 0 && missing_num2 <= received_num2) {
     hFlag := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack") {
       Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "";
@@ -670,7 +670,7 @@ end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting begin
   Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting_done := 0;
-  if (ChartEL != [] & top(ChartEL) == "HEARTBEAT2") {
+  if (ChartEL != [] && top(ChartEL) == "HEARTBEAT2") {
     hFlag := 1;
     if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting") {
       J191_done := 0;
@@ -678,18 +678,18 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting b
         if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting") {
           Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "";
         }
-        if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "" && Chart_st == "Chart_model") {
           Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack";
           Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_time := 0;
         }
         J191_done := 1;
       }
-      if (J191_done == 0 & buffer_heartbeat[WriterId - 1][finalFlag - 1] == SET) {
+      if (J191_done == 0 && buffer_heartbeat[WriterId - 1][finalFlag - 1] == SET) {
         hFlag := 0;
         if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting") {
           Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "";
         }
-        if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "" && Chart_st == "Chart_model") {
           Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting";
         }
         J191_done := 1;
@@ -698,7 +698,7 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting b
         if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting") {
           Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "";
         }
-        if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "" && Chart_st == "Chart_model") {
           Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack";
         }
         J191_done := 1;
@@ -712,7 +712,7 @@ end
 
 procedure during_Chart_model_channel_channel_1_try begin
   Chart_model_channel_channel_1_try_done := 0;
-  if (ChartEL != [] & top(ChartEL) == "TRY") {
+  if (ChartEL != [] && top(ChartEL) == "TRY") {
     if (Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_try") {
       J360_done := 0;
       x := uniform(0,1);
@@ -727,7 +727,7 @@ procedure during_Chart_model_channel_channel_1_try begin
         if (Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_try") {
           Chart_model_channel_channel_1_st := "";
         }
-        if (Chart_model_channel_channel_1_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_channel_channel_1_st == "" && Chart_st == "Chart_model") {
           Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_delay_1";
           Chart_model_channel_channel_1_delay_1_time := 0;
         }
@@ -738,7 +738,7 @@ procedure during_Chart_model_channel_channel_1_try begin
         if (Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_try") {
           Chart_model_channel_channel_1_st := "";
         }
-        if (Chart_model_channel_channel_1_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_channel_channel_1_st == "" && Chart_st == "Chart_model") {
           Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_next";
         }
         J360_done := 1;
@@ -830,7 +830,7 @@ procedure during_Chart_model_channel_channel_1_next begin
       Chart_model_channel_channel_1_next_done := 1;
     }
   }
-  if (Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_next" & Chart_model_channel_channel_1_next_done == 0) {
+  if (Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_next" && Chart_model_channel_channel_1_next_done == 0) {
     buffer_data[WriterId - 1][ReaderId_1 - 1][0] := 0;
     if (Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_next") {
       Chart_model_channel_channel_1_st := "";
@@ -845,7 +845,7 @@ end
 
 procedure during_Chart_model_channel_channel_2_try begin
   Chart_model_channel_channel_2_try_done := 0;
-  if (ChartEL != [] & top(ChartEL) == "TRY") {
+  if (ChartEL != [] && top(ChartEL) == "TRY") {
     if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try") {
       J517_done := 0;
       x := uniform(0,1);
@@ -860,7 +860,7 @@ procedure during_Chart_model_channel_channel_2_try begin
         if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try") {
           Chart_model_channel_channel_2_st := "";
         }
-        if (Chart_model_channel_channel_2_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_channel_channel_2_st == "" && Chart_st == "Chart_model") {
           Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_delay_1";
           Chart_model_channel_channel_2_delay_1_time := 0;
         }
@@ -871,7 +871,7 @@ procedure during_Chart_model_channel_channel_2_try begin
         if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try") {
           Chart_model_channel_channel_2_st := "";
         }
-        if (Chart_model_channel_channel_2_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_channel_channel_2_st == "" && Chart_st == "Chart_model") {
           Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_next";
         }
         J517_done := 1;
@@ -963,7 +963,7 @@ procedure during_Chart_model_channel_channel_2_next begin
       Chart_model_channel_channel_2_next_done := 1;
     }
   }
-  if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_next" & Chart_model_channel_channel_2_next_done == 0) {
+  if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_next" && Chart_model_channel_channel_2_next_done == 0) {
     buffer_data[WriterId - 1][1][1] := 0;
     if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_next") {
       Chart_model_channel_channel_2_st := "";
@@ -978,7 +978,7 @@ end
 
 procedure during_Chart_model_channel_channel_3_try begin
   Chart_model_channel_channel_3_try_done := 0;
-  if (ChartEL != [] & top(ChartEL) == "TRY") {
+  if (ChartEL != [] && top(ChartEL) == "TRY") {
     if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try") {
       J535_done := 0;
       x := uniform(0,1);
@@ -993,7 +993,7 @@ procedure during_Chart_model_channel_channel_3_try begin
         if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try") {
           Chart_model_channel_channel_3_st := "";
         }
-        if (Chart_model_channel_channel_3_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_channel_channel_3_st == "" && Chart_st == "Chart_model") {
           Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_delay_1";
           Chart_model_channel_channel_3_delay_1_time := 0;
         }
@@ -1004,7 +1004,7 @@ procedure during_Chart_model_channel_channel_3_try begin
         if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try") {
           Chart_model_channel_channel_3_st := "";
         }
-        if (Chart_model_channel_channel_3_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_channel_channel_3_st == "" && Chart_st == "Chart_model") {
           Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_next";
         }
         J535_done := 1;
@@ -1096,7 +1096,7 @@ procedure during_Chart_model_channel_channel_3_next begin
       Chart_model_channel_channel_3_next_done := 1;
     }
   }
-  if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_next" & Chart_model_channel_channel_3_next_done == 0) {
+  if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_next" && Chart_model_channel_channel_3_next_done == 0) {
     buffer_data[WriterId - 1][1][2] := 0;
     if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_next") {
       Chart_model_channel_channel_3_st := "";
@@ -1111,7 +1111,7 @@ end
 
 procedure during_Chart_model_channel_channel_4_try begin
   Chart_model_channel_channel_4_try_done := 0;
-  if (ChartEL != [] & top(ChartEL) == "TRY") {
+  if (ChartEL != [] && top(ChartEL) == "TRY") {
     if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try") {
       J553_done := 0;
       x := uniform(0,1);
@@ -1126,7 +1126,7 @@ procedure during_Chart_model_channel_channel_4_try begin
         if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try") {
           Chart_model_channel_channel_4_st := "";
         }
-        if (Chart_model_channel_channel_4_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_channel_channel_4_st == "" && Chart_st == "Chart_model") {
           Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_delay_1";
           Chart_model_channel_channel_4_delay_1_time := 0;
         }
@@ -1137,7 +1137,7 @@ procedure during_Chart_model_channel_channel_4_try begin
         if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try") {
           Chart_model_channel_channel_4_st := "";
         }
-        if (Chart_model_channel_channel_4_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_channel_channel_4_st == "" && Chart_st == "Chart_model") {
           Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_next";
         }
         J553_done := 1;
@@ -1229,7 +1229,7 @@ procedure during_Chart_model_channel_channel_4_next begin
       Chart_model_channel_channel_4_next_done := 1;
     }
   }
-  if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_next" & Chart_model_channel_channel_4_next_done == 0) {
+  if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_next" && Chart_model_channel_channel_4_next_done == 0) {
     buffer_data[WriterId - 1][1][3] := 0;
     if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_next") {
       Chart_model_channel_channel_4_st := "";
@@ -1244,7 +1244,7 @@ end
 
 procedure during_Chart_model_channel_channel_5_try begin
   Chart_model_channel_channel_5_try_done := 0;
-  if (ChartEL != [] & top(ChartEL) == "TRY") {
+  if (ChartEL != [] && top(ChartEL) == "TRY") {
     if (Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try") {
       J571_done := 0;
       x := uniform(0,1);
@@ -1259,7 +1259,7 @@ procedure during_Chart_model_channel_channel_5_try begin
         if (Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try") {
           Chart_model_channel_channel_5_st := "";
         }
-        if (Chart_model_channel_channel_5_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_channel_channel_5_st == "" && Chart_st == "Chart_model") {
           Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_delay_1";
           Chart_model_channel_channel_5_delay_1_time := 0;
         }
@@ -1270,7 +1270,7 @@ procedure during_Chart_model_channel_channel_5_try begin
         if (Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try") {
           Chart_model_channel_channel_5_st := "";
         }
-        if (Chart_model_channel_channel_5_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_channel_channel_5_st == "" && Chart_st == "Chart_model") {
           Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_next";
         }
         J571_done := 1;
@@ -1362,7 +1362,7 @@ procedure during_Chart_model_channel_channel_5_next begin
       Chart_model_channel_channel_5_next_done := 1;
     }
   }
-  if (Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_next" & Chart_model_channel_channel_5_next_done == 0) {
+  if (Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_next" && Chart_model_channel_channel_5_next_done == 0) {
     buffer_data[WriterId - 1][1][4] := 0;
     if (Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_next") {
       Chart_model_channel_channel_5_st := "";
@@ -1377,7 +1377,7 @@ end
 
 procedure during_Chart_model_channel_Heartbeat_try begin
   Chart_model_channel_Heartbeat_try_done := 0;
-  if (ChartEL != [] & top(ChartEL) == "HEARTBEAT") {
+  if (ChartEL != [] && top(ChartEL) == "HEARTBEAT") {
     if (Chart_model_channel_Heartbeat_st == "Chart_model_channel_Heartbeat_try") {
       J764_done := 0;
       x := uniform(0,1);
@@ -1392,7 +1392,7 @@ procedure during_Chart_model_channel_Heartbeat_try begin
         if (Chart_model_channel_Heartbeat_st == "Chart_model_channel_Heartbeat_try") {
           Chart_model_channel_Heartbeat_st := "";
         }
-        if (Chart_model_channel_Heartbeat_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_channel_Heartbeat_st == "" && Chart_st == "Chart_model") {
           Chart_model_channel_Heartbeat_st := "Chart_model_channel_Heartbeat_delay";
           Chart_model_channel_Heartbeat_delay_time := 0;
         }
@@ -1402,7 +1402,7 @@ procedure during_Chart_model_channel_Heartbeat_try begin
         if (Chart_model_channel_Heartbeat_st == "Chart_model_channel_Heartbeat_try") {
           Chart_model_channel_Heartbeat_st := "";
         }
-        if (Chart_model_channel_Heartbeat_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_channel_Heartbeat_st == "" && Chart_st == "Chart_model") {
           Chart_model_channel_Heartbeat_st := "Chart_model_channel_Heartbeat_try";
         }
         J764_done := 1;
@@ -1457,7 +1457,7 @@ end
 
 procedure during_Chart_model_channel_Acknack_1_try begin
   Chart_model_channel_Acknack_1_try_done := 0;
-  if (ChartEL != [] & top(ChartEL) == "ACKNACK") {
+  if (ChartEL != [] && top(ChartEL) == "ACKNACK") {
     if (Chart_model_channel_Acknack_1_st == "Chart_model_channel_Acknack_1_try") {
       J723_done := 0;
       x := uniform(0,1);
@@ -1472,7 +1472,7 @@ procedure during_Chart_model_channel_Acknack_1_try begin
         if (Chart_model_channel_Acknack_1_st == "Chart_model_channel_Acknack_1_try") {
           Chart_model_channel_Acknack_1_st := "";
         }
-        if (Chart_model_channel_Acknack_1_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_channel_Acknack_1_st == "" && Chart_st == "Chart_model") {
           Chart_model_channel_Acknack_1_st := "Chart_model_channel_Acknack_1_delay";
           Chart_model_channel_Acknack_1_delay_time := 0;
         }
@@ -1482,7 +1482,7 @@ procedure during_Chart_model_channel_Acknack_1_try begin
         if (Chart_model_channel_Acknack_1_st == "Chart_model_channel_Acknack_1_try") {
           Chart_model_channel_Acknack_1_st := "";
         }
-        if (Chart_model_channel_Acknack_1_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_channel_Acknack_1_st == "" && Chart_st == "Chart_model") {
           Chart_model_channel_Acknack_1_st := "Chart_model_channel_Acknack_1_try";
         }
         J723_done := 1;
@@ -1535,7 +1535,7 @@ end
 
 procedure during_Chart_model_channel_Acknack_2_try begin
   Chart_model_channel_Acknack_2_try_done := 0;
-  if (ChartEL != [] & top(ChartEL) == "ACKNACK") {
+  if (ChartEL != [] && top(ChartEL) == "ACKNACK") {
     if (Chart_model_channel_Acknack_2_st == "Chart_model_channel_Acknack_2_try") {
       J807_done := 0;
       x := uniform(0,1);
@@ -1550,7 +1550,7 @@ procedure during_Chart_model_channel_Acknack_2_try begin
         if (Chart_model_channel_Acknack_2_st == "Chart_model_channel_Acknack_2_try") {
           Chart_model_channel_Acknack_2_st := "";
         }
-        if (Chart_model_channel_Acknack_2_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_channel_Acknack_2_st == "" && Chart_st == "Chart_model") {
           Chart_model_channel_Acknack_2_st := "Chart_model_channel_Acknack_2_delay";
           Chart_model_channel_Acknack_2_delay_time := 0;
         }
@@ -1560,7 +1560,7 @@ procedure during_Chart_model_channel_Acknack_2_try begin
         if (Chart_model_channel_Acknack_2_st == "Chart_model_channel_Acknack_2_try") {
           Chart_model_channel_Acknack_2_st := "";
         }
-        if (Chart_model_channel_Acknack_2_st == "" & Chart_st == "Chart_model") {
+        if (Chart_model_channel_Acknack_2_st == "" && Chart_st == "Chart_model") {
           Chart_model_channel_Acknack_2_st := "Chart_model_channel_Acknack_2_try";
         }
         J807_done := 1;
@@ -1617,7 +1617,7 @@ procedure J625 begin
     flag := 1;
     J625_done := 1;
   }
-  if (J625_done == 0 & i <= 2 & buffer_acknack[i - 1][2] == 5) {
+  if (J625_done == 0 && i <= 2 && buffer_acknack[i - 1][2] == 5) {
     i := i + 1;
     @J625;
     J625_done := 1;
@@ -1633,7 +1633,7 @@ procedure J11 begin
     flag := 1;
     J11_done := 1;
   }
-  if (J11_done == 0 & i <= last_SN & unsent[i - 1] == 0) {
+  if (J11_done == 0 && i <= last_SN && unsent[i - 1] == 0) {
     i := i + 1;
     @J11;
     J11_done := 1;
@@ -1653,7 +1653,7 @@ end
 
 procedure J123 begin
   J123_done := 0;
-  if (i >= 1 & received_set[rid - 1][i - 1] == 1) {
+  if (i >= 1 && received_set[rid - 1][i - 1] == 1) {
     i := i - 1;
     @J123;
     J123_done := 1;
@@ -1665,7 +1665,7 @@ end
 
 procedure J150 begin
   J150_done := 0;
-  if (i <= 5 & received_set[rid - 1][i - 1] == 1) {
+  if (i <= 5 && received_set[rid - 1][i - 1] == 1) {
     i := i + 1;
     @J150;
     J150_done := 1;
@@ -1970,7 +1970,7 @@ begin
     start_DDS_Writer?;
     WHC_in?WHC;
     DDS_Writer_add_done := 0;
-    if (DDS_Writer_add_time >= d & i <= 5) {
+    if (DDS_Writer_add_time >= d && i <= 5) {
       WHC[i - 1] := cachechanges[i - 1];
       first_SN := 1;
       last_SN := i;
@@ -2032,7 +2032,7 @@ begin
       num := num - 1;
   }*(num > 0)
   {
-    < & true> |> [] (
+    { & true} |> [] (
       ch_x0_0!1 -->
         skip;,
       ch_x1_0!1 -->

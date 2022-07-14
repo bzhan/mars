@@ -49,7 +49,7 @@ begin
       } else {
         M := {};
       }
-      if (M != {} & M.data == 2) {
+      if (M != {} && M.data == 2) {
         if (MessageReceiver_st == "MessageReceiver_A1") {
           MessageReceiver_st := "MessageReceiver_A2";
           s := "en_A2";
@@ -71,7 +71,7 @@ begin
       } else {
         M1 := {};
       }
-      if (M1 != {} & M1.data == 3) {
+      if (M1 != {} && M1.data == 3) {
         if (MessageReceiver_st == "MessageReceiver_A2") {
           MessageReceiver_st := "MessageReceiver_A3";
           s := "en_A3";

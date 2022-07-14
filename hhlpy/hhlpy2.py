@@ -15,7 +15,7 @@ from hhlpy.wolframengine_wrapper import wl_prove
 from hhlpy.wolframengine_wrapper import wl_simplify, wl_polynomial_div, wl_is_polynomial
 from hhlpy.z3wrapper import z3_prove
 from ss2hcsp.hcsp import hcsp, expr, invariant, label
-from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser
+from ss2hcsp.hcsp.parser import expr_parser, expr_parser
 from ss2hcsp.hcsp.simulator import get_pos
 
 
@@ -23,12 +23,12 @@ def compute_diff(e, eqs_dict):
     """Compute differential of an arithmetic or boolean expression."""
     def rec(e):
         if isinstance(e, expr.LogicExpr):
-            if e.op == "&":
-                return expr.LogicExpr("&", rec(e.exprs[0]), rec(e.exprs[1]))
-            elif e.op == "|":
-                return expr.LogicExpr("&", rec(e.exprs[0]), rec(e.exprs[1]))
+            if e.op == "&&":
+                return expr.LogicExpr("&&", rec(e.exprs[0]), rec(e.exprs[1]))
+            elif e.op == "||":
+                return expr.LogicExpr("&&", rec(e.exprs[0]), rec(e.exprs[1]))
             elif e.op == "->":
-                return rec(expr.LogicExpr("|", expr.neg_expr(e.exprs[0]), e.exprs[1]))
+                return rec(expr.LogicExpr("||", expr.neg_expr(e.exprs[0]), e.exprs[1]))
             elif e.op == "!":
                 return rec(expr.neg_expr(e.exprs[0]))
             else:
@@ -91,7 +91,7 @@ def compute_diff(e, eqs_dict):
 
 def constraint_examination(e):
     '''Examine whether the constraint is open intervals or not.'''
-    if not isinstance(e, expr.BExpr):
+    if not isinstance(e, expr.Expr):
         raise NotImplementedError
     
     def rec(e):
@@ -103,7 +103,7 @@ def constraint_examination(e):
         elif isinstance(e, expr.LogicExpr):
             if e.op == '!':
                 return not rec(e.exprs[0])
-            elif e.op == '&' or e.op == '|':
+            elif e.op == '&&' or e.op == '||':
                 return rec(e.exprs[0] and e.exprs[1])
     return rec(e)
 
@@ -113,27 +113,27 @@ def compute_boundary(e):
         if e.op in ['<', '>', '!=']:
             return expr.RelExpr("==", e.expr1, e.expr2)
     elif isinstance(e, expr.LogicExpr):
-        if e.op == '&':
+        if e.op == '&&':
             boundary1 = compute_boundary(e.exprs[0])
             boundary2 = compute_boundary(e.exprs[1])
-            disj1 = expr.LogicExpr('&', e.exprs[0], boundary2)
-            disj2 = expr.LogicExpr('&', e.exprs[1], boundary1)
-            disj3 = expr.LogicExpr('&', boundary1, boundary2)
+            disj1 = expr.LogicExpr('&&', e.exprs[0], boundary2)
+            disj2 = expr.LogicExpr('&&', e.exprs[1], boundary1)
+            disj3 = expr.LogicExpr('&&', boundary1, boundary2)
             return expr.list_disj(disj1, disj2, disj3)
-        elif e.op == '|':
+        elif e.op == '||':
             boundary1 = compute_boundary(e.exprs[0])
             boundary2 = compute_boundary(e.exprs[1])
             neg1 = expr.neg_expr(e.exprs[0])
             neg2 = expr.neg_expr(e.exprs[1])
-            disj1 = expr.LogicExpr('&', neg1, boundary2)
-            disj2 = expr.LogicExpr('&', neg2, boundary1)
-            return expr.LogicExpr('|', disj1, disj2)
+            disj1 = expr.LogicExpr('&&', neg1, boundary2)
+            disj2 = expr.LogicExpr('&&', neg2, boundary1)
+            return expr.LogicExpr('||', disj1, disj2)
         elif e.op == '!':
             return compute_boundary(expr.neg_expr(e.exprs[0]))
 
 # Return the relexpression 'denomibator != 0' for term e.           
 def demoninator_not_zero(e):
-    if not isinstance(e, expr.AExpr):
+    if not isinstance(e, expr.Expr):
         raise NotImplementedError
 
     if not isinstance(e, str):
@@ -141,7 +141,7 @@ def demoninator_not_zero(e):
     
     e = simplify(sympify(e.replace('^', '**')))
     _, denominator = fraction(e)
-    denominator = aexpr_parser.parse(str(denominator).replace('**', '^'))
+    denominator = expr_parser.parse(str(denominator).replace('**', '^'))
 
     return expr.RelExpr('!=', denominator, expr.AConst(0))
 
@@ -367,7 +367,7 @@ class CmdVerifier:
 
             elif isinstance(pre, expr.LogicExpr):
                 # Assume pre is a conjunction function
-                if pre.op == '&':
+                if pre.op == '&&':
                     pre_list = expr.split_conj(pre)
                     for sub_pre in pre_list:
                         # No variables in sub_pre.
@@ -639,7 +639,7 @@ class CmdVerifier:
             # IChoice: 
             #   {P1} c1 {Q}    {P2} c2 {Q}
             # ------------------------------
-            #     {P1 & P2} c1 ++ c2 {Q}
+            #     {P1 && P2} c1 ++ c2 {Q}
             # Pre-condition is the conjunction of the two pre-conditions
             # of subprograms.
 
@@ -668,7 +668,7 @@ class CmdVerifier:
             # ITE, if b then c1 else c2 endif
             #                       {P1} c1 {Q}  {P2} c2 {Q}  {P3} c3 {Q}
             #-----------------------------------------------------------------------------
-            #              {(b1 -> P1) & (!b1 & b2 -> P2)& (!b1 & !b2 -> P3)} 
+            #              {(b1 -> P1) && (!b1 && b2 -> P2)&& (!b1 && !b2 -> P3)} 
             #                      if b1 then c1 elif b2 then c2 else c3 endif 
             #                                         {Q}
             if_hps = cur_hp.if_hps
@@ -699,7 +699,7 @@ class CmdVerifier:
                 if i == 0:
                     sub_cond = if_cond_list[0]
                 elif i < len(if_hps):
-                    sub_cond = expr.LogicExpr('&', expr.neg_expr(expr.list_disj(*if_cond_list[:i])), if_cond_list[i])
+                    sub_cond = expr.LogicExpr('&&', expr.neg_expr(expr.list_disj(*if_cond_list[:i])), if_cond_list[i])
                 else:
                     sub_cond = expr.neg_expr(expr.list_disj(*if_cond_list[:]))
 
@@ -860,7 +860,7 @@ class CmdVerifier:
                 if cur_hp.inv is None:
                     cur_hp.inv = (invariant.CutInvariant(inv=expr.true_expr),)
                 # Construct partial post conditions, e.g., for `[A] ghost x [B] [C]`, 
-                # they would be `C`, `B & C`, `EX x. B & C`, and `A & EX x. B & C``
+                # they would be `C`, `B && C`, `EX x. B && C`, and `A && EX x. B && C``
                 subposts = []
                 subpost = None
                 for inv in reversed(cur_hp.inv):
@@ -868,7 +868,7 @@ class CmdVerifier:
                         if subpost is None:
                             subpost = inv.inv
                         else:
-                            subpost = expr.LogicExpr('&', inv.inv, subpost)
+                            subpost = expr.LogicExpr('&&', inv.inv, subpost)
                     elif isinstance(inv, invariant.GhostIntro):
                         if subpost is None:
                             raise AssertionError("Ghost invariant cannot be last instruction.")
@@ -881,9 +881,9 @@ class CmdVerifier:
 
 
                 # dW Rule (always applied automatically)
-                #   {I & P} <x_dot = f(x) & D> { I }      (I & Boundary of D -> Q)  
+                #   {I && P} <x_dot = f(x) & D> { I }      (I && Boundary of D -> Q)  
                 #-----------------------------------------------------------------------
-                #           {P & (D -> I) & (!D -> Q)} <x_dot = f(x) & D> {Q}
+                #           {P && (D -> I) && (!D -> Q)} <x_dot = f(x) & D> {Q}
                 # post_conj = expr.conj(*[vc.expr for vc in post])
                 # pre_dw = expr.conj(expr.imp(constraint, subposts[-1]),
                 #                    expr.imp(expr.neg_expr(constraint), post_conj)
@@ -903,7 +903,7 @@ class CmdVerifier:
                                     categ=subpost.categ)
                           for subpost in post]
                 boundary = compute_boundary(constraint)
-                # When I is false_expr, (I & Boundary of D -> Q) is true_expr, which can be omitted. 
+                # When I is false_expr, (I && Boundary of D -> Q) is true_expr, which can be omitted. 
                 if subposts[-1] is not expr.false_expr:
                     for vc in post:
                         e = expr.imp(expr.conj(subposts[-1], boundary), vc.expr)
@@ -985,7 +985,7 @@ class CmdVerifier:
             # Use solution axiom
             # 
             #             P ->
-            # ForAll t >= 0  ((ForAll 0 <= s < t D(y(s)) & not D(y(t))) -> (ForAll 0 <= s <= t Q(y(s)))
+            # ForAll t >= 0  ((ForAll 0 <= s < t D(y(s)) && not D(y(t))) -> (ForAll 0 <= s <= t Q(y(s)))
             #--------------------------------------------------------------------------------------------
             #      {P} <x_dot = f(x) & D(x)> {Q(x)}
             #
@@ -1016,19 +1016,19 @@ class CmdVerifier:
                 Q_y_s = post_conj.subst(y_s)
 
                 # Compute the hypothesis of implication
-                # ForAll (s, 0 <= s < t -> D(y(s)) & not D(y(t))
+                # ForAll (s, 0 <= s < t -> D(y(s)) && not D(y(t))
                 sub_cond = expr.ForAllExpr(in_var.name, 
-                                expr.imp(expr.LogicExpr('&', 
+                                expr.imp(expr.LogicExpr('&&', 
                                                         expr.RelExpr('<=', expr.AConst(0), in_var),
                                                         expr.RelExpr('<', in_var, time_var)),
                                          D_y_s))
-                cond = expr.LogicExpr('&', 
+                cond = expr.LogicExpr('&&', 
                                       sub_cond,
                                       expr.LogicExpr('!', D_y_t))
                 # Compute the conclusion of implication
                 # ForAll (s, 0 <= s <= t -> Q(y(s))
                 conclu = expr.ForAllExpr(in_var.name,
-                                expr.imp(expr.LogicExpr('&', 
+                                expr.imp(expr.LogicExpr('&&', 
                                                         expr.RelExpr('<=', expr.AConst(0), in_var),
                                                         expr.RelExpr('<=', in_var, time_var)),
                                          Q_y_s))
@@ -1060,7 +1060,7 @@ class CmdVerifier:
 
 
             # Use dC rules
-            #            {R1} c {R1}    [[R1]] {R2} c {R2}   P -> R1 & R2   R1 & R2 -> Q
+            #            {R1} c {R1}    [[R1]] {R2} c {R2}   P -> R1 && R2   R1 && R2 -> Q
             #--------------------------------------------------------------------------------
             #                                       {P} c {Q}
             elif self.infos[pos].diff_cuts:
@@ -1149,7 +1149,7 @@ class CmdVerifier:
                 # Solve for ghost_eqs automatically.
                 # assume y is the ghost variable, and x are the other variables.
                 else:
-                    if isinstance(ghost_inv, expr.LogicExpr) and ghost_inv.op == "&" and \
+                    if isinstance(ghost_inv, expr.LogicExpr) and ghost_inv.op == "&&" and \
                         len(ghost_inv.exprs) > 0 and all(i == 0 or not ghost_var in e.get_vars() for i, e in enumerate(ghost_inv.exprs)):
                         eq = ghost_inv.exprs[0]
                     else:
@@ -1305,7 +1305,7 @@ class CmdVerifier:
           
 
             # Use barrier certificate
-            #             D & e == 0 -> e_lie > 0
+            #             D && e == 0 -> e_lie > 0
             # --------------------------------------------------
             #      {e >=(>) 0} <x_dot = f(x) & D> {e >=(>) 0}
             elif self.infos[pos].barrier_rule or\
@@ -1344,8 +1344,8 @@ class CmdVerifier:
                 e = barrier_inv.expr1
                 e_lie = compute_diff(e, eqs_dict=self.infos[pos].eqs_dict)
 
-                # vc: D & e == 0 -> e_lie > 0
-                vc = expr.imp(expr.LogicExpr('&', constraint, 
+                # vc: D && e == 0 -> e_lie > 0
+                vc = expr.imp(expr.LogicExpr('&&', constraint, 
                                                    expr.RelExpr('==', e, expr.AConst(0))),
                               expr.RelExpr('>', e_lie, expr.AConst(0)))
 
@@ -1400,11 +1400,11 @@ class CmdVerifier:
                     vc=True)
         
     def convert_imp(self, e):
-        """Convert implication from (p -> q -> u) to (p & q) -> u,
+        """Convert implication from (p -> q -> u) to (p && q) -> u,
         in which the right expression won't be an implication """
         if isinstance(e, expr.LogicExpr) and e.op == '->':
             if isinstance(e.exprs[1], expr.LogicExpr) and e.exprs[1].op == '->':
-                l_expr = expr.LogicExpr('&', e.exprs[0], e.exprs[1].exprs[0])
+                l_expr = expr.LogicExpr('&&', e.exprs[0], e.exprs[1].exprs[0])
                 r_expr = e.exprs[1].exprs[1]
                 return self.convert_imp(expr.imp(l_expr, r_expr))
             # p -> q
@@ -1419,13 +1419,13 @@ class CmdVerifier:
             if info.andR:
                 vcs = copy.copy(info.vcs)
                 for vc in vcs:
-                    # Translate, for example, [x == 0 -> x > -1 & x < 1], into 
+                    # Translate, for example, [x == 0 -> x > -1 && x < 1], into 
                     # [x == 0 -> x > -1, x == 0 -> x < 1]
                     if isinstance(vc.expr, expr.LogicExpr) and vc.expr.op == '->':
                         vc_vart = self.convert_imp(vc.expr)
                         expr0 = vc_vart.exprs[0]
                         expr1 = vc_vart.exprs[1]
-                        if isinstance(expr1, expr.LogicExpr) and expr1.op == '&':
+                        if isinstance(expr1, expr.LogicExpr) and expr1.op == '&&':
                             right_exprs = expr.split_conj(expr1)
                             for r_expr in right_exprs:
                                 info.vcs.append(Predicate(

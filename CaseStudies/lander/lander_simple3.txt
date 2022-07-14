@@ -13,7 +13,7 @@ P1 ::=
 v := -1.5;
 m := 759.5;
 {
-    <v_dot = Fc/m - 3.732, m_dot = Fc/2500*(-1) & true> |> [] (
+    {v_dot = Fc/m - 3.732, m_dot = Fc/2500*(-1) & true} |> [] (
         ch_v!v --> skip;,
     ch_m!m --> skip;,
         ch_Fc?Fc --> skip;

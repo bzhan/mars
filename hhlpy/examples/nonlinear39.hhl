@@ -1,13 +1,13 @@
 # Nonlinear benckmark, problem 39
 # {(-1/3 + x)^2 + 2*(-1/3 + y)^2 < 1/25}
 #      t := 0;
-#     <x_dot = x*(2-x-y), y_dot = x-y, t_dot = 1 & t < 10>
+#     {x_dot = x*(2-x-y), y_dot = x-y, t_dot = 1 & t < 10}
 #       @invariant(x>0, 19801*x^2+10*y*((-22888)+11079*y)+x*(64611+33500*y) < 97121)
-# {!(x >= 2 | x <= -2)}
+# {!(x >= 2 || x <= -2)}
 pre [(-1/3 + x)^2 + 2*(-1/3 + y)^2 < 1/25];
 t := 0; 
-<x_dot = x*(2-x-y), y_dot = x-y, t_dot = 1 & t < 10> 
+{x_dot = x*(2-x-y), y_dot = x-y, t_dot = 1 & t < 10} 
 invariant 
     [x > 0] {dbx}
     [19801*x^2+10*y*((-22888)+11079*y)+x*(64611+33500*y) < 97121] {bc};
-post [!(x >= 2 | x <= -2)];
+post [!(x >= 2 || x <= -2)];
