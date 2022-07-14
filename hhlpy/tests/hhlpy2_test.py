@@ -44,7 +44,8 @@ def runVerify(self, *, pre, hp, post, constants=set(),
                 "annot_pos:", vc.annot_pos,
                 "categ:", vc.categ,
                 "branch_label:", str(vc.branch_label),
-                "comp_label:", str(vc.comp_label))
+                "comp_label:", str(vc.comp_label),
+                "pc:", vc.pc)
 
     # Use SMT to verify all verification conditions
     self.assertTrue(verifier.verify())
@@ -80,7 +81,7 @@ def runFile(self, file,
     verifier = CmdVerifier(
         pre=expr.list_conj(*hoare_triple.pre), 
         hp=hoare_triple.hp,
-        post=expr.list_conj(*hoare_triple.post),
+        post=hoare_triple.post,
         wolfram_engine=wolfram_engine, z3=z3)
     
     if andR_rule:
@@ -104,7 +105,8 @@ def runFile(self, file,
                 "annot_pos:", vc.annot_pos,
                 "categ:", vc.categ,
                 "branch_label:", str(vc.branch_label),
-                "comp_label:", str(vc.comp_label))
+                "comp_label:", str(vc.comp_label),
+                "pc:", vc.pc)
 
     # Use SMT to verify all verification conditions
     self.assertTrue(verifier.verify())
@@ -143,7 +145,7 @@ class BasicHHLPyTest(unittest.TestCase):
             post [x >= 1];
         """)
         self.assertEqual(str(res.pre[0]), "x >= 0")
-        self.assertEqual(str(res.post[0]), "x >= 1")
+        self.assertEqual(str(res.post[0].expr), "x >= 1")
         self.assertEqual(str(res.hp), "x := x + 1;")
 
     def testParseHoareTriple2(self):
@@ -183,7 +185,7 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testVerify3(self):
         runFile(self, file="test3.hhl",
-                  expected_vcs={((), ()): ["x >= 0 -> x + 1 >= 1 && x + 1 + 2 >= 3"]})
+                  expected_vcs={((), ()): ["x >= 0 -> x + 1 >= 1", "x >= 0 -> x + 1 + 2 >= 3"]})
 
     def testBasic2(self):
         runFile(self, file="basic2.hhl",
@@ -344,14 +346,17 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testVerify34(self):
         runFile(self, file="test34.hhl",
-                  expected_vcs={((),()): ["z == -2 -> x >= 1 && y == 0 -> x >= 1 && y >= 0", 
+                  expected_vcs={((),()): ["z == -2 -> x >= 1 && y == 0 -> x >= 1",
+                                          "z == -2 -> x >= 1 && y == 0 -> y >= 0", 
                                           # `y == 0` comes from implicit dW
                                           "z == -2 -> y > 0 -> y >= 0", 
                                           # This is from dI (condition implies differential of invariant)
                                           "z == -2 -> x >= 1 && y == 10 && z == -2 ->\
                                           (y > 0 -> x >= 1)", 
                                           "z == -2 -> x >= 1 && y == 10 && z == -2 -> \
-                                          (y <= 0 -> x >= 1 && y >= 0)"]}) 
+                                           y <= 0 -> x >= 1",
+                                           "z == -2 -> x >= 1 && y == 10 && z == -2 -> \
+                                           y <= 0 -> y >= 0"]}) 
                                           # `y <= 0 -> x >= 1 && y >= 0` is the dW precondition
 
     def testVerify35(self):

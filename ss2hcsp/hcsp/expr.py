@@ -523,7 +523,7 @@ class PredCond(Expr):
         self.pred_name = pred_name
         assert isinstance(self.pred_name, str)
         exprs = tuple(exprs)
-        assert all(isinstance(expr, AExpr) for expr in exprs)
+        assert all(isinstance(expr, Expr) for expr in exprs)
         self.exprs = exprs
         self.meta = meta
 

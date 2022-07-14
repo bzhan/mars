@@ -180,8 +180,11 @@ maybe_invariant { ("invariant" Invariant ";")?}
 
 Invariant { "[" cond "]"}
 
+ord_assertion { "[" cond "]" maybe_proof_methods }
+
 maybe_loop_invariant { ("invariant" Loop_invariant+ ";")? }
-Loop_invariant { Invariant ("{{" proof_method ("," proof_method)* "}}")? }
+Loop_invariant { Invariant maybe_proof_methods }
+maybe_proof_methods { ("{{" proof_method ("," proof_method)* "}}")? }
 proof_method { (label ":")? method }
 
 method { "z3"       
@@ -221,7 +224,7 @@ ode_rule {
 }
 
 hoare_pre { "pre" ("[" cond "]")* ";" }
-hoare_post { "post" ("[" cond "]")* ";" }
+hoare_post { "post" (ord_assertion)* ";" }
 @top hoare_triple { hoare_pre cmd hoare_post }
 
 parallel_cmd { cmd ("||" cmd)* }  // Priority 30, outermost level only

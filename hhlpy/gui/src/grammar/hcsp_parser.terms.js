@@ -4,9 +4,9 @@ export const
   hoare_triple = 2,
   CNAME = 7,
   SIGNED_NUMBER = 29,
-  SeqCmd = 71,
-  Loop_invariant = 93,
-  Invariant = 94,
-  OdeNoInv = 98,
-  Ode_invariant = 100,
-  InvariantWithRule = 101
+  SeqCmd = 72,
+  Loop_invariant = 94,
+  Invariant = 95,
+  OdeNoInv = 99,
+  Ode_invariant = 102,
+  InvariantWithRule = 103

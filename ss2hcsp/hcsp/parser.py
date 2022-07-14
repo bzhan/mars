@@ -111,15 +111,12 @@ grammar = r"""
         | "if" "(" expr ")" "{" cmd "}" ("else" "if" "(" expr ")" "{" cmd "}")* ("else" "{" cmd "}")? -> ite_cmd
         | "{" cmd "}" -> paren_cmd
 
-    ?maybe_invariant: ("invariant" invariant+ ";")? -> maybe_invariant
-    ?invariant: "[" expr "]"
+    ?maybe_loop_invariant: ("invariant" ord_assertion+ ";")? -> maybe_loop_invariant
     
-    ?maybe_loop_invariant: ("invariant" loop_invariant+ ";")? -> maybe_loop_invariant
-    ?loop_invariant: "[" expr "]" maybe_proof_methods         -> loop_invariant
+    ?ord_assertion: "[" expr "]" maybe_proof_methods          -> ord_assertion
+    
     ?maybe_proof_methods: ("{{" proof_method ("," proof_method)* "}}")?    ->maybe_proof_methods
-    ?proof_method: (label ":")? method   -> proof_method
-
-    
+    ?proof_method: (label ":")? method   -> proof_method 
     
     ?label_category: "init"     -> label_categ_init
         | "maintain"         -> label_categ_maintain
@@ -164,7 +161,7 @@ grammar = r"""
     ?predicate_decl: "predicate" CNAME "(" CNAME ("," CNAME)* ")" "=" expr ";"
 
     ?hoare_pre : "pre" ("[" expr "]")* ";" -> hoare_pre
-    ?hoare_post : "post" ("[" expr "]")* ";" -> hoare_post
+    ?hoare_post : "post" (ord_assertion)* ";" -> hoare_post
     ?hoare_triple: (function_decl)* (predicate_decl)* hoare_pre cmd hoare_post
 
     ?procedure: "procedure" CNAME "begin" cmd "end"
@@ -415,21 +412,14 @@ class HPTransformer(Transformer):
         ch_name, ch_args = args[0], args[1:]
         return hcsp.OutputChannel(hcsp.Channel(str(ch_name), ch_args, meta=meta), meta=meta)
 
-    def maybe_invariant(self, meta, *args):
-        if len(args) == 0:
-            return None
-        else:
-            return args
+    def ord_assertion(self, meta, expr, proof_methods):
+        return invariant.OrdinaryAssertion(expr=expr, proof_methods=proof_methods, meta=meta)
 
     def maybe_loop_invariant(self, meta, *args):
         if len(args) == 0:
             return None
         else:
             return args
-
-    def loop_invariant(self, meta, inv, proof_methods):
-       
-        return invariant.LoopInvariant(inv=inv, proof_methods=proof_methods, meta=meta)
 
     def maybe_ode_invariant(self, meta, *args):
         if len(args) == 0:

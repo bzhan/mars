@@ -28,7 +28,7 @@ def runCompute(code, constants=set()):
     verifier = CmdVerifier(
         pre=expr.list_conj(*hoare_triple.pre), 
         hp=hoare_triple.hp,
-        post=expr.list_conj(*hoare_triple.post), 
+        post=hoare_triple.post, 
         constants=constants)
 
     # Compute wp and verify
@@ -63,24 +63,43 @@ def runCompute(code, constants=set()):
             
             pms_start_pos = -1
             pms_end_pos = -1
-            # TODO: Cases when the bottom most predicate of vc is an ode invariant or post-condition.
-            # If the bottom most predicate of vc is a loop invariant.
-            if isinstance(hp, hcsp.Loop) and vc.annot_pos is not None:
-                if hp.inv:
-                    inv = hp.inv[vc.annot_pos]
-                    
-                    proof_methods = inv.proof_methods
-                    pms_meta = proof_methods.meta
-                    if pms_meta.empty:
-                        pms_meta.start_pos = inv.meta.end_pos
-                        pms_meta.end_pos = inv.meta.end_pos
-                    pms_start_pos = proof_methods.meta.start_pos
-                    pms_end_pos = proof_methods.meta.end_pos
-                    # If the method of this vc is stored in proof_methods,
-                    # send the method back to the client, which will be used as the default method.
-                    for proof_method in proof_methods.pms:
-                        if str(label_computed) == str(proof_method.label):
-                            method_stored = proof_method.method
+            # TODO: Cases when the bottom most predicate of vc is an ode invariant.
+            # TODO: Merge the three cases.
+
+            # Case when the bottom most predicate of vc is a post condition.
+            if vc.pc:
+                assertion = hoare_triple.post[vc.annot_pos]
+
+                proof_methods = assertion.proof_methods
+                pms_meta = proof_methods.meta
+                if pms_meta.empty:
+                    pms_meta.start_pos = assertion.meta.end_pos
+                    pms_meta.end_pos = assertion.meta.end_pos
+                pms_start_pos = proof_methods.meta.start_pos
+                pms_end_pos = proof_methods.meta.end_pos
+                # If the method of this vc is stored in proof_methods,
+                # send the method back to the client, which will be used as the default method.
+                for proof_method in proof_methods.pms:
+                    if str(label_computed) == str(proof_method.label):
+                        method_stored = proof_method.method
+
+            # Case when the bottom most predicate of vc is an ode invariant.
+            elif isinstance(hp, hcsp.Loop) and vc.annot_pos is not None:
+                assert hp.inv is not None
+                inv = hp.inv[vc.annot_pos]
+                
+                proof_methods = inv.proof_methods
+                pms_meta = proof_methods.meta
+                if pms_meta.empty:
+                    pms_meta.start_pos = inv.meta.end_pos
+                    pms_meta.end_pos = inv.meta.end_pos
+                pms_start_pos = proof_methods.meta.start_pos
+                pms_end_pos = proof_methods.meta.end_pos
+                # If the method of this vc is stored in proof_methods,
+                # send the method back to the client, which will be used as the default method.
+                for proof_method in proof_methods.pms:
+                    if str(label_computed) == str(proof_method.label):
+                        method_stored = proof_method.method
 
             vc_infos.append({
                 "line": meta.end_line,

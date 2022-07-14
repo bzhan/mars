@@ -1,35 +1,39 @@
-from ss2hcsp.hcsp import expr
+from ss2hcsp.hcsp.expr import Expr
 from ss2hcsp.hcsp.label import Label
 
-class Invariant:
+class Assertion:
     """Arithmetic expression."""
     def __init__(self):
         pass
 
-class LoopInvariant(Invariant):
-    """Represents an invariant of a loop program.
-    inv : Expr - invariant
+class OrdinaryAssertion(Assertion):
+    """Represents an assertion with its expression and proof methods.
+    expr : Expr - assertion expression
     proof_methods: tuple - methods used for proof. 
+
+    Both loop invariant with proof methods and post condition with proof methods are
+    instances of OrdinaryAssertion.
     """
-    def __init__(self, inv, proof_methods, meta=None):
-        super(Invariant, self).__init__()
-        assert isinstance(inv, expr.Expr)
+    def __init__(self, expr, proof_methods, meta=None):
+        super(OrdinaryAssertion, self).__init__()
+        assert isinstance(expr, Expr)
         assert isinstance(proof_methods, ProofMethods)
         self.meta = meta
-        self.inv = inv
+        self.expr = expr
         self.proof_methods = proof_methods
 
-class CutInvariant(Invariant):
+
+class CutInvariant(Assertion):
     def __init__(self, inv, rule = None, rule_arg=None, meta=None):
-        super(Invariant, self).__init__()
+        super(CutInvariant, self).__init__()
         self.meta = meta
         self.inv = inv
         self.rule = rule
         self.rule_arg = rule_arg
 
-class GhostIntro(Invariant):
+class GhostIntro(Assertion):
     def __init__(self, var, diff, meta=None):
-        super(Invariant, self).__init__()
+        super(GhostIntro, self).__init__()
         self.meta = meta
         self.var = var
         self.diff = diff
@@ -45,8 +49,8 @@ class ProofMethod():
         # label can be None
         if label:
             assert isinstance(label, Label)
-            self.label = label
         assert isinstance(method, str)
+        self.label = label
         self.method = method
 
     def __str__(self):

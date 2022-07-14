@@ -253,9 +253,9 @@ class CmdInfo:
 
         return res
 
-class Predicate:
-    """Stores a verification condition and the parts of the program that it originates from."""
-    def __init__(self, expr, pos, seq_labels=[], nest_label=None, annot_pos=None, categ=None, vc=False):
+class Condition:
+    """Stores a condition(pre-condition, post-condition, verification condition) and the parts of the program that it originates from."""
+    def __init__(self, expr, pos, seq_labels=[], nest_label=None, annot_pos=None, categ=None, vc=False, pc = False):
         assert isinstance(pos, list)
         # The expression stating the condition itself
         self.expr = expr
@@ -300,6 +300,8 @@ class Predicate:
             else:
                 self.comp_label = None
 
+        # Whether the condition is post-condtion or computed by post-condition
+        self.pc = pc
 
     def __str__(self):
         return str(self.expr)
@@ -309,9 +311,6 @@ class CmdVerifier:
     def __init__(self, *, pre, hp, post, constants=set(), z3 = True, wolfram_engine = False):
         # The HCSP program to be verified.
         self.hp = hp
-        
-        # Record the history of position visited.
-        self.pos_hist = []
 
         # The prover used to verify conditions.
         # Use z3 by default.
@@ -323,11 +322,14 @@ class CmdVerifier:
         # Mapping from program position to CmdInfo objects.
         self.infos = dict()
 
+        # The conjunction of post expression
+        post_conj = expr.list_conj(*[subpost.expr for subpost in post])
+
         # Set of function names that are used
-        fun_names = hp.get_fun_names().union(pre.get_fun_names(), post.get_fun_names())
+        fun_names = hp.get_fun_names().union(pre.get_fun_names(), post_conj.get_fun_names())
 
         # Set of var_names that are used, the names of AVar expression 
-        var_names = hp.get_vars().union(pre.get_vars(), post.get_vars())
+        var_names = hp.get_vars().union(pre.get_vars(), post_conj.get_vars())
 
         # Set of names(function names and var_names) that are used
         self.names = fun_names.union(var_names)
@@ -337,7 +339,7 @@ class CmdVerifier:
         self.compute_variable_set()
 
         # Set of functions with zero arity that are used, which can be treated as constants
-        zero_arity_funcs = hp.get_zero_arity_funcs().union(pre.get_zero_arity_funcs(), post.get_zero_arity_funcs())
+        zero_arity_funcs = hp.get_zero_arity_funcs().union(pre.get_zero_arity_funcs(), post_conj.get_zero_arity_funcs())
 
         # Set of constants that are appointed
         if constants:
@@ -352,7 +354,11 @@ class CmdVerifier:
         root_pos = ((),())
         self.infos[root_pos] = CmdInfo()
         self.infos[root_pos].pre = pre
-        self.infos[root_pos].post = [Predicate(expr=post, pos=[root_pos])]
+        self.infos[root_pos].post = [Condition(expr=subpost.expr, 
+                                               pos=[root_pos], 
+                                               annot_pos=idx, 
+                                               pc=True) 
+                                    for idx, subpost in enumerate(post)]
 
         # If there are pre-conditions of constants in the form: A op c, 
         # in which A is a constant symbol, c doesn't include variable symbols, op is in RelExpr.op
@@ -483,7 +489,7 @@ class CmdVerifier:
         # When the hcsp program is IChioce or ITE
         if type == 'ichoice' or type == 'ite':
 
-            assert isinstance(sub_pre, Predicate) 
+            assert isinstance(sub_pre, Condition) 
             assert isinstance(index, int)
 
             seq_labels = sub_pre.seq_labels.copy()
@@ -515,7 +521,7 @@ class CmdVerifier:
 
         # When the hcsp program is Sequence
         elif type == 'sequence':
-            assert isinstance(sub_pre, Predicate)
+            assert isinstance(sub_pre, Condition)
             assert isinstance(i_num, int)
 
             seq_labels = sub_pre.seq_labels.copy()
@@ -550,7 +556,7 @@ class CmdVerifier:
                 seq_labels = []
                 nest_label = None
             else:
-                assert isinstance(sub_pre, Predicate)
+                assert isinstance(sub_pre, Condition)
 
                 seq_labels = sub_pre.seq_labels.copy()
                 nest_label = sub_pre.nest_label
@@ -575,9 +581,6 @@ class CmdVerifier:
         # Obtain the hp at the given position
         cur_hp = get_pos(self.hp, pos[0])
 
-        # Append the given position.
-        self.pos_hist.append(pos[0])
-
         # The post-condition at the given position should already be
         # available.
         # assert pos in self.infos and self.infos[pos].post is not None
@@ -585,13 +588,14 @@ class CmdVerifier:
 
         if isinstance(cur_hp, hcsp.Skip):
             # Skip: {P} skip {P}
-            pre = [Predicate(
+            pre = [Condition(
                 expr=vc.expr, 
                 pos=vc.pos + [pos], 
                 seq_labels=vc.seq_labels, 
                 nest_label=vc.nest_label, 
                 annot_pos=vc.annot_pos, 
-                categ=vc.categ) for vc in post]
+                categ=vc.categ,
+                pc=vc.pc) for vc in post]
         
         elif isinstance(cur_hp, hcsp.Assign):
             # Assign: {P[e/v]} v := e {P}
@@ -603,13 +607,14 @@ class CmdVerifier:
                 raise NotImplementedError("Constants can not be assigned")
 
             var = cur_hp.var_name.name
-            pre = [Predicate(
+            pre = [Condition(
                 expr=vc.expr.subst({var: cur_hp.expr}), 
                 pos=vc.pos + [pos],
                 seq_labels=vc.seq_labels,
                 nest_label=vc.nest_label,
                 annot_pos=vc.annot_pos,
-                categ=vc.categ) for vc in post]
+                categ=vc.categ,
+                pc=vc.pc) for vc in post]
         
         elif isinstance(cur_hp, hcsp.RandomAssign):
             # RandomAssign: replace var_name by var_name_new in post and in cur_hp.expr
@@ -627,13 +632,14 @@ class CmdVerifier:
             self.names.add(newvar.name)
 
             #Compute the pre: hp.expr(newvar|var) -> post(newvar|var)
-            pre = [Predicate(
+            pre = [Condition(
                 expr=expr.imp(cur_hp.expr.subst({var_str: newvar}), vc.expr.subst({var_str: newvar})), 
                 pos=vc.pos + [pos],
                 seq_labels=vc.seq_labels,
                 nest_label=vc.nest_label,
                 annot_pos=vc.annot_pos,
-                categ=vc.categ) for vc in post]
+                categ=vc.categ,
+                pc=vc.pc) for vc in post]
 
         elif isinstance(cur_hp, hcsp.IChoice):
             # IChoice: 
@@ -655,13 +661,14 @@ class CmdVerifier:
 
                 self.compute_wp(pos=sub_pos)
 
-                pre += [Predicate(
+                pre += [Condition(
                     expr=vc.expr, 
                     pos=vc.pos, 
                     seq_labels=self.compute_label(pos=pos, sub_pre=vc, index=i)[0], 
                     nest_label=self.compute_label(pos=pos, sub_pre=vc, index=i)[1], 
                     annot_pos=vc.annot_pos, 
-                    categ=vc.categ) 
+                    categ=vc.categ,
+                    pc=vc.pc) 
                     for vc in sub_info.pre]
 
         elif isinstance(cur_hp, hcsp.ITE):
@@ -706,12 +713,13 @@ class CmdVerifier:
                 # Compute the implicaiton for each if_hp or else_hp
                 for vc in sub_pre:
                     sub_imp.append(
-                        Predicate(expr=expr.imp(sub_cond, vc.expr), 
+                        Condition(expr=expr.imp(sub_cond, vc.expr), 
                             pos=vc.pos,
                             seq_labels=self.compute_label(pos=pos, sub_pre=vc, index=i)[0],
                             nest_label=self.compute_label(pos=pos, sub_pre=vc, index=i)[1],
                             annot_pos=vc.annot_pos,
-                            categ=vc.categ))
+                            categ=vc.categ,
+                            pc=vc.pc))
 
             pre = sub_imp
 
@@ -734,12 +742,13 @@ class CmdVerifier:
                 self.compute_wp(pos=sub_pos)
                 cur_post = sub_info.pre
             pre = cur_post
-            pre = [Predicate(vc.expr, 
+            pre = [Condition(vc.expr, 
                     vc.pos + [pos], 
                     seq_labels=self.compute_label(pos=pos, sub_pre=vc, i_num=i_num)[0],
                     nest_label=self.compute_label(pos=pos, sub_pre=vc, i_num=i_num)[1],
                     annot_pos=vc.annot_pos, 
-                    categ=vc.categ) for vc in pre]
+                    categ=vc.categ,
+                    pc=vc.pc) for vc in pre]
 
         elif isinstance(cur_hp, hcsp.Loop):
             # Loop, currently use the invariant that users offered.
@@ -751,10 +760,10 @@ class CmdVerifier:
                 raise AssertionError("Loop invariant at position %s is not set." % str(pos))
 
             for sub_inv in cur_hp.inv:
-                if isinstance(sub_inv.inv, expr.LogicExpr):
+                if isinstance(sub_inv.expr, expr.LogicExpr):
                     raise NotImplementedError("Logic expression should be split into several relational expressions")
 
-            all_invs = [sub_inv.inv for sub_inv in cur_hp.inv]
+            all_invs = [sub_inv.expr for sub_inv in cur_hp.inv]
             
             # The first time visiting loop program.
             # self.infos[pos].inv is empty by default.
@@ -768,7 +777,7 @@ class CmdVerifier:
                     if sub_pos not in self.infos:
                         self.infos[sub_pos] = CmdInfo()
                     sub_info = self.infos[sub_pos]
-                    sub_info.inv = [Predicate(expr=sub_inv.inv, pos=[pos], annot_pos=i)]
+                    sub_info.inv = [Condition(expr=sub_inv.expr, pos=[pos], annot_pos=i)]
                     sub_info.assume += self.infos[pos].assume
                                     #   [cur_hp.inv[index].inv for index in range(i)]
                     
@@ -776,22 +785,17 @@ class CmdVerifier:
 
                 # One verification condition is conjunction of sub_inv -> post.
                 for i, vc in enumerate(post):
-                    last_hp = get_pos(self.hp, vc.pos[0][0])
-                    if isinstance(last_hp, hcsp.Loop) and vc.pos[0] != ((), ()):
-                        annot_pos = i
-                    else:
-                        annot_pos = None
-
                     self.infos[pos].vcs.append(
-                        Predicate(expr=expr.imp(expr.list_conj(*all_invs), vc.expr), 
+                        Condition(expr=expr.imp(expr.list_conj(*all_invs), vc.expr), 
                                             pos=vc.pos + [pos], 
                                             seq_labels=vc.seq_labels,
                                             nest_label=vc.nest_label, 
-                                            annot_pos=annot_pos,
+                                            annot_pos=vc.annot_pos,
                                             categ=vc.categ,
-                                            vc=True))
+                                            vc=True,
+                                            pc=vc.pc))
 
-                pre = [Predicate(expr=sub_inv.inv, pos=[pos], annot_pos=i, categ="init") \
+                pre = [Condition(expr=sub_inv.expr, pos=[pos], annot_pos=i, categ="init") \
                        for i, sub_inv in enumerate(cur_hp.inv)]
 
             # self.infos[pos].inv is set after creating branches.
@@ -814,7 +818,7 @@ class CmdVerifier:
                     # annot_pos add one more tuple to pos to record the annotation index, i.e. invariant index for loop.
                     # Another verification condition is that all invariants together imply the weakest precondition of sub_inv w.r.t the loop body
                     
-                    sub_vc = Predicate(expr=expr.imp(expr.list_conj(*all_invs), sub_pre.expr),
+                    sub_vc = Condition(expr=expr.imp(expr.list_conj(*all_invs), sub_pre.expr),
                                                    pos=sub_pre.pos, 
                                                    seq_labels=sub_pre.seq_labels,
                                                    nest_label=sub_pre.nest_label,
@@ -888,14 +892,14 @@ class CmdVerifier:
                 # pre_dw = expr.conj(expr.imp(constraint, subposts[-1]),
                 #                    expr.imp(expr.neg_expr(constraint), post_conj)
                 #                     )
-                pre_dw = [Predicate(expr=expr.imp(constraint, subposts[-1]), 
+                pre_dw = [Condition(expr=expr.imp(constraint, subposts[-1]), 
                                     pos=[pos],
                                     seq_labels=self.compute_label(pos=pos, value='execute')[0],
                                     nest_label=self.compute_label(pos=pos, value='execute')[1],
                                     categ="init"
                         )] \
                         + \
-                         [Predicate(expr=expr.imp(expr.neg_expr(constraint), 
+                         [Condition(expr=expr.imp(expr.neg_expr(constraint), 
                                                      subpost.expr),
                                     pos=subpost.pos + [pos],
                                     seq_labels=self.compute_label(pos=pos, sub_pre=subpost,value='skip')[0],
@@ -908,16 +912,17 @@ class CmdVerifier:
                     for vc in post:
                         e = expr.imp(expr.conj(subposts[-1], boundary), vc.expr)
                         self.infos[pos].vcs.append(
-                            Predicate(
+                            Condition(
                                 expr=e, 
                                 pos=vc.pos + [pos], 
                                 seq_labels=vc.seq_labels,
                                 nest_label=vc.nest_label,
                                 categ=vc.categ,
-                                vc=True))
+                                vc=True,
+                                pc=vc.pc))
 
                 # Post below is the postcondition of the invariant triple.
-                post = [Predicate(expr=subposts[-1], pos=[pos])]
+                post = [Condition(expr=subposts[-1], pos=[pos])]
 
                 # Add ghost variables and cuts to self.infos:
                 sub_pos = pos
@@ -1052,11 +1057,11 @@ class CmdVerifier:
                 differential = compute_diff(dI_inv, eqs_dict=self.infos[pos].eqs_dict)
                 vc = expr.imp(constraint, differential)
      
-                self.infos[pos].vcs.append(Predicate(expr=vc, pos=[pos], categ="maintain", vc=True))
+                self.infos[pos].vcs.append(Condition(expr=vc, pos=[pos], categ="maintain", vc=True))
 
                 if dI_inv != post_conj:
                     self.infos[pos].vcs.append(
-                        Predicate(expr=expr.imp(dI_inv, post_conj), pos=[pos], vc=True))
+                        Condition(expr=expr.imp(dI_inv, post_conj), pos=[pos], vc=True))
 
 
             # Use dC rules
@@ -1076,7 +1081,7 @@ class CmdVerifier:
                         self.infos[sub_pos] = CmdInfo()
 
                     # Post condition of the each subproof is diff_cut.
-                    self.infos[sub_pos].post = [Predicate(expr=diff_cut, pos=[pos])] 
+                    self.infos[sub_pos].post = [Condition(expr=diff_cut, pos=[pos])] 
 
                     self.infos[sub_pos].eqs_dict = self.infos[pos].eqs_dict
                     self.infos[sub_pos].assume += self.infos[pos].assume + diff_cuts[:i]
@@ -1134,7 +1139,7 @@ class CmdVerifier:
                     if sub_pos not in self.infos:
                         self.infos[sub_pos] = CmdInfo()
 
-                    self.infos[sub_pos].post = [Predicate(expr=ghost_inv, pos=[pos])]
+                    self.infos[sub_pos].post = [Condition(expr=ghost_inv, pos=[pos])]
 
                     # The eqs_dict in sub_pos is eqs_dict in pos with ghost_eqs.
                     if not self.infos[sub_pos].eqs_dict:
@@ -1188,7 +1193,7 @@ class CmdVerifier:
 
                 if dG_inv != post_conj:
                     self.infos[pos].vcs.append(
-                        Predicate(expr=expr.imp(dG_inv, post_conj), pos=[pos], vc=True))
+                        Condition(expr=expr.imp(dG_inv, post_conj), pos=[pos], vc=True))
 
 
             # Using dbx rule
@@ -1211,7 +1216,7 @@ class CmdVerifier:
                     self.infos[pos].dbx_inv = post_conj
                 else:
                     self.infos[pos].vcs.append(
-                        Predicate(expr=expr.imp(self.infos[pos].dbx_inv, post_conj), pos=[pos], vc=True))
+                        Condition(expr=expr.imp(self.infos[pos].dbx_inv, post_conj), pos=[pos], vc=True))
                 dbx_inv = self.infos[pos].dbx_inv
 
                 # For example, simplify !(x > 1) to x <= 1
@@ -1262,7 +1267,7 @@ class CmdVerifier:
                         vc = expr.imp(constraint, expr.RelExpr('==', e_lie_deriv, 
                                                                     expr.OpExpr('*'), g, e))
 
-                        self.infos[pos].vcs.append(Predicate(expr=vc, pos=[pos], categ="maintain", vc=True))
+                        self.infos[pos].vcs.append(Condition(expr=vc, pos=[pos], categ="maintain", vc=True))
 
                 # Cases when dbx_inv is e >(>=) 0.
                 # Use Darboux Inequality Rule.
@@ -1284,7 +1289,7 @@ class CmdVerifier:
                             vc_comps.append(vc_comp)
                         vc = expr.imp(constraint, expr.list_disj(*vc_comps))
 
-                        self.infos[pos].vcs.append(Predicate(expr=vc, pos=[pos], categ="maintain", vc=True))
+                        self.infos[pos].vcs.append(Condition(expr=vc, pos=[pos], categ="maintain", vc=True))
 
                     # Cases when the cofactor g is offered by the user.
                     else:
@@ -1300,7 +1305,7 @@ class CmdVerifier:
                         vc = expr.imp(constraint, expr.RelExpr('>=', e_lie_deriv, 
                                                                     expr.OpExpr('*', self.infos[pos].dbx_cofactor, e)))
                         
-                        self.infos[pos].vcs.append(Predicate(expr=vc, pos=[pos], categ="maintain", vc=True))
+                        self.infos[pos].vcs.append(Condition(expr=vc, pos=[pos], categ="maintain", vc=True))
                 
           
 
@@ -1316,7 +1321,7 @@ class CmdVerifier:
                     self.infos[pos].barrier_inv = post_conj
                 else:
                     self.infos[pos].vcs.append(
-                        Predicate(expr=expr.imp(self.infos[pos].barrier_inv, post_conj), pos=[pos], vc=True))
+                        Condition(expr=expr.imp(self.infos[pos].barrier_inv, post_conj), pos=[pos], vc=True))
 
                 barrier_inv = self.infos[pos].barrier_inv
 
@@ -1349,14 +1354,14 @@ class CmdVerifier:
                                                    expr.RelExpr('==', e, expr.AConst(0))),
                               expr.RelExpr('>', e_lie, expr.AConst(0)))
 
-                self.infos[pos].vcs.append(Predicate(expr=vc, pos=[pos], categ="maintain", vc=True))
+                self.infos[pos].vcs.append(Condition(expr=vc, pos=[pos], categ="maintain", vc=True))
 
 
             else:
                 raise AssertionError("No invariant set at position %s." % str(pos))
 
             if pre is not None and pre_dw is not None:
-                pre = [Predicate(expr=pre, pos=[pos])] + pre_dw
+                pre = [Condition(expr=pre, pos=[pos])] + pre_dw
             elif pre_dw is not None:
                 pre = pre_dw
             # If pre is None and pre_dw is None, no pre is computed, so pre is still None.
@@ -1371,26 +1376,22 @@ class CmdVerifier:
             self.infos[pos].pre = pre
         else:
             for i, vc in enumerate(pre):
-                last_hp = get_pos(self.hp, vc.pos[0][0])
-                if isinstance(last_hp, hcsp.Loop):
-                    annot_pos = i
-                else:
-                    annot_pos = None
                 self.infos[pos].vcs.append(
-                    Predicate(expr=expr.imp(self.infos[pos].pre, vc.expr), 
+                    Condition(expr=expr.imp(self.infos[pos].pre, vc.expr), 
                               pos=vc.pos, 
                               seq_labels=vc.seq_labels, 
                               nest_label=vc.nest_label, 
-                              annot_pos=annot_pos, 
+                              annot_pos=vc.annot_pos, 
                               categ=vc.categ,
-                              vc=True))
+                              vc=True,
+                              pc=vc.pc))
 
         # Add assume into the hypothesis of every verification condition.
         if self.infos[pos].assume:
             assume = expr.list_conj(*self.infos[pos].assume)
             for i in range(len(self.infos[pos].vcs)):
                 vc = self.infos[pos].vcs[i]
-                self.infos[pos].vcs[i] = Predicate(
+                self.infos[pos].vcs[i] = Condition(
                     expr=expr.imp(assume, vc.expr), 
                     pos=vc.pos, 
                     seq_labels=vc.seq_labels, 
@@ -1428,14 +1429,15 @@ class CmdVerifier:
                         if isinstance(expr1, expr.LogicExpr) and expr1.op == '&&':
                             right_exprs = expr.split_conj(expr1)
                             for r_expr in right_exprs:
-                                info.vcs.append(Predicate(
+                                info.vcs.append(Condition(
                                     expr=expr.imp(expr0, r_expr), 
                                     pos=vc.pos, 
                                     seq_labels=vc.seq_labels,
                                     nest_label=vc.nest_label,
                                     annot_pos=vc.annot_pos,
                                     categ=vc.categ,
-                                    vc=True))
+                                    vc=True,
+                                    pc=vc.pc))
                             info.vcs.remove(vc)
 
             if info.vcs:
