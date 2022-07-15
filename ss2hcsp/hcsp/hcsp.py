@@ -93,31 +93,6 @@ class Function:
     def __repr__(self):
         return "Function(%s, %s, %s)" % (self.name, repr(self.vars), repr(self.expr))
 
-
-class Predicate:
-    """Declarations of predicates.
-    
-    Predicates are similar to Functions, except they return a value of
-    boolean type.
-    
-    """
-    def __init__(self, name: str, vars, expr: Union[Expr, str]):
-        assert isinstance(vars, list) and all(isinstance(var, str) for var in vars)
-        if isinstance(expr, str):
-            from ss2hcsp.hcsp.parser import expr_parser
-            expr = expr_parser.parse(expr)
-        assert set(vars) == expr.get_vars(), "Predicate: unexpected set of variables"
-        self.name = name
-        self.vars = vars
-        self.expr = expr
-
-    def __str__(self):
-        return "%s(%s) = %s" % (self.name, ",".join(var for var in self.vars), self.expr)
-
-    def __repr__(self):
-        return "Predicate(%s, %s, %s)" % (self.name, repr(self.vars), repr(self.expr))
-
-
 class HCSP:
     def __init__(self):
         self.type = None
@@ -1390,7 +1365,7 @@ def get_comm_chs(hp):
 
 class HoareTriple:
     """A program with pre- and post-conditions"""
-    def __init__(self, pre, hp, post, functions=None, predicates=None, meta=None):
+    def __init__(self, pre, hp, post, functions=None, meta=None):
         self.pre = list(pre)
         self.post = list(post)
         assert all(isinstance(subpost, assertion.OrdinaryAssertion) for subpost in post)
@@ -1398,9 +1373,6 @@ class HoareTriple:
         if functions is None:
             functions = dict()
         self.functions = functions
-        if predicates is None:
-            predicates = dict()
-        self.predicates = predicates
         self.meta = meta
 
 class Procedure:

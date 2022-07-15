@@ -159,12 +159,12 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testParseHoareTriple3(self):
         res = parse_hoare_triple_with_meta("""
-            predicate bar(x, y) = 2 * x == y;
+            function bar(x, y) = 2 * x == y;
             pre [x >= 0];
             x := x + 1;
             post [x >= 1];
         """)
-        self.assertEqual(str(res.predicates["bar"]), "bar(x,y) = 2 * x == y")
+        self.assertEqual(str(res.functions["bar"]), "bar(x,y) = 2 * x == y")
 
     def testBasic1(self):
         runFile(self, file="basic1.hhl")
