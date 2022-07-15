@@ -279,6 +279,16 @@ class SimTest(unittest.TestCase):
 
         })
 
+    def testSLIsolette(self):
+        run_test(self, "./hhlpy/examples/simulink/sl_isolette.xml", 80, {
+
+        }, output_to_file="./hhlpy/examples/simulink/sl_isolette.txt")
+
+    def testSLDelay(self):
+        run_test(self, "./hhlpy/examples/simulink/sl_delay.xml", 80, {
+
+        }, output_to_file="./hhlpy/examples/simulink/sl_delay.txt")
+
 
 if __name__ == "__main__":
     unittest.main()
