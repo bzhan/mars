@@ -941,15 +941,18 @@ class SFConvertTest(unittest.TestCase):
 
     def testSFSawtooth1(self):
         run_test(self, "./hhlpy/examples/simulink/sf_sawtooth1.xml", 3,
-            ['log enA', 'log enA1', 'delay 1.0', 'log enA2', 'delay 0.5',
-             'log condA2B', 'log exA', 'log enB', 'delay 1.0'],
+            ['delay 1.0', 'delay 1.0', 'delay 1.0'],
             output_to_file="./hhlpy/examples/simulink/sf_sawtooth1.txt")
 
     def testSFSawtooth2(self):
         run_test(self, "./hhlpy/examples/simulink/sf_sawtooth2.xml", 3,
-            ['log enA', 'log enA1', 'delay 1.0', 'log enA2', 'delay 0.5',
-             'log condA2B', 'log exA', 'log enB', 'delay 1.0'],
+            ['delay 1.0', 'delay 1.0', 'delay 1.0'],
             output_to_file="./hhlpy/examples/simulink/sf_sawtooth2.txt")
+
+    def testSFBouncing(self):
+        run_test(self, "./hhlpy/examples/simulink/sf_bouncing.xml", 3,
+            ['delay 1.01', 'delay 0.909', 'delay 0.909'],
+            output_to_file="./hhlpy/examples/simulink/sf_bouncing.txt")
 
 
 if __name__ == "__main__":
