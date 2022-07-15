@@ -939,6 +939,18 @@ class SFConvertTest(unittest.TestCase):
             1.1: {'t': 1.1, 'cent': 76, 'disp_cent': 76},
         }, output_to_file=prefix+"StopWatch6.txt")
 
+    def testSFSawtooth1(self):
+        run_test(self, "./hhlpy/examples/simulink/sf_sawtooth1.xml", 3,
+            ['log enA', 'log enA1', 'delay 1.0', 'log enA2', 'delay 0.5',
+             'log condA2B', 'log exA', 'log enB', 'delay 1.0'],
+            output_to_file="./hhlpy/examples/simulink/sf_sawtooth1.txt")
+
+    def testSFSawtooth2(self):
+        run_test(self, "./hhlpy/examples/simulink/sf_sawtooth2.xml", 3,
+            ['log enA', 'log enA1', 'delay 1.0', 'log enA2', 'delay 0.5',
+             'log condA2B', 'log exA', 'log enB', 'delay 1.0'],
+            output_to_file="./hhlpy/examples/simulink/sf_sawtooth2.txt")
+
 
 if __name__ == "__main__":
     unittest.main()
