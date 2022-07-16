@@ -308,7 +308,7 @@ class Condition:
 
 class CmdVerifier:
     """Contains current state of verification of an HCSP program."""
-    def __init__(self, *, pre, hp, post, constants=set(), z3 = True, wolfram_engine = False):
+    def __init__(self, *, pre, hp, post, functions=dict(), z3 = True, wolfram_engine = False):
         # The HCSP program to be verified.
         self.hp = hp
 
@@ -324,6 +324,10 @@ class CmdVerifier:
 
         # The conjunction of post expression
         post_conj = expr.list_conj(*[subpost.expr for subpost in post])
+
+        # Dictionary of declared functions
+        # TODO: Use this below instead of scanning the expressions?
+        self.functions = functions
 
         # Set of function names that are used
         fun_names = hp.get_fun_names().union(pre.get_fun_names(), post_conj.get_fun_names())
@@ -341,11 +345,7 @@ class CmdVerifier:
         # Set of functions with zero arity that are used, which can be treated as constants
         zero_arity_funcs = hp.get_zero_arity_funcs().union(pre.get_zero_arity_funcs(), post_conj.get_zero_arity_funcs())
 
-        # Set of constants that are appointed
-        if constants:
-            self.constant_names = constants
-        else:
-            self.constant_names = zero_arity_funcs.union(var_names - self.variable_names)
+        self.constant_names = zero_arity_funcs.union(var_names - self.variable_names)
 
         # Initialize info for the root object. Place pre-condition and post-condition.
         # pos is a pair of two tuples. 
@@ -1466,7 +1466,7 @@ class CmdVerifier:
                 return False
 
         elif self.z3:
-            if z3_prove(vc):
+            if z3_prove(vc, self.functions):
                 return True
             else:
                 return False

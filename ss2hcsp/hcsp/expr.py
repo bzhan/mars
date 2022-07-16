@@ -264,6 +264,8 @@ class FunExpr(Expr):
     def get_zero_arity_funcs(self):
         if len(self.exprs) == 0:
             zero_arity_funcs = set((self.fun_name + '(' + ')',))
+        else:
+            zero_arity_funcs = set()
         return zero_arity_funcs.union(*(expr.get_zero_arity_funcs() for expr in self.exprs))
 
     def subst(self, inst):

@@ -82,6 +82,7 @@ def runFile(self, file,
         pre=expr.list_conj(*hoare_triple.pre), 
         hp=hoare_triple.hp,
         post=hoare_triple.post,
+        functions=hoare_triple.functions,
         wolfram_engine=wolfram_engine, z3=z3)
     
     if andR_rule:
@@ -169,6 +170,9 @@ class BasicHHLPyTest(unittest.TestCase):
     def testBasic1(self):
         runFile(self, file="basic1.hhl")
                   #expected_vcs={((), ()): ["x >= 0 -> x + 1 >= 1"]})
+
+    def testVerify1(self):
+        runFile(self, file="test1.hhl")
 
     def testVerify2(self):
         runFile(self, file="test2.hhl",

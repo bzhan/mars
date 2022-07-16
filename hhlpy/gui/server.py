@@ -19,7 +19,7 @@ from hhlpy.wolframengine_wrapper import session, found_wolfram
 import json
 
 
-def runCompute(code, constants=set()):
+def runCompute(code):
     """Compute the verification condition information by the code received from the client editor.
     Return an array of verification condition information."""
     hoare_triple = parse_hoare_triple_with_meta(code)
@@ -28,8 +28,8 @@ def runCompute(code, constants=set()):
     verifier = CmdVerifier(
         pre=expr.list_conj(*hoare_triple.pre), 
         hp=hoare_triple.hp,
-        post=hoare_triple.post, 
-        constants=constants)
+        post=hoare_triple.post,
+        functions=hoare_triple.functions)
 
     # Compute wp and verify
     verifier.compute_wp()
