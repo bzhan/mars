@@ -116,14 +116,15 @@ def runCompute(code):
     
     return vc_infos
 
-def runVerify(formula, solver):
+def runVerify(formula, solver, code):
     """Verify the given verification condition of the solver.
     Return True or False
     """
     formula = parse_expr_with_meta(formula)
+    hoare_triple = parse_hoare_triple_with_meta(code)
 
     if solver == "z3":
-        return z3_prove(formula)
+        return z3_prove(formula, functions=hoare_triple.functions)
     elif solver == "wolfram":
         return wl_prove(formula)
     else:
@@ -168,7 +169,7 @@ class HHLPyApplication(WebSocketApplication):
                 # If the type of message received is "verify",
                 # the message has the index, the formula and solver of corresponding vc.
                 elif msg["type"] == "verify":
-                    result = runVerify(formula=msg["formula"], solver=msg["solver"])
+                    result = runVerify(formula=msg["formula"], solver=msg["solver"], code=msg["code"])
                     index_vc_result = {"index":msg["index"], 
                                        "formula": msg["formula"], 
                                        "result": result, 

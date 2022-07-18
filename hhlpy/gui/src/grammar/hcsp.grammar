@@ -223,9 +223,12 @@ ode_rule {
   "di" | "dbx" | "bc" | "dw" | "sln"
 }
 
+
+function_decl { "function" CNAME "(" CNAME ("," CNAME)* ")" "=" expr ";" }
+
 hoare_pre { "pre" ("[" cond "]")* ";" }
 hoare_post { "post" (ord_assertion)* ";" }
-@top hoare_triple { hoare_pre cmd hoare_post }
+@top hoare_triple { function_decl* hoare_pre cmd hoare_post }
 
 parallel_cmd { cmd ("||" cmd)* }  // Priority 30, outermost level only
 
