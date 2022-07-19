@@ -714,9 +714,9 @@ class ExistsExpr(Expr):
 
     def __str__(self):
         if isinstance(self.vars, AVar):
-            return "EX %s. %s" % (str(self.vars), str(self.expr))
+            return "\\exists %s. %s" % (str(self.vars), str(self.expr))
         else:
-            return "EX {%s}. %s" % ((', '.join(str(var) for var in self.vars)), str(self.expr))
+            return "\\exists {%s}. %s" % ((', '.join(str(var) for var in self.vars)), str(self.expr))
 
     def __eq__(self, other):
         # Currently does not consider alpha equivalence.

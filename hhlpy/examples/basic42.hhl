@@ -1,31 +1,25 @@
-# Basic benchmark, problem 42 
-# constants = {'A', 'B', 'S'}
-
-# another version
-# {v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) < S}
-# 
-# (if x + v^2 / (2*B) < S 
-#     then a := A; {x_dot = v, v_dot = a & v > 0 & x + v^2 / (2*B) < S}
-#  elif v == 0
-#     then a := 0
-#  else a := -B; {x_dot = v, v_dot = a & v > 0}
-#  endif
-# )**
-#
-# {x <= S}
+# ArchiveEntry "Benchmarks/Basic/STTT Tutorial: Example 3a"
 pre [v >= 0] [A > 0] [B > 0] [x + v^2 / (2*B) < S];
 {
-  if (x + v^2 / (2*B) < S) {
-      a := A; 
-      {x_dot = v, v_dot = a & v > 0 && x + v^2 / (2*B) < S}
-          invariant [true]; 
-  } else if (v == 0) { 
-      a := 0; 
-  } else {
-      a := -B; 
-      {x_dot = v, v_dot = a & v > 0} 
-      invariant [a == -B] [x+v^2/(2*B) <= S]; 
+  a := * (
+    (x+v^2/(2*B) < S && a == A) ||
+    (v == 0 && a == 0) ||
+    a == -B
+  );
+
+  {
+    t := * (t >= 0);
+    {x_dot = v, v_dot = a, t_dot = -1 &
+      t > 0 && v > 0 && x+v^2/(2*B) < S}
+      invariant [true];
   } 
-}* 
-invariant [v >= 0] [x+v^2/(2*B) <= S];
+  ++ 
+  {
+    t := * (t >= 0);
+    {x_dot = v, v_dot = a, t_dot = -1 &
+      t > 0 && v > 0 && x+v^2/(2*B) > S}
+      invariant [false];
+  }
+}*
+  invariant [v >= 0] [x+v^2/(2*B) <= S];
 post [x <= S];

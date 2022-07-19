@@ -1,5 +1,4 @@
-# Basic Benchmark, problem5
-# {x >= 0} x := x+1; x := {x >= 1} {x >= 1}
+# ArchiveEntry "Benchmarks/Basic/Static semantics correctness: Assignment 5"
 pre [x >= 0];
 x := x+1; x := *(x >= 1);
 post [x >= 1];

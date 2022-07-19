@@ -1,5 +1,6 @@
-# Basic benchmark, problem 34
-# {x^3 >= -1} {x_dot = (x-3)^4 + a & a > 0} x^3 >= -1
+# ArchiveEntry "Benchmarks/Basic/Dynamics: Nonlinear 1"
 pre [x^3 >= -1];
-{x_dot = (x-3)^4 + a & a > 0} invariant [x^3 >= -1];
+t := * (t >= 0);
+{x_dot = (x-3)^4 + a, t_dot = -1 & t > 0 && a > 0}
+  invariant [x^3 >= -1];
 post [x^3 >= -1];

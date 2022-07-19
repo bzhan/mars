@@ -1,8 +1,7 @@
-# Basic benchmark, problem 36
-# {x1^2 / 2 - x2^2 / 2 >= a}
-# {x1_dot = x2 + x1 * x2^2, x2_dot = -x1 + x1^2 * x2 & x1 > 0 & x2 > 0}
-# {x1^2 / 2 - x2^2 / 2 >= a}
+# ArchiveEntry "Benchmarks/Basic/Dynamics: Nonlinear 4"
 pre [x1^2 / 2 - x2^2 / 2 >= a];
-{x1_dot = x2 + x1 * x2^2, x2_dot = -x1 + x1^2 * x2 & x1 > 0 && x2 > 0}
+t := * (t >= 0);
+{x1_dot = x2 + x1 * x2^2, x2_dot = -x1 + x1^2 * x2, t_dot = -1 & 
+  t > 0 && x1 > 0 && x2 > 0}
   invariant [x1^2 / 2 - x2^2 / 2 >= a];
 post [x1^2 / 2 - x2^2 / 2 >= a];

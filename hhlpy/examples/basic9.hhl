@@ -1,19 +1,16 @@
-# Basic benchmark, problem9
-# dG Rule
-# {x>0 & y>0} 
-#
-#   t := 0; 
-#   {x_dot = -x, t_dot = 1 & t < 1};
-#   (x := x+3)**@invariant(x > 0) ++ y := x 
-#
-# {x>0 & y>0}
+# ArchiveEntry "Benchmarks/Basic/Static semantics correctness: Assignment 9"
 pre [x > 0] [y > 0];
-t := 0; 
-{x_dot = -x, t_dot = 1 & t < 1} 
+t := * (t >= 0);
+{t_dot=-1, x_dot = -x & t > 0} 
 invariant 
     ghost z 
     [x * z * z == 1] 
     [x > 0] 
-    [y > 0]; 
-{x := x+3;}* invariant [x > 0] [y > 0]; ++ y := x;
+    [y > 0];
+{
+  { x := x+3; }*
+    invariant [x > 0] [y > 0];
+}
+++
+{ y := x; }
 post [x > 0] [y > 0];

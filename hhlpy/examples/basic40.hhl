@@ -1,7 +1,6 @@
-# Basic benchmark, problem 40
-# A is a constant.
-# {v >= 0 & A > 0} {x_dot = v, v_dot = A & x < 10} {v >= 0}
+# ArchiveEntry "Benchmarks/Basic/STTT Tutorial: Example 1"
 pre [v >= 0] [A > 0];
-{x_dot = v, v_dot = A & x < 10} 
+t := * (t >= 0);
+{x_dot = v, v_dot = A, t_dot = -1 & t > 0} 
 invariant [A > 0] [v >= 0];
 post [v >= 0];

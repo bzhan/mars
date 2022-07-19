@@ -278,9 +278,9 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testBasic15(self):
         runFile(self, file="basic15.hhl",
-                expected_vcs={((), ()): ["x > 0 -> 0 < 1 -> (\exists y. x * y * y == 1)", \
-                                         "x > 0 -> 0 >= 1 -> x > 0"],
-                              ((1,), ()): ["(\exists y. x * y * y == 1) && t == 1 -> x > 0"]})
+                expected_vcs={((), ()): ["x > 0 -> t0 >= 0 -> t0 > 0 -> (\exists y. x * y * y == 1)", \
+                                         "x > 0 -> t0 >= 0 -> t0 <= 0 -> x > 0"],
+                              ((1,), ()): ["(\\exists y. x * y * y == 1) && t == 0 -> x > 0"]})
 
     def testBasic9(self):
         runFile(self, file="basic9.hhl")
@@ -294,12 +294,8 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testBasic12(self):
         runFile(self, file="basic12.hhl",
-                  expected_vcs={((), ()): ["y >= 0 -> x >= 0 && y >= 0 -> \
-                                            x < 10 -> y >= 0 && x >= 0",
-                                           "y >= 0 -> x >= 0 && y >= 0 -> \
-                                            x >= 10 -> x >= 0",
-                                           "y >= 0 -> (y >= 0 && x >= 0) && x == 10 ->\
-                                            x >= 0"]})
+                  expected_vcs={((), ()): ["y >= 0 -> x >= 0 && y >= 0 -> t0 >= 0 -> t0 > 0 -> y >= 0 && x >= 0",
+                                           "y >= 0 -> x >= 0 && y >= 0 -> t0 >= 0 -> t0 <= 0 -> x >= 0"]})
 
     def testBasic13(self):
         runFile(self, file="basic13.hhl",)
@@ -315,12 +311,9 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testBasic17(self):
         runFile(self, file="basic17.hhl",
-                  expected_vcs={((), ()): ["y > 0 -> x > 0 && y > 0 -> \
-                                            (0 < 10 -> (\exists z. x * z * z == 1))",
-                                            "y > 0 -> x > 0 && y > 0 -> \
-                                            (0 >= 10 -> x > 0)"],
-                                ((1,), ()): ["y > 0 -> (\exists z. x * z * z == 1) && t == 10 \
-                                              -> x > 0"]})
+                  expected_vcs={((), ()): ["y > 0 -> x > 0 && y > 0 -> t0 >= 0 -> t0 > 0 -> (\exists z. x * z * z == 1)",
+                                           "y > 0 -> x > 0 && y > 0 -> t0 >= 0 -> t0 <= 0 -> x > 0"],
+                                ((1,), ()): ["y > 0 -> (\\exists z. x * z * z == 1) && t == 0 -> x > 0"]})
 
     def testBasic18(self):
         runFile(self, file="basic18.hhl",)
