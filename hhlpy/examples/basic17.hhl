@@ -1,4 +1,5 @@
 # ArchiveEntry "Benchmarks/Basic/Dynamics: Exponential decay (3)"
+
 pre [x > 0] [y > 0];
 t := * (t >= 0);
 {x_dot = -y * x, t_dot = -1 & t > 0} 

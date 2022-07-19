@@ -1,4 +1,7 @@
 # ArchiveEntry "Benchmarks/Basic/Static semantics correctness: Assignment 2"
+# 
+# Description "Overwrite assignment on some branches".
+
 pre [x >= 0];
 x := x+1; 
 { x := x+1; } ++ { y := x+1; }
