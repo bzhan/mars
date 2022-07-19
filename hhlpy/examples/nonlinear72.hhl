@@ -1,12 +1,13 @@
-# Nonlinear benchmark, problem 72
-# {x == -1 & y == -1 & z == -1}
-#    t := 0;
-#   <x_dot = x*y-x*z, y_dot = y*z-y*x, z_dot = z*x-z*y, 
-#    t_dot = 1 & t < 10>@invariant(x<0, y<0, z<0)
-# {x^5 + 12*y + z^3 < 0}
+# ArchiveEntry "Benchmarks/Nonlinear/3D Lotka Volterra (II)".
+# 
+# Citation "Hui Kong, Sergiy Bogomolov, Christian Schilling, Yu Jiang, Thomas A. Henzinger. Invariant Clusters for Hybrid Systems. CoRR abs/1605.01450 (2016)".
+
 pre [x == -1] [y == -1] [z == -1];
-t := 0; 
- {x_dot = x*y-x*z, y_dot = y*z-y*x, z_dot = z*x-z*y, 
-t_dot = 1 & t < 10}
-invariant [x<0] {dbx} [y<0] {dbx} [z<0] {dbx};
+t := * (t >= 0); 
+{x_dot = x*y-x*z, y_dot = y*z-y*x, z_dot = z*x-z*y, 
+ t_dot = -1 & t > 0}
+invariant
+  [x<0] {dbx}
+  [y<0] {dbx}
+  [z<0] {dbx};
 post [x^5 + 12*y + z^3 < 0];

@@ -1,6 +1,7 @@
 from geventwebsocket import WebSocketServer, WebSocketApplication, Resource
 from collections import OrderedDict
 import sys
+import traceback
 import re
 from os import listdir
 from os.path import isfile, join, dirname
@@ -67,7 +68,7 @@ def runCompute(code):
             # TODO: Merge the three cases.
 
             # Case when the bottom most predicate of vc is a post condition.
-            if vc.pc:
+            if vc.pc and vc.annot_pos is not None:
                 assertion = hoare_triple.post[vc.annot_pos]
 
                 proof_methods = assertion.proof_methods
@@ -190,6 +191,7 @@ class HHLPyApplication(WebSocketApplication):
                     raise NotImplementedError    
         except Exception as e:
             print(str(e), file=sys.stderr)
+            print(traceback.format_exc(), file=sys.stderr)
             result_dict = {"error": str(e), "type": "error"}  
             self.ws.send(json.dumps(result_dict)) 
 

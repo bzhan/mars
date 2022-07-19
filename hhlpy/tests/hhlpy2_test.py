@@ -920,9 +920,6 @@ class NonlinearHHLPyTest(unittest.TestCase):
 
     # TODO: Nonlinear problem 114, 115. No tactic and even inv->post is too slow to verify.
 
-    def testNonlinear116_0(self):
-        # {x > 10}<x_dot = 1 & x < 5>{x > 8}
-        runFile(self, file="nonlinear116_0.hhl")
     # TODO: 
     # When not sure that ODE is executed or not, set invariant as true, 
     # because both cases should hold: 
