@@ -370,6 +370,7 @@ export default {
 .vcs {
   box-sizing: border-box;
   flex: 1 1 auto;
+  overflow: scroll;
 }
 
 .resizer {
