@@ -286,7 +286,7 @@ class IfExpr(Expr):
     
     def __str__(self):
         s0, s1, s2 = str(self.cond), str(self.expr1), str(self.expr2)
-        return "(%s ? %s : %s)" % (s0, s1, s2)
+        return "(if %s then %s else %s)" % (s0, s1, s2)
 
     def __eq__(self, other):
         return isinstance(other, IfExpr) and self.cond == other.cond and \

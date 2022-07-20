@@ -46,7 +46,7 @@ grammar = r"""
         | plus_expr "-" times_expr -> minus_expr
         | times_expr
 
-    ?if_expr: "(" expr "?" if_expr ":" if_expr ")"         // priority 40
+    ?if_expr: "if" expr "then" if_expr "else" if_expr       // priority 40
         | plus_expr
 
     ?rel_expr: if_expr "==" if_expr -> eq_cond         // priority 50
