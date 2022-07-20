@@ -1,0 +1,114 @@
+# ArchiveEntry "Benchmarks/Advanced/Robot collision avoidance in two-dimensional space: Passive safety"
+#
+# Description "Safety of collision avoidance in environments with moving obstacles of known maximum speed.".
+# Citation "Stefan Mitsch, Khalil Ghorbal, David Vogelbacher, and André Platzer. Formal verification of obstacle avoidance and navigation of ground robots. International Journal of Robotics Research. 36(12), pp. 1312-1340, 2017.".
+# Link "http://symbolaris.com/pub/morerobix.pdf#page=11".
+
+# Definitions
+#   Real ep;      /* time limit for control decisions */
+#   Real b;       /* minimum braking capability of the robot */
+#   Real A;       /* maximum acceleration -b <= a <= A */
+#   Real W;       /* maximum steering */
+#   Real V;       /* maximum obstacle velocity */
+
+function abs(x) = (if x > 0 then x else -x);
+
+function stopDist(b,V,v) = v^2 / (2*b) + V*v/b;
+function accelComp(A,b,ep,V,v) = ((A/b + 1) * (A/2 * ep^2 + ep*(v+V)));
+function admissibleSeparation(A,b,ep,V,v) = stopDist(b,V,v) + accelComp(A,b,ep,V,v);
+
+# The orientation of the robot is a unit vector.
+function isWellformedDir(dx, dy) = (dx^2 + dy^2 == 1);
+
+function bounds(A, b, ep, V) = (   #Bounds for global constants
+      A >= 0            #Working engine
+    && b > 0            #Working brakes
+    && ep > 0           #Controller reaction time
+    && V >= 0
+  );
+
+# Stopped somewhere safe initially
+function initialState(x, y, v, dx, dy, xo, yo) = (
+  v == 0
+  && (x-xo)^2 + (y-yo)^2 > 0
+  && isWellformedDir(dx, dy)
+);
+
+# Under these assumptions we guarantee safety
+function assumptions(A, b, ep, V, x, y, v, dx, dy, xo, yo) = (bounds(A, b, ep, V) && initialState(x, y, v, dx, dy, xo, yo));
+
+# Conditions that need to be proved to be true on each loop iteration
+function loopinv(b, V, x, y, v, dx, dy, xo, yo) = (
+  v >= 0
+  && isWellformedDir(dx, dy)
+  && (v>0 -> abs(x-xo) > stopDist(b,V,v) || abs(y-yo) > stopDist(b,V,v))
+);
+
+# ProgramVariables
+#   Real x, y;    /* robot position */
+#   Real v, w;    /* robot translational and rotational velocity */
+#   Real a;       /* robot translational acceleration */
+#   Real dx, dy.  /* robot orientation */
+#   Real r;       /* robot curve radius */
+#   Real xo, yo;  /* position of closest obstacle on curve */
+#   Real vxo, vyo; /* velocity of obstacle */
+#   Real t;       /* time */
+# End.
+
+pre [assumptions(A, b, ep, V, x, y, v, dx, dy, xo, yo)];
+
+{
+  
+  # obstacle control
+  vxo := * (vxo^2 <= V^2);
+  vyo := * (vxo^2 + vyo^2 <= V^2);
+  
+  # robot control
+
+  # brake on current curve or remain stopped
+  { a := -b; }
+  ++
+  { if (v == 0) { a := 0; w := 0; } else { a := -b; } }
+  ++
+  # or choose a new safe curve
+  { a := A;
+    w := * (-W<=w && w<=W); # choose steering
+    r := * (r != 0 && r*w == v); # admissible curve
+    # measure closest obstacle on the curve
+    # + check admissible velocities
+    xo := * (true);
+    yo := * (
+      abs(x-xo) > admissibleSeparation(A,b,ep,V,v) ||
+      abs(y-yo) > admissibleSeparation(A,b,ep,V,v)
+    );
+  }
+
+  t := 0;
+
+  oldx := x;
+  oldy := y;
+  oldv := v;
+  oldxo := xo;
+  oldyo := yo;
+
+  # dynamics
+  { x_dot = v * dx, y_dot = v * dy, v_dot = a,        # accelerate/decelerate and move
+    dx_dot = -w * dy, dy_dot = w * dx, w_dot = a/r,   # follow curve
+    xo_dot = vxo, yo_dot = vyo,                       # obstacle moves
+    t_dot = 1 & t < ep && v > 0
+  } 
+    invariant [t>=0] [dx^2 + dy^2 == 1] #TODO: use isWellformedDir
+      [-t*V <= xo - oldxo && xo - oldxo <= t*V]
+      [-t*V <= yo - oldyo && yo - oldyo <= t*V]
+      [a==-b -> v == oldv - b*t]
+      [a==-b -> (-t * (oldv - b/2*t) <= x - oldx && x - oldx <= t * (oldv - b/2*t))]
+      [a==-b -> (-t * (oldv - b/2*t) <= y - oldy && y - oldy <= t * (oldv - b/2*t))]
+      [a==0 -> v == oldv]
+      [a==0 -> x == oldx]
+      [a==0 -> y == oldy]
+      [a==A -> v == oldv + A*t]
+      [a==A -> (-t * (oldv + A/2*t) <= x - oldx && x - oldx <= t * (oldv + A/2*t))]
+      [a==A -> (-t * (oldv + A/2*t) <= y - oldy && y - oldy <= t * (oldv + A/2*t))];
+}* invariant [loopinv(b, V, x, y, v, dx, dy, xo, yo)];
+
+post [v>0 -> (x - xo)^2 + (y - yo)^2 > 0];
