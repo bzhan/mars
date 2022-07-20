@@ -106,6 +106,7 @@ def runFile(self, file,
                 "categ:", vc.categ,
                 "branch_label:", str(vc.branch_label),
                 "comp_label:", str(vc.comp_label),
+                "vc:", vc.vc,
                 "pc:", vc.pc)
 
     # Use SMT to verify all verification conditions
@@ -240,10 +241,6 @@ class BasicHHLPyTest(unittest.TestCase):
         runFile(self, file="basic4.hhl",
                   print_vcs=False)
 
-    def testBasic10(self):
-        runFile(self, file="basic10.hhl",
-                  print_vcs=True)
-
     def testBasic5(self):
         runFile(self, file="basic5.hhl",
                   expected_vcs={((), ()): ["x >= 0 -> x0 >= 1 -> x0 >= 1"]})
@@ -272,18 +269,19 @@ class BasicHHLPyTest(unittest.TestCase):
     def testBasic8(self):
         runFile(self, file="basic8.hhl")
 
-    def testBasic15(self):
-        runFile(self, file="basic15.hhl",
-                expected_vcs={((), ()): ["x > 0 -> 0 < 1 -> (\exists y. x * y * y == 1)", \
-                                         "x > 0 -> 0 >= 1 -> x > 0"],
-                              ((1,), ()): ["(\exists y. x * y * y == 1) && t == 1 -> x > 0"]})
-
     def testBasic9(self):
         runFile(self, file="basic9.hhl")
+
+    def testVerify9(self):
+        runFile(self, file="test9.hhl", print_vcs=True)
 
     def testVerify18(self):
         runFile(self, file="test18.hhl",
                   print_vcs=False)
+    
+    def testBasic10(self):
+        runFile(self, file="basic10.hhl",
+                  print_vcs=True)
 
     def testBasic11(self):
         runFile(self, file="basic11.hhl",)
@@ -304,7 +302,11 @@ class BasicHHLPyTest(unittest.TestCase):
     def testBasic14(self):
         runFile(self, file="basic14.hhl",)
 
-    # Basic benchmark problem15 is verified in testVerify16
+    def testBasic15(self):
+        runFile(self, file="basic15.hhl", print_vcs=True)
+                # expected_vcs={((), ()): ["x > 0 -> 0 < 1 -> (\exists y. x * y * y == 1)", \
+                #                          "x > 0 -> 0 >= 1 -> x > 0"],
+                #               ((1,), ()): ["(\exists y. x * y * y == 1) && t == 1 -> x > 0"]})
 
     def testBasic16(self):
         runFile(self, file="basic16.hhl",)
@@ -319,7 +321,7 @@ class BasicHHLPyTest(unittest.TestCase):
                                               -> x > 0"]})
 
     def testBasic18(self):
-        runFile(self, file="basic18.hhl",)
+        runFile(self, file="basic18.hhl", print_vcs=True)
 
     def testBasic19(self):
         runFile(self, file="basic19.hhl",)

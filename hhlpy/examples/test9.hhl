@@ -1,0 +1,15 @@
+# dG Rule
+# {x>0 & y>0} 
+#   t := 0;
+#   {x_dot = -x, y_dot = 1, t_dot = 1 & t < 1};   
+# {x>0 & y>0}
+
+pre [x > 0] [y > 0];
+t := 0; 
+{x_dot = -x, y_dot = 1, t_dot = 1 & t < 1} 
+invariant 
+    ghost z 
+    [x * z * z == 1]
+    [x > 0]
+    [y > 0]; 
+post [x > 0] [y > 0];

@@ -283,16 +283,16 @@ class Condition:
             elif not seq_labels and not nest_label:
                 self.branch_label = None
             else:
-                print('seq_labels:', seq_labels, 'nest_label:', nest_label)
                 raise NotImplementedError
                 
         # The composite label of this verification condition, 
         # set as None when this predicate is not a verification condition.
-        self.branch_label = None
+        self.comp_label = None
         # Compute the composite label when vc is True
         if self.vc:
             if self.categ and self.branch_label:
-                self.comp_label = label.CompLabel(categ_label=self.categ, branch_label=self.branch_label)
+                self.comp_label = label.CompLabel(categ_label=label.CategLabel(categ=self.categ),
+                                                  branch_label=self.branch_label)
             elif self.categ and not self.branch_label:
                 self.comp_label = label.CategLabel(categ=self.categ)
             elif not self.categ and self.branch_label:
@@ -856,7 +856,7 @@ class CmdVerifier:
                     self.infos[pos].eqs_dict[name] = deriv
 
             # For the whole ODE program, we use dw rule first, and set the rule for each invariant.
-            # For branches generated(when len(pos[1] != 0)), instead of using dw rule again, 
+            # For branches generated(when self.infos[pos].dw is False), instead of using dw rule again, 
             # we can use the corresponding rule to verify the invariant directly.
             if self.infos[pos].dw: 
             # TODO: also run if no invariants are specified? testVerify62 testVerify54 testVerify53 testVerify52 testVerify50 testVerify55
@@ -885,9 +885,9 @@ class CmdVerifier:
 
 
                 # dW Rule (always applied automatically)
-                #   {I && P} <x_dot = f(x) & D> { I }      (I && Boundary of D -> Q)  
+                #   [[D]] <x_dot = f(x)> [[I]]      I && Boundary of D -> Q  
                 #-----------------------------------------------------------------------
-                #           {P && (D -> I) && (!D -> Q)} <x_dot = f(x) & D> {Q}
+                #           {(D -> I) && (!D -> Q)} <x_dot = f(x) & D> {Q}
                 # post_conj = expr.conj(*[vc.expr for vc in post])
                 # pre_dw = expr.conj(expr.imp(constraint, subposts[-1]),
                 #                    expr.imp(expr.neg_expr(constraint), post_conj)
@@ -904,7 +904,9 @@ class CmdVerifier:
                                     pos=subpost.pos + [pos],
                                     seq_labels=self.compute_label(pos=pos, sub_pre=subpost,value='skip')[0],
                                     nest_label=self.compute_label(pos=pos, sub_pre=subpost,value='skip')[1],
-                                    categ=subpost.categ)
+                                    annot_pos=subpost.annot_pos,
+                                    categ=subpost.categ,
+                                    pc=subpost.pc)
                           for subpost in post]
                 boundary = compute_boundary(constraint)
                 # When I is false_expr, (I && Boundary of D -> Q) is true_expr, which can be omitted. 
@@ -918,6 +920,7 @@ class CmdVerifier:
                                 seq_labels=vc.seq_labels,
                                 nest_label=vc.nest_label,
                                 categ=vc.categ,
+                                annot_pos=vc.annot_pos,
                                 vc=True,
                                 pc=vc.pc))
 
@@ -940,6 +943,7 @@ class CmdVerifier:
 
                         if sub_pos_left not in self.infos:
                             self.infos[sub_pos_left] = CmdInfo()
+
                         if inv.rule is None and inv.inv in (expr.true_expr, expr.false_expr):
                             self.infos[sub_pos_left].tv = True #TODO: Use the name "tv"(trival)?
                             self.infos[sub_pos_left].dw = False
@@ -1064,10 +1068,15 @@ class CmdVerifier:
                         Condition(expr=expr.imp(dI_inv, post_conj), pos=[pos], vc=True))
 
 
-            # Use dC rules
-            #            {R1} c {R1}    [[R1]] {R2} c {R2}   P -> R1 && R2   R1 && R2 -> Q
-            #--------------------------------------------------------------------------------
-            #                                       {P} c {Q}
+            # Use dC rule
+            #                       [[P]] c [[Q1]]       [[P && Q1]] c [[Q2]]
+            # -------------------------------------------------------------------------------
+            #                                   [[P]] c [[Q1 && Q2]]
+            #
+            #                 [[P]] c [[Q1 && Q2]]       [[P && Q1 && Q2]] c [[Q3]]
+            # -------------------------------------------------------------------------------
+            #                                   [[P]] c [[Q1 && Q2 && Q3]]
+
             elif self.infos[pos].diff_cuts:
                 diff_cuts = self.infos[pos].diff_cuts
                 
