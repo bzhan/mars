@@ -79,6 +79,8 @@ def convert(e, functions):
             return z3.ForAll(list(convert(var, functions) for var in e.vars), convert(e.expr, functions))
         else:
             return z3.ForAll(convert(e.vars, functions), convert(e.expr, functions))
+    elif isinstance(e, expr.IfExpr):
+        return z3.If(convert(e.cond, functions), convert(e.expr1, functions), convert(e.expr2, functions))
     else:
         print(e, type(e))
         raise NotImplementedError
