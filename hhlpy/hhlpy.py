@@ -48,7 +48,9 @@ def compute_diff(e, eqs_dict):
             return expr.BConst(True)
         elif isinstance(e, expr.FunExpr):
             if len(e.exprs) == 0:
-                return expr.AConst(0)
+                return expr.AConst(0)      
+            else:
+                raise NotImplementedError
         elif isinstance(e, expr.AVar):
             if e.name in eqs_dict:
                 return eqs_dict[e.name]
@@ -86,7 +88,8 @@ def compute_diff(e, eqs_dict):
                     return expr.OpExpr('/', numerator, denominator)            
             else:
                 raise NotImplementedError
-    
+        else:
+            raise NotImplementedError
     return rec(e)
 
 def constraint_examination(e):
@@ -364,26 +367,11 @@ class CmdVerifier:
         # in which A is a constant symbol, c doesn't include variable symbols, op is in RelExpr.op
         # the pre-conditions will always hold.
         # Add this kind of pre-conditions into assumptions in HCSPs.
+        pre_list = expr.split_conj(pre)
+        for sub_pre in pre_list:
+            if sub_pre.get_vars().isdisjoint(self.variable_names):
+                self.infos[root_pos].assume.append(sub_pre)
 
-        # There are constants in pre.
-        if not self.constant_names.isdisjoint(pre.get_vars().union(pre.get_zero_arity_funcs())):
-            if isinstance(pre, expr.RelExpr):
-                if pre.get_vars().isdisjoint(self.variable_names):
-                    self.infos[root_pos].assume.append(pre)
-
-            elif isinstance(pre, expr.LogicExpr):
-                # Assume pre is a conjunction function
-                if pre.op == '&&':
-                    pre_list = expr.split_conj(pre)
-                    for sub_pre in pre_list:
-                        # No variables in sub_pre.
-                        if sub_pre.get_vars().isdisjoint(self.variable_names):
-                            self.infos[root_pos].assume.append(sub_pre)
-                else:
-                    raise NotImplementedError
-
-            else:
-                raise NotImplementedError
     def set_andR_rule(self, pos, andR):
         if pos not in self.infos:
             self.infos[pos] = CmdInfo()
@@ -448,11 +436,9 @@ class CmdVerifier:
             self.variable_names.add(cur_hp.var_name.name)
 
         elif isinstance(cur_hp, hcsp.IChoice):
-            pos0 = pos + (0,)
-            pos1 = pos + (1,)
-
-            self.compute_variable_set(pos=pos0)
-            self.compute_variable_set(pos=pos1)
+            for i in range(len(cur_hp.hps)):
+                sub_pos = pos + (i,)
+                self.compute_variable_set(pos=sub_pos)
 
         elif isinstance(cur_hp, hcsp.Sequence):
             for i in range(len(cur_hp.hps)):
@@ -623,7 +609,7 @@ class CmdVerifier:
             if not isinstance(cur_hp.var_name, expr.AVar):
                 raise NotImplementedError
             if cur_hp.var_name.name in self.constant_names:
-                raise NotImplementedError("Constants can not be assigned")
+                raise NotImplementedError("Constants can not be assigned: {}".format(cur_hp))
 
             var_str = cur_hp.var_name.name
 
