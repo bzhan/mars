@@ -1,6 +1,9 @@
-# Basic benchmark, problem 3
-# {x >= 0} x := x+1; (x := x+1)** {x >= 1}
-# Invariant for loop is x >= 1.
+# ArchiveEntry "Benchmarks/Basic/Static semantics correctness: Assignment 3"
+# 
+# Description "Overwrite assignment in loop".
+
 pre [x >= 0];
-x := x+1; {x := x+1;}* invariant [x >= 1];
+x := x+1;
+{ x := x+1; }*
+  invariant [x >= 1];
 post [x >= 1];

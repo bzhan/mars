@@ -1,6 +1,7 @@
 from geventwebsocket import WebSocketServer, WebSocketApplication, Resource
 from collections import OrderedDict
 import sys
+import traceback
 import re
 from os import listdir
 from os.path import isfile, join, dirname
@@ -19,7 +20,7 @@ from hhlpy.wolframengine_wrapper import session, found_wolfram
 import json
 
 
-def runCompute(code, constants=set()):
+def runCompute(code):
     """Compute the verification condition information by the code received from the client editor.
     Return an array of verification condition information."""
     hoare_triple = parse_hoare_triple_with_meta(code)
@@ -28,8 +29,8 @@ def runCompute(code, constants=set()):
     verifier = CmdVerifier(
         pre=expr.list_conj(*hoare_triple.pre), 
         hp=hoare_triple.hp,
-        post=hoare_triple.post, 
-        constants=constants)
+        post=hoare_triple.post,
+        functions=hoare_triple.functions)
 
     # Compute wp and verify
     verifier.compute_wp()
@@ -67,7 +68,7 @@ def runCompute(code, constants=set()):
             # TODO: Merge the three cases.
 
             # Case when the bottom most predicate of vc is a post condition.
-            if vc.pc:
+            if vc.pc and vc.annot_pos is not None:
                 assertion = hoare_triple.post[vc.annot_pos]
 
                 proof_methods = assertion.proof_methods
@@ -116,14 +117,15 @@ def runCompute(code, constants=set()):
     
     return vc_infos
 
-def runVerify(formula, solver):
+def runVerify(formula, solver, code):
     """Verify the given verification condition of the solver.
     Return True or False
     """
     formula = parse_expr_with_meta(formula)
+    hoare_triple = parse_hoare_triple_with_meta(code)
 
     if solver == "z3":
-        return z3_prove(formula)
+        return z3_prove(formula, functions=hoare_triple.functions)
     elif solver == "wolfram":
         return wl_prove(formula)
     else:
@@ -168,7 +170,7 @@ class HHLPyApplication(WebSocketApplication):
                 # If the type of message received is "verify",
                 # the message has the index, the formula and solver of corresponding vc.
                 elif msg["type"] == "verify":
-                    result = runVerify(formula=msg["formula"], solver=msg["solver"])
+                    result = runVerify(formula=msg["formula"], solver=msg["solver"], code=msg["code"])
                     index_vc_result = {"index":msg["index"], 
                                        "formula": msg["formula"], 
                                        "result": result, 
@@ -189,6 +191,7 @@ class HHLPyApplication(WebSocketApplication):
                     raise NotImplementedError    
         except Exception as e:
             print(str(e), file=sys.stderr)
+            print(traceback.format_exc(), file=sys.stderr)
             result_dict = {"error": str(e), "type": "error"}  
             self.ws.send(json.dumps(result_dict)) 
 

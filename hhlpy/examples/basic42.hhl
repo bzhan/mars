@@ -1,31 +1,30 @@
-# Basic benchmark, problem 42 
-# constants = {'A', 'B', 'S'}
-
-# another version
-# {v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) < S}
+# ArchiveEntry "Benchmarks/Basic/STTT Tutorial: Example 3a"
 # 
-# (if x + v^2 / (2*B) < S 
-#     then a := A; {x_dot = v, v_dot = a & v > 0 & x + v^2 / (2*B) < S}
-#  elif v == 0
-#     then a := 0
-#  else a := -B; {x_dot = v, v_dot = a & v > 0}
-#  endif
-# )**
-#
-# {x <= S}
+# Description "A hybrid car model where the controller runs when the car is about to run a stop sign. The requirement to prove is that the car never runs the stop sign.".
+# Citation "Jan-David Quesel, Stefan Mitsch, Sarah Loos, Nikos Aréchiga, and André Platzer. How to model and prove hybrid systems with KeYmaera: A tutorial on safety. STTT, 18(1), pp. 67-91, 2016.".
+# Link "http://symbolaris.com/pub/KeYmaera-tutorial.pdf#page=10".
+
 pre [v >= 0] [A > 0] [B > 0] [x + v^2 / (2*B) < S];
 {
-  if (x + v^2 / (2*B) < S) {
-      a := A; 
-      {x_dot = v, v_dot = a & v > 0 && x + v^2 / (2*B) < S}
-          invariant [true]; 
-  } else if (v == 0) { 
-      a := 0; 
-  } else {
-      a := -B; 
-      {x_dot = v, v_dot = a & v > 0} 
-      invariant [a == -B] [x+v^2/(2*B) <= S]; 
+  a := * (
+    (x+v^2/(2*B) < S && a == A) ||
+    (v == 0 && a == 0) ||
+    a == -B
+  );
+
+  {
+    t := * (t >= 0);
+    {x_dot = v, v_dot = a, t_dot = -1 &
+      t > 0 && v > 0 && x+v^2/(2*B) < S}
+      invariant [true];
   } 
-}* 
-invariant [v >= 0] [x+v^2/(2*B) <= S];
+  ++ 
+  {
+    t := * (t >= 0);
+    {x_dot = v, v_dot = a, t_dot = -1 &
+      t > 0 && v > 0 && x+v^2/(2*B) > S}
+      invariant [false];
+  }
+}*
+  invariant [v >= 0] [x+v^2/(2*B) <= S];
 post [x <= S];

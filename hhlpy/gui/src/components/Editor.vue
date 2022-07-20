@@ -153,7 +153,9 @@ export default {
       for (let i = 0; i < this.vc_infos.length; i++){
         let formula = this.vc_infos[i].formula
         let solver = this.vc_infos[i].solver
-        this.socket.send(JSON.stringify({index: i, formula: formula, solver: solver, type: "verify"}))
+        // we need to send the code to let the server know about the function definitions
+        let code = this.editorView.state.doc.toString();
+        this.socket.send(JSON.stringify({index: i, formula: formula, solver: solver, code: code, type: "verify"}))
       }
     },
     // Add vc informations in this.vc_infos

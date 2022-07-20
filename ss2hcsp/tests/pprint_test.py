@@ -139,16 +139,6 @@ class PPrintTest(unittest.TestCase):
             'x!x + 2;'
         ])
 
-    def test13(self):
-        self.run_test("x := 0; rec X { x := x + 1; wait(1); @X; }", [
-            'x := 0;',
-            'rec X {',
-            '  x := x + 1;',
-            '  wait(1);',
-            '  @X;',
-            '}'
-        ])
-
     def test14(self):
         self.run_test("if (x == 0) { x := 1; } else { x := 0; }", [
             'if (x == 0) {',

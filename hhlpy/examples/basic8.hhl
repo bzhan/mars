@@ -1,11 +1,15 @@
-# Basic benchmark, problem8
-# {x > 0 & y > 0} 
+# ArchiveEntry "Benchmarks/Basic/Static semantics correctness: Assignment 8"
+# 
+# Description "Potentially overwrite dynamics".
 
-# {x_dot = 5 & x < 10}@invariant(x > 0); 
-# (x := x + 3)**@invariant(x > 0) ++ y := x
-
-# {x > 0 & y > 0}
 pre [x > 0] [y > 0];
-{x_dot = 5 & x < 10} invariant [x > 0] [y > 0]; 
-{x := x + 3;}* invariant [x > 0] [y > 0]; ++ y := x;
+t := * (t >= 0);
+{t_dot=-1, x_dot = 5 & t > 0}
+  invariant [x > 0] [y > 0]; 
+{
+  { x := x + 3; }*
+    invariant [x > 0] [y > 0];
+}
+++
+{ y := x; }
 post [x > 0] [y > 0];

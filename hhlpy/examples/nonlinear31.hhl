@@ -1,11 +1,7 @@
-# Nonlinear benchmark, problem 31
-# {x^2 + y^2 <= 1/4}
-#      t := 0;
-#     {x_dot = -y+2*x^2*y, y_dot = y+2*x*y^2, t_dot = 1 & t < 10}
-#    @invariant(2*x^2 < 1)
-# {!(x > 3)}
+# ArchiveEntry "Benchmarks/Nonlinear/Man Maccallum Goriely Page 57".
+
 pre [x^2 + y^2 <= 1/4];
-t := 0; 
-{x_dot = -y+2*x^2*y, y_dot = y+2*x*y^2, t_dot = 1 & t < 10} 
-invariant [2*x^2 < 1] {dbx};
+t := * (t >= 0);
+{x_dot = -y+2*x^2*y, y_dot = y+2*x*y^2, t_dot = -1 & t > 0} 
+  invariant [2*x^2 < 1] {dbx};
 post [!(x > 3)];

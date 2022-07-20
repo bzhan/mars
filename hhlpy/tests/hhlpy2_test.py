@@ -82,6 +82,7 @@ def runFile(self, file,
         pre=expr.list_conj(*hoare_triple.pre), 
         hp=hoare_triple.hp,
         post=hoare_triple.post,
+        functions=hoare_triple.functions,
         wolfram_engine=wolfram_engine, z3=z3)
     
     if andR_rule:
@@ -160,16 +161,19 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testParseHoareTriple3(self):
         res = parse_hoare_triple_with_meta("""
-            predicate bar(x, y) = 2 * x == y;
+            function bar(x, y) = 2 * x == y;
             pre [x >= 0];
             x := x + 1;
             post [x >= 1];
         """)
-        self.assertEqual(str(res.predicates["bar"]), "bar(x,y) = 2 * x == y")
+        self.assertEqual(str(res.functions["bar"]), "bar(x,y) = 2 * x == y")
 
     def testBasic1(self):
         runFile(self, file="basic1.hhl")
                   #expected_vcs={((), ()): ["x >= 0 -> x + 1 >= 1"]})
+
+    def testVerify1(self):
+        runFile(self, file="test1.hhl")
 
     def testVerify2(self):
         runFile(self, file="test2.hhl",
@@ -288,12 +292,8 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testBasic12(self):
         runFile(self, file="basic12.hhl",
-                  expected_vcs={((), ()): ["y >= 0 -> x >= 0 && y >= 0 -> \
-                                            x < 10 -> y >= 0 && x >= 0",
-                                           "y >= 0 -> x >= 0 && y >= 0 -> \
-                                            x >= 10 -> x >= 0",
-                                           "y >= 0 -> (y >= 0 && x >= 0) && x == 10 ->\
-                                            x >= 0"]})
+                  expected_vcs={((), ()): ["y >= 0 -> x >= 0 && y >= 0 -> t0 >= 0 -> t0 > 0 -> y >= 0 && x >= 0",
+                                           "y >= 0 -> x >= 0 && y >= 0 -> t0 >= 0 -> t0 <= 0 -> x >= 0"]})
 
     def testBasic13(self):
         runFile(self, file="basic13.hhl",)
@@ -303,7 +303,7 @@ class BasicHHLPyTest(unittest.TestCase):
         runFile(self, file="basic14.hhl",)
 
     def testBasic15(self):
-        runFile(self, file="basic15.hhl", print_vcs=True)
+        runFile(self, file="basic15.hhl")
                 # expected_vcs={((), ()): ["x > 0 -> 0 < 1 -> (\exists y. x * y * y == 1)", \
                 #                          "x > 0 -> 0 >= 1 -> x > 0"],
                 #               ((1,), ()): ["(\exists y. x * y * y == 1) && t == 1 -> x > 0"]})
@@ -313,12 +313,9 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testBasic17(self):
         runFile(self, file="basic17.hhl",
-                  expected_vcs={((), ()): ["y > 0 -> x > 0 && y > 0 -> \
-                                            (0 < 10 -> (\exists z. x * z * z == 1))",
-                                            "y > 0 -> x > 0 && y > 0 -> \
-                                            (0 >= 10 -> x > 0)"],
-                                ((1,), ()): ["y > 0 -> (\exists z. x * z * z == 1) && t == 10 \
-                                              -> x > 0"]})
+                  expected_vcs={((), ()): ["y > 0 -> x > 0 && y > 0 -> t0 >= 0 -> t0 > 0 -> (\exists z. x * z * z == 1)",
+                                           "y > 0 -> x > 0 && y > 0 -> t0 >= 0 -> t0 <= 0 -> x > 0"],
+                                ((1,), ()): ["y > 0 -> (\\exists z. x * z * z == 1) && t == 0 -> x > 0"]})
 
     def testBasic18(self):
         runFile(self, file="basic18.hhl", print_vcs=True)
@@ -925,9 +922,6 @@ class NonlinearHHLPyTest(unittest.TestCase):
 
     # TODO: Nonlinear problem 114, 115. No tactic and even inv->post is too slow to verify.
 
-    def testNonlinear116_0(self):
-        # {x > 10}<x_dot = 1 & x < 5>{x > 8}
-        runFile(self, file="nonlinear116_0.hhl")
     # TODO: 
     # When not sure that ODE is executed or not, set invariant as true, 
     # because both cases should hold: 

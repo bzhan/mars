@@ -4,7 +4,7 @@ import unittest
 import math
 import pprint
 
-from ss2hcsp.hcsp.hcsp import Channel, Predicate, Procedure, Function, Skip
+from ss2hcsp.hcsp.hcsp import Channel, Procedure, Function, Skip
 from ss2hcsp.hcsp import simulator
 from ss2hcsp.hcsp import parser
 
@@ -39,7 +39,6 @@ def run_test(self, infos, num_events, trace, *, io_filter=None,
                 hp = None
                 procedures = dict()
                 functions = dict()
-                predicates = dict()
                 for spec in infos[i]:
                     if isinstance(spec, str):
                         hp = spec
@@ -47,12 +46,10 @@ def run_test(self, infos, num_events, trace, *, io_filter=None,
                         procedures[spec.name] = spec
                     elif isinstance(spec, Function):
                         functions[spec.name] = spec
-                    elif isinstance(spec, Predicate):
-                        predicates[spec.name] = spec
                     else:
                         raise AssertionError("run_test: unknown info")
                 sim_infos.append(simulator.SimInfo('P' + str(i), hp, procedures=procedures,
-                                 functions=functions, predicates=predicates))
+                                 functions=functions))
 
     elif isinstance(infos, dict):
         procedures = dict()
@@ -626,7 +623,7 @@ class SimulatorTest(unittest.TestCase):
     
     def testFunctions2(self):
         run_test(self, [
-            (Predicate("bar", ["a", "b"], "2 * a == b"),
+            (Function("bar", ["a", "b"], "2 * a == b"),
              "x := 2; y := 1; if (bar(y, x)) { ch!x; } else { ch!y; }"),
             "ch?x;"
         ], 10, ['IO ch 2', 'deadlock'])

@@ -1,6 +1,7 @@
-# Basic benchmark, problem 38
-# {2 * x^3 >= 1/4} t := 0; {x_dot = x^2 + x^4, t_dot = 1 & t < 10} {2 * x^3 >= 1/4}
+# ArchiveEntry "Benchmarks/Basic/Dynamics: Riccati"
+
 pre [2 * x^3 >= 1/4];
-t := 0; {x_dot = x^2 + x^4, t_dot = 1 & t < 10} 
+t := * (t >= 0);
+{x_dot = x^2 + x^4, t_dot = -1 & t > 0} 
   invariant [2 * x^3 >= 1/4];
 post [2 * x^3 >= 1/4];

@@ -158,11 +158,9 @@ grammar = r"""
 
     ?function_decl: "function" CNAME "(" CNAME ("," CNAME)* ")" "=" expr ";"
 
-    ?predicate_decl: "predicate" CNAME "(" CNAME ("," CNAME)* ")" "=" expr ";"
-
     ?hoare_pre : "pre" ("[" expr "]")* ";" -> hoare_pre
     ?hoare_post : "post" (ord_assertion)* ";" -> hoare_post
-    ?hoare_triple: (function_decl)* (predicate_decl)* hoare_pre cmd hoare_post
+    ?hoare_triple: (function_decl)* hoare_pre cmd hoare_post
 
     ?procedure: "procedure" CNAME "begin" cmd "end"
 
@@ -554,12 +552,6 @@ class HPTransformer(Transformer):
         expr = args[-1]
         return hcsp.Function(name, vars, expr)
 
-    def predicate_decl(self, meta, *args):
-        name = str(args[0])
-        vars = list(str(var) for var in args[1:-1])
-        expr = args[-1]
-        return hcsp.Predicate(name, vars, expr)
-
     def hoare_pre(self, meta, *args):
         return list(args)
 
@@ -572,15 +564,12 @@ class HPTransformer(Transformer):
         hp = args[-2]
         post = args[-1]
 
-        # The other arguments are either functions or predicates
+        # The other arguments are functions
         functions = dict()
-        predicates = dict()
         for item in args[:-3]:
-            if isinstance(item, hcsp.Function):
-                functions[item.name] = item
-            elif isinstance(item, hcsp.Predicate):
-                predicates[item.name] = item
-        return hcsp.HoareTriple(pre, hp, post, functions=functions, predicates=predicates, meta=meta)
+            assert isinstance(item, hcsp.Function);
+            functions[item.name] = item
+        return hcsp.HoareTriple(pre, hp, post, functions=functions, meta=meta)
 
     def module_sig(self, meta, *args):
         return tuple(str(arg) for arg in args)

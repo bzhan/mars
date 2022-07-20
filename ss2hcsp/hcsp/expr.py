@@ -264,6 +264,8 @@ class FunExpr(Expr):
     def get_zero_arity_funcs(self):
         if len(self.exprs) == 0:
             zero_arity_funcs = set((self.fun_name + '(' + ')',))
+        else:
+            zero_arity_funcs = set()
         return zero_arity_funcs.union(*(expr.get_zero_arity_funcs() for expr in self.exprs))
 
     def subst(self, inst):
@@ -516,48 +518,6 @@ class BConst(Expr):  # Boolean expression
 true_expr = BConst(True)
 false_expr = BConst(False)
 
-
-class PredCond(Expr):
-    def __init__(self, pred_name, exprs, meta=None):
-        super(PredCond, self).__init__()
-        self.pred_name = pred_name
-        assert isinstance(self.pred_name, str)
-        exprs = tuple(exprs)
-        assert all(isinstance(expr, Expr) for expr in exprs)
-        self.exprs = exprs
-        self.meta = meta
-
-    def __repr__(self):
-        return "Pred(%s, %s)" % (self.pred_name, ", ".join(repr(expr) for expr in self.exprs))
-
-    def __str__(self):
-        return "%s(%s)" % (self.pred_name, ",".join(str(expr) for expr in self.exprs))
-
-    def __eq__(self, other):
-        return isinstance(other, PredCond) and self.pred_name == other.pred_name and \
-               self.exprs == other.exprs
-
-    def __hash__(self):
-        return hash(("Pred", self.pred_name, self.exprs))
-
-    def priority(self):
-        return 100
-
-    def get_vars(self):
-        return set().union(*(expr.get_vars() for expr in self.exprs))
-
-    def get_fun_names(self):
-        func_names = set()
-        return func_names.union(*(expr.get_fun_names() for expr in self.exprs))
-
-    def get_zero_arity_funcs(self):
-        zero_arity_funcs = set()
-        return zero_arity_funcs.union(*(expr.get_zero_arity_funcs() for expr in self.exprs))
-
-    def subst(self, inst):
-        return PredCond(self.pred_name, [expr.subst(inst) for expr in self.exprs])
-
-
 class LogicExpr(Expr):
     def __init__(self, op, *exprs, meta=None):
         super(LogicExpr, self).__init__()
@@ -754,9 +714,9 @@ class ExistsExpr(Expr):
 
     def __str__(self):
         if isinstance(self.vars, AVar):
-            return "EX %s. %s" % (str(self.vars), str(self.expr))
+            return "\\exists %s. %s" % (str(self.vars), str(self.expr))
         else:
-            return "EX {%s}. %s" % ((', '.join(str(var) for var in self.vars)), str(self.expr))
+            return "\\exists {%s}. %s" % ((', '.join(str(var) for var in self.vars)), str(self.expr))
 
     def __eq__(self, other):
         # Currently does not consider alpha equivalence.
