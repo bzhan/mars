@@ -3,7 +3,7 @@ from os.path import isfile, join, dirname
 import time
 
 from ss2hcsp.hcsp.parser import parse_hoare_triple_with_meta
-from hhlpy.hhlpy2 import CmdVerifier
+from hhlpy.hhlpy import CmdVerifier
 from ss2hcsp.hcsp import expr
 
 if __name__ == "__main__":

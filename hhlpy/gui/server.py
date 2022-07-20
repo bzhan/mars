@@ -11,7 +11,7 @@ from operator import pos
 from ss2hcsp.hcsp import expr, hcsp
 from ss2hcsp.hcsp.parser import parse_hoare_triple_with_meta, parse_expr_with_meta
 from ss2hcsp.hcsp.simulator import get_pos
-from hhlpy.hhlpy2 import CmdVerifier
+from hhlpy.hhlpy import CmdVerifier
 from hhlpy.wolframengine_wrapper import wl_prove
 from hhlpy.z3wrapper import z3_prove
 from hhlpy.wolframengine_wrapper import session, found_wolfram

@@ -1,7 +1,7 @@
 """Unit test for get_i_pos function"""
 import unittest
 
-from hhlpy.hhlpy2 import CmdVerifier
+from hhlpy.hhlpy import CmdVerifier
 from ss2hcsp.hcsp.parser import parse_expr_with_meta, parse_hp_with_meta
 
 def runTest(self, hp, pre="true", post="true"):
