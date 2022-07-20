@@ -533,7 +533,10 @@ class CmdVerifier:
             sub_labels.reverse() # change to the order of from top to bottom
 
             # Compute the new label with sub_labels
-            new_label = label.SequenceLabel(*sub_labels)
+            if sub_labels:
+                new_label = label.SequenceLabel(*sub_labels)
+            else:
+                new_label = None
 
             # Remove the last i_num labels, which have been used (or pop them similarly)
             seq_labels = seq_labels[:-i_num]
@@ -543,7 +546,11 @@ class CmdVerifier:
             # Else if the parent program is Loop or None, the new label is the complete label tree,
             # store the new label in seq_labels.
             elif self.infos[pos].parent_type == 'loop' or self.infos[pos].parent_type is None:
-                seq_labels = [new_label]
+                # If new_label is None, seq_labels is []
+                if new_label:
+                    seq_labels = [new_label]
+                else:
+                    seq_labels = []
                 nest_label = None
             else:
                 raise NotImplementedError
