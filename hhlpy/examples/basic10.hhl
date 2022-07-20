@@ -10,4 +10,5 @@ t := * (t >= 0);
 t := * (t >= 0);
 {t_dot=-1, x_dot=x & t > 0}
   invariant [x > 0] {dbx};
+
 post [x > 0];
