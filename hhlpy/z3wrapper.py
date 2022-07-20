@@ -24,8 +24,7 @@ def convert(e, functions):
         if len(e.exprs) == 0:  # actually a constant
             return z3.Real(e.fun_name)
         else:
-            funDecl = functions[e.fun_name]
-            f = z3.Function(funDecl.name, *[z3.RealSort() for v in funDecl.vars], z3.RealSort())
+            f = functions[e.fun_name]
             return f(*[convert(e, functions) for e in e.exprs])
     elif isinstance(e, expr.LogicExpr):
         if e.op == '->':
@@ -87,16 +86,20 @@ def convert(e, functions):
 
 def convertFunDecl(f, functions):
     funDecl = functions[f]
-    f = z3.Function(funDecl.name, *[z3.RealSort() for v in funDecl.vars], z3.RealSort())
+    convertedBody = convert(funDecl.expr, functions);
+    f = z3.Function(funDecl.name, *[z3.RealSort() for v in funDecl.vars], convertedBody.sort())
     vars = [z3.Real(v) for v in funDecl.vars]
-    return z3.ForAll(vars, f(vars) == convert(funDecl.expr, functions))
+    return (f, z3.ForAll(vars, f(vars) == convertedBody))
 
 def z3_prove(e, functions=dict()):
     """Attempt to prove the given condition."""
     s = z3.Solver()
-    s.add(z3.Not(convert(e, functions)))
+    z3functions = {}
     for f in functions:
-        s.add(convertFunDecl(f, functions))
+        z3fun, faxiom = convertFunDecl(f, functions)
+        s.add(faxiom)
+        z3functions[f] = z3fun
+    s.add(z3.Not(convert(e, z3functions)))
     if str(s.check()) == 'unsat':
         return True
     else:
