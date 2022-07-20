@@ -1,0 +1,18 @@
+pre [0 <= x] [x <= 1];
+t := 0;
+_tick := 0;
+z := 1;
+delay_state := 0;
+tt := 0;
+{
+  x := delay_state;
+  y := 1 - x;
+  delay_state := y;
+  {tt_dot = 1 & tt < 1}
+    invariant [0 <= x] [x <= 1] [0 <= delay_state] [delay_state <= 1];
+  t := t + tt;
+  _tick := _tick + 1;
+  tt := 0;
+}*
+  invariant [0 <= x] [x <= 1] [0 <= delay_state] [delay_state <= 1];
+post [0 <= x] [x <= 1];

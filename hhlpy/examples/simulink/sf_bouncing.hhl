@@ -1,0 +1,18 @@
+pre;
+ChartEL := [];
+x := 5;
+v := 0;
+a := -9.8;
+Chart_st := "Chart_A";
+{
+  Chart_A_done := 0;
+  if (x <= 0 && v <= 0) {
+    v := -(0.9 * v);
+    Chart_st := "Chart_A";
+    Chart_A_done := 1;
+  }
+  Chart_ret := Chart_A_done;
+  {x_dot = v, v_dot = a & x > 0 || v > 0}
+}*
+  invariant [x <= 5];
+post [x <= 5];
