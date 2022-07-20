@@ -84,9 +84,8 @@ def convert(e, functions):
         print(e, type(e))
         raise NotImplementedError
 
-def convertFunDecl(f, functions):
-    funDecl = functions[f]
-    convertedBody = convert(funDecl.expr, functions);
+def convertFunDecl(funDecl, z3functions):
+    convertedBody = convert(funDecl.expr, z3functions);
     f = z3.Function(funDecl.name, *[z3.RealSort() for v in funDecl.vars], convertedBody.sort())
     vars = [z3.Real(v) for v in funDecl.vars]
     return (f, z3.ForAll(vars, f(vars) == convertedBody))
@@ -96,7 +95,7 @@ def z3_prove(e, functions=dict()):
     s = z3.Solver()
     z3functions = {}
     for f in functions:
-        z3fun, faxiom = convertFunDecl(f, functions)
+        z3fun, faxiom = convertFunDecl(functions[f], z3functions)
         s.add(faxiom)
         z3functions[f] = z3fun
     s.add(z3.Not(convert(e, z3functions)))
