@@ -101,11 +101,9 @@ def runFile(self, file,
             for vc in vcs:
                 print(vc.expr, 
                 "pos:", vc.pos, 
-                "seq_labels:", [str(lb) for lb in vc.seq_labels], 
-                "nest_label:", vc.nest_label,
                 "annot_pos:", vc.annot_pos,
                 "categ:", vc.categ,
-                "branch_label:", str(vc.branch_label),
+                "blabel:", str(vc.blabel),
                 "comp_label:", str(vc.comp_label),
                 "vc:", vc.vc,
                 "pc:", vc.pc)
@@ -186,6 +184,10 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testVerify2_2(self):
         runFile(self, file="test2_2.hhl",
+                print_vcs=False)
+
+    def testVerify2_3(self):
+        runFile(self, file="test2_3.hhl",
                 print_vcs=False)
 
     def testVerify3(self):

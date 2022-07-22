@@ -30,9 +30,10 @@ class SequenceLabel(BranchLabel):
     Example: 1.2.1"""
     def __init__(self, *labels):
         super(SequenceLabel, self).__init__()
-        assert len(labels)
-        assert all(isinstance(lb, BranchLabel) for lb in labels)
-        self.labels = tuple(labels)
+        assert all(isinstance(lb, BranchLabel) or lb is None for lb in labels) # arguments can be None
+        valid_labels = [lb for lb in labels if lb]
+        assert len(valid_labels)
+        self.labels = tuple(valid_labels)  # Only consider the valid labels
 
     def __str__(self):
         return ".".join(str(lb) for lb in self.labels)
