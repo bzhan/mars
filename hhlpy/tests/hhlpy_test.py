@@ -10,60 +10,6 @@ from ss2hcsp.hcsp.parser import parse_expr_with_meta, parse_expr_with_meta, pars
 from hhlpy.hhlpy import CmdVerifier
 from hhlpy.wolframengine_wrapper import found_wolfram, session
 
-
-def runVerify(self, *, pre, hp, post, constants=set(),
-              wolfram_engine = False, z3 = True,
-              andR_rule=None,
-              print_vcs=False, expected_vcs=None):
-    # Parse pre-condition, HCSP program, and post-condition
-    pre = parse_expr_with_meta(pre)
-    hp = parse_hp_with_meta(hp)
-    post = parse_expr_with_meta(post)
-
-    # Initialize the verifier
-    verifier = CmdVerifier(pre=pre, hp=hp, post=post, constants=constants, 
-                           wolfram_engine=wolfram_engine, z3=z3)
-    
-    if andR_rule:
-        for pos, andR in andR_rule.items():
-            if isinstance(andR, str):
-                andR = parse_expr_with_meta(andR)
-            verifier.set_andR_rule(pos, andR)
-    # Compute wp and verify
-    verifier.compute_wp()
-
-    # Optional: Print verification conditions
-    if print_vcs:
-        for pos, vcs in verifier.get_all_vcs().items():
-            print("%s:" % str(pos))
-            for vc in vcs:
-                print(vc.expr, 
-                "pos:", vc.pos, 
-                "seq_labels:", [str(lb) for lb in vc.seq_labels], 
-                "nest_label:", vc.nest_label,
-                "annot_pos:", vc.annot_pos,
-                "categ:", vc.categ,
-                "branch_label:", str(vc.branch_label),
-                "comp_label:", str(vc.comp_label),
-                "pc:", vc.pc)
-
-    # Use SMT to verify all verification conditions
-    self.assertTrue(verifier.verify())
-
-    # Optional: check the verification conditions are expected
-    def is_trivial(vc):
-        if isinstance(vc, expr.LogicExpr) and vc.op == "->" and vc.exprs[0] == vc.exprs[1]:
-            return True
-        else:
-            return False
-
-    if expected_vcs:
-        for pos, vcs in expected_vcs.items():
-            vcs = [parse_expr_with_meta(vc) for vc in vcs]
-            actual_vcs = [vc.expr for vc in verifier.infos[pos].vcs if not is_trivial(vc.expr)]
-            self.assertEqual(set(vcs), set(actual_vcs), 
-            "\nExpect: {}\nActual: {}".format([str(vc) for vc in vcs],[str(vc) for vc in actual_vcs]))
-
 def runFile(self, file, 
               wolfram_engine = False, z3 = True,
               andR_rule=None,
