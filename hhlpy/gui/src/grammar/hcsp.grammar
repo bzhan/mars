@@ -208,7 +208,7 @@ label {
 
 maybe_ode_invariant{ ("invariant" Ode_invariant+ ";")?}
 
-Ode_invariant { InvariantWithRule
+Ode_invariant { InvariantWithRule maybe_proof_methods
               | "ghost" CNAME
               | "ghost" "(" CNAME "=" expr ")"
 }
