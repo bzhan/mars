@@ -139,9 +139,11 @@ grammar = r"""
       | "wolfram"        -> method_wolfram
 
     ?maybe_ode_invariant: ("invariant" ode_invariant+ ";")? -> maybe_ode_invariant
-    ?ode_invariant: "[" expr "]" ("{" ode_rule expr? "}")? -> ode_invariant
+
+    ?ode_invariant: "[" expr "]" ("{" ode_rule expr? "}")? maybe_proof_methods -> ode_invariant
         | "ghost" CNAME -> ghost_intro
         | "ghost" "(" CNAME "=" expr ")" -> ghost_intro_eq
+
     ?ode_rule: "di" -> ode_rule_di
       | "dbx" -> ode_rule_dbx
       | "bc" -> ode_rule_bc
@@ -426,12 +428,12 @@ class HPTransformer(Transformer):
             return args
 
     def ode_invariant(self, meta, *args):
-        if len(args) == 1:
-            return assertion.CutInvariant(inv=args[0], meta=meta)
-        elif len(args) == 2:
-            return assertion.CutInvariant(inv=args[0], rule=args[1], meta=meta)
+        if len(args) == 2:
+            return assertion.CutInvariant(expr=args[0], proof_methods=args[-1], meta=meta)
+        elif len(args) == 3:
+            return assertion.CutInvariant(expr=args[0], rule=args[1], proof_methods=args[-1], meta=meta)
         else:
-            return assertion.CutInvariant(inv=args[0], rule=args[1], rule_arg=args[2], meta=meta)
+            return assertion.CutInvariant(expr=args[0], rule=args[1], rule_arg=args[2], proof_methods=args[-1], meta=meta)
     
     def ghost_intro(self, meta, var):
         return assertion.GhostIntro(var=var, diff=None, meta=meta)

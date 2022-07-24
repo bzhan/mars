@@ -24,10 +24,11 @@ class OrdinaryAssertion(Assertion):
 
 
 class CutInvariant(Assertion):
-    def __init__(self, inv, rule = None, rule_arg=None, meta=None):
+    def __init__(self, expr, proof_methods, rule = None, rule_arg=None, meta=None):
         super(CutInvariant, self).__init__()
         self.meta = meta
-        self.inv = inv
+        self.expr = expr
+        self.proof_methods = proof_methods
         self.rule = rule
         self.rule_arg = rule_arg
 

@@ -11,7 +11,7 @@ from operator import pos
 from ss2hcsp.hcsp import expr, hcsp
 from ss2hcsp.hcsp.parser import parse_hoare_triple_with_meta, parse_expr_with_meta
 from ss2hcsp.hcsp.simulator import get_pos
-from hhlpy.hhlpy import CmdVerifier
+from hhlpy.hhlpy_without_dG import CmdVerifier
 from hhlpy.wolframengine_wrapper import wl_prove
 from hhlpy.z3wrapper import z3_prove
 from hhlpy.wolframengine_wrapper import session, found_wolfram
@@ -64,43 +64,32 @@ def runCompute(code):
             
             pms_start_pos = -1
             pms_end_pos = -1
-            # TODO: Cases when the bottom most predicate of vc is an ode invariant.
-            # TODO: Merge the three cases.
+            
 
-            # Case when the bottom most predicate of vc is a post condition.
+            # Case when the bottom most assertion of vc is a post condition.
             if vc.pc and vc.annot_pos is not None:
                 assertion = hoare_triple.post[vc.annot_pos]
 
-                proof_methods = assertion.proof_methods
-                pms_meta = proof_methods.meta
-                if pms_meta.empty:
-                    pms_meta.start_pos = assertion.meta.end_pos
-                    pms_meta.end_pos = assertion.meta.end_pos
-                pms_start_pos = proof_methods.meta.start_pos
-                pms_end_pos = proof_methods.meta.end_pos
-                # If the method of this vc is stored in proof_methods,
-                # send the method back to the client, which will be used as the default method.
-                for proof_method in proof_methods.pms:
-                    if str(label_computed) == str(proof_method.label):
-                        method_stored = proof_method.method
-
-            # Case when the bottom most predicate of vc is an ode invariant.
-            elif isinstance(hp, hcsp.Loop) and vc.annot_pos is not None:
+            # Case when the bottom most assertion of vc is a loop or an ode invariant.
+            elif isinstance(hp, (hcsp.Loop, hcsp.ODE)) and vc.annot_pos is not None:
                 assert hp.inv is not None
-                inv = hp.inv[vc.annot_pos]
+                assertion = hp.inv[vc.annot_pos]
+
+            else:
+                raise NotImplementedError
                 
-                proof_methods = inv.proof_methods
-                pms_meta = proof_methods.meta
-                if pms_meta.empty:
-                    pms_meta.start_pos = inv.meta.end_pos
-                    pms_meta.end_pos = inv.meta.end_pos
-                pms_start_pos = proof_methods.meta.start_pos
-                pms_end_pos = proof_methods.meta.end_pos
-                # If the method of this vc is stored in proof_methods,
-                # send the method back to the client, which will be used as the default method.
-                for proof_method in proof_methods.pms:
-                    if str(label_computed) == str(proof_method.label):
-                        method_stored = proof_method.method
+            proof_methods = assertion.proof_methods
+            pms_meta = proof_methods.meta
+            if pms_meta.empty:
+                pms_meta.start_pos = assertion.meta.end_pos
+                pms_meta.end_pos = assertion.meta.end_pos
+            pms_start_pos = proof_methods.meta.start_pos
+            pms_end_pos = proof_methods.meta.end_pos
+            # If the method of this vc is stored in proof_methods,
+            # send the method back to the client, which will be used as the default method.
+            for proof_method in proof_methods.pms:
+                if str(label_computed) == str(proof_method.label):
+                    method_stored = proof_method.method
 
             vc_infos.append({
                 "line": meta.end_line,
