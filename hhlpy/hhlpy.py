@@ -793,9 +793,9 @@ class CmdVerifier:
                 for inv in reversed(cur_hp.inv):
                     if isinstance(inv, assertion.CutInvariant):
                         if subpost is None:
-                            subpost = inv.inv
+                            subpost = inv.expr
                         else:
-                            subpost = expr.LogicExpr('&&', inv.inv, subpost)
+                            subpost = expr.LogicExpr('&&', inv.expr, subpost)
                     elif isinstance(inv, assertion.GhostIntro):
                         if subpost is None:
                             raise AssertionError("Ghost invariant cannot be last instruction.")
@@ -856,7 +856,7 @@ class CmdVerifier:
                             sub_pos_left = sub_pos
                         else:
                             subpost = subposts[-2-i]
-                            self.infos[sub_pos].diff_cuts = [inv.inv, subpost]
+                            self.infos[sub_pos].diff_cuts = [inv.expr, subpost]
                             self.infos[sub_pos].dw = False
 
                             sub_pos_left = (sub_pos[0], sub_pos[1] + (0,))
@@ -1195,7 +1195,7 @@ class CmdVerifier:
 
                         # Boundary of D -> e_lie_deriv == g * e
                         vc = expr.imp(constraint, expr.RelExpr('==', e_lie_deriv, 
-                                                                    expr.OpExpr('*'), g, e))
+                                                                    expr.OpExpr('*', g, e)))
 
                         self.infos[pos].vcs.append(Condition(expr=vc, pos=[pos], categ="maintain", vc=True))
 
