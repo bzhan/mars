@@ -804,7 +804,6 @@ class CmdVerifier:
                 #                     )
                 pre_dw = [Condition(expr=expr.imp(constraint, inv.expr), 
                                     pos=[pos],
-                                    blabel=self.compute_branch_label(type=type, cur_branch='execute'),
                                     categ="init",
                                     annot_pos=i,
                         ) for i, inv in enumerate(cur_hp.inv)] \
