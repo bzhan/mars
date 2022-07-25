@@ -59,6 +59,9 @@ def runCompute(code):
                     if not originMeta.empty:
                         origin.append({"from": originMeta.start_pos, "to": originMeta.end_pos})
 
+            assume = split_imp(vc.expr)[:-1]
+            show = split_imp(vc.expr)[-1]
+
             label_computed = vc.comp_label
             method_stored = None
             
@@ -97,6 +100,8 @@ def runCompute(code):
                 "start_pos": meta.start_pos,
                 "end_pos": meta.end_pos,
                 "formula": str(vc.expr),
+                "assume": [str(asm) for asm in assume],
+                "show": str(show),
                 "label": str(vc.comp_label),
                 "method": method_stored,
                 "origin": origin,
@@ -137,6 +142,14 @@ def getExampleCode(example):
     code = file.read()
     file.close()
     return code
+
+def split_imp(e):
+    """Split an implication expression into a list of its sub-expressions in order.
+    Example, p -> q -> u into [p, q, u]"""
+    if isinstance(e, expr.LogicExpr) and e.op == '->':
+        return split_imp(e.exprs[0]) + split_imp(e.exprs[1])
+    else:
+        return [e]
 
 class HHLPyApplication(WebSocketApplication):
     def on_open(self):

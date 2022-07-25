@@ -1,26 +1,34 @@
 <!-- Verification Conditions, including the formula, solver and result -->
 <template>
-    <div class="verification-condition">
-        <ul>
-            <li v-for="vc_info in vc_infos" :key="vc_info.index">
-            <!-- TODO: change the key -->
-                <span class="vc-icon">
-                    <v-icon name="check-circle" style="fill:green" v-show="vc_info.result === true" scale="1.5"></v-icon>
-                    <v-icon name="times-circle" style="fill:red" v-show="vc_info.result === false" scale="1.5"></v-icon>
-                </span>
+  <div class="verification-condition">
+    <div>{{vc_success_num + "/" + vc_num}}</div>
+    <ul>
+        <li v-for="vc_info in vc_infos" :key="vc_info.index">
+        <!-- TODO: change the key -->
+            <ul class="vc-formula" @mouseover="showOrigin(vc_info.origin)" @mouseleave="hideOrigin">
+              <li>assume: 
+                <ul>
+                  <li v-for="(asm, index) in vc_info.assume" :key="index">
+                  {{ asm }}
+                </li>
+                </ul>
+              </li>
+              <li>show: {{ vc_info.show }}</li>
+            </ul> 
+            <!-- vc_info.solver(the solver in vc_infos in Editor.vue) is also changed by using v-model -->
+            <select v-model="vc_info.solver" @change="changeSolver(vc_info.index, vc_info.solver)" class="vc-button">
+                <option value="z3">Z3</option>
+                <option value="wolfram">Wolfram Engine</option>
+            </select>
 
-                <span class="vc-formula" @mouseover="showOrigin(vc_info.origin)" @mouseleave="hideOrigin">
-                {{ vc_info.formula }}
-                </span> 
-                <!-- vc_info.solver(the solver in vc_infos in Editor.vue) is also changed by using v-model -->
-                <select v-model="vc_info.solver" @change="changeSolver(vc_info.index, vc_info.solver)" class="vc-button">
-                    <option value="z3">Z3</option>
-                    <option value="wolfram">Wolfram Engine</option>
-                </select>
+            <span class="vc-icon">
+                <v-icon name="check-circle" style="fill:green" v-show="vc_info.result === true" scale="1.5"></v-icon>
+                <v-icon name="times-circle" style="fill:red" v-show="vc_info.result === false" scale="1.5"></v-icon>
+            </span>
 
-            </li>
-        </ul>
-    </div>
+        </li>
+    </ul>
+  </div>
 </template>
 
 <script>
@@ -37,6 +45,22 @@ export default ({
 
     data() {
       return{
+      }
+    },
+
+    computed: {
+      vc_num() {
+        return this.vc_infos.length
+      },
+      vc_success_num() {
+        let n = 0
+        for (let vc_info of this.vc_infos) {
+          if (vc_info.result === true){
+            n++;
+          }
+        }
+
+        return n
       }
     },
 
@@ -70,7 +94,7 @@ export default ({
 }
 
 .vc-formula {
-  border-radius: 20px;
+  border-radius: 15px;
   background: #1b6a91;
   padding: 0 5px;
   color:white;

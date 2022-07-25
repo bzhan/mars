@@ -787,7 +787,7 @@ class CmdVerifier:
             # TODO: also run if no invariants are specified? testVerify62 testVerify54 testVerify53 testVerify52 testVerify50 testVerify55
 
                 if cur_hp.inv is None:
-                    cur_hp.inv = (assertion.CutInvariant(expr=expr.true_expr),)
+                    cur_hp.inv = (assertion.CutInvariant(expr=expr.true_expr, proof_methods=None),)
 
                 assert all(isinstance(inv, assertion.CutInvariant) for inv in cur_hp.inv)
 

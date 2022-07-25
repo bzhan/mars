@@ -1,7 +1,7 @@
 <template>
   <div class="editor">
     <div class="main"  @mouseup="isDragging = false" @mousemove="resizeH">
-      <div id="code"></div>
+      <div id="code" width="60%"></div>
       <div class="resizer" @mousedown="isDragging = true"></div>
       <vcs :vc_infos="vc_infos" :view="editorView" @changeSolver="changeSolver" class="vcs"></vcs>
     </div>
@@ -172,6 +172,8 @@ export default {
         this.vc_infos.push({
           index: i,
           formula: vcData.formula,
+          assume: vcData.assume,
+          show: vcData.show,
           label: label,
           solver: solver,  //TODO: set the solver
           result: null,
