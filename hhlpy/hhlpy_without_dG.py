@@ -1138,7 +1138,8 @@ class CmdVerifier:
                     blabel=vc.blabel,
                     annot_pos=vc.annot_pos, 
                     categ=vc.categ,
-                    vc=True)
+                    vc=True,
+                    pc=vc.pc)
         
     def convert_imp(self, e):
         """Convert implication from (p -> q -> u) to (p && q) -> u,
