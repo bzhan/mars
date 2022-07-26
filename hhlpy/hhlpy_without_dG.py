@@ -297,6 +297,14 @@ class Condition:
 
         # Whether the condition is post-condtion of the whole hp or computed by post-condition of the whole hp
         self.pc = pc
+        
+        # The solver used to verify this verification condition. 
+        # Set as 'z3' by default.
+        if self.vc:
+            self.solver = 'z3'
+        # Set as None if this is not a verification condition.
+        else:
+            self.solver = None
 
     def __str__(self):
         return str(self.expr)
@@ -306,6 +314,9 @@ class CmdVerifier:
     def __init__(self, *, pre, hp, post, functions=dict(), z3 = True, wolfram_engine = False):
         # The HCSP program to be verified.
         self.hp = hp
+
+        # The list of post conditions of the whole HCSP program
+        self.post = post
 
         # The prover used to verify conditions.
         # Use z3 by default.
@@ -353,7 +364,7 @@ class CmdVerifier:
                                                pos=[root_pos], 
                                                annot_pos=idx, 
                                                pc=True) 
-                                    for idx, subpost in enumerate(post)]
+                                        for idx, subpost in enumerate(post)]
 
         # If there are pre-conditions of constants in the form: A op c, 
         # in which A is a constant symbol, c doesn't include variable symbols, op is in RelExpr.op
@@ -743,7 +754,7 @@ class CmdVerifier:
                     # Another verification condition is that all invariants together imply the weakest precondition of sub_inv w.r.t the loop body
                     
                     sub_vc = Condition(expr=expr.imp(expr.list_conj(*all_invs), sub_pre.expr),
-                                                   pos=sub_pre.pos,
+                                                   pos=[pos],
                                                    blabel=sub_pre.blabel,
                                                    annot_pos=inv.annot_pos,
                                                    categ="maintain",
@@ -793,20 +804,20 @@ class CmdVerifier:
 
                 # Apply differential weakening (dW)
 
-
                 # dW Rule (always applied automatically)
                 #   [[D]] <x_dot = f(x)> [[I]]      I && Boundary of D -> Q  
                 #-----------------------------------------------------------------------
                 #           {(D -> I) && (!D -> Q)} <x_dot = f(x) & D> {Q}
-                # post_conj = expr.conj(*[vc.expr for vc in post])
-                # pre_dw = expr.conj(expr.imp(constraint, subposts[-1]),
-                #                    expr.imp(expr.neg_expr(constraint), post_conj)
-                #                     )
+                
+                # dWT: Case when no invariant is offered(I is set as true)
+                #                 Boundary of D -> Q  
+                #-----------------------------------------------------------------------
+                #           {!D -> Q} <x_dot = f(x) & D> {Q}
                 pre_dw = [Condition(expr=expr.imp(constraint, inv.expr), 
                                     pos=[pos],
                                     categ="init",
                                     annot_pos=i,
-                        ) for i, inv in enumerate(cur_hp.inv)] \
+                        ) for i, inv in enumerate(cur_hp.inv) if inv.expr is not expr.true_expr] \
                         + \
                          [Condition(expr=expr.imp(expr.neg_expr(constraint), 
                                                      subpost.expr),
@@ -934,9 +945,12 @@ class CmdVerifier:
                                                         expr.RelExpr('<=', in_var, time_var)),
                                          Q_y_s))
 
-                pre = expr.ForAllExpr(time_var.name,
-                            expr.imp(expr.RelExpr('>=', time_var, expr.AConst(0)),
-                                    expr.imp(cond, conclu)))                                           
+                pre = [Condition(expr=expr.ForAllExpr(time_var.name,
+                                                    expr.imp(expr.RelExpr('>=', time_var, expr.AConst(0)),
+                                                             expr.imp(cond, conclu))),
+                                pos=[pos],
+                                categ="maintain",
+                                annot_pos=self.infos[pos].inv.annot_pos)]                                         
 
             # Use dI rules
             # When dI_inv is set or by default
@@ -1104,7 +1118,7 @@ class CmdVerifier:
                 raise AssertionError("No invariant set at position %s." % str(pos))
 
             if pre is not None and pre_dw is not None:
-                pre = [Condition(expr=pre, pos=[pos])] + pre_dw
+                pre = pre + pre_dw
             elif pre_dw is not None:
                 pre = pre_dw
             # If pre is None and pre_dw is None, no pre is computed, so pre is still None.
@@ -1155,31 +1169,33 @@ class CmdVerifier:
         else:
             return e
  
+    def set_solver(self, vc):
+        """Set the solver of verification condition, which is z3 by default, as the one indicated in  proof method"""
+        assert isinstance(vc, Condition) and vc.vc is True
+        assert vc.annot_pos is not None
+
+        # Proof method of each vc is stored in the bottom-most assertion related.
+        bottom_hp = get_pos(self.hp, vc.pos[0][0])
+
+        if vc.pc:
+            assertion = self.post[vc.annot_pos]
+        
+        elif isinstance(bottom_hp, (hcsp.Loop, hcsp.ODE)):
+            assertion = bottom_hp.inv[vc.annot_pos]
+        
+        else:
+            raise NotImplementedError
+
+        # Match the computed label of vc and the one in proof method.
+        for pms in assertion.proof_methods.pms:
+            if str(vc.comp_label) == str(pms.label):
+                vc.solver = pms.method
+
+        return vc
+
     def get_all_vcs(self):
         all_vcs = dict()
-        for pos, info in self.infos.items():
-            if info.andR:
-                vcs = copy.copy(info.vcs)
-                for vc in vcs:
-                    # Translate, for example, [x == 0 -> x > -1 && x < 1], into 
-                    # [x == 0 -> x > -1, x == 0 -> x < 1]
-                    if isinstance(vc.expr, expr.LogicExpr) and vc.expr.op == '->':
-                        vc_vart = self.convert_imp(vc.expr)
-                        expr0 = vc_vart.exprs[0]
-                        expr1 = vc_vart.exprs[1]
-                        if isinstance(expr1, expr.LogicExpr) and expr1.op == '&&':
-                            right_exprs = expr.split_conj(expr1)
-                            for r_expr in right_exprs:
-                                info.vcs.append(Condition(
-                                    expr=expr.imp(expr0, r_expr), 
-                                    pos=vc.pos,
-                                    blabel=vc.label,
-                                    annot_pos=vc.annot_pos,
-                                    categ=vc.categ,
-                                    vc=True,
-                                    pc=vc.pc))
-                            info.vcs.remove(vc)
-
+        for pos, info in self.infos.items():   
             if info.vcs:
                 all_vcs[pos] = info.vcs
         return all_vcs
@@ -1190,7 +1206,8 @@ class CmdVerifier:
         
         for pos, vcs in all_vcs.items():
             for vc in vcs:
-                if not self.verify_vc(vc.expr):
+                vc = self.set_solver(vc)
+                if not self.verify_vc(vc):
                     print("The failed verification condition is :\n", pos, ':', str(vc))
                     return False
         return True
@@ -1198,15 +1215,16 @@ class CmdVerifier:
 
 
     def verify_vc(self, vc):
-        """Verify one verfication condition"""
-        if self.wolfram_engine:
-            if wl_prove(vc):
+        """Verify one verfication condition with its solver"""
+        solver = vc.solver
+        if solver == 'wolfram':
+            if wl_prove(vc.expr):
                 return True
             else:
                 return False
 
-        elif self.z3:
-            if z3_prove(vc, self.functions):
+        elif solver == 'z3':
+            if z3_prove(vc.expr, self.functions):
                 return True
             else:
                 return False
@@ -1214,10 +1232,6 @@ class CmdVerifier:
         else:
             raise AssertionError("Please choose an arithmetic solver.")
 
-
-    def f(self, hp):
-        assert isinstance(hp, hcsp.Loop)
-        self.get_i_pos(hp.hp)
 
 
 

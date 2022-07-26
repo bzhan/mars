@@ -286,14 +286,14 @@ class BasicHHLPyTest(unittest.TestCase):
     def testBasic24(self):
         runFile(self, file="basic24.hhl",)
 
-    def testVerify32(self):
-        runFile(self, file="test32.hhl",)
+    def testBasic25(self):
+        runFile(self, file="basic25.hhl",)
 
-    def testVerify33(self):
-        runFile(self, file="test33.hhl",)
+    def testBasic26(self):
+        runFile(self, file="basic26.hhl",)
 
-    def testVerify34(self):
-        runFile(self, file="test34.hhl",
+    def testBasic27(self):
+        runFile(self, file="basic27.hhl",
                   expected_vcs={((),()): ["z == -2 -> x >= 1 && y == 0 -> x >= 1",
                                           "z == -2 -> x >= 1 && y == 0 -> y >= 0", 
                                           # `y == 0` comes from implicit dW
@@ -308,12 +308,11 @@ class BasicHHLPyTest(unittest.TestCase):
                                 }) 
                                           # `y <= 0 -> x >= 1 && y >= 0` is the dW precondition
 
-    def testVerify35(self):
-        runFile(self, file="test35.hhl",)
+    def testBasic28(self):
+        runFile(self, file="basic28.hhl",)
 
-    def testVerify36(self):
-        runFile(self, file="test36.hhl",)
-                #   constants={"B()"})
+    def testBasic29(self):
+        runFile(self, file="basic29.hhl",)
 
     # TODO: Benchmark, problem 30, 32 are hard to translate into hcsp programs.
 
@@ -323,8 +322,8 @@ class BasicHHLPyTest(unittest.TestCase):
     def testVerify40(self):
         runFile(self, file="test40.hhl",)
 
-    def testVerify41(self):
-        runFile(self, file="test41.hhl",)
+    def testBasic33(self):
+        runFile(self, file="basic33.hhl",)
 
     def testVerify42(self):
         runFile(self,file="test42.hhl",)
@@ -379,38 +378,26 @@ class BasicHHLPyTest(unittest.TestCase):
                 ) 
 
     def testVerify36_1(self):
-        runFile(self, file="test36_1.hhl",
-                #  constants={"B()"},
-                  wolfram_engine=True)
+        runFile(self, file="test36_1.hhl",)
 
     def testBasic46(self):
-        runFile(self, file="basic46.hhl",
-                #   constants={'A', 'B', 'S', 'ep'},
-                  wolfram_engine=True)
+        runFile(self, file="basic46.hhl",)
 
     def testVerify56_1(self):
-        runFile(self, file="test56_1.hhl",
-                  andR_rule={((), ()): "true"})
+        runFile(self, file="test56_1.hhl",)
 
     def testBasic47(self):
-        runFile(self, file="basic47.hhl",
-                  # constants={'A', 'B', 'S', 'ep'},
-                  wolfram_engine=True)
+        runFile(self, file="basic47.hhl",)
 
     def testBasic48(self):
-        runFile(self, file="basic48.hhl",
-                  wolfram_engine=True
-        )
+        runFile(self, file="basic48.hhl",)
 
     def testBasic49(self):
-        runFile(self, file="basic49.hhl",
-                #   constants={'Kp()', 'Kd()', 'xr()', 'c()'}
-                  )
+        runFile(self, file="basic49.hhl",)
 
     def testBasic50(self):
         runFile(self, \
                   file="basic50.hhl",
-                #  constants={'Kp', 'Kd', 'S'}
                   )
 
     # TODO: Basic benchmark, problem 51. The ODE invariant cannot imply loop invariant.
@@ -481,9 +468,7 @@ class BasicHHLPyTest(unittest.TestCase):
         runFile(self, file="basic52.hhl",)
 
     def testBasic53(self):
-        runFile(self, file="basic53.hhl",
-                #   constants={'A', 'b'}
-                  )
+        runFile(self, file="basic53.hhl",)
 
     def testBasic54(self):
         runFile(self, file="basic54.hhl",)
@@ -501,10 +486,7 @@ class BasicHHLPyTest(unittest.TestCase):
         runFile(self, file="test68.hhl",)
 
     def testBasic55(self):
-        runFile(self, file="basic55.hhl",
-                #   constants={'b', 'A', 'ep'},
-                  wolfram_engine=True
-                  )
+        runFile(self, file="basic55.hhl",)
     
     # TODO: Basic benchmark, problem 56 - 60, cannot be written into hcsp program.
 
@@ -532,26 +514,22 @@ class NonlinearHHLPyTest(unittest.TestCase):
         runFile(self, file="nonlinear3.hhl")
 
     def testNonlinear4(self):
-        runFile(self, file="nonlinear4.hhl",
-                  wolfram_engine=True)
+        runFile(self, file="nonlinear4.hhl",)
 
     def testNonlinear5(self):
         runFile(self, file="nonlinear5.hhl")
 
     def testNonlinear6(self):
-        runFile(self, file="nonlinear6.hhl",
-                  wolfram_engine=True)
+        runFile(self, file="nonlinear6.hhl",)
 
     def testNonlinear7(self):
         runFile(self, file="nonlinear7.hhl")
     
     def testNonlinear8(self):
-        runFile(self, file="nonlinear8.hhl",
-                  wolfram_engine=True)
+        runFile(self, file="nonlinear8.hhl",)
 
     def testNonlinear9(self):
-        runFile(self, file="nonlinear9.hhl",
-                  wolfram_engine=True)
+        runFile(self, file="nonlinear9.hhl",)
 
     # TODO: Nonlinear benchmark, problem 10.
     # Cannot proved by keymaera following tactic.
@@ -592,8 +570,7 @@ class NonlinearHHLPyTest(unittest.TestCase):
     # TODO: Nonlinear benchmark, problem 19, 20. The ODE rule is not clear.
 
     def testNonlinear21(self):
-        runFile(self, file="nonlinear21.hhl",
-                  wolfram_engine=True)
+        runFile(self, file="nonlinear21.hhl",)
 
     def testNonlinear22(self):
         runFile(self, file="nonlinear22.hhl")
@@ -775,9 +752,10 @@ class NonlinearHHLPyTest(unittest.TestCase):
     def testNonlinear79(self):
         runFile(self, file="nonlinear79.hhl")
 
+    # TODO
     def testNonlinear80(self):
-        runFile(self, file="nonlinear80.hhl",
-                  wolfram_engine=True)
+        runFile(self, file="nonlinear80.hhl",)
+                #   wolfram_engine=True)
 
     def testNonlinear81(self):
         runFile(self, file="nonlinear81.hhl")
@@ -885,7 +863,7 @@ class NonlinearHHLPyTest(unittest.TestCase):
 
     # TODO: Nonlinear problem 117. No invariants offered.
 
-# I took out this test because it was too slow -- Alex
+    # I took out this test because it was too slow -- Alex
     # def testNonlinear118(self):
     #     runFile(self, file="nonlinear118.hhl",
     #               wolfram_engine=True)
@@ -902,7 +880,7 @@ class NonlinearHHLPyTest(unittest.TestCase):
 
     # TODO: Nonlinear problem 122, 123, 124. No invariants.
 
-# I took out this test because it was too slow -- Alex
+    # I took out this test because it was too slow -- Alex
     # def testNonlinear125(self):
     #     runFile(self, file="nonlinear125.hhl")
 
