@@ -16,7 +16,6 @@ pre [v >= 0] [A > 0] [B > 0] [x + v^2 / (2*B) < S];
     t := * (t >= 0);
     {x_dot = v, v_dot = a, t_dot = -1 &
       t > 0 && v > 0 && x+v^2/(2*B) < S}
-      invariant [true];
   } 
   ++ 
   {
