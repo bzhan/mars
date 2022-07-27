@@ -138,7 +138,7 @@ def getExampleList():
 
 def getExampleCode(example):
     file = join(dirname(__file__), "../examples", example)
-    file = open(file,mode='r')
+    file = open(file,mode='r', encoding='utf-8')
     code = file.read()
     file.close()
     return code
