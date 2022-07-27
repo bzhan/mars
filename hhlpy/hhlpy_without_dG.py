@@ -10,9 +10,8 @@ import copy
 from sympy import sympify, degree, symbols, factor_list, fraction, simplify
 
 from hhlpy.sympy_wrapper import sp_polynomial_div, sp_simplify, sp_is_polynomial
-from hhlpy.wolframengine_wrapper import solveODE
-from hhlpy.wolframengine_wrapper import wl_prove
-from hhlpy.wolframengine_wrapper import wl_simplify, wl_polynomial_div, wl_is_polynomial
+from hhlpy.wolframengine_wrapper import solveODE, wl_prove
+from hhlpy.wolframengine_wrapper import wl_simplify, wl_polynomial_div, wl_is_polynomial, found_wolfram
 from hhlpy.z3wrapper import z3_prove
 from ss2hcsp.hcsp import hcsp, expr, assertion, label
 from ss2hcsp.hcsp.parser import expr_parser, expr_parser
@@ -311,19 +310,12 @@ class Condition:
 
 class CmdVerifier:
     """Contains current state of verification of an HCSP program."""
-    def __init__(self, *, pre, hp, post, functions=dict(), z3 = True, wolfram_engine = False):
+    def __init__(self, *, pre, hp, post, functions=dict()):
         # The HCSP program to be verified.
         self.hp = hp
 
         # The list of post conditions of the whole HCSP program
         self.post = post
-
-        # The prover used to verify conditions.
-        # Use z3 by default.
-        self.wolfram_engine = wolfram_engine
-        self.z3 = z3
-        if self.wolfram_engine:
-            self.z3 = False
 
         # Mapping from program position to CmdInfo objects.
         self.infos = dict()
@@ -394,7 +386,7 @@ class CmdVerifier:
         return res
 
     def simplify_expression(self, e):
-        if self.wolfram_engine:
+        if found_wolfram:
             e = wl_simplify(e)
 
         # Use sympy to simplify
@@ -405,7 +397,7 @@ class CmdVerifier:
 
     def polynomial_div(self, p, q):
         """Compute the quotient and remainder of polynomial p and q"""
-        if self.wolfram_engine:
+        if found_wolfram:
             quot_remains = wl_polynomial_div(p, q)
         else:
             quot_remains = sp_polynomial_div(p, q)
@@ -414,7 +406,7 @@ class CmdVerifier:
 
     def is_polynomial(self, e, constants=set()): 
         """Return True if the given expression is a polynomial, and False otherwise."""
-        if self.wolfram_engine:
+        if found_wolfram:
             result = wl_is_polynomial(e, constants)
         else:
             result = sp_is_polynomial(e, constants)

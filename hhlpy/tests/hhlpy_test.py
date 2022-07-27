@@ -11,7 +11,6 @@ from hhlpy.hhlpy_without_dG import CmdVerifier
 from hhlpy.wolframengine_wrapper import found_wolfram, session
 
 def runFile(self, file, 
-              wolfram_engine = False, z3 = True,
               andR_rule=None,
               print_vcs=False, expected_vcs=None):
     # Read the file
@@ -28,8 +27,7 @@ def runFile(self, file,
         pre=expr.list_conj(*hoare_triple.pre), 
         hp=hoare_triple.hp,
         post=hoare_triple.post,
-        functions=hoare_triple.functions,
-        wolfram_engine=wolfram_engine, z3=z3)
+        functions=hoare_triple.functions)
     
     if andR_rule:
         for pos, andR in andR_rule.items():
@@ -752,10 +750,8 @@ class NonlinearHHLPyTest(unittest.TestCase):
     def testNonlinear79(self):
         runFile(self, file="nonlinear79.hhl")
 
-    # TODO
     def testNonlinear80(self):
-        runFile(self, file="nonlinear80.hhl",)
-                #   wolfram_engine=True)
+        runFile(self, file="nonlinear80.hhl")
 
     def testNonlinear81(self):
         runFile(self, file="nonlinear81.hhl")
