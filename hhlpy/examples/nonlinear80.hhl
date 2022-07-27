@@ -4,5 +4,5 @@ pre [x == 5] [y == 3] [z == -4];
 t := * (t >= 0); 
 {x_dot = y, y_dot = x-y-x*z, z_dot = x^2-z, 
  t_dot = -1 & t > 0}
-invariant [z >= -5] {dbx};
+invariant [z >= -5] {bc};
 post [!(z < 0 && z^2 > 26+x^2)];
