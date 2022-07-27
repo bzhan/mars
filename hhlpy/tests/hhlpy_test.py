@@ -15,7 +15,7 @@ def runFile(self, file,
               print_vcs=False, expected_vcs=None):
     # Read the file
     file = os.path.join(os.path.dirname(__file__), "../examples", file)
-    file = open(file,mode='r')
+    file = open(file,mode='r', encoding='utf-8')
     file_contents = file.read()
     file.close()
 
@@ -541,8 +541,7 @@ class NonlinearHHLPyTest(unittest.TestCase):
 #   ] !(x < -4 | y < -4 | x>4 | y>4) 
     
     def testNonlinear11(self):
-        runFile(self, file="nonlinear11.hhl",
-                  wolfram_engine=True)
+        runFile(self, file="nonlinear11.hhl",)
 
     def testNonlinear12(self):
         runFile(self, file="nonlinear12.hhl")
