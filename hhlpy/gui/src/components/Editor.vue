@@ -28,7 +28,8 @@
 </template>
 
 <script>
-import {EditorState, EditorView, basicSetup} from "@codemirror/basic-setup"
+import {EditorView, basicSetup} from "codemirror"
+import { EditorState } from "@codemirror/state"
 import {HCSP} from "../grammar/hcsp"
 import {indentWithTab} from "@codemirror/commands"
 import {keymap} from "@codemirror/view"
@@ -64,7 +65,7 @@ export default {
   data: () => { return {
     vc_info_received: "",   //An  array received from server, consisted of objects about vc information.
     vc_infos: [], // An array of verification condition information, each information object include formula, solver, result and origin.
-    editorView: initEditor(),
+    editorView: "",
     examples: [],
     isDragging: false
   }},
