@@ -45,7 +45,7 @@ const fixedHeightEditor = EditorView.theme({
 function initEditorState(doc){
   return EditorState.create({
     doc: doc,
-    extensions: [basicSetup, keymap.of([indentWithTab]), HCSP(), originField, originTheme, fixedHeightEditor]
+    extensions: [basicSetup, keymap.of([indentWithTab]), HCSP(), originField, originTheme, fixedHeightEditor, EditorView.lineWrapping]
   })
 }
 
@@ -369,11 +369,13 @@ export default {
 #code {
   box-sizing: border-box;
   flex: 1 1 auto;
+  width: 60%;
 }
 .vcs {
   box-sizing: border-box;
   flex: 1 1 auto;
   overflow: scroll;
+  width: 40%;
 }
 
 .resizer {
