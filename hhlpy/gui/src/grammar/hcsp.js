@@ -1,6 +1,6 @@
 import {parser} from "./hcsp_parser"
 import {LRLanguage, LanguageSupport, indentNodeProp, foldNodeProp, foldInside, continuedIndent} from "@codemirror/language"
-import {styleTags, tags as t} from "@codemirror/highlight"
+import {styleTags, tags as t} from "@lezer/highlight"
 import {linter} from "@codemirror/lint"
 import {annotationPlugin} from "../decoration/button"
 
