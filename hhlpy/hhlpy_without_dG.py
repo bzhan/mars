@@ -18,7 +18,7 @@ from ss2hcsp.hcsp.parser import expr_parser, expr_parser
 from ss2hcsp.hcsp.simulator import get_pos
 
 
-def compute_diff(e, eqs_dict):
+def compute_diff(e, eqs_dict, functions):
     """Compute differential of an arithmetic or boolean expression."""
     def rec(e):
         if isinstance(e, expr.LogicExpr):
@@ -49,7 +49,7 @@ def compute_diff(e, eqs_dict):
             if len(e.exprs) == 0:
                 return expr.AConst(0)      
             else:
-                raise NotImplementedError
+                return rec(replace_function(e, functions))
         elif isinstance(e, expr.AVar):
             if e.name in eqs_dict:
                 return eqs_dict[e.name]
@@ -90,6 +90,26 @@ def compute_diff(e, eqs_dict):
         else:
             raise NotImplementedError
     return rec(e)
+
+def replace_function(e: expr.FunExpr, funcs=dict()):
+    """Replace a FunExpr by the expr of its corresponding Function object.
+    For example,
+    For FunExpr bar(y), with funcs = {'bar': Function('bar', ['x'], 'x + 1')}),
+    return Expr y + 1
+    """
+    assert e.fun_name in funcs, \
+        "Function {f} is not defined".format(f=e.fun_name)
+    fun_obj = funcs[e.fun_name]
+    fun_obj_expr = fun_obj.expr
+    assert len(e.exprs) == len(fun_obj.vars)
+    length = len(e.exprs)
+    for i in range(length):
+        # Substitute the parameters by arguments. 
+        # Example: for bar(y), substitute x with y in x + 1.
+        if str(fun_obj.vars[i]) != str(e.exprs[i]):
+            fun_obj_expr = fun_obj_expr.subst({fun_obj.vars[i]: e.exprs[i]})
+
+    return fun_obj_expr
 
 def constraint_examination(e):
     '''Examine whether the constraint is open intervals or not.'''
@@ -496,7 +516,7 @@ class CmdVerifier:
         else:
             raise NotImplementedError
 
-        return blabel
+        return blabel     
 
     def compute_wp(self, *, pos=((),())):
         """Compute weakest-preconditions using the given information."""
@@ -952,7 +972,7 @@ class CmdVerifier:
                 # Compute the differential of inv.
                 # Compute the boundary of constraint. 
                 # One semi-verification condition is boundary of constraint -> differential of inv.
-                differential = compute_diff(dI_inv, eqs_dict=self.infos[pos].eqs_dict)
+                differential = compute_diff(dI_inv, eqs_dict=self.infos[pos].eqs_dict, functions=self.functions)
                 vc = expr.imp(constraint, differential)
      
                 self.infos[pos].vcs.append(Condition(expr=vc, 
@@ -999,7 +1019,7 @@ class CmdVerifier:
                 
                 e = dbx_inv.expr1
                 # Compute the lie derivative of e.
-                e_lie_deriv = compute_diff(e, eqs_dict=self.infos[pos].eqs_dict)             
+                e_lie_deriv = compute_diff(e, eqs_dict=self.infos[pos].eqs_dict, functions=self.functions)             
 
                 # Cases when dbx_inv is "e == 0".
                 # Use Darboux Equality Rule
@@ -1096,7 +1116,7 @@ class CmdVerifier:
                     barrier_inv = expr.RelExpr(barrier_inv.op, expr1, expr.AConst(0))
 
                 e = barrier_inv.expr1
-                e_lie = compute_diff(e, eqs_dict=self.infos[pos].eqs_dict)
+                e_lie = compute_diff(e, eqs_dict=self.infos[pos].eqs_dict, functions=self.functions)
 
                 # vc: D && e == 0 -> e_lie > 0
                 vc = expr.imp(expr.LogicExpr('&&', constraint, 
@@ -1223,7 +1243,6 @@ class CmdVerifier:
 
         else:
             raise AssertionError("Please choose an arithmetic solver.")
-
 
 
 

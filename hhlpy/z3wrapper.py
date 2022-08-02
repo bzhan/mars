@@ -85,7 +85,7 @@ def convert(e, functions):
         raise NotImplementedError
 
 def convertFunDecl(funDecl, z3functions):
-    convertedBody = convert(funDecl.expr, z3functions);
+    convertedBody = convert(funDecl.expr, z3functions)
     f = z3.Function(funDecl.name, *[z3.RealSort() for v in funDecl.vars], convertedBody.sort())
     vars = [z3.Real(v) for v in funDecl.vars]
     return (f, z3.ForAll(vars, f(vars) == convertedBody))

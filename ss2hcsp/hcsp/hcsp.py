@@ -82,7 +82,6 @@ class Function:
         if isinstance(expr, str):
             from ss2hcsp.hcsp.parser import expr_parser
             expr = expr_parser.parse(expr)
-        assert set(vars) == expr.get_vars(), "Function: unexpected set of variables: {} vs {}".format(vars, expr.get_vars())
         self.name = name
         self.vars = vars
         self.expr = expr

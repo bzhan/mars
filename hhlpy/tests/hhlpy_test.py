@@ -5,9 +5,10 @@ import os
 from wolframclient.evaluation import WolframLanguageSession
 
 from ss2hcsp.hcsp import expr
+from ss2hcsp.hcsp.hcsp import HCSP, Function
 from ss2hcsp.hcsp.parser import parse_expr_with_meta, parse_expr_with_meta, parse_hp_with_meta, \
     parse_hoare_triple_with_meta
-from hhlpy.hhlpy_without_dG import CmdVerifier
+from hhlpy.hhlpy_without_dG import CmdVerifier, replace_function
 from hhlpy.wolframengine_wrapper import found_wolfram, session
 
 def runFile(self, file, 
@@ -98,6 +99,26 @@ class HHLPyTest(unittest.TestCase):
             post [x >= 1];
         """)
         self.assertEqual(str(res.functions["bar"]), "bar(x,y) = 2 * x == y")
+
+    def testReplaceFunction1(self):
+        res = parse_expr_with_meta("bar(y)")
+        funcs = {'bar': Function('bar', ['x'], 'x + 1')}
+
+        self.assertEqual(str(replace_function(res, funcs)), 'y + 1')
+
+    def testReplaceFunction2(self):
+        res = parse_expr_with_meta("bar(a, b)")
+        
+        funcs = {'bar': Function('bar', ['x', 'y'], '2 * x == y')}
+
+        self.assertEqual(str(replace_function(res, funcs)), '2 * a == b')
+
+    def testReplaceFunction3(self):
+        res = parse_expr_with_meta("am(x)")
+        
+        funcs = {'bar': Function('bar', ['x'], 'x + 1'), 'am': Function('am', ['x'], '2 * bar(x)')}
+
+        self.assertEqual(str(replace_function(res, funcs)), '2 * bar(x)')
 
     def testVerify1(self):
         runFile(self, file="test1.hhl")
@@ -883,31 +904,8 @@ class NonlinearHHLPyTest(unittest.TestCase):
     #     runFile(self, file="nonlinear125.hhl")
 
     # TODO: Nonlinear 126, 127. Definitions.
-    # function safeSeparation(x1, y1, x2, y2) =
-    #     ( (x1-y1)^2 + (x2-y2)^2 >= p^2 );
-
-    # function safeSeparation3(x1, y1, x2, y2, z1, z2)
-    #     =
-    #       safeSeparation(x1, y1, x2, y2)
-    #     && safeSeparation(y1, z1, y2, z2)
-    #     && safeSeparation(x1, z1, x2, z2);
-
-    # pre [x >= 0][safeSeparation3(x1, y1, x2, y2, z1, z2)]
-    #   [d1==-om*(x2-c2)] [d2==om*(x1-c1)]
-    #   [e1==-om*(y2-c2)] [e2==om*(y1-c1)]
-    #   [f1==-om*(z2-c2)] [f2==om*(z1-c1)];
-    # t := *(t > 0);
-    # {x1_dot=d1, x2_dot=d2, d1_dot=-om*d2, d2_dot=om*d1,
-    #     y1_dot=e1, y2_dot=e2, e1_dot=-om*e2, e2_dot=om*e1,
-    #     z1_dot=f1, z2_dot=f2, f1_dot=-om*f2, f2_dot=om*f1, t_dot = -1 & t > 0}
-    # 	invariant [d1==-om*(x2-c2)]{{maintain: wolfram}}
-    # 	          [d2==om*(x1-c1)]
-    # 	          [e1==-om*(y2-c2)]
-    # 	          [e2==om*(y1-c1)]
-    # 	          [f1==-om*(z2-c2)]
-    # 	          [f2==om*(z1-c1)]
-    #             [safeSeparation3(x1, y1, x2, y2, z1, z2)]{di};
-    # post [safeSeparation3(x1, y1, x2, y2, z1, z2)];
+    def testNonlinear126(self):
+        runFile(self, file="nonlinear126.hhl")
 
     # TODO: Nonlinear 128, 129, 130, 131, 132. No invariants.
     # 128: Automation in keymaera doesn't work.
@@ -921,6 +919,21 @@ class NonlinearHHLPyTest(unittest.TestCase):
         runFile(self, file="nonlinear135.hhl")
 
     # TODO: Nonlinear 136, 137, 138, 139, 140, 141. No tactics.
+
+class SSHHLPyTest(unittest.TestCase):
+
+    def testBouncing(self):
+        runFile(self, file="simulink/sf_bouncing.hhl")
+
+    def testSawtooth1(self):
+        runFile(self, file="simulink/sf_sawtooth1.hhl")
+
+    def testSawtooth2(self):
+        runFile(self, file="simulink/sf_sawtooth2.hhl")
+
+    def testDelay(self):
+        runFile(self, file="simulink/sl_delay.hhl")
+
 
 if __name__ == "__main__":
     unittest.main()
