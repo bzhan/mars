@@ -12,6 +12,7 @@
           <Editor ref="editor" />
         </template>
         <template v-slot:right>
+          <ErrorDisplay ref="errorDisplay" />
           <VerificationCondition2 ref="vcs" :socket="socket" :editorView="editorView" />
         </template>
       </Resizer>
@@ -24,11 +25,12 @@ import Editor from './components/Editor.vue'
 import Resizer from './components/Resizer.vue'
 import Toolbar from './components/Toolbar.vue'
 import VerificationCondition2 from "./components/VerificationCondition2.vue"
+import ErrorDisplay from './components/ErrorDisplay.vue'
 
 export default {
   name: 'App',
   components: {
-    Resizer, Toolbar, Editor, VerificationCondition2
+    Resizer, Toolbar, Editor, VerificationCondition2, ErrorDisplay
   },
   data: () => { return {
     socket: null,
@@ -64,9 +66,11 @@ export default {
           console.log("load ex");
           this.editorView = this.$refs.editor.initEditor(eventData.code);
         }
-        else if(eventData.type === 'error'){ 
-          console.error("Server side error:", eventData.error)
+        else if(eventData.type === 'error'){
+          this.$refs.errorDisplay.addError(eventData.error);
+          console.error("Server error:", eventData.error);
         } else {
+          this.$refs.errorDisplay.addError(`Unknown message type: ${eventData.type}`);
           console.error("Unknown message type:", eventData.type);
         }
       }; 
