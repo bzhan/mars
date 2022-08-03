@@ -35,84 +35,88 @@ if path:
     except WolframKernelException:
         print("Failed to start Wolfram Kernel")
 
-def toWLexpr(e):
+def toWLexpr(e, functions):
     """Convert a hcsp expression to WolframLanguage expression"""
-    if isinstance(e, expr.AVar):
-        return WLSymbol("Global`" + e.name)
-    elif isinstance(e, expr.AConst):
-        if isinstance(e.value, int):
-            return e.value
-        elif isinstance(e.value, Decimal):
-            return wl.Rationalize(e.value)
-        else:
-            print(e, type(e))
-            raise NotImplementedError
-    elif isinstance(e, expr.FunExpr):
-        return WLFunction(WLSymbol("Global`" + e.fun_name), *(toWLexpr(expr) for expr in e.exprs))
-    elif isinstance(e, expr.BConst):
-        if e.value is True:
-            return True
-        else:
-            return False
-    elif isinstance(e, expr.OpExpr):
-        if e.op == '+':
-            return wl.Plus(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
-        elif e.op == '-':
-            if len(e.exprs) == 1:
-                return wl.Minus(toWLexpr(e.exprs[0]))
+    def rec(e):
+        if isinstance(e, expr.AVar):
+            return WLSymbol("Global`" + e.name)
+        elif isinstance(e, expr.AConst):
+            if isinstance(e.value, int):
+                return e.value
+            elif isinstance(e.value, Decimal):
+                return wl.Rationalize(e.value)
             else:
-                return wl.Subtract(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
-        elif e.op == '*':
-            return wl.Times(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
-        elif e.op == '/':
-            return wl.Divide(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
-        elif e.op == '^':
-            return wl.Power(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
+                print(e, type(e))
+                raise NotImplementedError
+        elif isinstance(e, expr.FunExpr):
+            if e.fun_name in functions:
+                return rec(expr.replace_function(e, functions))
+            return WLFunction(WLSymbol("Global`" + e.fun_name), *(rec(expr) for expr in e.exprs))
+        elif isinstance(e, expr.BConst):
+            if e.value is True:
+                return True
+            else:
+                return False
+        elif isinstance(e, expr.OpExpr):
+            if e.op == '+':
+                return wl.Plus(rec(e.exprs[0]), rec(e.exprs[1]))
+            elif e.op == '-':
+                if len(e.exprs) == 1:
+                    return wl.Minus(rec(e.exprs[0]))
+                else:
+                    return wl.Subtract(rec(e.exprs[0]), rec(e.exprs[1]))
+            elif e.op == '*':
+                return wl.Times(rec(e.exprs[0]), rec(e.exprs[1]))
+            elif e.op == '/':
+                return wl.Divide(rec(e.exprs[0]), rec(e.exprs[1]))
+            elif e.op == '^':
+                return wl.Power(rec(e.exprs[0]), rec(e.exprs[1]))
+            else:
+                raise NotImplementedError
+
+        elif isinstance(e, expr.RelExpr):
+            if e.op == '>':
+                return wl.Greater(rec(e.expr1), rec(e.expr2))
+            elif e.op == '>=':
+                return wl.GreaterEqual(rec(e.expr1), rec(e.expr2))
+            elif e.op == '<':
+                return wl.Less(rec(e.expr1), rec(e.expr2))
+            elif e.op == '<=':
+                return wl.LessEqual(rec(e.expr1), rec(e.expr2))
+            elif e.op == '==':
+                return wl.Equal(rec(e.expr1), rec(e.expr2))
+            elif e.op == '!=':
+                return wl.Unequal(rec(e.expr1), rec(e.expr2))
+            else:
+                raise AssertionError
+
+        elif isinstance(e, expr.LogicExpr):
+            if e.op == '&&':
+                return wl.And(rec(e.exprs[0]), rec(e.exprs[1]))
+            elif e.op == '||':
+                return wl.Or(rec(e.exprs[0]), rec(e.exprs[1]))
+            elif e.op == '!':
+                return wl.Not(rec(e.exprs[0]))
+            elif e.op == '->':
+                return wl.Implies(rec(e.exprs[0]), rec(e.exprs[1]))
+            elif e.op =='<->':
+                return wl.Equivalent(rec(e.exprs[0]), rec(e.exprs[1]))
+            else:
+                raise AssertionError
+        elif isinstance(e, expr.ForAllExpr):
+            if isinstance(e.vars, tuple):
+                return wl.Forall(wl.List(rec(var) for var in e.vars), rec(e.expr))
+            else:
+                return wl.ForAll(rec(e.vars), rec(e.expr))
+        elif isinstance(e, expr.ExistsExpr):
+            if isinstance(e.vars, tuple):
+                return wl.Exists(wl.List(rec(var) for var in e.vars), rec(e.expr))
+            else:
+                return wl.Exists(rec(e.vars), rec(e.expr))
         else:
             raise NotImplementedError
 
-    elif isinstance(e, expr.RelExpr):
-        if e.op == '>':
-            return wl.Greater(toWLexpr(e.expr1), toWLexpr(e.expr2))
-        elif e.op == '>=':
-            return wl.GreaterEqual(toWLexpr(e.expr1), toWLexpr(e.expr2))
-        elif e.op == '<':
-            return wl.Less(toWLexpr(e.expr1), toWLexpr(e.expr2))
-        elif e.op == '<=':
-            return wl.LessEqual(toWLexpr(e.expr1), toWLexpr(e.expr2))
-        elif e.op == '==':
-            return wl.Equal(toWLexpr(e.expr1), toWLexpr(e.expr2))
-        elif e.op == '!=':
-            return wl.Unequal(toWLexpr(e.expr1), toWLexpr(e.expr2))
-        else:
-            raise AssertionError
-
-    elif isinstance(e, expr.LogicExpr):
-        if e.op == '&&':
-            return wl.And(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
-        elif e.op == '||':
-            return wl.Or(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
-        elif e.op == '!':
-            return wl.Not(toWLexpr(e.exprs[0]))
-        elif e.op == '->':
-            return wl.Implies(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
-        elif e.op =='<->':
-            return wl.Equivalent(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
-        else:
-            raise AssertionError
-    elif isinstance(e, expr.ForAllExpr):
-        if isinstance(e.vars, tuple):
-            return wl.Forall(wl.List(toWLexpr(var) for var in e.vars), toWLexpr(e.expr))
-        else:
-            return wl.ForAll(toWLexpr(e.vars), toWLexpr(e.expr))
-    elif isinstance(e, expr.ExistsExpr):
-        if isinstance(e.vars, tuple):
-            return wl.Exists(wl.List(toWLexpr(var) for var in e.vars), toWLexpr(e.expr))
-        else:
-            return wl.Exists(toWLexpr(e.vars), toWLexpr(e.expr))
-    else:
-        raise NotImplementedError
-
+    return rec(e)
 
 def toHcsp(e):
     """
@@ -303,7 +307,7 @@ def Ode2Wlexpr(hp, names, time_var):
     return wlexpr_eqn, init2var
 
 
-def wl_prove(e):
+def wl_prove(e, functions=dict()):
     """Attempt to prove the given condition."""
     if not isinstance(e, expr.Expr):
         raise NotImplementedError
@@ -313,8 +317,8 @@ def wl_prove(e):
         return False
 
     vars = e.get_vars()
-    wl_expr = toWLexpr(e)
-    wl_vars = {toWLexpr(expr.AVar(var)) for var in vars}
+    wl_expr = toWLexpr(e, functions)
+    wl_vars = {toWLexpr(expr.AVar(var), functions) for var in vars}
 
     # wl_vars cannot be empty when using FindInstance function.
     if wl_vars:
@@ -327,26 +331,27 @@ def wl_prove(e):
     # Cases when the wl_vars is empty. For example, when wl_expr is True.
     else:
         result = session.evaluate(wl.Reduce(wl_expr, wl.Reals))
+        
         if str(result) == 'True':
             return True
         else:
             return False
 
-def wl_simplify(e):
+def wl_simplify(e, functions):
     """Simplify the given hcsp expression"""
-    wl_expr = toWLexpr(e)
+    wl_expr = toWLexpr(e, functions)
     # Use the Simplify function in wolfram.
     wl_expr = session.evaluate(wl.Simplify(wl_expr))
     hcsp_expr = toHcsp(wl_expr)
 
     return hcsp_expr
 
-def wl_polynomial_div(p, q):
+def wl_polynomial_div(p, q, functions):
     """Compute the quotient and remainder of polynomial p and q"""
     vars = q.get_vars()
-    vars = {toWLexpr(expr.AVar(var)) for var in vars}
-    p = toWLexpr(p)
-    q = toWLexpr(q)
+    vars = {toWLexpr(expr.AVar(var), functions) for var in vars}
+    p = toWLexpr(p, functions)
+    q = toWLexpr(q, functions)
 
     # result is in the form, for example, (x, 1), 
     # in which x is the quotient, 1 is the remainder.
@@ -361,12 +366,12 @@ def wl_polynomial_div(p, q):
 
     return quot_remains
 
-def wl_is_polynomial(e, constants=set()):
+def wl_is_polynomial(e, functions, constants=set()):
     """Verify whether the given expression is a polynomial"""
     vars = e.get_vars().difference(constants)
-    vars = {toWLexpr(expr.AVar(var)) for var in vars}
+    vars = {toWLexpr(expr.AVar(var), functions) for var in vars}
 
-    e = toWLexpr(e)
+    e = toWLexpr(e, functions)
 
     result = session.evaluate(wl.PolynomialQ(e, vars))
 
@@ -374,5 +379,6 @@ def wl_is_polynomial(e, constants=set()):
         return True
     else:
         return False
+
 
     

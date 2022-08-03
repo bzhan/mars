@@ -271,6 +271,26 @@ class FunExpr(Expr):
     def subst(self, inst):
         return FunExpr(self.fun_name, [expr.subst(inst) for expr in self.exprs])
 
+def replace_function(e: FunExpr, funcs=dict()):
+    """Replace a FunExpr by the expr of its corresponding Function object.
+    For example,
+    For FunExpr bar(y), with funcs = {'bar': Function('bar', ['x'], 'x + 1')}),
+    return Expr y + 1
+    """
+    assert e.fun_name in funcs, \
+        "Function {f} is not defined".format(f=e.fun_name)
+    fun_obj = funcs[e.fun_name]
+    fun_obj_expr = fun_obj.expr
+    assert len(e.exprs) == len(fun_obj.vars)
+    length = len(e.exprs)
+    for i in range(length):
+        # Substitute the parameters by arguments. 
+        # Example: for bar(y), substitute x with y in x + 1.
+        if str(fun_obj.vars[i]) != str(e.exprs[i]):
+            fun_obj_expr = fun_obj_expr.subst({fun_obj.vars[i]: e.exprs[i]})
+
+    return fun_obj_expr
+
 
 class IfExpr(Expr):
     def __init__(self, cond, expr1, expr2, meta=None):

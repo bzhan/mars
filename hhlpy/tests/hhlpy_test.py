@@ -8,7 +8,7 @@ from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp.hcsp import HCSP, Function
 from ss2hcsp.hcsp.parser import parse_expr_with_meta, parse_expr_with_meta, parse_hp_with_meta, \
     parse_hoare_triple_with_meta
-from hhlpy.hhlpy_without_dG import CmdVerifier, replace_function
+from hhlpy.hhlpy_without_dG import CmdVerifier
 from hhlpy.wolframengine_wrapper import found_wolfram, session
 
 def runFile(self, file, 
@@ -72,6 +72,16 @@ def runFile(self, file,
 
 class HHLPyTest(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        if found_wolfram:
+            session.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        if found_wolfram:
+            session.terminate()
+
     def testParseHoareTriple(self):
         res = parse_hoare_triple_with_meta("""
             pre [x >= 0];
@@ -104,24 +114,27 @@ class HHLPyTest(unittest.TestCase):
         res = parse_expr_with_meta("bar(y)")
         funcs = {'bar': Function('bar', ['x'], 'x + 1')}
 
-        self.assertEqual(str(replace_function(res, funcs)), 'y + 1')
+        self.assertEqual(str(expr.replace_function(res, funcs)), 'y + 1')
 
     def testReplaceFunction2(self):
         res = parse_expr_with_meta("bar(a, b)")
         
         funcs = {'bar': Function('bar', ['x', 'y'], '2 * x == y')}
 
-        self.assertEqual(str(replace_function(res, funcs)), '2 * a == b')
+        self.assertEqual(str(expr.replace_function(res, funcs)), '2 * a == b')
 
     def testReplaceFunction3(self):
         res = parse_expr_with_meta("am(x)")
         
         funcs = {'bar': Function('bar', ['x'], 'x + 1'), 'am': Function('am', ['x'], '2 * bar(x)')}
 
-        self.assertEqual(str(replace_function(res, funcs)), '2 * bar(x)')
+        self.assertEqual(str(expr.replace_function(res, funcs)), '2 * bar(x)')
 
     def testVerify1(self):
         runFile(self, file="test1.hhl")
+
+    def testVerify1_1(self):
+        runFile(self, file="test1_1.hhl")
 
     def testVerify2(self):
         runFile(self, file="test2.hhl",
@@ -153,7 +166,7 @@ class HHLPyTest(unittest.TestCase):
                   print_vcs=False)
 
     def testVerify5(self):
-        runFile(self, file="test5.hhl", print_vcs=True,
+        runFile(self, file="test5.hhl", print_vcs=False,
                   expected_vcs={((), (0,)): ["x >= 0 -> x + 1 >= 0"]})
 
     def testVerify5_1(self):
@@ -182,7 +195,7 @@ class HHLPyTest(unittest.TestCase):
 
     def testVerify8(self):
         runFile(self, file="test8.hhl",
-                  print_vcs=True)
+                  print_vcs=False)
 
     def testVerify11(self):
         runFile(self, file="test11.hhl",
@@ -197,7 +210,7 @@ class HHLPyTest(unittest.TestCase):
                   expected_vcs={((), ()): ["x >= 0 -> y1 >= x + 1 ->y0 >= x + 1 + 1 -> y0 >= 2"]})
 
     def testVerify9(self):
-        runFile(self, file="test9.hhl", print_vcs=True)
+        runFile(self, file="test9.hhl", print_vcs=False)
 
     def testVerify14_1(self):
         runFile(self, file="test14_1.hhl",

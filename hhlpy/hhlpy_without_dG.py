@@ -48,8 +48,10 @@ def compute_diff(e, eqs_dict, functions):
         elif isinstance(e, expr.FunExpr):
             if len(e.exprs) == 0:
                 return expr.AConst(0)      
+            elif e.fun_name in functions:
+                return rec(expr.replace_function(e, functions))
             else:
-                return rec(replace_function(e, functions))
+                raise NotImplementedError
         elif isinstance(e, expr.AVar):
             if e.name in eqs_dict:
                 return eqs_dict[e.name]
@@ -90,26 +92,6 @@ def compute_diff(e, eqs_dict, functions):
         else:
             raise NotImplementedError
     return rec(e)
-
-def replace_function(e: expr.FunExpr, funcs=dict()):
-    """Replace a FunExpr by the expr of its corresponding Function object.
-    For example,
-    For FunExpr bar(y), with funcs = {'bar': Function('bar', ['x'], 'x + 1')}),
-    return Expr y + 1
-    """
-    assert e.fun_name in funcs, \
-        "Function {f} is not defined".format(f=e.fun_name)
-    fun_obj = funcs[e.fun_name]
-    fun_obj_expr = fun_obj.expr
-    assert len(e.exprs) == len(fun_obj.vars)
-    length = len(e.exprs)
-    for i in range(length):
-        # Substitute the parameters by arguments. 
-        # Example: for bar(y), substitute x with y in x + 1.
-        if str(fun_obj.vars[i]) != str(e.exprs[i]):
-            fun_obj_expr = fun_obj_expr.subst({fun_obj.vars[i]: e.exprs[i]})
-
-    return fun_obj_expr
 
 def constraint_examination(e):
     '''Examine whether the constraint is open intervals or not.'''
@@ -407,29 +389,29 @@ class CmdVerifier:
 
     def simplify_expression(self, e):
         if found_wolfram:
-            e = wl_simplify(e)
+            e = wl_simplify(e, self.functions)
 
         # Use sympy to simplify
         else:
-            e = sp_simplify(e)
+            e = sp_simplify(e, self.functions)
 
         return e
 
     def polynomial_div(self, p, q):
         """Compute the quotient and remainder of polynomial p and q"""
         if found_wolfram:
-            quot_remains = wl_polynomial_div(p, q)
+            quot_remains = wl_polynomial_div(p, q, self.functions)
         else:
-            quot_remains = sp_polynomial_div(p, q)
+            quot_remains = sp_polynomial_div(p, q, self.functions)
 
         return quot_remains
 
     def is_polynomial(self, e, constants=set()): 
         """Return True if the given expression is a polynomial, and False otherwise."""
         if found_wolfram:
-            result = wl_is_polynomial(e, constants)
+            result = wl_is_polynomial(e, self.functions, constants)
         else:
-            result = sp_is_polynomial(e, constants)
+            result = sp_is_polynomial(e, self.functions, constants)
 
         return result
 
@@ -1230,7 +1212,7 @@ class CmdVerifier:
         """Verify one verfication condition with its solver"""
         solver = vc.solver
         if solver == 'wolfram':
-            if wl_prove(vc.expr):
+            if wl_prove(vc.expr, self.functions):
                 return True
             else:
                 return False
