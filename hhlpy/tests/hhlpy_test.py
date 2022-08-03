@@ -890,7 +890,6 @@ class NonlinearHHLPyTest(unittest.TestCase):
     def testNonlinear119(self):
         runFile(self, file="nonlinear119.hhl")
 
-    # TODO: Nonlinear problem 120. Definitions.
     def testNonlinear120(self):
         runFile(self, file="nonlinear120.hhl")
     
@@ -903,9 +902,11 @@ class NonlinearHHLPyTest(unittest.TestCase):
     # def testNonlinear125(self):
     #     runFile(self, file="nonlinear125.hhl")
 
-    # TODO: Nonlinear 126, 127. Definitions.
     def testNonlinear126(self):
         runFile(self, file="nonlinear126.hhl")
+
+    def testNonlinear127(self):
+        runFile(self, file="nonlinear127.hhl")
 
     # TODO: Nonlinear 128, 129, 130, 131, 132. No invariants.
     # 128: Automation in keymaera doesn't work.
