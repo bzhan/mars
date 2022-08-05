@@ -7,13 +7,20 @@
     </div>
 
     <div id="main">
-      <Resizer> 
+      <Resizer :initialLeftWidth="20"> 
         <template v-slot:left>
-          <Editor ref="editor" />
+          <FileBrowser ref="fileBrowser" :socket="socket" :path="[]" />
         </template>
         <template v-slot:right>
-          <ErrorDisplay ref="errorDisplay" />
-          <VerificationCondition2 ref="vcs" :socket="socket" :editorView="editorView" />
+        <Resizer :initialLeftWidth="50"> 
+          <template v-slot:left>
+            <Editor ref="editor" />
+          </template>
+          <template v-slot:right>
+            <ErrorDisplay ref="errorDisplay" />
+            <VerificationCondition2 ref="vcs" :socket="socket" :editorView="editorView" />
+          </template>
+        </Resizer>
         </template>
       </Resizer>
     </div>
@@ -26,11 +33,12 @@ import Resizer from './components/Resizer.vue'
 import Toolbar from './components/Toolbar.vue'
 import VerificationCondition2 from "./components/VerificationCondition2.vue"
 import ErrorDisplay from './components/ErrorDisplay.vue'
+import FileBrowser from './components/FileBrowser.vue'
 
 export default {
   name: 'App',
   components: {
-    Resizer, Toolbar, Editor, VerificationCondition2, ErrorDisplay
+    Resizer, Toolbar, Editor, VerificationCondition2, ErrorDisplay, FileBrowser
   },
   data: () => { return {
     socket: null,
@@ -45,11 +53,11 @@ export default {
     const openConnection = () => {
       this.socket = new WebSocket(wsPath);
 
-      this.socket.onopen = () => {
+      this.socket.addEventListener("open", () => {
         this.$refs.toolbar.socketOpened()
-      }
+      });
 
-      this.socket.onmessage = (event) => {
+      this.socket.addEventListener("message", (event) => {
         let eventData = JSON.parse(event.data)
         console.log(event)
         
@@ -62,18 +70,18 @@ export default {
         else if(eventData.type === 'example_list'){
           this.$refs.toolbar.examples = eventData.examples;
         }
-        else if(eventData.type === 'load_example'){
-          console.log("load ex");
+        else if(eventData.type === 'load_file'){
+          console.log("load file");
           this.editorView = this.$refs.editor.initEditor(eventData.code);
         }
         else if(eventData.type === 'error'){
           this.$refs.errorDisplay.addError(eventData.error);
           console.error("Server error:", eventData.error);
-        } else {
+        } else if(eventData.type !== 'file_list'){
           this.$refs.errorDisplay.addError(`Unknown message type: ${eventData.type}`);
           console.error("Unknown message type:", eventData.type);
         }
-      }; 
+      }); 
     }
 
     openConnection();

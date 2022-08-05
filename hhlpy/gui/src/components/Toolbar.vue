@@ -23,7 +23,7 @@
 import { EditorView } from 'codemirror';
 
 export default {
-  name: 'Toobar',
+  name: 'Toolbar',
   props: {
     socket: WebSocket,
     editorView: EditorView
@@ -41,7 +41,7 @@ export default {
       })
     },
     loadExample: function (e) {
-      this.socket.send(JSON.stringify({example: e.target.value, type: "load_example"}));
+      this.socket.send(JSON.stringify({example: e.target.value, type: "load_file"}));
     },
     compute: function () {
       // Send the doc in editor to server with type "compute".

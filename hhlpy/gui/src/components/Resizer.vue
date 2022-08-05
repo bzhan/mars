@@ -2,17 +2,22 @@
 <div class="main" ref="main" dropzone="true" ondragover="return false">
     <div class="left" :style="{ width: leftWidth + '%' }"> <slot name="left"></slot> </div>
     <div ref="resizer" class="resizer" draggable="true" @drag="resize"></div>
-    <div class="right" :style="{ width: rightWidth + '%' }"> <slot name="right"></slot> </div>
+    <div class="right" :style="{ width: (100 - leftWidth) + '%' }"> <slot name="right"></slot> </div>
 </div>
 </template>
 
 <script>
 export default {
   name: 'Resizer',
+  props: {
+    initialLeftWidth: Number
+  },
   data: () => { return {
-    leftWidth: 60,
-    rightWidth: 40,
+    leftWidth: 50,
   }},
+  mounted: function () {
+    this.leftWidth = this.initialLeftWidth
+  },
   methods: { 
     resize(e) {
       if (e.screenX == 0 && e.screenY == 0) {
@@ -21,7 +26,6 @@ export default {
       let container = this.$refs.main
       let min = 10
       this.leftWidth = Math.min(100 - min, Math.max(min, (e.clientX - container.offsetLeft) / container.offsetWidth * 100))
-      this.rightWidth = 100 - this.leftWidth
     }
   }
 }

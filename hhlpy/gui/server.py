@@ -136,6 +136,14 @@ def getExampleList():
     filenames = natural_sort(filenames)
     return filenames
 
+def getFileList(path):
+    path = join(dirname(__file__), "..", "examples", path)
+    filenames = [f for f in listdir(path) if isfile(join(path, f))]
+    dirnames = [f for f in listdir(path) if not isfile(join(path, f))]
+    filenames = natural_sort(filenames)
+    dirnames = natural_sort(dirnames)
+    return (dirnames, filenames)
+
 def getExampleCode(example):
     file = join(dirname(__file__), "../examples", example)
     file = open(file,mode='r', encoding='utf-8')
@@ -183,10 +191,15 @@ class HHLPyApplication(WebSocketApplication):
                     examples = getExampleList()
                     result = {"examples": examples, "type": "example_list"}
                     self.ws.send(json.dumps(result)) 
+                
+                elif msg["type"] == "get_file_list":
+                    (dirs, files) = getFileList(msg["path"])
+                    result = {"dirs": dirs, "files": files, "path": msg["path"], "type": "file_list"}
+                    self.ws.send(json.dumps(result)) 
 
-                elif msg["type"] == "load_example":
+                elif msg["type"] == "load_file":
                     code = getExampleCode(msg["example"])
-                    result = {"code": code, "type": "load_example"}
+                    result = {"code": code, "type": "load_file"}
                     self.ws.send(json.dumps(result)) 
 
                 else:
