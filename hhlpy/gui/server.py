@@ -114,51 +114,53 @@ def runCompute(code):
     
     return vc_infos
 
-# This function is running on a separate process
-def runZ3Verify(inputQueue, outputQueue):
-    """Verify the given verification condition of the solver.
-    Return True or False
-    """
-    while True:
-        (msg, formulaExpr, hoare_triple) = inputQueue.get() # Wait for next verification task
-        formula = msg["formula"]
-        index = msg["index"]
-
-        result = z3_prove(formulaExpr, functions=hoare_triple.functions)
-        
-        outputQueue.put({
-            "index": index, 
-            "formula": formula, 
-            "result": result, 
-            "type": "verified"})
-
-# A separate process is used to run the verification tasks, 
-# ensuring that the main process is still available to receive client requests
-verifyInputQueue = Queue()
-verifyOutputQueue = Queue()
-verifyProcess = Process(daemon=True, target=runZ3Verify, 
-  kwargs={"inputQueue": verifyInputQueue, "outputQueue": verifyOutputQueue})
-
-def runVerify(msg, ws):
-    formula = msg["formula"]
-    code = msg["code"]
-    solver = msg["solver"]
-    index = msg["index"]
-
+def runVerify(formula, code, solver):
     formulaExpr = parse_expr_with_meta(formula)
     hoare_triple = parse_hoare_triple_with_meta(code)
 
     if solver == "z3":
-        verifyInputQueue.put((msg, formulaExpr, hoare_triple))
+        return z3_prove(formulaExpr, functions=hoare_triple.functions)
     elif solver == "wolfram":
-        result = wl_prove(formulaExpr, functions=hoare_triple.functions)
-        ws.send(json.dumps({
-            "index": index, 
-            "formula": formula, 
-            "result": result, 
-            "type": "verified"}))
+        return wl_prove(formulaExpr)
     else:
         raise NotImplementedError
+
+# This function runs `runCompute` and `runVerify` on a separate process
+# ensuring that the main process is still available to receive client requests
+def runComputationProcess(inputQueue, outputQueue):
+    if found_wolfram:
+        print("Starting Wolfram Engine")
+        session.start()
+    else:
+        print("Wolfram Engine not found")
+
+    while True:
+        msg = inputQueue.get() # Wait for next verification task
+
+        if msg["type"] == "compute":
+            try:
+                vcs = runCompute(code=msg["code"])
+                outputQueue.put({"vcs": vcs, "type": "computed"})
+            except Exception as e:
+                outputQueue.put({"error": str(e), "type": "computed"})
+
+        elif msg["type"] == "verify":
+            result = runVerify(
+                formula=msg["formula"],
+                code=msg["code"],
+                solver=msg["solver"])
+        
+            outputQueue.put({
+                "index": msg["index"], 
+                "formula": msg["formula"], 
+                "result": result, 
+                "type": "verified"})
+
+# These queues are used to communicate between the two processes
+computationInputQueue = Queue()
+computationOutputQueue = Queue()
+computationProcess = Process(daemon=True, target=runComputationProcess, 
+  kwargs={"inputQueue": computationInputQueue, "outputQueue": computationOutputQueue})
 
 def natural_sort(l): 
     convert = lambda text: int(text) if text.isdigit() else text.lower() 
@@ -209,18 +211,12 @@ class HHLPyApplication(WebSocketApplication):
                 # the message has a code field, which is the document in editor,
                 # then call runCompute function.
                 if msg["type"] == "compute":
-                    try:
-                        vcs = runCompute(code=msg["code"])
-                        vcs_dict = {"vcs": vcs, "type": "computed"}
-                        self.ws.send(json.dumps(vcs_dict))
-                    except Exception as e:
-                        result_dict = {"error": str(e), "type": "computed"}  
-                        self.ws.send(json.dumps(result_dict)) 
+                    computationInputQueue.put(msg)
 
                 # If the type of message received is "verify",
                 # the message has the index, the formula and solver of corresponding vc.
                 elif msg["type"] == "verify":
-                    runVerify(msg, self.ws)
+                    computationInputQueue.put(msg)
 
                 elif msg["type"] == "get_example_list":
                     examples = getExampleList()
@@ -251,9 +247,9 @@ class HHLPyApplication(WebSocketApplication):
     def on_error(self, ):
         print("Server Error")
 
-def checkVerifyOutput():
+def checkComputationProcess():
     try:
-        result = verifyOutputQueue.get(False)
+        result = computationOutputQueue.get(False)
         ws.send(json.dumps(result))
     except Empty:
         pass
@@ -265,22 +261,14 @@ if __name__ == "__main__":
         Resource(OrderedDict([('/', HHLPyApplication)]))
     )
     try:
-        verifyProcess.start()
-        if found_wolfram:
-            print("Starting Wolfram Engine")
-            session.start()
-        else:
-            print("Wolfram Engine not found")
+        computationProcess.start()
         print("Running python websocket server on ws://localhost:{0}".format(port), flush=True)
         server.start()
         while True:
-            checkVerifyOutput()
-            gevent.sleep(0)
+            checkComputationProcess() # Check whether there are new computation results
+            gevent.sleep(0) # Pause to allow the server to handle new requests from the client
     except KeyboardInterrupt:
         print("KeyboardInterrupt")
         print("Closing python websocket server")
         server.stop()
-        server.close()
-        if found_wolfram:
-            print("Terminating Wolfram Engine")
-            session.terminate()
+        # TODO: close wolfram engine in the other process
