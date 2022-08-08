@@ -1,6 +1,7 @@
 <!-- Verification Conditions, including the formula, solver and result -->
 <template>
-  <div class="verification-condition">
+  <div class="verification-condition" :class="{outdated: outdated}">
+    <div class="error" v-show="error">{{error}}</div>
     <div>{{vc_success_num + "/" + vc_num}}</div>
     <ul>
         <li v-for="vc_info in vc_infos" :key="vc_info.index">
@@ -16,7 +17,7 @@
               <li>show: {{ vc_info.show }}</li>
             </ul> 
             <!-- vc_info.solver is also changed by using v-model -->
-            <select v-model="vc_info.solver" @change="changeSolver(vc_info.index, vc_info.solver)" class="vc-button">
+            <select v-model="vc_info.solver" @change="changeSolver(vc_info.index, vc_info.solver)" class="vc-button" v-show="!outdated">
                 <option value="z3">Z3</option>
                 <option value="wolfram">Wolfram Engine</option>
             </select>
@@ -46,7 +47,9 @@ export default ({
 
     data() {
       return{
-        vc_infos: []
+        vc_infos: [],
+        error: "",
+        outdated: false
       }
     },
 
@@ -172,30 +175,38 @@ export default ({
       let effects = [hideOrigin.of({})];
       this.editorView.dispatch({effects});
     },
-    computed(vcs) {
-      this.vc_infos = []
-      for (let i in vcs){
-        let vcData = vcs[i]  // vcData is object
-        let label = vcData.label
-        let solver = "z3"
-        
-        if (vcData.method){
-          solver = vcData.method
-        }
+    computed(eventData) {
+      if (eventData.vcs) {
+        this.outdated = false;
+        console.log(this.outdated)
+        this.error = "";
+        const vcs = eventData.vcs;
+        this.vc_infos = []
+        for (let i in vcs){
+          let vcData = vcs[i]  // vcData is object
+          let label = vcData.label
+          let solver = "z3"
+          
+          if (vcData.method){
+            solver = vcData.method
+          }
 
-        this.vc_infos.push({
-          index: i,
-          formula: vcData.formula,
-          assume: vcData.assume,
-          show: vcData.show,
-          label: label,
-          solver: solver,  //TODO: set the solver
-          result: null,
-          origin: vcData.origin,
-          pred_end_pos: vcData.pred_end_pos,
-          pms_start_pos: vcData.pms_start_pos,
-          pms_end_pos: vcData.pms_end_pos
-        })
+          this.vc_infos.push({
+            index: i,
+            formula: vcData.formula,
+            assume: vcData.assume,
+            show: vcData.show,
+            label: label,
+            solver: solver,  //TODO: set the solver
+            result: null,
+            origin: vcData.origin,
+            pred_end_pos: vcData.pred_end_pos,
+            pms_start_pos: vcData.pms_start_pos,
+            pms_end_pos: vcData.pms_end_pos
+          })
+        }
+      } else {
+        this.error = eventData.error;
       }
     },
     verified(eventData) {
@@ -229,6 +240,18 @@ export default ({
 </script>
 
 <style>
+.error {
+  white-space: pre-wrap;
+  border-radius: 20px;
+  background: #e84412;
+  padding: 7px;
+  color:white;
+  font-weight: bold;
+  font-size: smaller;
+  margin: 5px 0;
+  /* display: inline-block; */
+}
+
 .verification-condition {
   padding: 5px 0px;
   display: block;
@@ -243,6 +266,10 @@ export default ({
   font-family: Avenir, Helvetica, Arial, sans-serif;
   font-size: smaller;
   /* display: inline-block; */
+}
+
+.outdated .vc-formula {
+  background: #646464;
 }
 
 .vc-button {

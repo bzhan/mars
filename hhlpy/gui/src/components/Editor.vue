@@ -16,21 +16,6 @@ const fixedHeightEditor = EditorView.theme({
   ".cm-scroller": {overflow: "auto"}
 })
 
-function initEditorState(doc){
-  return EditorState.create({
-    doc: doc,
-    extensions: [
-      basicSetup,
-      keymap.of([indentWithTab]),
-      HCSP(),
-      originField,
-      originTheme,
-      fixedHeightEditor,
-      // EditorView.lineWrapping
-    ]
-  })
-}
-
 export default {
   name: 'Editor',
   data: () => { return {
@@ -43,8 +28,27 @@ export default {
         doc = test_examples.e4
       }
       document.getElementById("code").innerHTML = ""
+
+      const state = EditorState.create({
+        doc: doc,
+        extensions: [
+          basicSetup,
+          keymap.of([indentWithTab]),
+          HCSP(),
+          originField,
+          originTheme,
+          fixedHeightEditor,
+          // EditorView.lineWrapping,
+          EditorView.updateListener.of((v) => {
+            if (v.docChanged) {
+              this.$emit('docChanged')
+            }
+          })
+        ]
+      })
+
       this.editorView = new EditorView({
-        state: initEditorState(doc),
+        state: state,
         parent: document.getElementById("code")
       });
       return this.editorView;

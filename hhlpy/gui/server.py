@@ -173,9 +173,13 @@ class HHLPyApplication(WebSocketApplication):
                 # the message has a code field, which is the document in editor,
                 # then call runCompute function.
                 if msg["type"] == "compute":
-                    vcs = runCompute(code=msg["code"])
-                    vcs_dict = {"vcs": vcs, "type": "computed"}
-                    self.ws.send(json.dumps(vcs_dict))
+                    try:
+                        vcs = runCompute(code=msg["code"])
+                        vcs_dict = {"vcs": vcs, "type": "computed"}
+                        self.ws.send(json.dumps(vcs_dict))
+                    except Exception as e:
+                        result_dict = {"error": str(e), "type": "computed"}  
+                        self.ws.send(json.dumps(result_dict)) 
 
                 # If the type of message received is "verify",
                 # the message has the index, the formula and solver of corresponding vc.

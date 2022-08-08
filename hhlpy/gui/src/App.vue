@@ -14,11 +14,11 @@
         <template v-slot:right>
         <Resizer :initialLeftWidth="50"> 
           <template v-slot:left>
-            <Editor ref="editor" />
+            <Editor ref="editor" @docChanged="docChanged" />
           </template>
           <template v-slot:right>
-            <ErrorDisplay ref="errorDisplay" />
             <VerificationCondition2 ref="vcs" :editorView="editorView" />
+            <ErrorDisplay ref="errorDisplay" />
           </template>
         </Resizer>
         </template>
@@ -57,7 +57,7 @@ export default {
       console.log(event)
       
       if (eventData.type === "computed"){
-        this.$refs.vcs.computed(eventData.vcs)
+        this.$refs.vcs.computed(eventData)
       }
       else if(eventData.type === 'verified'){
         this.$refs.vcs.verified(eventData)
@@ -66,8 +66,7 @@ export default {
         this.$refs.toolbar.examples = eventData.examples;
       }
       else if(eventData.type === 'load_file'){
-        console.log("load file");
-        this.editorView = this.$refs.editor.initEditor(eventData.code);
+        this.openDocument(eventData.code);
       }
       else if(eventData.type === 'error'){
         this.$refs.errorDisplay.addError(eventData.error);
@@ -80,10 +79,18 @@ export default {
   },
   methods: {
     openDocument(doc) {
+      this.$refs.vcs.outdated = true;
       this.editorView = this.$refs.editor.initEditor(doc);
+      serverConnection.socket.send(JSON.stringify({code: doc, type: "compute"}));
     },
     verifyVCs() {
       this.$refs.vcs.verifyVCs();
+    },
+    docChanged() {
+      this.$refs.vcs.outdated = true;
+      // Compute VCSs
+      let code = this.editorView.state.doc.toString();
+      serverConnection.socket.send(JSON.stringify({code: code, type: "compute"}));
     }
   }
 }
