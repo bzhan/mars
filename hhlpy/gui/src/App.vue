@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <div class="toolbar">
-      <Toolbar ref="toolbar" :socket="socket" :editorView="editorView"
+      <Toolbar ref="toolbar" :editorView="editorView"
         @openDocument="openDocument"
         @verifyVCs="verifyVCs" />
     </div>
@@ -9,7 +9,7 @@
     <div id="main">
       <Resizer :initialLeftWidth="20"> 
         <template v-slot:left>
-          <FileBrowser ref="fileBrowser" :socket="socket" :path="[]" />
+          <FileBrowser ref="fileBrowser" :path="[]" />
         </template>
         <template v-slot:right>
         <Resizer :initialLeftWidth="50"> 
@@ -18,7 +18,7 @@
           </template>
           <template v-slot:right>
             <ErrorDisplay ref="errorDisplay" />
-            <VerificationCondition2 ref="vcs" :socket="socket" :editorView="editorView" />
+            <VerificationCondition2 ref="vcs" :editorView="editorView" />
           </template>
         </Resizer>
         </template>
@@ -34,6 +34,7 @@ import Toolbar from './components/Toolbar.vue'
 import VerificationCondition2 from "./components/VerificationCondition2.vue"
 import ErrorDisplay from './components/ErrorDisplay.vue'
 import FileBrowser from './components/FileBrowser.vue'
+import { serverConnection } from './serverConnection.js'
 
 export default {
   name: 'App',
@@ -41,58 +42,41 @@ export default {
     Resizer, Toolbar, Editor, VerificationCondition2, ErrorDisplay, FileBrowser
   },
   data: () => { return {
-    socket: null,
     editorView : null,
   }},
   mounted: function () {
 
     this.editorView = this.$refs.editor.initEditor();
 
-    const wsPath = "ws://localhost:8000"
+    serverConnection.socket.addEventListener("open", () => {
+      this.$refs.toolbar.socketOpened()
+    });
 
-    const openConnection = () => {
-      this.socket = new WebSocket(wsPath);
-
-      this.socket.addEventListener("open", () => {
-        this.$refs.toolbar.socketOpened()
-      });
-
-      this.socket.addEventListener("message", (event) => {
-        let eventData = JSON.parse(event.data)
-        console.log(event)
-        
-        if (eventData.type === "computed"){
-          this.$refs.vcs.computed(eventData.vcs)
-        }
-        else if(eventData.type === 'verified'){
-          this.$refs.vcs.verified(eventData)
-        }
-        else if(eventData.type === 'example_list'){
-          this.$refs.toolbar.examples = eventData.examples;
-        }
-        else if(eventData.type === 'load_file'){
-          console.log("load file");
-          this.editorView = this.$refs.editor.initEditor(eventData.code);
-        }
-        else if(eventData.type === 'error'){
-          this.$refs.errorDisplay.addError(eventData.error);
-          console.error("Server error:", eventData.error);
-        } else if(eventData.type !== 'file_list'){
-          this.$refs.errorDisplay.addError(`Unknown message type: ${eventData.type}`);
-          console.error("Unknown message type:", eventData.type);
-        }
-      }); 
-    }
-
-    openConnection();
-
-    // Regularly check if connection is still open. Otherwise, reconnect.
-    setInterval(() => {
-      if (this.socket.readyState !== 1) {
-        console.log("Websocket not open. Attempting to reconnect.")
-        openConnection();
+    serverConnection.socket.addEventListener("message", (event) => {
+      let eventData = JSON.parse(event.data)
+      console.log(event)
+      
+      if (eventData.type === "computed"){
+        this.$refs.vcs.computed(eventData.vcs)
       }
-    }, 5000);
+      else if(eventData.type === 'verified'){
+        this.$refs.vcs.verified(eventData)
+      }
+      else if(eventData.type === 'example_list'){
+        this.$refs.toolbar.examples = eventData.examples;
+      }
+      else if(eventData.type === 'load_file'){
+        console.log("load file");
+        this.editorView = this.$refs.editor.initEditor(eventData.code);
+      }
+      else if(eventData.type === 'error'){
+        this.$refs.errorDisplay.addError(eventData.error);
+        console.error("Server error:", eventData.error);
+      } else if(eventData.type !== 'file_list'){
+        this.$refs.errorDisplay.addError(`Unknown message type: ${eventData.type}`);
+        console.error("Unknown message type:", eventData.type);
+      }
+    })
   },
   methods: {
     openDocument(doc) {

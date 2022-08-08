@@ -6,7 +6,7 @@
         <v-icon name="angle-down" scale="1" v-if="open[dir]"></v-icon>
         {{ dir }}
       </div>
-      <FileList :socket="socket" v-if="open[dir]" :path="[...path, dir]" />
+      <FileList v-if="open[dir]" :path="[...path, dir]" />
     </div>
     <div :class="`file supported-${supported[file]}`" v-for="file in files" :key="file" @click="openFile(file)">
       <v-icon name="align-left" scale="1" fill="#12a" v-if="supported[file]"></v-icon>
@@ -20,6 +20,7 @@
 import Vue from 'vue'
 import 'vue-awesome/icons'
 import Icon from 'vue-awesome/components/Icon'
+import { serverConnection } from '../serverConnection.js'
 
 export default {
   name: 'FileList',
@@ -27,7 +28,6 @@ export default {
     'v-icon': Icon
   },
   props: {
-    socket: WebSocket,
     path: Array,
   },
   data: () => { return {
@@ -36,33 +36,24 @@ export default {
     open: {},
     supported: {},
   }},
-  watch: {
-    "socket": function() {
-      this.initSocket();
-    }
-  },
   mounted: function() {
-    this.initSocket();
+    if (serverConnection.socket.readyState == WebSocket.OPEN) {
+      this.socketOpened()
+    } else {
+      serverConnection.socket.addEventListener("open", () => {
+        this.socketOpened()
+      })
+    }
   },
   methods: {
     openFile: function(file){
-      this.socket.send(JSON.stringify({example: [...this.path, file].join("/"), type: "load_file"}));
-    },
-    initSocket: function(){
-      if (this.socket) {
-        this.socket.addEventListener("open", () => {
-          this.socketOpened()
-        })
-        if (this.socket.readyState == WebSocket.OPEN) {
-          this.socketOpened()
-        }
-      }
+      serverConnection.socket.send(JSON.stringify({example: [...this.path, file].join("/"), type: "load_file"}));
     },
     toggleDir: function(dir) {
       Vue.set(this.open, dir, !this.open[dir]);
     },
     socketOpened: function () {
-      this.socket.addEventListener("message", (event) => {
+      serverConnection.socket.addEventListener("message", (event) => {
         let eventData = JSON.parse(event.data)
         if(eventData.type === 'file_list' && eventData.path == this.path.join("/")){
           this.dirs = eventData.dirs;
@@ -76,10 +67,10 @@ export default {
           }
         }
       });
-      this.socket.send(JSON.stringify({type: "get_file_list", path:this.path.join("/")}))
+      serverConnection.socket.send(JSON.stringify({type: "get_file_list", path:this.path.join("/")}))
     },
     loadExample: function (e) {
-      this.socket.send(JSON.stringify({example: e.target.value, type: "load_file"}));
+      serverConnection.socket.send(JSON.stringify({example: e.target.value, type: "load_file"}));
     }
   }
 }

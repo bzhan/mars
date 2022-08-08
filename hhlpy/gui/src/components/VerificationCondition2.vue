@@ -36,6 +36,7 @@ import 'vue-awesome/icons'
 import Icon from 'vue-awesome/components/Icon'
 import { EditorView } from '@codemirror/view'
 import { showOrigin, hideOrigin } from '../decoration/origin'
+import { serverConnection } from '../serverConnection'
 
 export default ({
     props: {
@@ -217,7 +218,7 @@ export default ({
         let solver = this.vc_infos[i].solver
         // we need to send the code to let the server know about the function definitions
         let code = this.editorView.state.doc.toString();
-        this.socket.send(JSON.stringify({index: i, formula: formula, solver: solver, code: code, type: "verify"}))
+        serverConnection.socket.send(JSON.stringify({index: i, formula: formula, solver: solver, code: code, type: "verify"}))
       }
     }
   },

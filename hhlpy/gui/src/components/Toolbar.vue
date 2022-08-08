@@ -21,11 +21,11 @@
 
 <script>
 import { EditorView } from 'codemirror';
+import { serverConnection } from '../serverConnection.js'
 
 export default {
   name: 'Toolbar',
   props: {
-    socket: WebSocket,
     editorView: EditorView
   },
   data: () => { return {
@@ -33,7 +33,7 @@ export default {
   }},
   methods: { 
     socketOpened: function () {
-      this.socket.send(JSON.stringify({type: "get_example_list"}))
+      serverConnection.socket.send(JSON.stringify({type: "get_example_list"}))
     },
     openFile: function (e) {
       e.target.files[0].text().then((doc) => {
@@ -41,12 +41,12 @@ export default {
       })
     },
     loadExample: function (e) {
-      this.socket.send(JSON.stringify({example: e.target.value, type: "load_file"}));
+      serverConnection.socket.send(JSON.stringify({example: e.target.value, type: "load_file"}));
     },
     compute: function () {
       // Send the doc in editor to server with type "compute".
       let code = this.editorView.state.doc.toString();
-      this.socket.send(JSON.stringify({code: code, type: "compute"}));
+      serverConnection.socket.send(JSON.stringify({code: code, type: "compute"}));
     },
     verify: function () {
       this.$emit("verifyVCs");
