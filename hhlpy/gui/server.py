@@ -1,10 +1,14 @@
 from geventwebsocket import WebSocketServer, WebSocketApplication, Resource
+import gevent
 from collections import OrderedDict
 import sys
 import traceback
 import re
 from os import listdir
 from os.path import isfile, join, dirname
+from multiprocessing import Process, Queue
+from queue import Empty
+
 
 from operator import pos
 
@@ -18,7 +22,6 @@ from hhlpy.wolframengine_wrapper import session, found_wolfram
 
 
 import json
-
 
 def runCompute(code):
     """Compute the verification condition information by the code received from the client editor.
@@ -111,17 +114,49 @@ def runCompute(code):
     
     return vc_infos
 
-def runVerify(formula, solver, code):
+# This function is running on a separate process
+def runZ3Verify(inputQueue, outputQueue):
     """Verify the given verification condition of the solver.
     Return True or False
     """
-    formula = parse_expr_with_meta(formula)
+    while True:
+        (msg, formulaExpr, hoare_triple) = inputQueue.get() # Wait for next verification task
+        formula = msg["formula"]
+        index = msg["index"]
+
+        result = z3_prove(formulaExpr, functions=hoare_triple.functions)
+        
+        outputQueue.put({
+            "index": index, 
+            "formula": formula, 
+            "result": result, 
+            "type": "verified"})
+
+# A separate process is used to run the verification tasks, 
+# ensuring that the main process is still available to receive client requests
+verifyInputQueue = Queue()
+verifyOutputQueue = Queue()
+verifyProcess = Process(daemon=True, target=runZ3Verify, 
+  kwargs={"inputQueue": verifyInputQueue, "outputQueue": verifyOutputQueue})
+
+def runVerify(msg, ws):
+    formula = msg["formula"]
+    code = msg["code"]
+    solver = msg["solver"]
+    index = msg["index"]
+
+    formulaExpr = parse_expr_with_meta(formula)
     hoare_triple = parse_hoare_triple_with_meta(code)
 
     if solver == "z3":
-        return z3_prove(formula, functions=hoare_triple.functions)
+        verifyInputQueue.put((msg, formulaExpr, hoare_triple))
     elif solver == "wolfram":
-        return wl_prove(formula)
+        result = wl_prove(formulaExpr, functions=hoare_triple.functions)
+        ws.send(json.dumps({
+            "index": index, 
+            "formula": formula, 
+            "result": result, 
+            "type": "verified"}))
     else:
         raise NotImplementedError
 
@@ -162,7 +197,8 @@ def split_imp(e):
 class HHLPyApplication(WebSocketApplication):
     def on_open(self):
         print("Connection opened")
-
+        global ws
+        ws = self.ws
 
     def on_message(self, message):
         try:
@@ -184,12 +220,7 @@ class HHLPyApplication(WebSocketApplication):
                 # If the type of message received is "verify",
                 # the message has the index, the formula and solver of corresponding vc.
                 elif msg["type"] == "verify":
-                    result = runVerify(formula=msg["formula"], solver=msg["solver"], code=msg["code"])
-                    index_vc_result = {"index":msg["index"], 
-                                       "formula": msg["formula"], 
-                                       "result": result, 
-                                       "type": "verified"}
-                    self.ws.send(json.dumps(index_vc_result))
+                    runVerify(msg, self.ws)
 
                 elif msg["type"] == "get_example_list":
                     examples = getExampleList()
@@ -220,6 +251,13 @@ class HHLPyApplication(WebSocketApplication):
     def on_error(self, ):
         print("Server Error")
 
+def checkVerifyOutput():
+    try:
+        result = verifyOutputQueue.get(False)
+        ws.send(json.dumps(result))
+    except Empty:
+        pass
+
 if __name__ == "__main__":
     port = 8000
     server = WebSocketServer(
@@ -227,16 +265,21 @@ if __name__ == "__main__":
         Resource(OrderedDict([('/', HHLPyApplication)]))
     )
     try:
+        verifyProcess.start()
         if found_wolfram:
             print("Starting Wolfram Engine")
             session.start()
         else:
             print("Wolfram Engine not found")
         print("Running python websocket server on ws://localhost:{0}".format(port), flush=True)
-        server.serve_forever()
+        server.start()
+        while True:
+            checkVerifyOutput()
+            gevent.sleep(0)
     except KeyboardInterrupt:
         print("KeyboardInterrupt")
         print("Closing python websocket server")
+        server.stop()
         server.close()
         if found_wolfram:
             print("Terminating Wolfram Engine")
