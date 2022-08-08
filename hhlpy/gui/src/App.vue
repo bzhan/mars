@@ -65,6 +65,9 @@ export default {
       else if(eventData.type === 'example_list'){
         this.$refs.toolbar.examples = eventData.examples;
       }
+      else if (eventData.type ===  'computation_process_ready'){
+        this.$refs.toolbar.computationProcessReady = true;
+      }
       else if(eventData.type === 'load_file'){
         this.openDocument(eventData.code);
       }

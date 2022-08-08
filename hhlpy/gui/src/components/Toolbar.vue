@@ -15,6 +15,8 @@
     <div class="group">
       <button v-on:click="compute">Compute</button>
       <button v-on:click="verify">Verify</button>
+      <button v-on:click="cancel" :class="{wait: !computationProcessReady}">Cancel computation</button>
+      
     </div>
   </div>
 </template>
@@ -29,7 +31,8 @@ export default {
     editorView: EditorView
   },
   data: () => { return {
-    examples: []
+    examples: [],
+    computationProcessReady: true
   }},
   methods: { 
     socketOpened: function () {
@@ -51,6 +54,10 @@ export default {
     verify: function () {
       this.$emit("verifyVCs");
     },
+    cancel: function () {
+      serverConnection.socket.send(JSON.stringify({type: "cancel_computation"}));
+      this.computationProcessReady = false;
+    }
   }
 }
 </script>
@@ -89,6 +96,10 @@ export default {
 .toolbar .open_file label:hover {
   color: white;
   border: solid 2px #fff;
+}
+
+button.wait, button.wait:hover {
+  color: #777;
 }
 
 .open_file input {

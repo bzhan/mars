@@ -8,6 +8,9 @@ from os import listdir
 from os.path import isfile, join, dirname
 from multiprocessing import Process, Queue
 from queue import Empty
+import signal
+import sys
+
 
 
 from operator import pos
@@ -129,10 +132,19 @@ def runVerify(formula, code, solver):
 # ensuring that the main process is still available to receive client requests
 def runComputationProcess(inputQueue, outputQueue):
     if found_wolfram:
-        print("Starting Wolfram Engine")
-        session.start()
+        print("Starting Wolfram Engine", flush=True)
+        session.start_future()
+        print("Started Wolfram Engine", flush=True)
+        def handler(signum, frame):
+            print("Stopping Wolfram Engine", flush=True)
+            session.terminate()
+            print("Process ended.", flush=True)
+            sys.exit()
+        signal.signal(signal.SIGTERM, handler)
     else:
-        print("Wolfram Engine not found")
+        print("Wolfram Engine not found", flush=True)
+    
+    outputQueue.put({"type": "computation_process_ready"})
 
     while True:
         msg = inputQueue.get() # Wait for next verification task
@@ -159,8 +171,6 @@ def runComputationProcess(inputQueue, outputQueue):
 # These queues are used to communicate between the two processes
 computationInputQueue = Queue()
 computationOutputQueue = Queue()
-computationProcess = Process(daemon=True, target=runComputationProcess, 
-  kwargs={"inputQueue": computationInputQueue, "outputQueue": computationOutputQueue})
 
 def natural_sort(l): 
     convert = lambda text: int(text) if text.isdigit() else text.lower() 
@@ -196,10 +206,12 @@ def split_imp(e):
     else:
         return [e]
 
+computationProcess = None
+
 class HHLPyApplication(WebSocketApplication):
     def on_open(self):
         print("Connection opened")
-        global ws
+        global ws # TODO: Is there a better way than using global here?
         ws = self.ws
 
     def on_message(self, message):
@@ -233,6 +245,12 @@ class HHLPyApplication(WebSocketApplication):
                     result = {"code": code, "type": "load_file"}
                     self.ws.send(json.dumps(result)) 
 
+                elif msg["type"] == "cancel_computation":
+                    global computationProcess
+                    computationProcess.terminate()
+                    computationProcess.join()
+                    computationProcess = startComputationProcess()
+
                 else:
                     raise NotImplementedError    
         except Exception as e:
@@ -250,9 +268,16 @@ class HHLPyApplication(WebSocketApplication):
 def checkComputationProcess():
     try:
         result = computationOutputQueue.get(False)
+        print("out!", flush=True)
         ws.send(json.dumps(result))
     except Empty:
         pass
+
+def startComputationProcess():
+    computationProcess = Process(daemon=True, target=runComputationProcess, 
+            kwargs={"inputQueue": computationInputQueue, "outputQueue": computationOutputQueue})
+    computationProcess.start()
+    return computationProcess
 
 if __name__ == "__main__":
     port = 8000
@@ -261,7 +286,7 @@ if __name__ == "__main__":
         Resource(OrderedDict([('/', HHLPyApplication)]))
     )
     try:
-        computationProcess.start()
+        computationProcess = startComputationProcess()
         print("Running python websocket server on ws://localhost:{0}".format(port), flush=True)
         server.start()
         while True:
@@ -271,4 +296,3 @@ if __name__ == "__main__":
         print("KeyboardInterrupt")
         print("Closing python websocket server")
         server.stop()
-        # TODO: close wolfram engine in the other process
