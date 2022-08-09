@@ -33,7 +33,7 @@ def runCompute(code):
 
     # Initialize the verifier
     verifier = CmdVerifier(
-        pre=expr.list_conj(*hoare_triple.pre), 
+        pre=hoare_triple.pre, 
         hp=hoare_triple.hp,
         post=hoare_triple.post,
         functions=hoare_triple.functions)
@@ -47,45 +47,33 @@ def runCompute(code):
     for pos, vcs in verifier.get_all_vcs().items():
 
         for vc in vcs:
-            # Use the bottom-most position `vc.pos[0]` to attach the VC to
-            hp = get_pos(hoare_triple.hp, vc.pos[0][0])
-            meta = get_pos(hoare_triple.hp, vc.pos[0][0]).meta
-            if meta.empty:
-                # LARK can't determine position of empty elements
-                meta.column = 0
-                meta.start_pos = 0
-                meta.end_line = 1
-                meta.end_pos = 0
+            assert vc.bottom_ast is not None
+            bottom_ast = vc.bottom_ast
             
-            # Map origin positions in syntax tree to positions on the character level
-            origin = []
-            for originPos in vc.pos:
-                if originPos[0] != ():
-                    originMeta = get_pos(hoare_triple.hp, originPos[0]).meta
-                    if not originMeta.empty:
-                        origin.append({"from": originMeta.start_pos, "to": originMeta.end_pos})
-
             assume = split_imp(vc.expr)[:-1]
             show = split_imp(vc.expr)[-1]
 
+            # Use the bottom-most assertion `vc.pos[0]` to attach the VC to
+            
+            
             label_computed = vc.comp_label
             method_stored = None
             
             pms_start_pos = -1
             pms_end_pos = -1
-            
 
+ 
             # Case when the bottom most assertion of vc is a post condition.
-            if vc.pc and vc.annot_pos is not None:
-                assertion = hoare_triple.post[vc.annot_pos]
+            if bottom_ast.isPost:
+                assertion = hoare_triple.post[vc.bottom_ast.index]
 
             # Case when the bottom most assertion of vc is a loop or an ode invariant.
-            elif isinstance(hp, (hcsp.Loop, hcsp.ODE)) and vc.annot_pos is not None:
-                assert hp.inv is not None
-                assertion = hp.inv[vc.annot_pos]
-
             else:
-                raise NotImplementedError
+                assert bottom_ast.hp_pos is not None
+                hp = get_pos(hoare_triple.hp, vc.bottom_ast.hp_pos)
+
+                assert isinstance(hp, (hcsp.Loop, hcsp.ODE))
+                assertion = hp.inv[vc.bottom_ast.index]
                 
             proof_methods = assertion.proof_methods
             pms_meta = proof_methods.meta
@@ -100,11 +88,32 @@ def runCompute(code):
                 if str(label_computed) == str(proof_method.label):
                     method_stored = proof_method.method
 
+
+            # Map origin positions in syntax tree to positions on the character level
+            origin = []
+            origin.append({"from": assertion.meta.start_pos, "to": pms_start_pos})
+            for originPos in vc.path:
+                if originPos[0] != ():
+                    originMeta = get_pos(hoare_triple.hp, originPos[0]).meta
+                    if not originMeta.empty:
+                        origin.append({"from": originMeta.start_pos, "to": originMeta.end_pos})
+
+            for top_ast in vc.top_asts:
+                if top_ast.isPre:
+                    assertion = hoare_triple.pre[top_ast.index]
+
+                # Case when the top assertion of vc is a loop or an ode invariant.
+                else:
+                    assert top_ast.hp_pos is not None
+                    hp = get_pos(hoare_triple.hp, top_ast.hp_pos)
+
+                    assert isinstance(hp, (hcsp.Loop, hcsp.ODE))
+                    assertion = hp.inv[top_ast.index]
+
+                origin.append({"from": assertion.meta.start_pos, "to": assertion.meta.end_pos})
+
+
             vc_infos.append({
-                "line": meta.end_line,
-                "column": meta.column,
-                "start_pos": meta.start_pos,
-                "end_pos": meta.end_pos,
                 "formula": str(vc.expr),
                 "assume": [str(asm) for asm in assume],
                 "show": str(show),

@@ -160,7 +160,7 @@ grammar = r"""
 
     ?function_decl: "function" CNAME "(" CNAME ("," CNAME)* ")" "=" expr ";"
 
-    ?hoare_pre : "pre" ("[" expr "]")* ";" -> hoare_pre
+    ?hoare_pre : "pre" (ord_assertion)* ";" -> hoare_pre
     ?hoare_post : "post" (ord_assertion)* ";" -> hoare_post
     ?hoare_triple: (function_decl)* hoare_pre cmd hoare_post
 

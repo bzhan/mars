@@ -25,7 +25,7 @@ def runFile(self, file,
 
     # Initialize the verifier
     verifier = CmdVerifier(
-        pre=expr.list_conj(*hoare_triple.pre), 
+        pre=hoare_triple.pre, 
         hp=hoare_triple.hp,
         post=hoare_triple.post,
         functions=hoare_triple.functions)
