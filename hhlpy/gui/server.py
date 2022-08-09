@@ -207,6 +207,7 @@ def split_imp(e):
         return [e]
 
 computationProcess = None
+ws = None
 
 class HHLPyApplication(WebSocketApplication):
     def on_open(self):
@@ -266,12 +267,13 @@ class HHLPyApplication(WebSocketApplication):
         print("Server Error")
 
 def checkComputationProcess():
-    try:
-        result = computationOutputQueue.get(False)
-        print("out!", flush=True)
-        ws.send(json.dumps(result))
-    except Empty:
-        pass
+    if ws is not None:
+        try:
+            result = computationOutputQueue.get(False)
+            print("out!", flush=True)
+            ws.send(json.dumps(result))
+        except Empty:
+            pass
 
 def startComputationProcess():
     computationProcess = Process(daemon=True, target=runComputationProcess, 
