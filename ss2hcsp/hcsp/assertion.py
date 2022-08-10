@@ -26,6 +26,12 @@ class OrdinaryAssertion(Assertion):
 class CutInvariant(Assertion):
     def __init__(self, expr, proof_methods, rule = None, rule_arg=None, meta=None):
         super(CutInvariant, self).__init__()
+        assert isinstance(expr, Expr)
+        assert isinstance(proof_methods, ProofMethods)
+        if rule:
+            assert isinstance(rule, str)
+        if rule_arg:
+            assert isinstance(rule_arg, Expr)
         self.meta = meta
         self.expr = expr
         self.proof_methods = proof_methods

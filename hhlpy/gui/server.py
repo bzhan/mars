@@ -44,42 +44,44 @@ def runCompute(code):
     # Return verification condition informations
     vc_infos = []
 
-    for pos, vcs in verifier.get_all_vcs().items():
+    for _, vcs in verifier.get_all_vcs().items():
 
         for vc in vcs:
-            assert vc.bottom_ast is not None
-            bottom_ast = vc.bottom_ast
-            
             assume = split_imp(vc.expr)[:-1]
-            show = split_imp(vc.expr)[-1]
+            show = split_imp(vc.expr)[-1] 
 
-            # Use the bottom-most assertion `vc.pos[0]` to attach the VC to
-            
-            
+
+            # Get the proof method
             label_computed = vc.comp_label
             method_stored = None
             
             pms_start_pos = -1
             pms_end_pos = -1
 
+            # Use the bottom-most assertion to attach the VC to
+            assert vc.bottom_loc is not None
+            bottom_loc = vc.bottom_loc
  
-            # Case when the bottom most assertion of vc is a post condition.
-            if bottom_ast.isPost:
-                assertion = hoare_triple.post[vc.bottom_ast.index]
+            # Case when the bottom-most assertion of vc is a post condition.
+            if bottom_loc.isPost:
+                bottom_ast = hoare_triple.post[vc.bottom_loc.index]
 
-            # Case when the bottom most assertion of vc is a loop or an ode invariant.
-            else:
-                assert bottom_ast.hp_pos is not None
-                hp = get_pos(hoare_triple.hp, vc.bottom_ast.hp_pos)
+            # Case when the bottom-most assertion of vc is a loop or an ode invariant.
+            elif bottom_loc.isInv:
+                assert bottom_loc.hp_pos is not None
+                hp = get_pos(hoare_triple.hp, vc.bottom_loc.hp_pos)
 
                 assert isinstance(hp, (hcsp.Loop, hcsp.ODE))
-                assertion = hp.inv[vc.bottom_ast.index]
-                
-            proof_methods = assertion.proof_methods
+                bottom_ast = hp.inv[vc.bottom_loc.index]
+            
+            else:
+                raise NotImplementedError
+
+            proof_methods = bottom_ast.proof_methods
             pms_meta = proof_methods.meta
             if pms_meta.empty:
-                pms_meta.start_pos = assertion.meta.end_pos
-                pms_meta.end_pos = assertion.meta.end_pos
+                pms_meta.start_pos = bottom_ast.meta.end_pos
+                pms_meta.end_pos = bottom_ast.meta.end_pos
             pms_start_pos = proof_methods.meta.start_pos
             pms_end_pos = proof_methods.meta.end_pos
             # If the method of this vc is stored in proof_methods,
@@ -90,27 +92,54 @@ def runCompute(code):
 
 
             # Map origin positions in syntax tree to positions on the character level
-            origin = []
-            origin.append({"from": assertion.meta.start_pos, "to": pms_start_pos})
+            originRanges = []
+            # Append the hcsp program ranges.
             for originPos in vc.path:
-                if originPos[0] != ():
-                    originMeta = get_pos(hoare_triple.hp, originPos[0]).meta
-                    if not originMeta.empty:
-                        origin.append({"from": originMeta.start_pos, "to": originMeta.end_pos})
+                hp = get_pos(hoare_triple.hp, originPos[0])
 
-            for top_ast in vc.top_asts:
-                if top_ast.isPre:
-                    assertion = hoare_triple.pre[top_ast.index]
-
-                # Case when the top assertion of vc is a loop or an ode invariant.
+                if isinstance(hp, hcsp.ODE):
+                    from_pos = hp.meta.start_pos + 1
+                    to_pos = hp.constraint.meta.end_pos
                 else:
-                    assert top_ast.hp_pos is not None
-                    hp = get_pos(hoare_triple.hp, top_ast.hp_pos)
+                    from_pos = hp.meta.start_pos
+                    to_pos = hp.meta.end_pos
+                
+                originRanges.append({"from": from_pos, "to": to_pos})
 
-                    assert isinstance(hp, (hcsp.Loop, hcsp.ODE))
-                    assertion = hp.inv[top_ast.index]
+            # Append the expression ranges.
+            for origin in vc.origins:
+                print("origin:", origin)
+                if origin.isPre:
+                    originMeta = hoare_triple.pre[origin.index].meta
+                    to = originMeta.end_pos
+               
+                elif origin.isConstraint:
+                    assert origin.hp_pos is not None
+                    hp = get_pos(hoare_triple.hp, origin.hp_pos)
+                    assert isinstance(hp, hcsp.ODE)
+                    originMeta = hp.constraint.meta
+                    to = originMeta.end_pos
 
-                origin.append({"from": assertion.meta.start_pos, "to": assertion.meta.end_pos})
+                elif origin.isInv or origin.isPost:
+                    if origin.isInv:
+                        assert origin.hp_pos is not None
+                        hp = get_pos(hoare_triple.hp, origin.hp_pos)
+                        assert isinstance(hp, (hcsp.Loop, hcsp.ODE))
+                        assertion = hp.inv[origin.index]
+                    else:
+                        assertion = hoare_triple.post[origin.index]
+
+                    originMeta = assertion.meta
+                    proof_methods = assertion.proof_methods
+                    pms_meta = proof_methods.meta
+                    if pms_meta.empty:
+                        pms_meta.start_pos = assertion.meta.end_pos
+                        pms_meta.end_pos = assertion.meta.end_pos
+                    
+                    to = pms_meta.start_pos
+                else:
+                    raise NotImplementedError
+                originRanges.append({"from": originMeta.start_pos, "to": to})
 
 
             vc_infos.append({
@@ -119,7 +148,7 @@ def runCompute(code):
                 "show": str(show),
                 "label": str(vc.comp_label),
                 "method": method_stored,
-                "origin": origin,
+                "origin": originRanges,
                 "pms_start_pos": pms_start_pos,
                 "pms_end_pos": pms_end_pos
             })

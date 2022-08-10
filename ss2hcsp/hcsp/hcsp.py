@@ -875,7 +875,7 @@ class ODE(HCSP):
     {F(s',s) = 0 & B} |> Q
 
     """
-    def __init__(self, eqs, constraint, *, out_hp=Skip(), meta=None, inv=None):
+    def __init__(self, eqs, constraint, *, out_hp=Skip(), meta=None, inv=tuple()):
         """Each equation is of the form (var_name, expr), where var_name
         is the name of the variable, and expr is its derivative.
 
@@ -888,10 +888,9 @@ class ODE(HCSP):
             assert isinstance(eq, tuple) and len(eq) == 2
             assert isinstance(eq[0], str) and isinstance(eq[1], Expr)
         assert isinstance(constraint, Expr)
-        assert inv is None or isinstance(inv, tuple)
-        if isinstance(inv, tuple):
-            for sub_inv in inv:
-                assert isinstance(sub_inv, assertion.Assertion)
+        assert isinstance(inv, tuple)
+        for sub_inv in inv:
+            assert isinstance(sub_inv, assertion.Assertion)
         assert not out_hp or isinstance(out_hp, HCSP)
 
         self.type = "ode"
@@ -1053,14 +1052,13 @@ class Loop(HCSP):
     inv : tuple of OrdinaryAssertions - invariants
 
     """
-    def __init__(self, hp, *, inv=None, constraint=true_expr, meta=None):
+    def __init__(self, hp, *, inv=tuple(), constraint=true_expr, meta=None):
         super(Loop, self).__init__()
         self.type = 'loop'
         assert isinstance(hp, HCSP)
-        if inv is not None:
-            assert isinstance(inv, tuple)
-            for sub_inv in inv:
-                assert isinstance(sub_inv, assertion.OrdinaryAssertion)
+        assert isinstance(inv, tuple)
+        for sub_inv in inv:
+            assert isinstance(sub_inv, assertion.OrdinaryAssertion)
         self.hp = hp
         self.inv = inv
         self.constraint = constraint

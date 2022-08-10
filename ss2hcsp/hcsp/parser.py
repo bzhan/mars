@@ -416,16 +416,10 @@ class HPTransformer(Transformer):
         return assertion.OrdinaryAssertion(expr=expr, proof_methods=proof_methods, meta=meta)
 
     def maybe_loop_invariant(self, meta, *args):
-        if len(args) == 0:
-            return None
-        else:
-            return args
+        return args
 
     def maybe_ode_invariant(self, meta, *args):
-        if len(args) == 0:
-            return None
-        else:
-            return args
+        return args
 
     def ode_invariant(self, meta, *args):
         if len(args) == 2:
