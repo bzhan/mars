@@ -20,7 +20,8 @@
 import Vue from 'vue'
 import 'vue-awesome/icons'
 import Icon from 'vue-awesome/components/Icon'
-import { serverConnection } from '../serverConnection.js'
+import { serverConnection } from '../serverConnection'
+import EventBus from "../EventBus"
 
 export default {
   name: 'FileList',
@@ -47,7 +48,7 @@ export default {
   },
   methods: {
     openFile: function(file){
-      serverConnection.socket.send(JSON.stringify({example: [...this.path, file].join("/"), type: "load_file"}));
+      EventBus.$emit("loadFile", [...this.path, file].join("/"))
     },
     toggleDir: function(dir) {
       Vue.set(this.open, dir, !this.open[dir]);
@@ -68,9 +69,6 @@ export default {
         }
       });
       serverConnection.socket.send(JSON.stringify({type: "get_file_list", path:this.path.join("/")}))
-    },
-    loadExample: function (e) {
-      serverConnection.socket.send(JSON.stringify({example: e.target.value, type: "load_file"}));
     }
   }
 }

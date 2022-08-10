@@ -152,9 +152,9 @@ def runComputationProcess(inputQueue, outputQueue):
         if msg["type"] == "compute":
             try:
                 vcs = runCompute(code=msg["code"])
-                outputQueue.put({"vcs": vcs, "type": "computed"})
+                outputQueue.put({"vcs": vcs, "type": "computed", "file": msg["file"]})
             except Exception as e:
-                outputQueue.put({"error": str(e), "type": "computed"})
+                outputQueue.put({"error": str(e), "type": "computed", "file": msg["file"]})
 
         elif msg["type"] == "verify":
             result = runVerify(
@@ -163,6 +163,7 @@ def runComputationProcess(inputQueue, outputQueue):
                 solver=msg["solver"])
         
             outputQueue.put({
+                "file": msg["file"],
                 "index": msg["index"], 
                 "formula": msg["formula"], 
                 "result": result, 
@@ -191,7 +192,7 @@ def getFileList(path):
     dirnames = natural_sort(dirnames)
     return (dirnames, filenames)
 
-def getExampleCode(example):
+def getFileCode(example):
     file = join(dirname(__file__), "../examples", example)
     file = open(file,mode='r', encoding='utf-8')
     code = file.read()
@@ -242,8 +243,8 @@ class HHLPyApplication(WebSocketApplication):
                     self.ws.send(json.dumps(result)) 
 
                 elif msg["type"] == "load_file":
-                    code = getExampleCode(msg["example"])
-                    result = {"code": code, "type": "load_file"}
+                    code = getFileCode(msg["file"])
+                    result = {"file": msg["file"], "code": code, "type": "load_file"}
                     self.ws.send(json.dumps(result)) 
 
                 elif msg["type"] == "cancel_computation":

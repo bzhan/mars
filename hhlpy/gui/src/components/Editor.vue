@@ -1,5 +1,5 @@
 <template>
-  <div id="code"></div>
+  <div :id="'code-' + file" class="code"></div>
 </template>
 
 <script>
@@ -18,6 +18,9 @@ const fixedHeightEditor = EditorView.theme({
 
 export default {
   name: 'Editor',
+  props: {
+    file: String,
+  },
   data: () => { return {
     editorView: null,
   }},
@@ -27,7 +30,6 @@ export default {
       if (!doc){
         doc = test_examples.e4
       }
-      document.getElementById("code").innerHTML = ""
 
       const state = EditorState.create({
         doc: doc,
@@ -49,7 +51,7 @@ export default {
 
       this.editorView = new EditorView({
         state: state,
-        parent: document.getElementById("code")
+        parent: document.getElementById('code-' + this.file)
       });
       return this.editorView;
     }
@@ -59,7 +61,7 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-#code {
+.code {
   overflow: scroll;
   height: 100%;
 }

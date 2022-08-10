@@ -2,7 +2,11 @@
 <template>
   <div class="verification-condition" :class="{outdated: outdated}">
     <div class="error" v-show="error">{{error}}</div>
-    <div>{{vc_success_num + "/" + vc_num}}</div>
+    <div>{{vc_success_num + "/" + vc_num}}
+      <!-- <button @click="compute">Compute</button> -->
+      <button @click="verify">Verify</button>
+      <button @click="cancel" :disabled="!computationProcessReady">Cancel</button>
+    </div>
     <ul>
         <li v-for="vc_info in vc_infos" :key="vc_info.index">
         <!-- TODO: change the key -->
@@ -40,36 +44,50 @@ import { showOrigin, hideOrigin } from '../decoration/origin'
 import { serverConnection } from '../serverConnection'
 
 export default ({
-    props: {
-        editorView: EditorView,
-        socket: WebSocket
-    },
+  props: {
+      editorView: EditorView,
+      file: String
+  },
 
-    data() {
-      return{
-        vc_infos: [],
-        error: "",
-        outdated: false
-      }
-    },
+  data() {
+    return{
+      vc_infos: [],
+      error: "",
+      outdated: false,
+      computationProcessReady: true
+    }
+  },
 
-    computed: {
-      vc_num() {
-        return this.vc_infos.length
-      },
-      vc_success_num() {
-        let n = 0
-        for (let vc_info of this.vc_infos) {
-          if (vc_info.result === true){
-            n++;
-          }
+  computed: {
+    vc_num() {
+      return this.vc_infos.length
+    },
+    vc_success_num() {
+      let n = 0
+      for (let vc_info of this.vc_infos) {
+        if (vc_info.result === true){
+          n++;
         }
-
-        return n
       }
-    },
 
+      return n
+    }
+  },
+
+  mounted: function() {
+    serverConnection.socket.addEventListener("message", (event) => {
+      let eventData = JSON.parse(event.data)
+
+      if (eventData.type ===  'computation_process_ready'){
+        this.computationProcessReady = true;
+      }
+    })
+  },
   methods: {
+    cancel: function () {
+      serverConnection.socket.send(JSON.stringify({type: "cancel_computation"}));
+      this.computationProcessReady = false;
+    },
     changeSolver(index, solver) {
       // The label of the verification condition of which solver is changed.
       let label = this.vc_infos[index].label 
@@ -222,14 +240,14 @@ export default ({
           console.error("Wrong result for the verification condition:", formula)
       }
     },
-    verifyVCs() {
+    verify() {
       // Send the computed vc formula, the index i and the choosen solver to server.
       for (let i = 0; i < this.vc_infos.length; i++){
         let formula = this.vc_infos[i].formula
         let solver = this.vc_infos[i].solver
         // we need to send the code to let the server know about the function definitions
         let code = this.editorView.state.doc.toString();
-        serverConnection.socket.send(JSON.stringify({index: i, formula: formula, solver: solver, code: code, type: "verify"}))
+        serverConnection.socket.send(JSON.stringify({file: this.file, index: i, formula: formula, solver: solver, code: code, type: "verify"}))
       }
     }
   },
@@ -286,5 +304,10 @@ export default ({
 .vc-icon {
   vertical-align: middle;
   margin: 0 20px
+}
+
+button {
+  font-size: 100%;
+  margin-right: 2px;
 }
 </style>
