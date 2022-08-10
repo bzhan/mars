@@ -55,6 +55,10 @@ export default {
     })
   },
   methods: {
+    saveFile() {
+      let code = this.editorView.state.doc.toString();
+      serverConnection.socket.send(JSON.stringify({file: this.file, code: code, type: "save_file"}));
+    },
     verifyVCs() {
       this.$refs.vcs.verifyVCs();
     },

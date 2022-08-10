@@ -1,24 +1,35 @@
 <template>
   <div id="app">
-    <Resizer :initialLeftWidth="20"> 
-      <template v-slot:left>
-        <FileBrowser ref="fileBrowser" :path="[]" />
-      </template>
-      <template v-slot:right>
-      <div class="tabs">
-        <span class="tab" v-for="file in openFiles" :key="file" 
-          :class="{open: file == currentTab}"
-          @click="currentTab = file">
-          {{file}}
-          <v-icon name="times" scale="1" fill="#888" class="close" @click="closeFile(file)"></v-icon>
-        </span>
-        
-      </div>
-      <div class="page">
-        <Page v-for="file in openFiles" v-bind:key="file" v-show="file == currentTab" :file="file"/>
-      </div>
-      </template>
-    </Resizer>
+    <div class="toolbar">
+      <Toolbar ref="toolbar" :editorView="editorView"
+        @openDocument="openDocument"
+        @verifyVCs="verifyVCs" />
+    </div>
+
+    <div id="main">
+      <Resizer :initialLeftWidth="20"> 
+        <template v-slot:left>
+          <FileBrowser ref="fileBrowser" :path="[]" />
+        </template>
+        <template v-slot:right>
+          <div class="pages">
+            <div class="tabs">
+              <span class="tab" v-for="file in openFiles" :key="file" 
+                :class="{open: file == currentTab}"
+                @click="currentTab = file">
+                {{file}}
+                <v-icon name="times" scale="1" fill="#888" class="close" @click="closeFile(file)"></v-icon>
+              </span>
+              
+            </div>
+            <div class="page">
+              <Page v-for="file in openFiles" v-bind:key="file" v-show="file == currentTab" :file="file" 
+                ref="pages"/>
+            </div>
+          </div>
+        </template>
+      </Resizer>
+    </div>
   </div>
 </template>
 
@@ -28,13 +39,14 @@ import Icon from 'vue-awesome/components/Icon'
 import Resizer from './components/Resizer.vue'
 import FileBrowser from './components/FileBrowser.vue'
 import Page from './components/Page.vue'
+import Toolbar from './components/Toolbar.vue'
 import { serverConnection } from './serverConnection.js'
 import EventBus from './EventBus'
 
 export default {
   name: 'App',
   components: {
-    Resizer, Page, FileBrowser,
+    Resizer, Page, FileBrowser, Toolbar,
     'v-icon': Icon
   },
   data: () => { return {
@@ -49,6 +61,14 @@ export default {
 
     EventBus.$on("loadFile", (file) => {
       this.openDocument(file);
+    })
+
+    EventBus.$on("saveFile", () => {
+      for (let page of this.$refs.pages) {
+        if (page.file === this.currentTab) {
+          page.saveFile()
+        }
+      }
     })
 
     serverConnection.socket.addEventListener("message", (event) => {
@@ -103,6 +123,13 @@ body,
   overflow:hidden;
 }
 
+.pages {
+  display: flex;
+  flex-flow: column;
+  height: 100%;
+  overflow:hidden;
+}
+
 .tab {
   display: inline-block;
   background: #ccc;
@@ -120,5 +147,23 @@ body,
 
 .tab.open {
   background: white;
+}
+
+#main {
+  flex: 1 1 auto;
+  overflow:hidden;
+}
+
+.page {
+  flex: 1 1 auto;
+  overflow:hidden;
+}
+
+.toolbar {
+  flex: 0 1 auto;
+}
+
+.tabs {
+  flex: 0 1 auto;
 }
 </style>

@@ -232,7 +232,7 @@ def getFileList(path):
 
 def getFileCode(example):
     file = join(dirname(__file__), "../examples", example)
-    file = open(file,mode='r', encoding='utf-8')
+    file = open(file, mode='r', encoding='utf-8')
     code = file.read()
     file.close()
     return code
@@ -290,6 +290,12 @@ class HHLPyApplication(WebSocketApplication):
                     computationProcess.terminate()
                     computationProcess.join()
                     computationProcess = startComputationProcess()
+
+                elif msg["type"] == "save_file":
+                    file = join(dirname(__file__), "../examples", msg["file"])
+                    file = open(file, mode='w', encoding='utf-8')
+                    file.write(msg["code"])
+                    file.close()
 
                 else:
                     raise NotImplementedError    
