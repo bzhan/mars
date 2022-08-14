@@ -1,25 +1,41 @@
 <template>
   <div class="toolbar">
     <div class="group">
-      <!-- <button v-on:click="newFile">New</button> -->
-      <button v-on:click="saveFile">Save</button>
+      <button v-on:click="newFile">New</button>
+      <button v-on:click="saveFile">Save</button> {{websocketStore.connected}}
     </div>
   </div>
 </template>
 
 <script>
-import EventBus from '../EventBus'
+import { useWebsocketStore } from '../stores/websocket'
+import { useOpenFilesStore } from '../stores/openFiles'
+import { onMounted } from '@vue/composition-api'
+
 export default {
-  name: 'Toolbar',
-  methods: { 
-    newFile: function () {
-        
-    },
-    saveFile: function () {
-        EventBus.$emit("saveFile")
-    },
+  setup() {
+    const websocketStore = useWebsocketStore()
+    const openFilesStore = useOpenFilesStore()
+    function saveFile () {
+      openFilesStore.saveFile()
+    }
+    function newFile () {
+      openFilesStore.newFile()
+    }
+
+    onMounted(() => {
+      websocketStore.reconnect()
+    })
+ 
+    return {
+      websocketStore,
+      openFilesStore,
+      saveFile,
+      newFile
+    }
   }
 }
+
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

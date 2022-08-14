@@ -257,8 +257,8 @@ class HHLPyApplication(WebSocketApplication):
     def on_message(self, message):
         try:
             if message != None:
+                print(message, flush=True)
                 msg = json.loads(message)
-                print(msg, flush=True)
                 # If the type of message received is "compute", 
                 # the message has a code field, which is the document in editor,
                 # then call runCompute function.

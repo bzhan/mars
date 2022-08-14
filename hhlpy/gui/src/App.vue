@@ -1,9 +1,7 @@
 <template>
   <div id="app">
     <div class="toolbar">
-      <Toolbar ref="toolbar" :editorView="editorView"
-        @openDocument="openDocument"
-        @verifyVCs="verifyVCs" />
+      <Toolbar ref="toolbar" />
     </div>
 
     <div id="main">
@@ -14,16 +12,18 @@
         <template v-slot:right>
           <div class="pages">
             <div class="tabs">
-              <span class="tab" v-for="file in openFiles" :key="file" 
-                :class="{open: file == currentTab}"
-                @click="currentTab = file">
-                {{file}}
-                <v-icon name="times" scale="1" fill="#888" class="close" @click="closeFile(file)"></v-icon>
+              <span class="tab" v-for="(file, fileName) in openFilesStore.files" :key="fileName" 
+                :class="{open: fileName == openFilesStore.activeTab}"
+                @click="openFilesStore.activeTab = fileName">
+                {{fileName}}
+                <v-icon name="times" scale="1" fill="#888" class="close"
+                  @click="openFilesStore.closeFile(fileName)"></v-icon>
               </span>
               
             </div>
             <div class="page">
-              <Page v-for="file in openFiles" v-bind:key="file" v-show="file == currentTab" :file="file" 
+              <Page v-for="(file, fileName) in openFilesStore.files" v-bind:key="fileName" 
+                v-show="fileName == openFilesStore.activeTab" :file="file" 
                 ref="pages"/>
             </div>
           </div>
@@ -40,8 +40,8 @@ import Resizer from './components/Resizer.vue'
 import FileBrowser from './components/FileBrowser.vue'
 import Page from './components/Page.vue'
 import Toolbar from './components/Toolbar.vue'
-import { serverConnection } from './serverConnection.js'
-import EventBus from './EventBus'
+import { mapStores } from 'pinia'
+import { useOpenFilesStore } from './stores/openFiles'
 
 export default {
   name: 'App',
@@ -50,57 +50,15 @@ export default {
     'v-icon': Icon
   },
   data: () => { return {
-    openFiles: [],
-    currentTab: null
   }},
+  computed: {
+    ...mapStores(useOpenFilesStore)
+  },
   mounted: function () {
 
-    serverConnection.socket.addEventListener("open", () => {
-      this.$refs.toolbar.socketOpened()
-    });
-
-    EventBus.$on("loadFile", (file) => {
-      this.openDocument(file);
-    })
-
-    EventBus.$on("saveFile", () => {
-      for (let page of this.$refs.pages) {
-        if (page.file === this.currentTab) {
-          page.saveFile()
-        }
-      }
-    })
-
-    serverConnection.socket.addEventListener("message", (event) => {
-      let eventData = JSON.parse(event.data)
-      console.log(event)
-      
-      if(eventData.type === 'example_list'){
-        this.$refs.toolbar.examples = eventData.examples;
-      }
-      else if (eventData.type ===  'computation_process_ready'){
-        this.$refs.toolbar.computationProcessReady = true;
-      }
-      else if(eventData.type === 'error'){
-        // this.$refs.errorDisplay.addError(eventData.error);
-        // console.error("Server error:", eventData.error);
-      }
-    })
   },
   methods: {
-    openDocument(file) {
-      console.log(this.openFiles);
-      if (!this.openFiles.includes(file)) {
-        this.openFiles = [...this.openFiles, file];
-      }
-      this.currentTab = file;
-    },
-    closeFile(file){
-      this.openFiles = this.openFiles.filter((f) => f !== file)
-    },
-    verifyVCs() {
-      // this.$refs.vcs.verifyVCs();
-    },
+
   }
 }
 </script>

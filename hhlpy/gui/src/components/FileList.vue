@@ -20,13 +20,17 @@
 import Vue from 'vue'
 import 'vue-awesome/icons'
 import Icon from 'vue-awesome/components/Icon'
-import { serverConnection } from '../serverConnection'
-import EventBus from "../EventBus"
+import { useOpenFilesStore } from '../stores/openFiles'
+import { mapStores } from 'pinia'
+import { useWebsocketStore } from '../stores/websocket'
 
 export default {
   name: 'FileList',
   components: {
     'v-icon': Icon
+  },
+  computed: {
+    ...mapStores(useOpenFilesStore, useWebsocketStore)
   },
   props: {
     path: Array,
@@ -38,37 +42,28 @@ export default {
     supported: {},
   }},
   mounted: function() {
-    if (serverConnection.socket.readyState == WebSocket.OPEN) {
-      this.socketOpened()
-    } else {
-      serverConnection.socket.addEventListener("open", () => {
-        this.socketOpened()
-      })
-    }
+    this.websocketStore.addListener("file_list", (data) => {
+      if(data.path == this.path.join("/")){
+        this.dirs = data.dirs;
+        console.log(this.dirs)
+        for (let dir in this.dirs) {
+          Vue.set(this.open, this.dirs[dir], false);
+        }
+        this.files = data.files;
+        for (let file in this.files) {
+          Vue.set(this.supported, this.files[file], this.files[file].endsWith(".hhl"));
+        }
+      }
+    });
+    this.websocketStore.send({type: "get_file_list", path:this.path.join("/")})
   },
   methods: {
     openFile: function(file){
-      EventBus.$emit("loadFile", [...this.path, file].join("/"))
+      this.openFilesStore.openFile([...this.path, file].join("/"))
+      // EventBus.$emit("loadFile", [...this.path, file].join("/"))
     },
     toggleDir: function(dir) {
       Vue.set(this.open, dir, !this.open[dir]);
-    },
-    socketOpened: function () {
-      serverConnection.socket.addEventListener("message", (event) => {
-        let eventData = JSON.parse(event.data)
-        if(eventData.type === 'file_list' && eventData.path == this.path.join("/")){
-          this.dirs = eventData.dirs;
-          console.log(this.dirs)
-          for (let dir in this.dirs) {
-            Vue.set(this.open, this.dirs[dir], false);
-          }
-          this.files = eventData.files;
-          for (let file in this.files) {
-            Vue.set(this.supported, this.files[file], this.files[file].endsWith(".hhl"));
-          }
-        }
-      });
-      serverConnection.socket.send(JSON.stringify({type: "get_file_list", path:this.path.join("/")}))
     }
   }
 }
