@@ -46,9 +46,10 @@ export default {
     editorView : null,
   }},
   mounted: function () {
-    this.editorView = this.$refs.editor.initEditor(this.file.content);
-    this.docChanged(this.file.content);
-
+    if (this.file.content.value !== null) {
+      this.editorView = this.$refs.editor.initEditor(this.file.content.value);
+      this.docChanged(this.file.content.value);
+    }
     this.websocketStore.addListener("computed", this.showComputed)
     this.websocketStore.addListener("verified", this.showVerified)
     this.websocketStore.addListener("error", this.showError)

@@ -8,7 +8,6 @@ import { EditorState } from "@codemirror/state"
 import {HCSP} from "../grammar/hcsp"
 import {indentWithTab} from "@codemirror/commands"
 import {keymap} from "@codemirror/view"
-import { test_examples } from "../test_examples/examples"
 import { originTheme, originField } from '../decoration/origin'
 
 const fixedHeightEditor = EditorView.theme({
@@ -26,9 +25,9 @@ export default {
   }},
   methods: { 
     initEditor: function (doc) {
-      console.log("init editor");
+      console.log("init editor", doc);
       if (!doc){
-        doc = test_examples.e4
+        doc = "Loading..."
       }
 
       const state = EditorState.create({

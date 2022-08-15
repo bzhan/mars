@@ -2,7 +2,11 @@
   <div class="toolbar">
     <div class="group">
       <button v-on:click="newFile">New</button>
-      <button v-on:click="saveFile">Save</button> {{websocketStore.connected}}
+      <span v-if="savingDialog">
+        Enter file name:
+        <input type="text" v-model="savingName"/>
+      </span>
+      <button v-on:click="saveFile">Save</button>
     </div>
   </div>
 </template>
@@ -10,14 +14,25 @@
 <script>
 import { useWebsocketStore } from '../stores/websocket'
 import { useOpenFilesStore } from '../stores/openFiles'
-import { onMounted } from '@vue/composition-api'
+import { onMounted, ref } from '@vue/composition-api'
 
 export default {
   setup() {
     const websocketStore = useWebsocketStore()
     const openFilesStore = useOpenFilesStore()
+    const savingDialog = ref(false)
+    const savingName = ref("")
     function saveFile () {
-      openFilesStore.saveFile()
+      if (this.savingDialog) {
+        this.savingDialog = true
+        openFilesStore.saveFile(savingName.value)
+      } else {
+        if (openFilesStore.files[openFilesStore.activeTab].new) {
+          this.savingDialog = true
+        } else {
+          openFilesStore.saveFile()
+        }
+      }
     }
     function newFile () {
       openFilesStore.newFile()
@@ -31,7 +46,9 @@ export default {
       websocketStore,
       openFilesStore,
       saveFile,
-      newFile
+      newFile,
+      savingDialog,
+      savingName
     }
   }
 }
@@ -42,6 +59,7 @@ export default {
 <style scoped>
 .toolbar {
   background: rgb(67, 67, 67);
+  color: white;
 }
 
 .toolbar .group {
