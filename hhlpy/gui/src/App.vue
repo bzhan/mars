@@ -77,7 +77,7 @@ body,
   display: flex;
   flex-flow: column;
   height: 100%;
-  font-size: 120%;
+  font-size: 80%;
   overflow:hidden;
 }
 
