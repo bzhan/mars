@@ -232,7 +232,7 @@ def getFileList(path):
 
 def getFileCode(example):
     file = join(dirname(__file__), "../examples", example)
-    file = open(file,mode='r', encoding='utf-8')
+    file = open(file, mode='r', encoding='utf-8')
     code = file.read()
     file.close()
     return code
@@ -257,8 +257,8 @@ class HHLPyApplication(WebSocketApplication):
     def on_message(self, message):
         try:
             if message != None:
+                print(message, flush=True)
                 msg = json.loads(message)
-                print(msg, flush=True)
                 # If the type of message received is "compute", 
                 # the message has a code field, which is the document in editor,
                 # then call runCompute function.
@@ -290,6 +290,12 @@ class HHLPyApplication(WebSocketApplication):
                     computationProcess.terminate()
                     computationProcess.join()
                     computationProcess = startComputationProcess()
+
+                elif msg["type"] == "save_file":
+                    file = join(dirname(__file__), "../examples", msg["file"])
+                    file = open(file, mode='w', encoding='utf-8')
+                    file.write(msg["code"])
+                    file.close()
 
                 else:
                     raise NotImplementedError    

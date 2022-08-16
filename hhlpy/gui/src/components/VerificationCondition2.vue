@@ -41,7 +41,8 @@ import 'vue-awesome/icons'
 import Icon from 'vue-awesome/components/Icon'
 import { EditorView } from '@codemirror/view'
 import { showOrigin, hideOrigin } from '../decoration/origin'
-import { serverConnection } from '../serverConnection'
+import { mapStores } from 'pinia'
+import { useWebsocketStore } from '../stores/websocket'
 
 export default ({
   props: {
@@ -71,21 +72,18 @@ export default ({
       }
 
       return n
-    }
+    },
+    ...mapStores(useWebsocketStore)
   },
 
   mounted: function() {
-    serverConnection.socket.addEventListener("message", (event) => {
-      let eventData = JSON.parse(event.data)
-
-      if (eventData.type ===  'computation_process_ready'){
-        this.computationProcessReady = true;
-      }
+    this.websocketStore.addListener("computation_process_ready", () => {
+      this.computationProcessReady = true;
     })
   },
   methods: {
     cancel: function () {
-      serverConnection.socket.send(JSON.stringify({type: "cancel_computation"}));
+      this.websocketStore.send({type: "cancel_computation"});
       this.computationProcessReady = false;
     },
     changeSolver(index, solver) {
@@ -247,7 +245,7 @@ export default ({
         let solver = this.vc_infos[i].solver
         // we need to send the code to let the server know about the function definitions
         let code = this.editorView.state.doc.toString();
-        serverConnection.socket.send(JSON.stringify({file: this.file, index: i, formula: formula, solver: solver, code: code, type: "verify"}))
+        this.websocketStore.send({file: this.file, index: i, formula: formula, solver: solver, code: code, type: "verify"})
       }
     }
   },
