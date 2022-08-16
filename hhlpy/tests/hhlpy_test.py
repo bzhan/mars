@@ -523,6 +523,10 @@ class BasicHHLPyTest(unittest.TestCase):
     
     # TODO: Basic benchmark, problem 56 - 60, cannot be written into hcsp program.
 
+    # TODO: Proofs or invariants Unknown
+    # def testOscillator(self):
+    #     runFile(self, file="oscillator.hhl",)
+
 
 class NonlinearHHLPyTest(unittest.TestCase):
     
@@ -936,6 +940,17 @@ class NonlinearHHLPyTest(unittest.TestCase):
 
 class SSHHLPyTest(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        try:
+            session.start()
+        except Exception as e:
+            session.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        session.terminate()
+
     def testBouncing(self):
         runFile(self, file="simulink/sf_bouncing.hhl")
 
@@ -947,6 +962,23 @@ class SSHHLPyTest(unittest.TestCase):
 
     def testDelay(self):
         runFile(self, file="simulink/sl_delay.hhl")
+
+
+class AdvancedHHLPyTest(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            session.start()
+        except Exception as e:
+            session.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        session.terminate()
+
+    def testAdvanced1(self):
+        runFile(self, file="advanced1.hhl",)
 
 
 if __name__ == "__main__":

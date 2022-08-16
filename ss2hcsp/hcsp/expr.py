@@ -291,6 +291,36 @@ def replace_function(e: FunExpr, funcs=dict()):
 
     return fun_obj_expr
 
+def subst_all_funcs(e: Expr, funcs=dict()):
+    """Substitue all defined FunExprs of e. Return an expression without defined FunExprs.
+    For Example, 
+        funcs = {'f': hcsp.Function('f', ['x'], "x + 1"),
+                 'g': hcsp.Function('g', ['x'], "f(x) + 2")},
+        For expression g(y) * 2,
+        return (y + 1 + 2) * 2
+    """
+    def rec(e):
+        if isinstance(e, (AConst, BConst, AVar)):
+            return e
+        elif isinstance(e, FunExpr):
+            if e.name in funcs:
+                return rec(replace_function(e, funcs))
+            else:
+                raise NotImplementedError
+        elif isinstance(e, OpExpr):
+            return OpExpr(e.op, *[rec(expr) for expr in e.exprs])
+        elif isinstance(e, RelExpr):
+            return RelExpr(e.op, rec(e.expr1), rec(e.expr2))
+        elif isinstance(e, LogicExpr):
+            return LogicExpr(e.op, *[rec(expr) for expr in e.exprs])
+        elif isinstance(e, ExistsExpr):
+            return ExistsExpr(e.vars, rec(e.expr))
+        elif isinstance(e, ForAllExpr):
+            return ForAllExpr(e.vars, rec(e.expr))
+        else:
+            raise NotImplementedError
+
+    return rec(e)
 
 class IfExpr(Expr):
     def __init__(self, cond, expr1, expr2, meta=None):

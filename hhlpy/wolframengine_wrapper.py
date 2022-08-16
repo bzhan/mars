@@ -337,7 +337,7 @@ def wl_prove(e, functions=dict()):
         else:
             return False
 
-def wl_simplify(e, functions):
+def wl_simplify(e, functions=dict()):
     """Simplify the given hcsp expression"""
     wl_expr = toWLexpr(e, functions)
     # Use the Simplify function in wolfram.
@@ -346,7 +346,7 @@ def wl_simplify(e, functions):
 
     return hcsp_expr
 
-def wl_polynomial_div(p, q, functions):
+def wl_polynomial_div(p, q, functions=dict()):
     """Compute the quotient and remainder of polynomial p and q"""
     vars = q.get_vars()
     vars = {toWLexpr(expr.AVar(var), functions) for var in vars}
@@ -366,7 +366,7 @@ def wl_polynomial_div(p, q, functions):
 
     return quot_remains
 
-def wl_is_polynomial(e, functions, constants=set()):
+def wl_is_polynomial(e, constants=set(), functions=dict()):
     """Verify whether the given expression is a polynomial"""
     vars = e.get_vars().difference(constants)
     vars = {toWLexpr(expr.AVar(var), functions) for var in vars}

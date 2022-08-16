@@ -380,8 +380,16 @@ class CmdVerifier:
         # the pre-conditions will always hold.
         # Add this kind of pre-conditions into assumptions in HCSPs.
         for subpre in self.infos[root_pos].pre:
-            if subpre.expr.get_vars().isdisjoint(self.variable_names):
-                self.infos[root_pos].assume.append(subpre)
+            subpre_expr = subpre.expr
+            # Replace the FunExpr by corresponding LogicExpr or OpExpr
+            subpre_expr = expr.subst_all_funcs(subpre_expr, self.functions)
+
+            # Split the subpre_expr if it is a conjunction, for example, A >= 0 && x >= A
+            subpre_exprs = expr.split_conj(subpre_expr)
+            for sub_expr in subpre_exprs:
+                if sub_expr.get_vars().isdisjoint(self.variable_names):
+                    self.infos[root_pos].assume.append(Condition(expr=sub_expr,
+                                                                 origins=subpre.origins))
 
     def set_andR_rule(self, pos, andR):
         if pos not in self.infos:
@@ -430,7 +438,7 @@ class CmdVerifier:
         return result
 
     def compute_variable_set(self, pos=tuple()):
-        """Compute variable name set for hcsp program, in which names can be changed by Assign, RandomAssign and ODE"""
+        """Compute variable name set for hcsp program, in which variable values can be changed by Assign, RandomAssign and ODE"""
         cur_hp = get_pos(self.hp, pos)
 
         if isinstance(cur_hp, hcsp.Skip):

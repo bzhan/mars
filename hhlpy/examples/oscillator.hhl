@@ -1,0 +1,11 @@
+# Description "Harmonic Oscillators"
+# Citation "Jonathan Julián Huerta y Munive. Affine systems of ODEs in Isabelle/HOL for hybrid-
+program verification. In SEFM 2020, volume 12310 of LNCS, pages 77–92. Springer, 2020.".
+pre [b^2 + a * 4 > 0] [a < 0] [b <= 0];
+{
+    x := *(x > 0); 
+    y := 0;
+    t := *(t >= 0);
+    {x_dot = y, y_dot = a * x + b * y, t_dot = -1 & t > 0}
+}*
+post [x >= 0];

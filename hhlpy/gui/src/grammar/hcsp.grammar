@@ -296,7 +296,8 @@ Decls {
 
   CNAME { ("_"|letter) ("_"|letter|digit)* }
 
-  LineComment { "#" ![\n]* }
+  LineComment { "#" ![\n]* |  "/*" (![*]|$[\r\n]|("*"+(![*/]|$[\r\n])))* "*/" }
+  //TODO: Find a better way to match /*xxx*/
 
   ws { $[ \t\f\r\n]+ }
 
@@ -315,6 +316,10 @@ Decls {
     SIGNED_NUMBER, "-", "pre", "post",
     "true", "false", "gcd", "if", "else", "log", "max", "min", "rec", "skip", 
     "test", "wait", "\\exists", "\\forall", "assert", "invariant", CNAME }
+
+  @precedence {
+    LineComment, "/" 
+  }
 }
 
 @detectDelim
