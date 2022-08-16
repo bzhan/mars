@@ -88,7 +88,7 @@ class HHLPyTest(unittest.TestCase):
             x := x + 1;
             post [x >= 1];
         """)
-        self.assertEqual(str(res.pre[0]), "x >= 0")
+        self.assertEqual(str(res.pre[0].expr), "x >= 0")
         self.assertEqual(str(res.post[0].expr), "x >= 1")
         self.assertEqual(str(res.hp), "x := x + 1;")
 

@@ -198,7 +198,7 @@ grammar = r"""
     %import common.SIGNED_NUMBER
     %import common.ESCAPED_STRING
 
-    COMMENT: /#.*/ | /\/\*([\s\S]*?)\*\//
+    COMMENT: /#.*/ | /\/\*+([\s\S]*?)\*\//
 
     %ignore WS
     %ignore COMMENT

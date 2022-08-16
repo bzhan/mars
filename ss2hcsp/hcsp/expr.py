@@ -303,7 +303,7 @@ def subst_all_funcs(e: Expr, funcs=dict()):
         if isinstance(e, (AConst, BConst, AVar)):
             return e
         elif isinstance(e, FunExpr):
-            if e.name in funcs:
+            if e.fun_name in funcs:
                 return rec(replace_function(e, funcs))
             else:
                 raise NotImplementedError

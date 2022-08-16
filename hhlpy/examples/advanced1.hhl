@@ -8,7 +8,7 @@ function stopDist(v) = v^2/(2*b);                     /* Train stopping distance
 function accCompensation(v) = ((A/b) + 1)*((A/2)*ep^2 + ep*v);     /* Distance to compensate speed increase. */
 function SB(v) = stopDist(v) + accCompensation(v);      /* Distance needed to stop safely when accelerating once */
 
-/* Initial states */
+/** Initial states */
 function initial(m, z, v) = 
 v >= 0 &&
 m-z >= stopDist(v) &&         /* train has sufficient distance to the end of the movement authority to stop safely */
