@@ -543,6 +543,9 @@ lemma magic_wand_mono:
 definition false_assn :: "'a tassn" ("false\<^sub>A") where
   "false_assn tr = False"
 
+definition true_assn :: "'a tassn" ("true\<^sub>A") where
+  "true_assn tr = True"
+
 lemma false_assn_entails [simp]:
   "false\<^sub>A \<Longrightarrow>\<^sub>t P"
   by (simp add: entails_tassn_def false_assn_def)
