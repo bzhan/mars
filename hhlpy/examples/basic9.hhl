@@ -5,7 +5,8 @@
 pre [x > 0] [y > 0];
 t := * (t >= 0);
 {t_dot=-1, x_dot = -x & t > 0} 
-invariant [x > 0] {dbx -1}
+invariant ghost z (z_dot = z/2)
+          [x * z * z == 1]
           [y > 0];
 {
   { x := x+3; }*

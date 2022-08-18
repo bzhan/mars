@@ -45,13 +45,9 @@ def runFile(self, file,
             print("%s:" % str(pos))
             for vc in vcs:
                 print(vc.expr, 
-                "pos:", vc.pos, 
-                "annot_pos:", vc.annot_pos,
                 "categ:", vc.categ,
                 "blabel:", str(vc.blabel),
-                "comp_label:", str(vc.comp_label),
-                "vc:", vc.vc,
-                "pc:", vc.pc)
+                "comp_label:", str(vc.comp_label))
 
     # Use SMT to verify all verification conditions
     self.assertTrue(verifier.verify())
@@ -187,7 +183,7 @@ class HHLPyTest(unittest.TestCase):
     # TODO: 
     # def testVerify7_1(self):
     #     # {true} <x_dot = 2 & x < 10> {true}
-    #     runVerify(self, pre="true", hp="<x_dot = 2 & x < 10>", post="true", print_vcs=True)
+    #     runVerify(self, pre="true", hp="<x_dot = 2 & x < 10>", post="true", print_vcs=False)
 
     def testVerify7_2(self):
         runFile(self, file="test7_2.hhl",
@@ -292,7 +288,7 @@ class BasicHHLPyTest(unittest.TestCase):
         runFile(self, file="basic8.hhl")
 
     def testBasic9(self):
-        runFile(self, file="basic9.hhl")
+        runFile(self, file="basic9.hhl", print_vcs=False)
     
     def testBasic10(self):
         runFile(self, file="basic10.hhl",
@@ -315,19 +311,21 @@ class BasicHHLPyTest(unittest.TestCase):
         runFile(self, file="basic14.hhl",)
 
     def testBasic15(self):
-        runFile(self, file="basic15.hhl")
-                # expected_vcs={((), ()): ["x > 0 -> 0 < 1 -> (\exists y. x * y * y == 1)", \
-                #                          "x > 0 -> 0 >= 1 -> x > 0"],
-                #               ((1,), ()): ["(\exists y. x * y * y == 1) && t == 1 -> x > 0"]})
+        runFile(self, file="basic15.hhl", 
+                expected_vcs={((), ()): ["x > 0 -> t0 >= 0 -> t0 > 0 -> (\exists y. x * y * y == 1)", \
+                                         "x > 0 -> t0 >= 0 -> t0 <= 0 -> x > 0"],
+                              ((1,), ()): ["x * y * y == 1 && t == 0 -> x > 0"],
+                              ((1,), (0,)): ["t > 0 -> x * y * (y / 2) + (x * (y / 2) + -x * y) * y == 0"]})
 
     def testBasic16(self):
         runFile(self, file="basic16.hhl",)
 
     def testBasic17(self):
-        runFile(self, file="basic17.hhl",)
-                #   expected_vcs={((), ()): ["y > 0 -> x > 0 && y > 0 -> t0 >= 0 -> t0 > 0 -> (\exists z. x * z * z == 1)",
-                #                            "y > 0 -> x > 0 && y > 0 -> t0 >= 0 -> t0 <= 0 -> x > 0"],
-                #                 ((1,), ()): ["y > 0 -> (\\exists z. x * z * z == 1) && t == 0 -> x > 0"]})
+        runFile(self, file="basic17.hhl", print_vcs=False,
+                expected_vcs={((), ()): ["y > 0 -> x > 0 && y > 0 -> t0 >= 0 -> t0 > 0 -> (\exists z. x * z * z == 1)",
+                                         "y > 0 -> x > 0 && y > 0 -> t0 >= 0 -> t0 <= 0 -> x > 0"],
+                              ((1,), ()): ["y > 0 -> x * z * z == 1 && t == 0 -> x > 0"],
+                              ((1,), (0,)): ["y > 0 -> t > 0 -> x * z * (y * z / 2) + (x * (y * z / 2) + -y * x * z) * z == 0"]})
 
     def testBasic18(self):
         runFile(self, file="basic18.hhl", print_vcs=False)

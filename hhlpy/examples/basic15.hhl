@@ -3,5 +3,6 @@
 pre [x > 0];
 t := * (t >= 0);
 {x_dot = -x, t_dot = -1 & t > 0}
-  invariant [x > 0] {dbx -1};
+  invariant ghost y (y_dot = y/2)
+            [x * y * y == 1];
 post [x > 0];

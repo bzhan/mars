@@ -825,16 +825,37 @@ class CmdVerifier:
             # we can use the corresponding rule to verify the invariant directly.
             if self.infos[pos].dw: 
             # TODO: also run if no invariants are specified? testVerify62 testVerify54 testVerify53 testVerify52 testVerify50 testVerify55
-
                 if cur_hp.inv is None:
                     cur_hp.inv = (assertion.CutInvariant(expr=expr.true_expr, proof_methods=None),)
 
                 assert all(isinstance(inv, assertion.CutInvariant) for inv in cur_hp.inv)
+                inv_exprs = [inv.expr for inv in cur_hp.inv]
+                inv_conj = expr.conj(*inv_exprs)
 
+                # Add ghosts
+                # [[bar of D]] <x_dot = e, y_dot = f(x, y)> [[I]]    I && Boundary of D -> Q
+                # ----------------------------------------------------------------------------
+                #           {(D -> \exists y I) && (!D -> Q)} <x_dot = e & D> {Q}
+                # y is a fresh variable, not occurring in <x_dot = e & D> and Q. f(x, y) satisfies
+                # Lipschitz condition.
+                if cur_hp.ghosts:
+                    vars = []
+                    for ghost in cur_hp.ghosts:
+                        self.infos[pos].eqs_dict[ghost.var] = ghost.diff
+                        vars.append(ghost.var)
+                    exists_inv = expr.ExistsExpr(vars, inv_conj)
+                    init_cond = [Condition(expr=expr.imp(constraint, exists_inv), 
+                                           origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0])
+                                                    for i in range(len(cur_hp.inv))] + 
+                                                   [OriginLoc(isConstraint=True, hp_pos=pos[0])],
+                                           categ="init_all",
+                                           bottom_loc=OriginLoc(index=len(cur_hp.inv)-1, isInv=True, hp_pos=pos[0]),
+                                )]
+                
                 # Apply differential weakening (dW)
 
                 # dW Rule (always applied automatically)
-                #   [[D]] <x_dot = f(x)> [[I]]      I && Boundary of D -> Q  
+                #   [[bar of D]] <x_dot = f(x)> [[I]]      I && Boundary of D -> Q  
                 #-----------------------------------------------------------------------
                 #           {(D -> I) && (!D -> Q)} <x_dot = f(x) & D> {Q}
                 
@@ -842,12 +863,15 @@ class CmdVerifier:
                 #                 Boundary of D -> Q  
                 #-----------------------------------------------------------------------
                 #           {!D -> Q} <x_dot = f(x) & D> {Q}
-                pre_dw = [Condition(expr=expr.imp(constraint, inv.expr), 
+                else:
+                    init_cond = [Condition(expr=expr.imp(constraint, inv.expr), 
                                     origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0]), 
                                              OriginLoc(isConstraint=True, hp_pos=pos[0])],
                                     categ="init",
                                     bottom_loc=OriginLoc(index=i, isInv=True, hp_pos=pos[0]),
-                        ) for i, inv in enumerate(cur_hp.inv) if inv.expr is not expr.true_expr] \
+                        ) for i, inv in enumerate(cur_hp.inv) if inv.expr is not expr.true_expr]
+
+                pre_dw = init_cond \
                         + \
                          [Condition(expr=expr.imp(expr.neg_expr(constraint), 
                                                      subpost.expr),
@@ -860,9 +884,6 @@ class CmdVerifier:
                                     )
                           for subpost in post]
                 boundary = compute_boundary(constraint)
-
-                inv_exprs = [inv.expr for inv in cur_hp.inv]
-                inv_conj = expr.conj(*inv_exprs)
 
                 # When I is false_expr, (I && Boundary of D -> Q) is true_expr, which can be omitted. 
                 if inv_conj is not expr.false_expr:

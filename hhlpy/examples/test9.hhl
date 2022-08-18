@@ -8,6 +8,7 @@ pre [x > 0] [y > 0];
 t := 0; 
 {x_dot = -x, y_dot = 1, t_dot = 1 & t < 1} 
 invariant 
-    [x > 0] {dbx -1}
+    ghost z (z_dot = z/2)
+    [x * z * z == 1]
     [y > 0]; 
 post [x > 0] [y > 0];

@@ -41,8 +41,9 @@ class CutInvariant(Assertion):
 class GhostIntro(Assertion):
     def __init__(self, var, diff, meta=None):
         super(GhostIntro, self).__init__()
+        assert isinstance(diff, Expr)
         self.meta = meta
-        self.var = var
+        self.var = str(var)
         self.diff = diff
 
 

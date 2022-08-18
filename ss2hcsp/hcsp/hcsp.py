@@ -875,7 +875,7 @@ class ODE(HCSP):
     {F(s',s) = 0 & B} |> Q
 
     """
-    def __init__(self, eqs, constraint, *, out_hp=Skip(), meta=None, inv=tuple()):
+    def __init__(self, eqs, constraint, *, out_hp=Skip(), meta=None, ghosts=tuple(), inv=tuple()):
         """Each equation is of the form (var_name, expr), where var_name
         is the name of the variable, and expr is its derivative.
 
@@ -888,9 +888,12 @@ class ODE(HCSP):
             assert isinstance(eq, tuple) and len(eq) == 2
             assert isinstance(eq[0], str) and isinstance(eq[1], Expr)
         assert isinstance(constraint, Expr)
+        assert isinstance(ghosts, tuple)
+        for ghost in ghosts:
+            assert isinstance(ghost, assertion.GhostIntro)
         assert isinstance(inv, tuple)
         for sub_inv in inv:
-            assert isinstance(sub_inv, assertion.Assertion)
+            assert isinstance(sub_inv, assertion.CutInvariant)
         assert not out_hp or isinstance(out_hp, HCSP)
 
         self.type = "ode"
@@ -898,11 +901,13 @@ class ODE(HCSP):
         self.constraint = constraint  # Expr
         self.out_hp = out_hp  # None or hcsp
         self.meta = meta
+        self.ghosts = ghosts
         self.inv = inv
 
     def __eq__(self, other):
         return self.type == other.type and self.eqs == other.eqs and \
-               self.constraint == other.constraint and self.out_hp == other.out_hp
+               self.constraint == other.constraint and self.out_hp == other.out_hp and \
+               self.ghosts == other.ghosts and self.inv == other.inv
 
     def __str__(self):
         str_eqs = ", ".join(var_name + "_dot = " + str(expr) for var_name, expr in self.eqs)

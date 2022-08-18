@@ -119,7 +119,8 @@ grammar = r"""
     ?proof_method: (label ":")? method   -> proof_method 
     
     ?label_category: "init"     -> label_categ_init
-        | "maintain"         -> label_categ_maintain
+        | "maintain"            -> label_categ_maintain
+        | "init_all"            -> label_categ_init_all
 
     ?categ_label: label_category     -> categ_label
 
@@ -138,11 +139,11 @@ grammar = r"""
     ?method: "z3"        -> method_z3
       | "wolfram"        -> method_wolfram
 
-    ?maybe_ode_invariant: ("invariant" ode_invariant+ ";")? -> maybe_ode_invariant
+    ?maybe_ode_invariant: ("invariant" ghost_intro* ode_invariant+ ";")? -> maybe_ode_invariant
 
     ?ode_invariant: "[" expr "]" ("{" ode_rule expr? "}")? maybe_proof_methods -> ode_invariant
-        | "ghost" CNAME -> ghost_intro
-        | "ghost" "(" CNAME "=" expr ")" -> ghost_intro_eq
+
+    ?ghost_intro: "ghost" CNAME "(" CNAME "=" expr ")" -> ghost_intro
 
     ?ode_rule: "di" -> ode_rule_di
       | "dbx" -> ode_rule_dbx
@@ -429,12 +430,10 @@ class HPTransformer(Transformer):
         else:
             return assertion.CutInvariant(expr=args[0], rule=args[1], rule_arg=args[2], proof_methods=args[-1], meta=meta)
     
-    def ghost_intro(self, meta, var):
-        return assertion.GhostIntro(var=var, diff=None, meta=meta)
-    
-    def ghost_intro_eq(self, meta, var, diff):
-        assert var.endswith("_dot")
-        return assertion.GhostIntro(var=var[:-4], diff=diff, meta=meta)
+    def ghost_intro(self, meta, var, var_dot, diff):
+        assert var_dot.endswith("_dot")
+        assert var == var_dot[:-4]
+        return assertion.GhostIntro(var=var, diff=diff, meta=meta)
 
     def ode_rule_di(self, meta): return "di"
     def ode_rule_bc(self, meta): return "bc"
@@ -447,6 +446,7 @@ class HPTransformer(Transformer):
 
     def label_categ_init(self, meta): return "init"
     def label_categ_maintain(self, meta): return "maintain"
+    def label_categ_init_all(self, meta): return "init_all"
 
     def atom_label_execute(self, meta): return "execute"
     def atom_label_skip(self, meta): return "skip"
@@ -498,8 +498,17 @@ class HPTransformer(Transformer):
             res.append((args[i], args[i+1]))
         return res
 
-    def ode(self, meta, eqs, constraint, inv):
-        return hcsp.ODE(eqs, constraint, meta=meta, inv=inv)
+    def ode(self, meta, eqs, constraint, asts):
+        ghosts = []
+        inv = []
+        for ast in asts:
+            if isinstance(ast, assertion.GhostIntro):
+                ghosts.append(ast)
+            elif isinstance(ast, assertion.CutInvariant):
+                inv.append(ast)
+            else:
+                raise NotImplementedError
+        return hcsp.ODE(eqs, constraint, meta=meta, ghosts=tuple(ghosts), inv=tuple(inv))
 
     def ode_comm_const(self, meta, constraint, io_comms, inv):
         return hcsp.ODE_Comm([], constraint, io_comms, meta=meta)
