@@ -18,7 +18,7 @@ from operator import pos
 from ss2hcsp.hcsp import expr, hcsp
 from ss2hcsp.hcsp.parser import parse_hoare_triple_with_meta, parse_expr_with_meta
 from ss2hcsp.hcsp.simulator import get_pos
-from hhlpy.hhlpy_without_dG import CmdVerifier
+from hhlpy.hhlpy import CmdVerifier
 from hhlpy.wolframengine_wrapper import wl_prove
 from hhlpy.z3wrapper import z3_prove
 from hhlpy.wolframengine_wrapper import session, found_wolfram
@@ -118,6 +118,13 @@ def runCompute(code):
                     hp = get_pos(hoare_triple.hp, origin.hp_pos)
                     assert isinstance(hp, hcsp.ODE)
                     originMeta = hp.constraint.meta
+                    to = originMeta.end_pos
+
+                elif origin.isGhost:
+                    assert origin.hp_pos is not None
+                    hp = get_pos(hoare_triple.hp, origin.hp_pos)
+                    assert isinstance(hp, hcsp.ODE)
+                    originMeta = hp.ghosts[origin.index].meta
                     to = originMeta.end_pos
 
                 elif origin.isInv or origin.isPost:

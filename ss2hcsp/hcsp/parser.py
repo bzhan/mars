@@ -139,11 +139,10 @@ grammar = r"""
     ?method: "z3"        -> method_z3
       | "wolfram"        -> method_wolfram
 
-    ?maybe_ode_invariant: ("invariant" ghost_intro* ode_invariant+ ";")? -> maybe_ode_invariant
+    ?maybe_ode_invariant: ("invariant" ode_invariant+ ";")? -> maybe_ode_invariant
 
     ?ode_invariant: "[" expr "]" ("{" ode_rule expr? "}")? maybe_proof_methods -> ode_invariant
-
-    ?ghost_intro: "ghost" CNAME "(" CNAME "=" expr ")" -> ghost_intro
+      | "ghost" CNAME "(" CNAME "=" expr ")" -> ghost_intro
 
     ?ode_rule: "di" -> ode_rule_di
       | "dbx" -> ode_rule_dbx

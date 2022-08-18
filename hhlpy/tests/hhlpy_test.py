@@ -8,7 +8,7 @@ from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp.hcsp import HCSP, Function
 from ss2hcsp.hcsp.parser import parse_expr_with_meta, parse_expr_with_meta, parse_hp_with_meta, \
     parse_hoare_triple_with_meta
-from hhlpy.hhlpy_without_dG import CmdVerifier
+from hhlpy.hhlpy import CmdVerifier
 from hhlpy.wolframengine_wrapper import found_wolfram, session
 
 def runFile(self, file, 
