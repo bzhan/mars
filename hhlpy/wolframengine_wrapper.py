@@ -105,12 +105,12 @@ def toWLexpr(e, functions):
                 raise AssertionError
         elif isinstance(e, expr.ForAllExpr):
             if isinstance(e.vars, tuple):
-                return wl.Forall(wl.List(rec(var) for var in e.vars), rec(e.expr))
+                return wl.ForAll({rec(var) for var in e.vars}, rec(e.expr))
             else:
                 return wl.ForAll(rec(e.vars), rec(e.expr))
         elif isinstance(e, expr.ExistsExpr):
             if isinstance(e.vars, tuple):
-                return wl.Exists(wl.List(rec(var) for var in e.vars), rec(e.expr))
+                return wl.Exists({rec(var) for var in e.vars}, rec(e.expr))
             else:
                 return wl.Exists(rec(e.vars), rec(e.expr))
         else:
@@ -195,7 +195,7 @@ def toHcsp(e):
             return expr.LogicExpr('<->', toHcsp(e.args[0]), toHcsp(e.args[1]))
 
         else:
-            return expr.FunExpr(str(e.head), [toHcsp(arg) for arg in e.args])
+            return expr.FunExpr(str(toHcsp(e.head)), [toHcsp(arg) for arg in e.args])
 
     elif isinstance(e, WLSymbol):
         str_e = str(e)
@@ -243,7 +243,6 @@ def solveODE(hp, names, time_var):
     solutions = []
     for sln in slns[0]:
         solutions.append(toHcsp(sln))
-
     # Tranlate solution into a dictionary form and 
     # change the inital value symbol to function name symbol, for the sake of ODE solution axiom.
     # e.g. from [v(t) := v0 + a * t] to {'v' : v + a * t}
@@ -322,7 +321,7 @@ def wl_prove(e, functions=dict()):
 
     # wl_vars cannot be empty when using FindInstance function.
     if wl_vars:
-        result = session.evaluate(wl.FindInstance(wl.Not(wl_expr), wl_vars))
+        result = session.evaluate(wl.FindInstance(wl.Not(wl_expr), wl_vars, wl.Reals))
         # result is an empty tuple, i.e. no instance found for the not expression.
         if not result:
             return True

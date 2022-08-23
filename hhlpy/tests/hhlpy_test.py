@@ -272,8 +272,7 @@ class BasicHHLPyTest(unittest.TestCase):
                                 ((1,), (0,)): ["x >= 1 -> x + 1 >= 1"]})
 
     def testBasic4(self):
-        runFile(self, file="basic4.hhl",
-                  print_vcs=False)
+        runFile(self, file="basic4.hhl",)
 
     def testBasic5(self):
         runFile(self, file="basic5.hhl",
@@ -429,11 +428,11 @@ class BasicHHLPyTest(unittest.TestCase):
     def testBasic46(self):
         runFile(self, file="basic46.hhl",)
 
-    def testBasic47(self):
-        runFile(self, file="basic47.hhl",)
+    # def testBasic47(self):
+    #     runFile(self, file="basic47.hhl",)
 
-    def testBasic48(self):
-        runFile(self, file="basic48.hhl",)
+    # def testBasic48(self):
+    #     runFile(self, file="basic48.hhl",)
 
     def testBasic49(self):
         runFile(self, file="basic49.hhl",)
