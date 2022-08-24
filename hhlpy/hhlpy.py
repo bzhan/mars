@@ -763,6 +763,9 @@ class CmdVerifier:
 
         elif isinstance(cur_hp, hcsp.Loop):
             # Loop, currently use the invariant that users offered.
+            #       {I} c {I}       I -> Q
+            # -----------------------------------------
+            #              {I} (c)* {Q}
 
             if cur_hp.constraint != expr.true_expr:
                 raise NotImplementedError
@@ -770,81 +773,50 @@ class CmdVerifier:
             if cur_hp.inv is None:
                 raise AssertionError("Loop invariant at position %s is not set." % str(pos))
 
-            for sub_inv in cur_hp.inv:
-                if isinstance(sub_inv.expr, expr.LogicExpr):
-                    raise NotImplementedError("Logic expression should be split into several relational expressions")
+            # for sub_inv in cur_hp.inv:
+            #     if isinstance(sub_inv.expr, expr.LogicExpr):
+            #         raise NotImplementedError("Logic expression should be split into several relational expressions")
 
             all_invs = [sub_inv.expr for sub_inv in cur_hp.inv]
+
+            # One verification condition is I -> Q.
+            for i, subpost in enumerate(post):
+                self.infos[pos].vcs.append(
+                    Condition(expr=expr.imp(expr.list_conj(*all_invs), subpost.expr), 
+                                        path=subpost.path,
+                                        blabel=subpost.blabel,
+                                        origins=subpost.origins + [OriginLoc(index=i, isInv=True, hp_pos=pos[0]) for i in range(len(cur_hp.inv))],
+                                        bottom_loc=subpost.bottom_loc,
+                                        categ=subpost.categ,
+                                        isVC=True
+                                        ))
+
+            # Maintain the invariant: {I} c {I}
+            body_pos = (pos[0] + (0,), pos[1])
+            if body_pos not in self.infos:
+                self.infos[body_pos] = CmdInfo()
+            body_info = self.infos[body_pos]
+            body_info.post = [Condition(expr=sub_inv.expr, 
+                                        origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0])],
+                                        bottom_loc=OriginLoc(index=i, isInv=True, hp_pos=pos[0]),
+                                        categ="maintain")
+                                for i, sub_inv in enumerate(cur_hp.inv)]
+            body_info.pre = [Condition(expr=sub_inv.expr, 
+                                       origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0])],
+                                       bottom_loc=OriginLoc(index=i, isInv=True, hp_pos=pos[0]))
+                                for i, sub_inv in enumerate(cur_hp.inv)]
+            body_info.assume += self.infos[pos].assume
+
+            self.compute_wp(pos=body_pos)
+
             
-            # The first time visiting loop program.
-            # self.infos[pos].inv is empty by default.
-            if not self.infos[pos].inv:
+            # Initialize the invariant
+            pre = [Condition(expr=sub_inv.expr, 
+                             origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0])],
+                             bottom_loc=OriginLoc(index=i, isInv=True, hp_pos=pos[0]), 
+                             categ="init") \
+                    for i, sub_inv in enumerate(cur_hp.inv)]
 
-                # Create branches for each invariant.
-                # The hp of each branch is still the loop, but with different invariant and assume.
-                for i, sub_inv in enumerate(cur_hp.inv):
-                    
-                    sub_pos = (pos[0], pos[1] + (i,))
-                    if sub_pos not in self.infos:
-                        self.infos[sub_pos] = CmdInfo()
-                    sub_info = self.infos[sub_pos]
-                    sub_info.inv = [Condition(expr=sub_inv.expr, 
-                                    origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0])],
-                                    bottom_loc=OriginLoc(index=i, isInv=True, hp_pos=pos[0]))]
-                    sub_info.assume += self.infos[pos].assume
-                                    #   [cur_hp.inv[index].inv for index in range(i)]
-                    
-                    self.compute_wp(pos=sub_pos)
-
-                # One verification condition is conjunction of sub_inv -> post.
-                for i, subpost in enumerate(post):
-                    self.infos[pos].vcs.append(
-                        Condition(expr=expr.imp(expr.list_conj(*all_invs), subpost.expr), 
-                                            path=subpost.path,
-                                            blabel=subpost.blabel,
-                                            origins=subpost.origins + [OriginLoc(index=i, isInv=True, hp_pos=pos[0]) for i in range(len(cur_hp.inv))],
-                                            bottom_loc=subpost.bottom_loc,
-                                            categ=subpost.categ,
-                                            isVC=True
-                                            ))
-
-                pre = [Condition(expr=sub_inv.expr, 
-                                 origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0])],
-                                 bottom_loc=OriginLoc(index=i, isInv=True, hp_pos=pos[0]), 
-                                 categ="init") \
-                       for i, sub_inv in enumerate(cur_hp.inv)]
-
-            # self.infos[pos].inv is set after creating branches.
-            # For each branches, we compute wp of loop body and verify that the sub_inv is maintained.
-            elif len(self.infos[pos].inv) == 1:
-                inv = self.infos[pos].inv[0]
-
-                body_pos = (pos[0] + (0,), pos[1])
-                if body_pos not in self.infos:
-                    self.infos[body_pos] = CmdInfo()
-                body_info = self.infos[body_pos]
-                body_info.post = self.infos[pos].inv
-                body_info.assume += self.infos[pos].assume
-                body_info.parent_type = cur_hp.type
-                
-                self.compute_wp(pos=body_pos)
-                body_pre = body_info.pre
-
-                for sub_pre in body_pre:
-                    # bottom_loc add one more tuple to pos to record the annotation index, i.e. invariant index for loop.
-                    # Another verification condition is that all invariants together imply the weakest precondition of sub_inv w.r.t the loop body
-                    
-                    sub_vc = Condition(expr=expr.imp(expr.list_conj(*all_invs), sub_pre.expr),
-                                       path=sub_pre.path,
-                                       blabel=sub_pre.blabel,
-                                       origins=sub_pre.origins + [OriginLoc(index=i, isInv=True, hp_pos=pos[0]) for i in range(len(cur_hp.inv))],
-                                       bottom_loc=sub_pre.bottom_loc,
-                                       categ="maintain",
-                                       isVC=True)
-
-                    self.infos[pos].vcs.append(sub_vc)
-
-                pre = self.infos[pos].inv
 
         # Reconstruct ODE
         # Only Cut invariant
