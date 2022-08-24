@@ -289,6 +289,11 @@ class SimTest(unittest.TestCase):
 
         }, output_to_file="./hhlpy/examples/simulink/sl_delay.txt")
 
+    def testPIcontrol(self):
+        run_test(self, "./hhlpy/examples/simulink/PIcontrol.xml", 80, {
+
+        }, output_to_file="./hhlpy/examples/simulink/PIcontrol.txt")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,22 @@
+%type: module
+
+module P():
+output x, v;
+begin
+  t := 0;
+  _tick := 0;
+  tt := 0;
+  I := 0;
+  v := 0;
+  x := 0;
+  {
+    {tt_dot = 1, I_dot = (15 - v) * 40, v_dot = ((15 - v) * 600 + I - v * 50) * 0.001, x_dot = v & tt < 1}
+    t := t + tt;
+    _tick := _tick + 1;
+    tt := 0;
+  }*
+end
+endmodule
+system
+  P=P()
+endsystem
