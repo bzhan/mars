@@ -426,15 +426,15 @@ class BasicHHLPyTest(unittest.TestCase):
                 #  constants={'A', 'V'}
                 ) 
 
-    # def testBasic46(self):
-    #     runFile(self, file="basic46.hhl",)
+    def testBasic46(self):
+        runFile(self, file="basic46.hhl",)
 
-    # TODO: 47 and 48
-    # def testBasic47(self):
-    #     runFile(self, file="basic47.hhl",)
-
-    # def testBasic48(self):
-    #     runFile(self, file="basic48.hhl",)
+    def testBasic47(self):
+        runFile(self, file="basic47.hhl",)
+    
+    # TODO: 48 is very slow.(But fast on interface)
+    def testBasic48(self):
+        runFile(self, file="basic48.hhl",)
 
     def testBasic49(self):
         runFile(self, file="basic49.hhl",)

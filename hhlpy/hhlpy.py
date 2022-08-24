@@ -1134,12 +1134,8 @@ class CmdVerifier:
                         isVC=True))
 
                 # Use solution axiom
-                # 
-                #             P ->
-                # ForAll t >= 0  ((ForAll 0 <= s < t D(y(s)) && not D(y(t))) -> (ForAll 0 <= s <= t Q(y(s)))
-                #-----------------------------------------------------------------------------------------
                 # [[ bar of D, 
-                #    \forall t >= 0. (\forall 0 <= s <= t bar of D(y(s))) -> (\forall 0 < s <= t Q(y(s))]] 
+                #    \forall t > 0. (\forall 0 <= s <= t bar of D(y(s))) -> Q(y(t))]] 
                 # <x_dot = f(x) & D(x)> 
                 # [[Q(x)]]
                 #
@@ -1164,10 +1160,9 @@ class CmdVerifier:
                         y_s[fun_name] = sol_s
 
                     D_y_s = constraint.subst(y_s)
-                    Q_y_s = self.infos[sub_pos].inv.expr.subst(y_s)
+                    Q_y_t = self.infos[sub_pos].inv.expr.subst(solution_dict)
 
                     # Compute the hypothesis of implication
-                    # ForAll (s, 0 <= s < t -> D(y(s)) && not D(y(t))
                     # \forall 0 <= s <= t bar of D(y(s))
                     cond = expr.ForAllExpr(in_var.name, 
                                 expr.imp(expr.LogicExpr('&&', 
@@ -1176,15 +1171,10 @@ class CmdVerifier:
                                             compute_closed_set(D_y_s)))
         
                     # Compute the conclusion of implication
-                    # ForAll (s, 0 < s <= t -> Q(y(s))
-                    conclu = expr.ForAllExpr(in_var.name,
-                                    expr.imp(expr.LogicExpr('&&', 
-                                                            expr.RelExpr('<', expr.AConst(0), in_var),
-                                                            expr.RelExpr('<=', in_var, time_var)),
-                                            Q_y_s))
+                    conclu = Q_y_t
                     
                     pre = [Condition(expr=expr.ForAllExpr(time_var.name,
-                                                        expr.imp(expr.RelExpr('>=', time_var, expr.AConst(0)),
+                                                        expr.imp(expr.RelExpr('>', time_var, expr.AConst(0)),
                                                                 expr.imp(cond, conclu))),
                                     path=[sub_pos],
                                     origins=self.infos[sub_pos].inv.origins,
