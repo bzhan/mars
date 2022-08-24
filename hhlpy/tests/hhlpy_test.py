@@ -62,6 +62,7 @@ def runFile(self, file,
     if expected_vcs:
         for pos, vcs in expected_vcs.items():
             vcs = [parse_expr_with_meta(vc) for vc in vcs]
+            assert pos in verifier.infos, "pos {} is not in infos.".format(pos)
             actual_vcs = [vc.expr for vc in verifier.infos[pos].vcs if not is_trivial(vc.expr)]
             self.assertEqual(set(vcs), set(actual_vcs), 
             "\nExpect: {}\nActual: {}".format([str(vc) for vc in vcs],[str(vc) for vc in actual_vcs]))
@@ -163,7 +164,7 @@ class HHLPyTest(unittest.TestCase):
 
     def testVerify5(self):
         runFile(self, file="test5.hhl", print_vcs=False,
-                  expected_vcs={((), (0,)): ["x >= 0 -> x + 1 >= 0"]})
+                  expected_vcs={((0,), ()): ["x >= 0 -> x + 1 >= 0"]})
 
     def testVerify5_1(self):
         runFile(self, file="test5_1.hhl",
@@ -195,15 +196,15 @@ class HHLPyTest(unittest.TestCase):
 
     def testVerify11(self):
         runFile(self, file="test11.hhl",
-                  expected_vcs={((), ()): ["x0 >= 0 -> x0 >= 0 -> x1 >= 1 -> x1 >= 1"]})
+                  expected_vcs={((), ()): ["x1 >= 0 -> x1 >= 0 -> x2 >= 1 -> x2 >= 1"]})
 
     def testVerify12(self):
         runFile(self, file="test12.hhl",
-                  expected_vcs={((), ()): ["x >= 0 -> y0 >= x + 1 -> y0 >= 1"]})
+                  expected_vcs={((), ()): ["x >= 0 -> y1 >= x + 1 -> y1 >= 1"]})
 
     def testVerify13(self):
         runFile(self, file="test13.hhl",
-                  expected_vcs={((), ()): ["x >= 0 -> y1 >= x + 1 ->y0 >= x + 1 + 1 -> y0 >= 2"]})
+                  expected_vcs={((), ()): ["x >= 0 -> y2 >= x + 1 ->y1 >= x + 1 + 1 -> y1 >= 2"]})
 
     def testVerify9(self):
         runFile(self, file="test9.hhl", print_vcs=False)
@@ -269,14 +270,14 @@ class BasicHHLPyTest(unittest.TestCase):
     def testBasic3(self):
         runFile(self, file="basic3.hhl",
                   expected_vcs={((), ()): ["x >= 0 -> x + 1 >= 1"],
-                                ((1,), (0,)): ["x >= 1 -> x + 1 >= 1"]})
+                                ((1, 0), ()): ["x >= 1 -> x + 1 >= 1"]})
 
     def testBasic4(self):
         runFile(self, file="basic4.hhl",)
 
     def testBasic5(self):
         runFile(self, file="basic5.hhl",
-                  expected_vcs={((), ()): ["x >= 0 -> x0 >= 1 -> x0 >= 1"]})
+                  expected_vcs={((), ()): ["x >= 0 -> x1 >= 1 -> x1 >= 1"]})
 
     # TODO: Basic benchmark problem 6 is hard to translate into HCSP program.
 
@@ -298,9 +299,9 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testBasic12(self):
         runFile(self, file="basic12.hhl",
-                  expected_vcs={((), ()): ["y >= 0 -> x >= 0 && y >= 0 -> t0 >= 0 -> t0 > 0 -> y >= 0",
-                                           "y >= 0 -> x >= 0 && y >= 0 -> t0 >= 0 -> t0 > 0 -> x >= 0",
-                                           "y >= 0 -> x >= 0 && y >= 0 -> t0 >= 0 -> t0 <= 0 -> x >= 0"]})
+                  expected_vcs={((), ()): ["y >= 0 -> x >= 0 && y >= 0 -> t1 >= 0 -> t1 > 0 -> y >= 0",
+                                           "y >= 0 -> x >= 0 && y >= 0 -> t1 >= 0 -> t1 > 0 -> x >= 0",
+                                           "y >= 0 -> x >= 0 && y >= 0 -> t1 >= 0 -> t1 <= 0 -> x >= 0"]})
 
     def testBasic13(self):
         runFile(self, file="basic13.hhl",)
@@ -311,8 +312,8 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testBasic15(self):
         runFile(self, file="basic15.hhl", 
-                expected_vcs={((), ()): ["x > 0 -> t0 >= 0 -> t0 > 0 -> (\exists y. x * y * y == 1)", \
-                                         "x > 0 -> t0 >= 0 -> t0 <= 0 -> x > 0"],
+                expected_vcs={((), ()): ["x > 0 -> t1 >= 0 -> t1 > 0 -> (\exists y. x * y * y == 1)", \
+                                         "x > 0 -> t1 >= 0 -> t1 <= 0 -> x > 0"],
                               ((1,), ()): ["x * y * y == 1 && t == 0 -> x > 0"],
                               ((1,), (0,)): ["t > 0 -> x * y * (y / 2) + (x * (y / 2) + -x * y) * y == 0"]})
 
@@ -321,8 +322,8 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testBasic17(self):
         runFile(self, file="basic17.hhl", print_vcs=False,
-                expected_vcs={((), ()): ["y > 0 -> x > 0 && y > 0 -> t0 >= 0 -> t0 > 0 -> (\exists z. x * z * z == 1)",
-                                         "y > 0 -> x > 0 && y > 0 -> t0 >= 0 -> t0 <= 0 -> x > 0"],
+                expected_vcs={((), ()): ["y > 0 -> x > 0 && y > 0 -> t1 >= 0 -> t1 > 0 -> (\exists z. x * z * z == 1)",
+                                         "y > 0 -> x > 0 && y > 0 -> t1 >= 0 -> t1 <= 0 -> x > 0"],
                               ((1,), ()): ["y > 0 -> x * z * z == 1 && t == 0 -> x > 0"],
                               ((1,), (0,)): ["y > 0 -> t > 0 -> x * z * (y * z / 2) + (x * (y * z / 2) + -y * x * z) * z == 0"]})
 
@@ -425,9 +426,10 @@ class BasicHHLPyTest(unittest.TestCase):
                 #  constants={'A', 'V'}
                 ) 
 
-    def testBasic46(self):
-        runFile(self, file="basic46.hhl",)
+    # def testBasic46(self):
+    #     runFile(self, file="basic46.hhl",)
 
+    # TODO: 47 and 48
     # def testBasic47(self):
     #     runFile(self, file="basic47.hhl",)
 

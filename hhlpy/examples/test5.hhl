@@ -1,4 +1,4 @@
 # {x >= 0} (x := x+1)** {x >= 0}
 pre [x >= 0];
-{x := x+1;}* invariant [x >= 0]{{init 1.1(2).skip: z3}};
+{x := x+1;}* invariant [x >= 0];
 post [x >= 0];
