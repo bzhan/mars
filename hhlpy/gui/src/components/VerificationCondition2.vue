@@ -108,11 +108,6 @@ export default ({
       this.editorView.dispatch(this.editorView.state.update({
         changes: {from: pms_start_pos, to: pms_end_pos, insert: "{{" + new_proof_methods + "}}"}}))
 
-      // The proof method start position and end position of each verification condition
-      // may be changed after inserting.
-      // Therefore call the compute() function to get the new position.
-      // TODO: is there a better solution?
-      this.compute()
     },
 
     to_proof_method_dict(pms)

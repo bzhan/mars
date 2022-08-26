@@ -29,7 +29,7 @@ export default {
   watch: {
     "file.content": {
       handler (content) {
-        if (content !== null && !this.editor) {
+        if (content !== null && !this.editorView) {
           this.editorView = this.$refs.editor.initEditor(content);
           this.docChanged(content)
         }
@@ -82,6 +82,7 @@ export default {
         this.$refs.vcs.outdated = true;
         // Compute VCSs
         this.openFilesStore.files[this.file.name].content = content;
+        console.log("files:", this.openFilesStore.files)
         this.websocketStore.send({code: content, type: "compute", file: this.file.name});
       }
     }

@@ -711,7 +711,7 @@ class NonlinearHHLPyTest(unittest.TestCase):
     def testNonlinear55(self):
         runFile(self, file="nonlinear55.hhl")
 
-    # TODO: nonlinear problem 56, ODE rule is not clear. Not proved by keymaerax yet.
+    # TODO: nonlinear problem 56, ODE rule is not clear.
     # def testNonlinear56(self):
     #     # Nonlinear benchmark, problem 56
     #     # {-3<=x & x<=-2 & -3<=y & y<=-2}
