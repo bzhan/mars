@@ -602,7 +602,10 @@ class NonlinearHHLPyTest(unittest.TestCase):
     def testNonlinear18(self):
         runFile(self, file="nonlinear18.hhl")
 
-    # TODO: Nonlinear benchmark, problem 19, 20. The ODE rule is not clear.
+    # TODO: Nonlinear benchmark, problem 19. The ODE rule is not clear.
+
+    def testNonlinear20(self):
+        runFile(self, file="nonlinear20.hhl")
 
     def testNonlinear21(self):
         runFile(self, file="nonlinear21.hhl",)
@@ -612,8 +615,9 @@ class NonlinearHHLPyTest(unittest.TestCase):
 
     def testNonlinear23(self):
         runFile(self, file="nonlinear23.hhl")
-                  
-    # TODO: Nonlinear benchmark, problem 24. ODE rule not clear.
+
+    def testNonlinear24(self):
+        runFile(self, file="nonlinear24.hhl")
 
     def testNonlinear25(self):
         runFile(self, file="nonlinear25.hhl")
@@ -824,7 +828,17 @@ class NonlinearHHLPyTest(unittest.TestCase):
 
     # TODO: Nonlinear benchmark, problem 91. Invariants unknown.
 
-    # TODO: Nonlinear benchmark, problem 92, 93, 94, 95. ODE rule unknown.
+    def testNonlinear92(self):
+        runFile(self, file="nonlinear92.hhl")
+
+    def testNonlinear93(self):
+        runFile(self, file="nonlinear93.hhl")
+
+    def testNonlinear94(self):
+        runFile(self, file="nonlinear94.hhl")
+
+    def testNonlinear95(self):
+        runFile(self, file="nonlinear95.hhl")
 
     def testNonlinear96(self):
         runFile(self, file="nonlinear96.hhl")

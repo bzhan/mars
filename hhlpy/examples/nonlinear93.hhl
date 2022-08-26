@@ -1,0 +1,16 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Llibre Zhang 2002: Lorenz System (p. 1623 b=2s Variant s=1 r=1)"
+
+# Citation "Jaume Llibre, Xiang Zhang. On the invariant algebraic surfaces of the Lorenz systems. J. Math. Phys. 43, 1622 (2002)".
+# Link "https://doi.org/10.1063/1.1435078".
+
+pre [z2 > 5*x][x > 0][x < 4][b == 2][s == 1][r == 1];
+    t := *(t >= 0);
+   {x_dot=s*(y-x),
+    y_dot=r*x-y-x*z2,
+    z2_dot=-b*z2+x*y,
+    t_dot = -1
+    & t > 0
+   }
+   invariant [x^2 - 2*s*z2 <= 0]{dbx -2};
+  
+post [!((s <=1 && s >= -1) && (z2 <= 1 && z2 >= -1) && x > 1.8)];
