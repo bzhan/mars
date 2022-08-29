@@ -420,7 +420,8 @@ class CmdVerifier:
             # Split the subpre_expr if it is a conjunction, for example, A >= 0 && x >= A
             subpre_exprs = expr.split_conj(subpre_expr)
             for sub_expr in subpre_exprs:
-                if sub_expr.get_vars().isdisjoint(self.variable_names):
+                # vars is not empty and does not include variable names.
+                if sub_expr.get_vars() and sub_expr.get_vars().isdisjoint(self.variable_names):
                     self.infos[root_pos].assume.append(Condition(expr=sub_expr,
                                                                  origins=subpre.origins))
 
@@ -826,8 +827,9 @@ class CmdVerifier:
 
             # Currently assume out_hp is Skip.
             constraint = cur_hp.constraint
-            # The pre-condition computed for invariant and for dw rule is set None initially.
-            pre = None
+            # The pre-condition computed for invariant  is set as empty.
+            # The pre-condition for dw rule is set as None initially.
+            pre = []
             pre_dw = None
             ghost_vars = []
 
@@ -863,6 +865,11 @@ class CmdVerifier:
             # Lipschitz condition.
             if cur_hp.ghosts:
                 for ghost in cur_hp.ghosts:
+                    # Verify the reasonablity of ghost equations.
+                    # f(x, y) should be in the form: a(x) * y + b(x), y is not in a(x) or b(x)
+                    ghost_var_degree = degree(sympify(str(ghost.diff).replace('^', '**')), gen=symbols(ghost.var))
+                    if not ghost_var_degree in {0,1}:
+                        raise AssertionError("Ghost equations should be linear in ghost variable!")
                     self.infos[pos].eqs_dict[ghost.var] = ghost.diff
                     ghost_vars.append(ghost.var)
                 exists_inv = expr.ExistsExpr(ghost_vars, inv_conj)
@@ -1134,14 +1141,21 @@ class CmdVerifier:
                         isVC=True))
 
                 # Use solution axiom
+                #
+                # ---------------------------------------------------------------------------
                 # [[ bar of D, 
                 #    \forall t > 0. (\forall 0 <= s <= t bar of D(y(s))) -> Q(y(t))]] 
                 # <x_dot = f(x) & D(x)> 
                 # [[Q(x)]]
                 #
-                # Assume y(.) solve the symbolic initial value problem y'(t) = f(y), y(0) = x
+                # f(x) is linear in x. Assume y(.) solve the symbolic initial value problem y'(t) = f(y), y(0) = x
                 elif inv.rule == "sln":
                     assert inv.rule_arg is None
+                    for var, diff in self.infos[sub_pos].eqs_dict.items():
+                        d = degree(sympify(str(diff).replace('^', '**')), gen=symbols(var))
+                        if not d in {0,1}:
+                            raise AssertionError("{0} should be linear in {1} when using sln rule!".format(diff, var))
+
                     # Create a new variable to represent time
                     time_var = create_newvar('t', self.names)
 
@@ -1173,7 +1187,7 @@ class CmdVerifier:
                     # Compute the conclusion of implication
                     conclu = Q_y_t
                     
-                    pre = [Condition(expr=expr.ForAllExpr(time_var.name,
+                    pre = pre + [Condition(expr=expr.ForAllExpr(time_var.name,
                                                         expr.imp(expr.RelExpr('>', time_var, expr.AConst(0)),
                                                                 expr.imp(cond, conclu))),
                                     path=[sub_pos],

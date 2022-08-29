@@ -35,7 +35,7 @@ if path:
     except WolframKernelException:
         print("Failed to start Wolfram Kernel")
 
-def toWLexpr(e, functions):
+def toWLexpr(e, functions=dict()):
     """Convert a hcsp expression to WolframLanguage expression"""
     def rec(e):
         if isinstance(e, expr.AVar):
