@@ -1,0 +1,7 @@
+# ArchiveEntry "Benchmarks/Basic/Static semantics correctness: Assignment 1"
+# 
+# Description "Basic assignment".
+
+pre [x >= 0];
+x := x+1;
+post [x >= 1];

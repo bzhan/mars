@@ -1,0 +1,9 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Stable Limit Cycle 2".
+
+pre [a^2 + y^2 < 1/16];
+t := * (t >= 0);
+{a_dot = a-a^3+y-a*y^2, 
+ y_dot = -a+y-a^2*y-y^3, 
+ t_dot = -1 & t > 0}
+invariant [a^2+y^2 <= 1] {dbx};
+post [!(a < -1 || y < -1 || a > 1 || y > 1)];

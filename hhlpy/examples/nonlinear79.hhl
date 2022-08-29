@@ -1,0 +1,10 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Looping Particle".
+# 
+# Citation "Hui Kong, Sergiy Bogomolov, Christian Schilling, Yu Jiang, Thomas A. Henzinger. Invariant Clusters for Hybrid Systems. CoRR abs/1605.01450 (2016)".
+
+pre [x == 2] [y == 0] [r == 2];
+t := * (t >= 0); 
+{x_dot = -y*omega, y_dot = x*omega, omega_dot = -g/r^2*x, 
+ t_dot = -1 & t > 0}
+invariant [x^2+y^2>=4];
+post [2*x^2+y^2 > 3];

@@ -1,0 +1,21 @@
+%type: module
+
+module P():
+output q, c;
+begin
+  t := 0;
+  _tick := 0;
+  tt := 0;
+  q := 95;
+  c := 100;
+  {
+    {tt_dot = 1, q_dot = (c > 100 ? -1 : 1), c_dot = (-q + c) * -0.026 & tt < 1}
+    t := t + tt;
+    _tick := _tick + 1;
+    tt := 0;
+  }*
+end
+endmodule
+system
+  P=P()
+endsystem

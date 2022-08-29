@@ -4,7 +4,7 @@ import unittest
 
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp.expr import true_expr, AVar, AConst
-from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser, hp_parser
+from ss2hcsp.hcsp.parser import expr_parser, expr_parser, hp_parser
 from ss2hcsp.hcsp import hcsp
 
 
@@ -15,7 +15,7 @@ class ExprTest(unittest.TestCase):
         self.assertEqual(expr.get_range(0.1, 0.41), [0.1, 0.2, 0.3, 0.4, 0.41])
         self.assertEqual(expr.get_range(0.03, 0.4), [0.03, 0.1, 0.2, 0.3, 0.4])
 
-    def testAExprParser(self):
+    def testExprParser(self):
         test_data = [
             "a + 1",
             "a * b",
@@ -37,35 +37,35 @@ class ExprTest(unittest.TestCase):
         ]
         
         for s in test_data:
-            expr = aexpr_parser.parse(s)
+            expr = expr_parser.parse(s)
             self.assertEqual(str(expr), s)
 
-    def testBExprParser(self):
+    def testExprParser(self):
         test_data = [
             "a < 1",
-            "a == 1 & true",
-            "a == 1 & b == 2 & c == 3",
-            "(a == 1 & b == 2) & c == 3",
-            "a == 1 & b == 2 | c == 3",
-            "a == 1 | b == 2 & c == 3",
-            "(a == 1 | b == 2) & c == 3",
-            "(a == 1 | b == 2 | c == 3) & d == 4",
+            "a == 1 && true",
+            "a == 1 && b == 2 && c == 3",
+            "(a == 1 && b == 2) && c == 3",
+            "a == 1 && b == 2 || c == 3",
+            "a == 1 || b == 2 && c == 3",
+            "(a == 1 || b == 2) && c == 3",
+            "(a == 1 || b == 2 || c == 3) && d == 4",
         ]
 
         for s in test_data:
-            expr = bexpr_parser.parse(s)
+            expr = expr_parser.parse(s)
             self.assertEqual(str(expr), s)
 
     def assertConditionalInst(self, test_data, res):
         inst = expr.Conditional_Inst()
         for var_name, cond_inst_str in test_data:
-            cond_inst = [(bexpr_parser.parse(cond), aexpr_parser.parse(inst))
+            cond_inst = [(expr_parser.parse(cond), expr_parser.parse(inst))
                          for cond, inst in cond_inst_str]
             inst.add(var_name, cond_inst)
 
         res_inst = dict()
         for var_name, cond_inst_str in res:
-            cond_inst = [(bexpr_parser.parse(cond), aexpr_parser.parse(inst))
+            cond_inst = [(expr_parser.parse(cond), expr_parser.parse(inst))
                          for cond, inst in cond_inst_str]
             res_inst[var_name] = cond_inst
         self.assertEqual(inst.data, res_inst)
@@ -91,8 +91,8 @@ class ExprTest(unittest.TestCase):
 
         res = [
             ("w", [("in >= 5", "a"), ("in < 5", "b")]),
-            ("z", [("a >= 10 & in >= 5 | b >= 10 & in < 5", "x"),
-                   ("a < 10 & in >= 5 | b < 10 & in < 5", "y")]),
+            ("z", [("a >= 10 && in >= 5 || b >= 10 && in < 5", "x"),
+                   ("a < 10 && in >= 5 || b < 10 && in < 5", "y")]),
         ]
 
         self.assertConditionalInst(test_data, res)
@@ -105,7 +105,7 @@ class ExprTest(unittest.TestCase):
             "{skip;}*",
             "x1?x1;",
             "x1!x2;",
-            "<x_dot = x + 1, y_dot = y + 1 & x < 3> |> [] (x?x --> skip;, y!y --> skip;)",
+            "{x_dot = x + 1, y_dot = y + 1 & x < 3} |> [] (x?x --> skip;, y!y --> skip;)",
             "x?x --> skip; $ y!y --> x := 2;",
             "@A; @B; || @C;",
             "@A; @B; || @C; @D;",

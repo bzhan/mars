@@ -86,9 +86,9 @@ def translate_isabelle(process, name):
                 print(e)
                 raise NotImplementedError
         elif isinstance(e, expr.LogicExpr):
-            if e.op == '|':
+            if e.op == '||':
                 return "%s \<or> %s" % (trans_expr(e.expr1), trans_expr(e.expr2))
-            elif e.op == '&':
+            elif e.op == '&&':
                 return "%s \<and> %s" % (trans_expr(e.expr1), trans_expr(e.expr2))
             else:
                 raise NotImplementedError

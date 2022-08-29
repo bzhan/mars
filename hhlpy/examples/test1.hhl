@@ -1,0 +1,4 @@
+function bar(x) = x + 1;
+pre [x >= 0];
+x := bar(x);
+post [x >= 1];

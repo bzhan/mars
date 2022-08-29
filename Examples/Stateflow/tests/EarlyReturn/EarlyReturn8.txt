@@ -26,14 +26,14 @@ procedure exec_Chart begin
       Chart_ret := J34_done;
       Chart_A_A1_done := Chart_ret;
     }
-    if (Chart_A_st == "Chart_A_A1" & Chart_A_A1_done == 0) {
+    if (Chart_A_st == "Chart_A_A1" && Chart_A_A1_done == 0) {
       s := "c";
       log("c" + "\n");
       if (Chart_A_st == "Chart_A_A1") {
         J40_done := 0;
-        if (ChartEL != [] & top(ChartEL) == "E") {
+        if (ChartEL != [] && top(ChartEL) == "E") {
           J41_done := 0;
-          if (ChartEL != [] & top(ChartEL) == "E") {
+          if (ChartEL != [] && top(ChartEL) == "E") {
             if (Chart_A_st == "Chart_A_A1") {
               s := "ex_A1";
               log("ex_A1" + "\n");
@@ -55,7 +55,7 @@ procedure exec_Chart begin
         Chart_A_A1_done := Chart_ret;
       }
     }
-    if (Chart_A_st == "Chart_A_A1" & Chart_A_A1_done == 0) {
+    if (Chart_A_st == "Chart_A_A1" && Chart_A_A1_done == 0) {
       s := "du_A1";
       log("du_A1" + "\n");
     }
@@ -63,7 +63,7 @@ procedure exec_Chart begin
   Chart_ret := 0;
   if (Chart_B_st == "Chart_B_B1") {
     Chart_B_B1_done := 0;
-    if (ChartEL != [] & top(ChartEL) == "E") {
+    if (ChartEL != [] && top(ChartEL) == "E") {
       if (Chart_B_st == "Chart_B_B1") {
         Chart_B_st := "Chart_B_B3";
         s := "en_B3";
@@ -72,7 +72,7 @@ procedure exec_Chart begin
         Chart_B_B1_done := 1;
       }
     }
-    if (Chart_B_st == "Chart_B_B1" & Chart_B_B1_done == 0) {
+    if (Chart_B_st == "Chart_B_B1" && Chart_B_B1_done == 0) {
       s := "b";
       log("b" + "\n");
       if (Chart_B_st == "Chart_B_B1") {

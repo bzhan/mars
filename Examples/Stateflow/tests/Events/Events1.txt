@@ -3,7 +3,7 @@
 module Chart():
 procedure exec_Chart begin
   if (Chart_A_st == "Chart_A_A1") {
-    if (ChartEL != [] & top(ChartEL) == "E") {
+    if (ChartEL != [] && top(ChartEL) == "E") {
       s := "a";
       log("a" + "\n");
       if (Chart_A_st == "Chart_A_A1") {
@@ -13,7 +13,7 @@ procedure exec_Chart begin
       }
     }
   } else if (Chart_A_st == "Chart_A_A2") {
-    if (ChartEL != [] & top(ChartEL) == "E") {
+    if (ChartEL != [] && top(ChartEL) == "E") {
       s := "a2";
       log("a2" + "\n");
       if (Chart_A_st == "Chart_A_A2") {

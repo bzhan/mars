@@ -3,11 +3,11 @@
 module Chart():
 procedure exec_Chart begin
   if (Chart_A_st == "Chart_A_A1") {
-    if (ChartEL != [] & top(ChartEL) == "E") {
+    if (ChartEL != [] && top(ChartEL) == "E") {
       s := "a1";
       log("a1" + "\n");
       if (Chart_A_st == "Chart_A_A1") {
-        if (ChartEL != [] & top(ChartEL) == "E") {
+        if (ChartEL != [] && top(ChartEL) == "E") {
           s := "a2";
           log("a2" + "\n");
           if (Chart_A_st == "Chart_A_A1") {

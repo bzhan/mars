@@ -1,0 +1,6 @@
+# Several ODE in sequence
+# {x > 0} <x_dot = 5>; <x_dot = 2>; {x > 0}
+pre [x > 0];
+{x_dot = 5 & x < 1} invariant [x > 0]; 
+{x_dot = 2 & x < 2} invariant [x > 0]; 
+post [x > 0];

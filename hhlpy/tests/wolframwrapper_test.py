@@ -5,7 +5,7 @@ import unittest
 from hhlpy.wolframengine_wrapper import wl_simplify, wl_polynomial_div, wl_is_polynomial
 from hhlpy.wolframengine_wrapper import session
 from ss2hcsp.hcsp import expr
-from ss2hcsp.hcsp.parser import bexpr_parser, aexpr_parser
+from ss2hcsp.hcsp.parser import expr_parser, expr_parser
 
 class WolframWrapperTest(unittest.TestCase):
     @classmethod
@@ -30,8 +30,8 @@ class WolframWrapperTest(unittest.TestCase):
             "x > 2 <--> 2 < x"  :"true"
         }
         for k, e in test_case_bexpr.items():
-            k = bexpr_parser.parse(k)
-            e = bexpr_parser.parse(e)
+            k = expr_parser.parse(k)
+            e = expr_parser.parse(e)
 
             self.assertTrue(wl_simplify(k) == e)
 
@@ -42,13 +42,13 @@ class WolframWrapperTest(unittest.TestCase):
         }
 
         for k, vals in test_cases.items():
-            p = aexpr_parser.parse(k[0])
-            q = aexpr_parser.parse(k[1])
+            p = expr_parser.parse(k[0])
+            q = expr_parser.parse(k[1])
             quot_remains = wl_polynomial_div(p, q)
 
             for val in vals:
-                val0 = aexpr_parser.parse(val[0])
-                val1 = aexpr_parser.parse(val[1])
+                val0 = expr_parser.parse(val[0])
+                val1 = expr_parser.parse(val[1])
 
                 self.assertTrue(quot_remains[val0] == val1)
 
@@ -65,7 +65,7 @@ class WolframWrapperTest(unittest.TestCase):
             constants = case[1]
             result = case[2]
 
-            e = aexpr_parser.parse(e)
+            e = expr_parser.parse(e)
 
             self.assertTrue(wl_is_polynomial(e, constants) == result)
 

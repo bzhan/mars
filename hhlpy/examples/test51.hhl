@@ -1,0 +1,5 @@
+# ITE
+# {x >= 0} if (x < 5) x := x + 1; else x := x; {x > 0}
+pre [x >= 0];
+if (x < 5) { x := x + 1; } else { x := x; }
+post [x > 0];

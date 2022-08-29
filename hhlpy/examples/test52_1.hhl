@@ -1,0 +1,7 @@
+pre [v >= 0] [A > 0] [B > 0] [x + v^2 / (2*B) < S];
+{a := -B;
+{x_dot = v, v_dot = a & v > 0}
+    invariant [a == -B] [x+v^2/(2*B) <= S];
+}*
+invariant [x+v^2/(2*B) <= S] [v >= 0];
+post [x <= S];

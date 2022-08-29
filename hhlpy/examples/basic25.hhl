@@ -1,0 +1,7 @@
+# ArchiveEntry "Benchmarks/Basic/Dynamics: Spiral to equilibrium"
+
+pre [w >= 0] [x == 0] [y == 3];
+t := 0; 
+{x_dot = y, y_dot = -w^2 * x - 2 * w * y, t_dot = 1 & t < 10} 
+invariant [w >= 0] [w^2 * x^2 + y^2 <= 9];
+post [w^2 * x^2 + y^2 <= 9];

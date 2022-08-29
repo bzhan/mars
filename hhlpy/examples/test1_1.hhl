@@ -1,0 +1,5 @@
+function bar(x) = x + 1;
+
+pre [y >= 0];
+y := bar(y);
+post [y >= 1]{{wolfram}};

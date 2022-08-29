@@ -1,0 +1,41 @@
+# ArchiveEntry "Benchmarks/Nonlinear/ZYLZCL Example C9".
+# 
+# Description "Example C9".
+# Citation "Yifan Zhang, Zhengfeng Yang, Wang Lin, Huibiao Zhu, Xin Chen, Xuandong Li. Safety Verification of Nonlinear Hybrid Systems Based on Bilinear Programming.".
+
+# It takes a very long time to prove.
+
+pre [0.99 <= x1] [x1 <= 1.01]
+    [0.99 <= x2] [x2 <= 1.01]
+    [0.99 <= x3] [x3 <= 1.01]
+    [0.99 <= x4] [x4 <= 1.01]
+    [0.99 <= x5] [x5 <= 1.01]
+    [0.99 <= x6] [x6 <= 1.01]
+    [0.99 <= x7] [x7 <= 1.01];
+t := * (t >= 0); 
+{x1_dot = -0.4*x1 + 5*x3*x4,
+ x2_dot = 0.4*x1 - x2,
+ x3_dot = x2 - 5*x3*x4,
+ x4_dot = 5*x5*x6 - 5*x3*x4,
+ x5_dot = -5*x5*x6 + 5*x3*x4,
+ x6_dot = 0.5*x7 - 5*x5*x6,
+ x7_dot = -0.5*x7 + 5*x5*x6,
+ t_dot = -1 
+  & t > 0 &&
+    -2 < x1 && x1 < 2 &&
+    -2 < x2 && x2 < 2 &&
+    -2 < x3 && x3 < 2 &&
+    -2 < x4 && x4 < 2 &&
+    -2 < x5 && x5 < 2 &&
+    -2 < x6 && x6 < 2 &&
+    -2 < x7 && x7 < 2}
+invariant [x1+x2+x3<=706/233];
+post [!(
+    1.8 <= x1 && x1 <= 2 &&
+    1.8 <= x2 && x2 <= 2 &&
+    1.8 <= x3 && x3 <= 2 &&
+    1.8 <= x4 && x4 <= 2 &&
+    1.8 <= x5 && x5 <= 2 &&
+    1.8 <= x6 && x6 <= 2 &&
+    1.8 <= x7 && x7 <= 2
+)];

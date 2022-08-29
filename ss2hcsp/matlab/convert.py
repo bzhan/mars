@@ -6,7 +6,7 @@ from ss2hcsp.sf.sf_state import GraphicalFunction
 
 
 def subtract_one(e):
-    assert isinstance(e, expr.AExpr)
+    assert isinstance(e, expr.Expr)
     if isinstance(e, expr.AConst):
         return expr.AConst(e.value - 1)
     else:
@@ -129,7 +129,7 @@ def convert_expr(e, *, procedures=None, arrays=None, messages=None,states=None):
                 return expr.AConst("0")
         elif isinstance(e, function.LogicExpr):
             exprs = [rec(ex) for ex in e.exprs]
-            op_name = {"&&":"&", "||":"|", "-->":"->", "<-->":"<->", "~":"!"}[e.op_name]
+            op_name = {"&&":"&&", "||":"||", "-->":"->", "<-->":"<->", "~":"!"}[e.op_name]
             return expr.LogicExpr(op_name, *exprs)
         elif isinstance(e, function.RelExpr):
                 return expr.RelExpr(e.op, rec(e.expr1), rec(e.expr2))
@@ -151,7 +151,7 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
     procedures : dict(str, Procedure) - mapping from procedure names to
         procedure objects.
 
-    still_there : expr.BExpr - continue execution only if this condition holds.
+    still_there : expr.Expr - continue execution only if this condition holds.
 
     arrays : set(str) - names that should be interpreted as arrays (instead of functions).
 

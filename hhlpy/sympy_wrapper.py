@@ -8,66 +8,71 @@ from sympy.logic.boolalg import BooleanFunction, BooleanAtom, BooleanTrue, Boole
 
 from ss2hcsp.hcsp import expr
 
-def toSpexpr(e):
+def toSpexpr(e, functions):
     """Conversion from hcsp expression to sympy expression"""
-    if isinstance(e, expr.AVar):
-        return sympy.symbols(e.name)
-    elif isinstance(e, expr.AConst):
-        if isinstance(e.value, Decimal):
-            return sympy.Rational(str(e.value))
-        elif isinstance(e.value, (int, float, Fraction)):
-            return sympy.sympify(e.value)
-        else:
-            raise NotImplementedError
-    elif isinstance(e, expr.BConst):
-        return sympy.sympify(e.value) 
-    elif isinstance(e, expr.FunExpr):
-        if len(e.exprs) == 0:          
-            return sympy.symbols(str(e))
-        else:
-            raise NotImplementedError
-    elif isinstance(e, expr.OpExpr):
-        if e.op == '+':
-            return sympy.Add(toSpexpr(e.exprs[0]), toSpexpr(e.exprs[1]))
-        elif e.op == '-':
-            if len(e.exprs) == 1:
-                return sympy.Mul(sympy.S.NegativeOne, toSpexpr(e.exprs[0]))
+    def rec(e):
+        if isinstance(e, expr.AVar):
+            return sympy.symbols(e.name)
+        elif isinstance(e, expr.AConst):
+            if isinstance(e.value, Decimal):
+                return sympy.Rational(str(e.value))
+            elif isinstance(e.value, (int, float, Fraction)):
+                return sympy.sympify(e.value)
             else:
-                return sympy.Add(toSpexpr(e.exprs[0]), 
-                                 sympy.Mul(sympy.S.NegativeOne, toSpexpr(e.exprs[1])))
-        elif e.op == '*':
-            return sympy.Mul(toSpexpr(e.exprs[0]), toSpexpr(e.exprs[1]))
-        elif e.op == '/':
-            return sympy.Mul(toSpexpr(e.exprs[0]),
-                             sympy.Pow(toSpexpr(e.exprs[1]), sympy.S.NegativeOne))
-        elif e.op == '^':
-            return sympy.Pow(toSpexpr(e.exprs[0]), toSpexpr(e.exprs[1]))
-    elif isinstance(e, expr.RelExpr):
-        if e.op == '<':
-            return sympy.Rel(toSpexpr(e.expr1), toSpexpr(e.expr2), '<')
-        elif e.op == '<=':
-            return sympy.Rel(toSpexpr(e.expr1), toSpexpr(e.expr2), '<=')
-        elif e.op == '>':
-            return sympy.Rel(toSpexpr(e.expr1), toSpexpr(e.expr2), '>')
-        elif e.op == '>=':
-            return sympy.Rel(toSpexpr(e.expr1), toSpexpr(e.expr2), '>=')
-        elif e.op == '==':
-            return sympy.Rel(toSpexpr(e.expr1), toSpexpr(e.expr2), '==')
-        elif e.op == '!=':
-            return sympy.Rel(toSpexpr(e.expr1), toSpexpr(e.expr2), '!=')
-    elif isinstance(e, expr.LogicExpr):
-        if e.op == '&':
-            return sympy.And(toSpexpr(e.exprs[0]), toSpexpr(e.exprs[1]))
-        elif e.op == '|':
-            return sympy.Or(toSpexpr(e.exprs[0]), toSpexpr(e.exprs[1]))
-        elif e.op == '!':
-            return sympy.Not(toSpexpr(e.exprs[0]))
-        elif e.op == '->':
-            return sympy.Implies(toSpexpr(e.exprs[0]), toSpexpr(e.exprs[1]))
-        elif e.op == '<->':
-            return sympy.Equivalent(toSpexpr(e.exprs[0]), toSpexpr(e.exprs[1]))
-    else:
-        raise NotImplementedError
+                raise NotImplementedError
+        elif isinstance(e, expr.BConst):
+            return sympy.sympify(e.value) 
+        elif isinstance(e, expr.FunExpr):
+            if len(e.exprs) == 0:          
+                return sympy.symbols(str(e))
+            elif e.fun_name in functions:
+                return rec(expr.replace_function(e, functions))
+            else:
+                raise NotImplementedError
+        elif isinstance(e, expr.OpExpr):
+            if e.op == '+':
+                return sympy.Add(rec(e.exprs[0]), rec(e.exprs[1]))
+            elif e.op == '-':
+                if len(e.exprs) == 1:
+                    return sympy.Mul(sympy.S.NegativeOne, rec(e.exprs[0]))
+                else:
+                    return sympy.Add(rec(e.exprs[0]), 
+                                    sympy.Mul(sympy.S.NegativeOne, rec(e.exprs[1])))
+            elif e.op == '*':
+                return sympy.Mul(rec(e.exprs[0]), rec(e.exprs[1]))
+            elif e.op == '/':
+                return sympy.Mul(rec(e.exprs[0]),
+                                sympy.Pow(rec(e.exprs[1]), sympy.S.NegativeOne))
+            elif e.op == '^':
+                return sympy.Pow(rec(e.exprs[0]), rec(e.exprs[1]))
+        elif isinstance(e, expr.RelExpr):
+            if e.op == '<':
+                return sympy.Rel(rec(e.expr1), rec(e.expr2), '<')
+            elif e.op == '<=':
+                return sympy.Rel(rec(e.expr1), rec(e.expr2), '<=')
+            elif e.op == '>':
+                return sympy.Rel(rec(e.expr1), rec(e.expr2), '>')
+            elif e.op == '>=':
+                return sympy.Rel(rec(e.expr1), rec(e.expr2), '>=')
+            elif e.op == '==':
+                return sympy.Rel(rec(e.expr1), rec(e.expr2), '==')
+            elif e.op == '!=':
+                return sympy.Rel(rec(e.expr1), rec(e.expr2), '!=')
+        elif isinstance(e, expr.LogicExpr):
+            if e.op == '&&':
+                return sympy.And(rec(e.exprs[0]), rec(e.exprs[1]))
+            elif e.op == '|':
+                return sympy.Or(rec(e.exprs[0]), rec(e.exprs[1]))
+            elif e.op == '!':
+                return sympy.Not(rec(e.exprs[0]))
+            elif e.op == '->':
+                return sympy.Implies(rec(e.exprs[0]), rec(e.exprs[1]))
+            elif e.op == '<->':
+                return sympy.Equivalent(rec(e.exprs[0]), rec(e.exprs[1]))
+        else:
+            raise NotImplementedError
+
+    return rec(e)
 
 def toHcsp(e):
     """Conversion from sympy expression to hcsp expression"""
@@ -128,18 +133,18 @@ def toHcsp(e):
         else:
             raise NotImplementedError
 
-def sp_simplify(e):
+def sp_simplify(e, functions):
     """Simplify the given expression by sympy"""
-    sp_expr = toSpexpr(e)
+    sp_expr = toSpexpr(e, functions)
     sp_expr = sympy.simplify(sp_expr)
     hcsp_expr = toHcsp(sp_expr)
 
     return hcsp_expr
 
-def sp_polynomial_div(p, q):
+def sp_polynomial_div(p, q, functions):
     """Compute the quotient and remainder of polynomial p and q"""
-    p = toSpexpr(p)
-    q = toSpexpr(q)
+    p = toSpexpr(p, functions)
+    q = toSpexpr(q, functions)
     quot, remain = sympy.div(p, q)
 
     quot = toHcsp(quot)
@@ -149,12 +154,12 @@ def sp_polynomial_div(p, q):
 
     return quot_remains
 
-def sp_is_polynomial(e, constants=set()):
+def sp_is_polynomial(e, functions, constants=set()):
     """Return True if the given expression is a polynomial and False otherwise"""
     vars = e.get_vars().difference(constants)
     vars = {sympy.Symbol(var) for var in vars}
 
-    e = toSpexpr(e)
+    e = toSpexpr(e, functions)
 
     result = e.is_polynomial(*vars)
 

@@ -5,7 +5,7 @@ from ss2hcsp.sl.sl_block import SL_Block, get_gcd
 from ss2hcsp.sl.Continuous.signalBuilder import SignalBuilder
 from itertools import product
 import operator
-from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
+from ss2hcsp.hcsp.parser import expr_parser, hp_parser
 from ss2hcsp.sl.mux.mux import Mux
 from ss2hcsp.hcsp.module import HCSPModule
 from ss2hcsp.hcsp import hcsp
@@ -118,7 +118,7 @@ def translate_continuous(diagram):
             assert isinstance(out_var, str) and isinstance(in_var, AVar)
             if in_var.name in var_to_expr:
                 in_var = var_to_expr[in_var.name]
-                assert isinstance(in_var, AExpr)
+                assert isinstance(in_var, Expr)
             new_ode_eqs.append((out_var, in_var))
         # Update expressions on output channels by var_to_expr
         new_out_channels = []
@@ -126,7 +126,7 @@ def translate_continuous(diagram):
             assert isinstance(out_ch.expr, AVar)
             if out_ch.expr.name in var_to_expr:
                 new_expr = var_to_expr[out_ch.expr.name]
-                assert isinstance(new_expr, AExpr)
+                assert isinstance(new_expr, Expr)
                 new_out_channels.append(hp.OutputChannel(ch_name=out_ch.ch_name, expr=new_expr))
             else:
                 new_out_channels.append(hp.OutputChannel(ch_name=out_ch.ch_name, expr=out_ch.expr))
@@ -160,14 +160,14 @@ def translate_continuous(diagram):
         send_out_vars = out_comms[0][0]
     elif len(out_comms) >= 2:
         send_out_vars = hp.Sequence(hp_parser.parse("num := %s;" % len(out_comms)),
-                                    hp.Loop(hp=hp.SelectComm(*out_comms), constraint=bexpr_parser.parse("num > 0")))
+                                    hp.Loop(hp=hp.SelectComm(*out_comms), constraint=expr_parser.parse("num > 0")))
 
     receive_in_vars = hp.Skip()  # no input channel operations
     if len(in_comms) == 1:
         receive_in_vars = in_comms[0][0]
     elif len(in_comms) >= 2:
         receive_in_vars = hp.Sequence(hp_parser.parse("num := %s;" % len(in_comms)),
-                                      hp.Loop(hp=hp.SelectComm(*in_comms), constraint=bexpr_parser.parse("num > 0")))
+                                      hp.Loop(hp=hp.SelectComm(*in_comms), constraint=expr_parser.parse("num > 0")))
 
     init_hps.extend([send_out_vars, receive_in_vars])
 
@@ -208,7 +208,7 @@ def translate_discrete(diagram):
         _var_map = _block.get_var_map()
         processes = []
         for _out_var, cond_expr_list in _var_map.items():
-            assert all(isinstance(_cond, BExpr) and isinstance(_expr, (AExpr, BExpr))
+            assert all(isinstance(_cond, Expr) and isinstance(_expr, (Expr, Expr))
                        for _cond, _expr in cond_expr_list) and cond_expr_list
             if len(cond_expr_list) == 1:
                 assert cond_expr_list[0][0] == true_expr

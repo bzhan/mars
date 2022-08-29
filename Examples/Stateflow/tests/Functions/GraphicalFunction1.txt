@@ -3,12 +3,12 @@
 module Chart():
 procedure J2 begin
   J2_done := 0;
-  if (i <= N & a[i - 1] == 0) {
+  if (i <= N && a[i - 1] == 0) {
     i := i + 1;
     @J2;
     J2_done := 1;
   }
-  if (J2_done == 0 & i > N) {
+  if (J2_done == 0 && i > N) {
     index := -1;
     J2_done := 1;
   }

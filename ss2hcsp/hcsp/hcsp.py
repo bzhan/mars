@@ -1,9 +1,10 @@
 """Hybrid programs"""
 
 from collections import OrderedDict
-from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, false_expr, RelExpr, LogicExpr
-from ss2hcsp.hcsp.invariant import Invariant, LoopInvariant
-from ss2hcsp.matlab import function
+from typing import Union
+
+from ss2hcsp.hcsp.expr import Expr, AVar, AConst, Expr, true_expr, false_expr, RelExpr, LogicExpr, Expr
+from ss2hcsp.hcsp import assertion
 from ss2hcsp.util.topsort import topological_sort
 import re
 
@@ -24,7 +25,7 @@ class Channel:
             args = tuple()
 
         # Each argument is either integer, (unevaluated) expression, or variable
-        assert isinstance(args, tuple) and all(isinstance(arg, (AExpr, int, str)) for arg in args)
+        assert isinstance(args, tuple) and all(isinstance(arg, (Expr, int, str)) for arg in args)
 
         self.name = name
         self.args = args
@@ -67,6 +68,29 @@ class Channel:
         else:
             return Channel(self.name, tuple(arg if isinstance(arg, (int, str)) else arg.subst(inst)
                                             for arg in self.args))
+
+class Function:
+    """Declarations of (pure functions).
+    
+    Each pure functions is defined by a list of variables and an expression.
+    When the function is called, the variables in the expression are
+    substituted for the arguments to the function.
+    
+    """
+    def __init__(self, name: str, vars, expr: Union[Expr, str]):
+        assert isinstance(vars, list) and all(isinstance(var, str) for var in vars)
+        if isinstance(expr, str):
+            from ss2hcsp.hcsp.parser import expr_parser
+            expr = expr_parser.parse(expr)
+        self.name = name
+        self.vars = vars
+        self.expr = expr
+
+    def __str__(self):
+        return "%s(%s) = %s" % (self.name, ",".join(var for var in self.vars), self.expr)
+
+    def __repr__(self):
+        return "Function(%s, %s, %s)" % (self.name, repr(self.vars), repr(self.expr))
 
 
 class HCSP:
@@ -111,7 +135,7 @@ class HCSP:
             return 1
         elif isinstance(self, (Sequence, Parallel)):
             return 1 + sum([hp.size() for hp in self.hps])
-        elif isinstance(self, (Loop, Recursion)):
+        elif isinstance(self, Loop):
             return 1 + self.hp.size()
         elif isinstance(self, ODE):
             return 1
@@ -133,8 +157,7 @@ class HCSP:
             for sub_hp in self.hps:
                 if sub_hp.contain_hp(name):
                     return True
-        elif isinstance(self, (Loop, Condition, Recursion)):
-            # Note the test for Recursion is imprecise.
+        elif isinstance(self, Loop):
             return self.hp.contain_hp(name)
         elif isinstance(self, ODE):
             return self.out_hp.contain_hp(name)
@@ -168,7 +191,7 @@ class HCSP:
             elif isinstance(hp, (Sequence, Parallel)):
                 for sub_hp in hp.hps:
                     rec(sub_hp)
-            elif isinstance(hp, (Loop, Recursion)):
+            elif isinstance(hp, Loop):
                 rec(hp.hp)
             elif isinstance(hp, ODE):
                 rec(hp.out_hp)
@@ -231,8 +254,6 @@ class HCSP:
             return Loop(self.hp.subst_comm(inst), constraint=self.constraint)
         elif self.type == 'select_comm':
             return SelectComm(*(subst_io_comm(io_comm) for io_comm in self.io_comms))
-        elif self.type == 'recursion':
-            return Recursion(self.hp.subst_comm(inst), entry=self.entry)
         elif self.type == 'ite':
             return ITE([subst_if_hp(if_hp) for if_hp in self.if_hps], 
               self.else_hp.subst_comm(inst) if self.else_hp is not None else None)
@@ -287,7 +308,7 @@ class Skip(HCSP):
 class Wait(HCSP):
     def __init__(self, delay, meta=None):
         super(Wait, self).__init__()
-        assert isinstance(delay, AExpr)
+        assert isinstance(delay, Expr)
         self.type = "wait"
         self.delay = delay
         self.meta = meta
@@ -308,9 +329,9 @@ class Wait(HCSP):
 class Assign(HCSP):
     """Assignment command.
 
-    var_name : AExpr - variable to be assigned, one of AVar (e.g. x),
+    var_name : Expr - variable to be assigned, one of AVar (e.g. x),
         ArrayIdxExpr (e.g. a[0]), and FieldNameExpr (e.g. a.field1).
-    expr : AExpr - value to be assigned.
+    expr : Expr - value to be assigned.
 
     Left side is an expression that can serve as a lname. This includes
     variables, array indices, and field names.
@@ -319,16 +340,14 @@ class Assign(HCSP):
     def __init__(self, var_name, expr, meta=None):
         super(Assign, self).__init__()
         self.type = "assign"
-        assert isinstance(expr, (AExpr, str, int))
+        assert isinstance(expr, (Expr, str, int))
         if isinstance(var_name, str):
             var_name = AVar(str(var_name))
-        if isinstance(var_name, AExpr):
+        if isinstance(var_name, Expr):
             self.var_name = var_name
-        elif isinstance(var_name,function.DirectName):
-            self.var_name=var_name
         else:
             var_name = tuple(var_name)
-            assert len(var_name) >= 2 and all(isinstance(name, (str, AExpr)) for name in var_name)
+            assert len(var_name) >= 2 and all(isinstance(name, (str, Expr)) for name in var_name)
             self.var_name = [AVar(n) if isinstance(n, str) else n for n in var_name]
         self.expr = expr
         self.meta = meta
@@ -337,17 +356,15 @@ class Assign(HCSP):
         return self.type == other.type and self.var_name == other.var_name and self.expr == other.expr
 
     def __repr__(self):
-        if isinstance(self.var_name, AExpr):
+        if isinstance(self.var_name, Expr):
             var_str = str(self.var_name)
         else:
             var_str = "[%s]" % (','.join(str(n) for n in self.var_name))
         return  "Assign(%s,%s)" % (var_str, str(self.expr))
 
     def __str__(self):
-        if isinstance(self.var_name, AExpr):
+        if isinstance(self.var_name, Expr):
             var_str = str(self.var_name)
-        elif isinstance(self.var_name,function.DirectName):
-            var_str=str(self.var_name)
         else:
             var_str = "(%s)" % (', '.join(str(n) for n in self.var_name))
         return "%s := %s;" % (var_str, self.expr)
@@ -356,7 +373,7 @@ class Assign(HCSP):
         return hash(("Assign", self.var_name, self.expr))
 
     def get_vars(self):
-        if isinstance(self.var_name, AExpr):
+        if isinstance(self.var_name, Expr):
             var_set = {str(self.var_name)}
         else:
             var_set = set(str(n) for n in self.var_name)
@@ -379,8 +396,8 @@ class RandomAssign(HCSP):
 
     x := {x >= 1}
 
-    var_name : AExpr - variable to be assigned, one of AVar (e.g. x), ArrayIdxExpr (e.g. a[0]), and FieldNameExpr (e.g. a.field1).
-    expr : BExpr - the range value to be randomly choose from.
+    var_name : Expr - variable to be assigned, one of AVar (e.g. x), ArrayIdxExpr (e.g. a[0]), and FieldNameExpr (e.g. a.field1).
+    expr : Expr - the range value to be randomly choose from.
 
     Left side is an expression that can serve as a lname. This includes
     variables, array indices, and field names.
@@ -389,16 +406,14 @@ class RandomAssign(HCSP):
     def __init__(self, var_name, expr, meta=None):
         super(RandomAssign, self).__init__()
         self.type = "randomassign"
-        assert isinstance(expr, BExpr)
+        assert isinstance(expr, Expr)
         if isinstance(var_name, str):
             var_name = AVar(str(var_name))
-        if isinstance(var_name, AExpr):
-            self.var_name = var_name
-        elif isinstance(var_name, function.DirectName):
+        if isinstance(var_name, Expr):
             self.var_name = var_name
         else:
             var_name = tuple(var_name)
-            assert len(var_name) <= 2 and all (isinstance(name, (str, AExpr))for name in var_name)
+            assert len(var_name) <= 2 and all (isinstance(name, (str, Expr))for name in var_name)
             self.var_name = [AVar(n) if isinstance(n, str) else n for n in var_name]
         self.expr = expr
         self.meta = meta
@@ -407,17 +422,15 @@ class RandomAssign(HCSP):
         return self.type == other.type and self.var_name == other.var_name and self.expr == other.expr
 
     def __repr__(self):
-        if isinstance(self.var_name, AExpr):
+        if isinstance(self.var_name, Expr):
             var_str = str(self.var_name)
         else:
             var_str = "[%s]" % (','.join(str(n) for n in self.var_name))
         return "RandomAssign(%s, %s)" % (var_str, str(self.expr))
 
     def __str__(self):
-        if isinstance(self.var_name, AExpr):
+        if isinstance(self.var_name, Expr):
             var_str = str(self.var_name)
-        elif isinstance(self.var_name,function.DirectName):
-            var_str=str(self.var_name)
         else:
             var_str = "(%s)" % (', '.join(str(n) for n in self.var_name))
         return var_str + " := " + "*(" + str(self.expr) + ");"
@@ -426,7 +439,7 @@ class RandomAssign(HCSP):
         return hash(("RandomAssign", self.var_name, self.expr))
 
     def get_vars(self):
-        if isinstance(self.var_name, AExpr):
+        if isinstance(self.var_name, Expr):
             var_set = {str(self.var_name)}
         else:
             var_set = set(str(n) for n in self.var_name)
@@ -445,10 +458,10 @@ class Assert(HCSP):
     def __init__(self, bexpr, msgs, meta=None):
         super(Assert, self).__init__()
         self.type = "assert"
-        assert isinstance(bexpr, BExpr)
+        assert isinstance(bexpr, Expr)
         self.bexpr = bexpr
         msgs = tuple(msgs)
-        assert all(isinstance(msg, AExpr) for msg in msgs)
+        assert all(isinstance(msg, Expr) for msg in msgs)
         self.msgs = msgs
         self.meta = meta
 
@@ -493,10 +506,10 @@ class Test(HCSP):
     def __init__(self, bexpr, msgs, meta=None):
         super(Test, self).__init__()
         self.type = "test"
-        assert isinstance(bexpr, BExpr)
+        assert isinstance(bexpr, Expr)
         self.bexpr = bexpr
         msgs = tuple(msgs)
-        assert all(isinstance(msg, AExpr) for msg in msgs)
+        assert all(isinstance(msg, Expr) for msg in msgs)
         self.msgs = msgs
         self.meta = meta
 
@@ -541,13 +554,13 @@ class Log(HCSP):
     def __init__(self, pattern, *, exprs=None, meta=None):
         super(Log, self).__init__()
         self.type = "log"
-        assert isinstance(pattern, AExpr)
+        assert isinstance(pattern, Expr)
         self.pattern = pattern
         if exprs is None:
             exprs = tuple()
         else:
             exprs = tuple(exprs)
-        assert all(isinstance(expr, AExpr) for expr in exprs)
+        assert all(isinstance(expr, Expr) for expr in exprs)
         self.exprs = exprs
         self.meta = meta
 
@@ -596,9 +609,9 @@ class InputChannel(HCSP):
         assert isinstance(ch_name, Channel)
         if isinstance(var_name, str):
             var_name = AVar(str(var_name))
-        assert var_name is None or isinstance(var_name, AExpr)
+        assert var_name is None or isinstance(var_name, Expr)
         self.ch_name = ch_name  # Channel
-        self.var_name = var_name  # AExpr or None
+        self.var_name = var_name  # Expr or None
         self.meta = meta
 
     def __eq__(self, other):
@@ -666,16 +679,16 @@ class OutputChannel(HCSP):
         if isinstance(ch_name, str):
             ch_name = Channel(ch_name)
         assert isinstance(ch_name, Channel)
-        assert expr is None or isinstance(expr, AExpr)
+        assert expr is None or isinstance(expr, Expr)
         self.ch_name = ch_name  # Channel
-        self.expr = expr  # AExpr or None
+        self.expr = expr  # Expr or None
         self.meta = meta
 
     def __eq__(self, other):
         return self.type == other.type and self.expr == other.expr and self.ch_name == other.ch_name
 
     def __repr__(self):
-        if isinstance(self.expr, AExpr):
+        if isinstance(self.expr, Expr):
             return "OutputC(%s,%s)" % (self.ch_name, self.expr)
         else:
             return "OutputC(%s)" % self.ch_name
@@ -813,40 +826,53 @@ def seq(hps):
 
 
 class IChoice(HCSP):
-    """Represents internal choice of the form P ++ Q."""
-    def __init__(self, hp1, hp2, meta=None):
+    """Represents internal choice of the form P ++ Q ++ N."""
+    def __init__(self, *hps, meta=None):
         super(IChoice, self).__init__()
         self.type = "ichoice"
-        assert isinstance(hp1, HCSP) and isinstance(hp2, HCSP)
-        self.hp1 = hp1
-        self.hp2 = hp2
+        assert all(isinstance(hp, HCSP) for hp in hps)
+        assert len(hps) >= 1
+        self.hps = tuple(hps)
+        # assert isinstance(hp1, HCSP) and isinstance(hp2, HCSP)
+        # self.hp1 = hp1
+        # self.hp2 = hp2
         self.meta = meta
 
     def __eq__(self, other):
-        return self.hp1 == other.hp1 and self.hp2 == other.hp2
+        return self.type == other.type and self.hps == other.hps
 
     def __str__(self):
-        return "%s ++ %s" % (str(self.hp1), str(self.hp2))
+        return " ++ ".join(str(hp) if hp.priority() > self.priority() else "(" + str(hp) + ")"
+                for hp in self.hps)
 
     def __repr__(self):
-        return "IChoice(%s,%s)" % (repr(self.hp1), repr(self.hp2))
+        return "IChoice(%s)" % ", ".join(repr(hp) for hp in self.hps)
 
     def __hash__(self):
-        return hash(("ICHOICE", self.hp1, self.hp2))
+        return hash(("ICHOICE", self.hps))
 
     def get_vars(self):
-        return self.hp1.get_vars().union(self.hp2.get_vars())
+        var_set = set()
+        for hp in self.hps:
+            var_set.update(hp.get_vars())
+        return var_set
 
     def get_fun_names(self):
-        return self.hp1.get_fun_names().union(self.hp2.get_fun_names())
+        fun_set = set()
+        for hp in self.hps:
+            fun_set.update(hp.get_fun_names())
+        return fun_set
 
     def get_zero_arity_funcs(self):
-        return self.hp1.get_zero_arity_funcs().union(self.hp2.get_zero_arity_funcs())
+        fun_set = set()
+        for hp in self.hps:
+            fun_set.update(hp.get_zero_arity_funcs())
+        return fun_set
 
 class ODE(HCSP):
     """Represents an ODE program of the form
 
-    <F(s',s) = 0 & B> |> Q
+    {F(s',s) = 0 & B} |> Q
 
     """
     def __init__(self, eqs, constraint, *, out_hp=Skip(), meta=None, inv=None):
@@ -860,17 +886,17 @@ class ODE(HCSP):
         assert isinstance(eqs, list)
         for eq in eqs:
             assert isinstance(eq, tuple) and len(eq) == 2
-            assert isinstance(eq[0], str) and isinstance(eq[1], AExpr)
-        assert isinstance(constraint, BExpr)
+            assert isinstance(eq[0], str) and isinstance(eq[1], Expr)
+        assert isinstance(constraint, Expr)
         assert inv is None or isinstance(inv, tuple)
         if isinstance(inv, tuple):
             for sub_inv in inv:
-                assert isinstance(sub_inv, Invariant)
+                assert isinstance(sub_inv, assertion.Assertion)
         assert not out_hp or isinstance(out_hp, HCSP)
 
         self.type = "ode"
-        self.eqs = eqs  # list of tuples (string, AExpr)
-        self.constraint = constraint  # BExpr
+        self.eqs = eqs  # list of tuples (string, Expr)
+        self.constraint = constraint  # Expr
         self.out_hp = out_hp  # None or hcsp
         self.meta = meta
         self.inv = inv
@@ -882,7 +908,7 @@ class ODE(HCSP):
     def __str__(self):
         str_eqs = ", ".join(var_name + "_dot = " + str(expr) for var_name, expr in self.eqs)
         str_out_hp = "" if isinstance(self.out_hp, Skip) else " |> " + str(self.out_hp)
-        return "<" + str_eqs + " & " + str(self.constraint) + ">" + str_out_hp
+        return "{" + str_eqs + " & " + str(self.constraint) + "}" + str_out_hp
 
     def __repr__(self):
         if self.out_hp == Skip():
@@ -926,7 +952,7 @@ class ODE_Comm(HCSP):
     """Represents an ODE program that can be interrupted by
     communications, of the form
 
-    <F(s',s) = 0 & B> |> [] (io_i --> Q_i)
+    {F(s',s) = 0 & B} |> [] (io_i --> Q_i)
 
     """
     def __init__(self, eqs, constraint, io_comms, meta=None):
@@ -941,8 +967,8 @@ class ODE_Comm(HCSP):
         assert isinstance(eqs, list)
         for eq in eqs:
             assert isinstance(eq, tuple) and len(eq) == 2
-            assert isinstance(eq[0], str) and isinstance(eq[1], AExpr)
-        assert isinstance(constraint, BExpr)
+            assert isinstance(eq[0], str) and isinstance(eq[1], Expr)
+        assert isinstance(constraint, Expr)
         assert isinstance(io_comms, list)
         for io_comm in io_comms:
             assert isinstance(io_comm, tuple) and len(io_comm) == 2
@@ -950,7 +976,7 @@ class ODE_Comm(HCSP):
 
         self.type = "ode_comm"
         self.eqs = eqs  # list
-        self.constraint = constraint  # BExpr
+        self.constraint = constraint  # Expr
         self.io_comms = io_comms  # list
         self.meta = meta
 
@@ -961,7 +987,7 @@ class ODE_Comm(HCSP):
     def __str__(self):
         str_eqs = ", ".join(var_name + "_dot = " + str(expr) for var_name, expr in self.eqs)
         str_io_comms = ", ".join(str(comm_hp)[:-1] + " --> " + str(out_hp) for comm_hp, out_hp in self.io_comms)
-        return "<" + str_eqs + " & " + str(self.constraint) + "> |> [] (" + str_io_comms + ")"
+        return "{" + str_eqs + " & " + str(self.constraint) + "} |> [] (" + str_io_comms + ")"
 
     def __repr__(self):
         str_eqs = ", ".join(var_name + ", " + str(expr) for var_name, expr in self.eqs)
@@ -1023,8 +1049,8 @@ class Loop(HCSP):
     """Represents an infinite loop of a program.
     
     hp : HCSP - body of the loop.
-    constraint : BExpr - loop condition, default to true.
-    inv : tuple of LoopInvariants - invariants
+    constraint : Expr - loop condition, default to true.
+    inv : tuple of OrdinaryAssertions - invariants
 
     """
     def __init__(self, hp, *, inv=None, constraint=true_expr, meta=None):
@@ -1034,7 +1060,7 @@ class Loop(HCSP):
         if inv is not None:
             assert isinstance(inv, tuple)
             for sub_inv in inv:
-                assert isinstance(sub_inv, LoopInvariant)
+                assert isinstance(sub_inv, assertion.OrdinaryAssertion)
         self.hp = hp
         self.inv = inv
         self.constraint = constraint
@@ -1202,45 +1228,11 @@ class SelectComm(HCSP):
         return ch_set
 
 
-class Recursion(HCSP):
-    def __init__(self, hp, entry="X", meta=None):
-        super(Recursion, self).__init__()
-        assert isinstance(entry, str) and isinstance(hp, HCSP)
-        self.type = "recursion"
-        self.entry = entry
-        self.hp = hp
-        self.meta = meta
-
-    def __eq__(self, other):
-        return self.type == other.type and self.entry == other.entry and self.hp == other.hp
-
-    def __repr__(self):
-        return "Recursion(%s, %s)" % (self.entry, repr(self.hp))
-
-    def __str__(self):
-        return "rec " + self.entry + " { " + str(self.hp) + " }"
-
-    def __hash__(self):
-        return hash(("Recursion", self.entry, self.hp))
-
-    def get_vars(self):
-        return self.hp.get_vars()
-
-    def get_fun_names(self):
-        return self.hp.get_fun_names()
-
-    def get_zero_arity_funcs(self):
-        return self.hp.get_zero_arity_funcs()
-
-    def get_chs(self):
-        return self.hp.get_chs()
-
-
 class ITE(HCSP):
     def __init__(self, if_hps, else_hp=None, meta=None):
         """if-then-else statements.
 
-        if_hps : List[Tuple[BExpr, HCSP]] - list of condition-program pairs.
+        if_hps : List[Tuple[Expr, HCSP]] - list of condition-program pairs.
         else_hp : [None, HCSP]
 
         The program associated to the first true condition in if_hps will
@@ -1248,9 +1240,7 @@ class ITE(HCSP):
 
         """
         super(ITE, self).__init__()
-#         assert all(isinstance(cond, BExpr) and isinstance(hp, (HCSP,function.Assign)) for cond, hp in if_hps)   
-        assert all(isinstance(cond, (BExpr,LogicExpr,RelExpr)) and isinstance(hp, (HCSP,function.Assign)) for cond, hp in if_hps)
-        # assert all(isinstance(cond, BExpr) and isinstance(hp, HCSP) for cond, hp in if_hps)
+        assert all(isinstance(cond, Expr) and isinstance(hp, HCSP) for cond, hp in if_hps)
         assert len(if_hps) > 0, "ITE: must have at least one if branch"
         assert else_hp is None or isinstance(else_hp, HCSP)
         self.type = "ite"
@@ -1362,7 +1352,7 @@ def get_comm_chs(hp):
             for comm_hp, out_hp in _hp.io_comms:
                 rec(comm_hp)
                 rec(out_hp)
-        elif _hp.type in ('loop', 'recursion'):
+        elif _hp.type == 'loop':
             rec(_hp.hp)
         elif _hp.type == 'ite':
             for _, sub_hp in _hp.if_hps:
@@ -1375,10 +1365,14 @@ def get_comm_chs(hp):
 
 class HoareTriple:
     """A program with pre- and post-conditions"""
-    def __init__(self, pre, hp, post, meta=None):
+    def __init__(self, pre, hp, post, functions=None, meta=None):
         self.pre = list(pre)
         self.post = list(post)
+        assert all(isinstance(subpost, assertion.OrdinaryAssertion) for subpost in post)
         self.hp = hp
+        if functions is None:
+            functions = dict()
+        self.functions = functions
         self.meta = meta
 
 class Procedure:
@@ -1458,7 +1452,7 @@ def HCSP_subst(hp, inst):
             return hp
     elif isinstance(hp, (Skip, Wait, Assign, Assert, Test, Log, InputChannel, OutputChannel)):
         return hp
-    elif isinstance(hp, (Loop, Recursion)):
+    elif isinstance(hp, Loop):
         hp.hp = HCSP_subst(hp.hp, inst)
         return hp
     elif isinstance(hp, Sequence):
@@ -1598,7 +1592,7 @@ class HCSPProcess:
     def substitute(self):
         """Substitute program variables for their definitions."""
         def _substitute(_hp):
-            assert isinstance(_hp, (HCSP,function.Assign))
+            assert isinstance(_hp, HCSP)
             if isinstance(_hp, Var):
                 _name = _hp.name
                 if _name in substituted.keys():
@@ -1607,7 +1601,7 @@ class HCSPProcess:
                     _hp = _substitute(hps_dict[_name])
                     substituted[_name] = _hp
                     del hps_dict[_name]
-            elif isinstance(_hp, (Loop, Recursion, Condition)):
+            elif isinstance(_hp, Loop):
                 _hp.hp = _substitute(_hp.hp)
             elif isinstance(_hp, Sequence):
                 _hps = [_substitute(sub_hp) for sub_hp in _hp.hps]

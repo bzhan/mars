@@ -25,6 +25,8 @@ atom_expr {
   | MinExpr { "min" "(" expr "," expr ")" }
   | MaxExpr { "max" "(" expr "," expr ")" }
   | GcdExpr { "gcd" "(" expr ("," expr)+ ")" }
+  | TrueExpr { "true" }
+  | FalseExpr { "false" }
   | FunExpr { CNAME "(" (expr)? ("," expr)* ")" }
   | paren_expr { "(" expr ")" }
 }
@@ -53,32 +55,32 @@ plus_expr {
 } 
 
 if_expr {
-  IfExpr { "(" cond "?" if_expr ":" if_expr ")" }     // priority 40
+  IfExpr { "if" expr "then" if_expr "else" if_expr }     // priority 40
   | plus_expr
 }
 
-expr { if_expr }
-
-atom_cond {
-  EqCond { expr "==" expr }                 // priority 50
-  | IneqCond { expr "!=" expr }
-  | LessEqCond { expr "<=" expr }
-  | LessCond { expr "<" expr }
-  | GreaterEqCond { expr ">=" expr }
-  | GreaterCond { expr ">" expr }
-  | NotCond { "!" cond }
-  | TrueCond { "true" }
-  | FalseCond { "false" }
-  | "(" cond ")"
+rel_expr {
+  EqCond { if_expr "==" if_expr }                 // priority 50
+  | IneqCond { if_expr "!=" if_expr }
+  | LessEqCond { if_expr "<=" if_expr }
+  | LessCond { if_expr "<" if_expr }
+  | GreaterEqCond { if_expr ">=" if_expr }
+  | GreaterCond { if_expr ">" if_expr }
+  | if_expr
 } 
 
+neg_expr {
+  NegExpr { "!" rel_expr }
+  | rel_expr       // Conjunction: priority 35
+}
+
 conj {
-  ConjCond { atom_cond !conj "&" conj }
-  | atom_cond       // Conjunction: priority 35
+  ConjCond { neg_expr !conj "&&" conj }
+  | neg_expr       // Conjunction: priority 35
 }
 
 disj {
-  DisjCond { conj !disj "|" disj }
+  DisjCond { conj !disj "||" disj }
   | conj                 // Disjunction: priority 30
 }
 
@@ -92,18 +94,14 @@ imp {
   | equiv                  // Implies: priority 20
 }
 
-exists_expr {
+quant {
   ExCond { "\\exists" CNAME "." imp }            // Exists: priority 10
+  ForallCond { "\\forall" CNAME "." imp }
   | imp
 }
 
-forall_expr {
-  ForallCond { "\\forall" CNAME "." imp }
-}
-
-cond { 
-  exists_expr 
-  | forall_expr
+expr {
+  quant
 }
 
 comm_cmd {
@@ -143,24 +141,24 @@ atom_cmd {
   | WaitCmd { "wait" "(" expr ")" ";" }
   | AssignCmd { lname ":=" expr ";" }
   | MultiAssignCmd { "(" lname ("," lname)+ ")" ":=" expr ";" } // TODO: used + instead * here to avoid abiguity
-  | RandomAssignCmd { lname ":=" "*" "(" cond ")" ";" }
-  | AssertCmd { "assert" "(" cond ("," expr)* ")"  ";" }
-  | TestCmd { "test" "(" cond ("," expr)* ")" ";" }
+  | RandomAssignCmd { lname ":=" "*" "(" expr ")" ";" }
+  | AssertCmd { "assert" "(" expr ("," expr)* ")"  ";" }
+  | TestCmd { "test" "(" expr ("," expr)* ")" ";" }
   | LogCmd { "log" "(" expr ("," expr)* ")" ";" }
   | comm_cmd ";"
   | RepeatCmd { "{" cmd "}" "*" maybe_loop_invariant }
-  | RepeatCondCmd { "{" cmd "}" "*(" cond ")" maybe_loop_invariant}
+  | RepeatCondCmd { "{" cmd "}*(" expr ")" maybe_loop_invariant}
   | Ode { OdeNoInv maybe_ode_invariant }
-  | OdeCommConst { "<" "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant}
-  | OdeComm { "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant} 
+  | OdeCommConst { "{" "&" expr "}" "|>" "[]" "(" interrupt ")" maybe_ode_invariant}
+  | OdeComm { "{" ode_seq "&" expr "}" "|>" "[]" "(" interrupt ")" maybe_ode_invariant} 
   | RecCmd { "rec" CNAME "{" cmd "}" }
-  | IteCmd { "if" "(" cond ")" "{" cmd "}" ("else" "if" "(" cond ")" "{" cmd "}")* ("else" "{" cmd "}")? }
+  | IteCmd { "if" "(" expr ")" "{" cmd "}" ("else" "if" "(" expr ")" "{" cmd "}")* ("else" "{" cmd "}")? }
   | ParenCmd { "{" cmd "}" }
 }
 
 ichoice_cmd {
   atom_cmd 
-  | IchoiceCmd { ichoice_cmd "++" atom_cmd }
+  | IchoiceCmd { atom_cmd ("++" atom_cmd)+ }
 }   // Priority: 80
 
 SeqCmd {
@@ -178,34 +176,57 @@ procedure { "procedure" CNAME "begin" cmd "end" }
 
 maybe_invariant { ("invariant" Invariant ";")?}
 
-Invariant { "[" cond "]"}
+Invariant { "[" expr "]"}
+
+ord_assertion { "[" expr "]" maybe_proof_methods }
 
 maybe_loop_invariant { ("invariant" Loop_invariant+ ";")? }
-Loop_invariant { Invariant ("{{" proof_method ("," proof_method)* "}}")? }
-proof_method { label ":" method }
-label { CNAME? SIGNED_NUMBER? }    
-method { "Z3"       
-      | "Wolfram Engine" }
+Loop_invariant { Invariant maybe_proof_methods }
+maybe_proof_methods { ("{{" proof_method ("," proof_method)* "}}")? }
+proof_method { (label ":")? method }
+
+method { "z3"       
+      | "wolfram" }
+
+categ_label { "init"
+      | "maintain" }
+
+atom_label { int
+      | "execute"
+      | "skip" }
+
+branch_label {
+    atom_label ("(" branch_label ")")?
+  | branch_label "." atom_label ("(" branch_label ")")? 
+}
+
+label {
+    categ_label
+  | branch_label
+  | categ_label branch_label
+}
 
 maybe_ode_invariant{ ("invariant" Ode_invariant+ ";")?}
 
-//TODO: Do we need 'expr?' after 'ode_rule'?
-Ode_invariant { InvariantWithRule
+Ode_invariant { InvariantWithRule maybe_proof_methods
               | "ghost" CNAME
-              | "ghost" "<" CNAME "=" expr ">"
+              | "ghost" "(" CNAME "=" expr ")"
 }
 
-InvariantWithRule { Invariant ("{" ode_rule "}")? }
+InvariantWithRule { Invariant ("{" ode_rule expr? "}")? }
 
-OdeNoInv { "<" ode_seq "&" cond ">" }
+OdeNoInv { "{" ode_seq "&" expr "}" }
 
 ode_rule {
   "di" | "dbx" | "bc" | "dw" | "sln"
 }
 
-hoare_pre { "pre" ("[" cond "]")* ";" }
-hoare_post { "post" ("[" cond "]")* ";" }
-@top hoare_triple { hoare_pre cmd hoare_post }
+
+function_decl { "function" CNAME "(" CNAME ("," CNAME)* ")" "=" expr ";" }
+
+hoare_pre { "pre" ("[" expr "]")* ";" }
+hoare_post { "post" (ord_assertion)* ";" }
+@top hoare_triple { function_decl* hoare_pre cmd hoare_post }
 
 parallel_cmd { cmd ("||" cmd)* }  // Priority 30, outermost level only
 
@@ -249,7 +270,7 @@ Decls {
   "%type: module" (Module | Import | System)*
 }
 
-@skip { ws | line_comment }
+@skip { ws | LineComment }
 
 @tokens {
   digit { $[0-9] }
@@ -275,16 +296,16 @@ Decls {
 
   CNAME { ("_"|letter) ("_"|letter|digit)* }
 
-  line_comment { "#" ![\n]* }
+  LineComment { "#" ![\n]* }
 
   ws { $[ \t\f\r\n]+ }
 
   "+" "-" "^" "*" "/" "%"
-  "&&" "||" "-->" "->" "$" ";" "++" "skip" "." "," ":" "?" "~" "&"
+  "&&" "||" "-->" "->" "$" ";" "++" "skip" "." "," ":" "?" "~" "&" "&&"
   "=" ":="
   "==" "!=" "<" "<=" ">" ">="
 
-  "(" ")" "[" "]" "{" "}" "*(" "){" "invariant" "|>" "[]" ".("
+  "(" ")" "[" "]" "{" "}" "invariant" "|>" "[]" "}*("
   "if" "then" "else" "elif" "endif"
   "true" "false" "pre" "post"
   "gcd" "log" "max" "min" "rec" "skip" "test" "wait" "\\exists" "\\forall" "assert"

@@ -46,7 +46,7 @@ def str_of_val(val):
         return str(val)
 
 
-class AExpr:
+class Expr:
     """Arithmetic expression."""
     def __init__(self):
         pass
@@ -72,7 +72,7 @@ class AExpr:
         raise NotImplementedError
 
 
-class AVar(AExpr):
+class AVar(Expr):
     def __init__(self, name, meta=None):
         super(AVar, self).__init__()
         assert isinstance(name, str)
@@ -110,7 +110,7 @@ class AVar(AExpr):
             return self
 
 
-class AConst(AExpr):
+class AConst(Expr):
     def __init__(self, value, meta=None):
         super(AConst, self).__init__()
         assert isinstance(value, (int, float, Decimal, Fraction, list, str, tuple, dict))
@@ -147,14 +147,14 @@ class AConst(AExpr):
         return self
 
 
-class OpExpr(AExpr):
+class OpExpr(Expr):
     def __init__(self, op, *exprs, meta=None):
         super(OpExpr, self).__init__()
         assert op in ('+', '-', '*', '/', '%', '^')
         for expr in exprs:
-            if not isinstance(expr, AExpr):
+            if not isinstance(expr, Expr):
                 raise AssertionError
-        # assert all(isinstance(expr, AExpr) for expr in exprs)
+        # assert all(isinstance(expr, Expr) for expr in exprs)
         assert len(exprs) > 0 and len(exprs) <= 2, \
             "OpExpr: wrong number of arguments for %s" % op
         if len(exprs) == 1:
@@ -228,17 +228,13 @@ def list_mul(*args):
     else:
         return OpExpr('*', args[0], list_mul(*args[1:]))
 
-class FunExpr(AExpr):
+class FunExpr(Expr):
     def __init__(self, fun_name, exprs, meta=None):
         super(FunExpr, self).__init__()
-        # assert fun_name in [
-        #     "min", "max", "abs", "gcd", "delay", "sqrt", "div",
-        #     "push", "pop", "top", "get", "bottom", "len", "get_max", "pop_max","get_min", "pop_min",
-        #     "bernoulli", "uniform"]
         self.fun_name = fun_name
         assert isinstance(self.fun_name, str)
         exprs = tuple(exprs)
-        assert all(isinstance(expr, AExpr) for expr in exprs)
+        assert all(isinstance(expr, Expr) for expr in exprs)
         self.exprs = exprs
         self.meta = meta
 
@@ -268,16 +264,38 @@ class FunExpr(AExpr):
     def get_zero_arity_funcs(self):
         if len(self.exprs) == 0:
             zero_arity_funcs = set((self.fun_name + '(' + ')',))
+        else:
+            zero_arity_funcs = set()
         return zero_arity_funcs.union(*(expr.get_zero_arity_funcs() for expr in self.exprs))
 
     def subst(self, inst):
         return FunExpr(self.fun_name, [expr.subst(inst) for expr in self.exprs])
 
+def replace_function(e: FunExpr, funcs=dict()):
+    """Replace a FunExpr by the expr of its corresponding Function object.
+    For example,
+    For FunExpr bar(y), with funcs = {'bar': Function('bar', ['x'], 'x + 1')}),
+    return Expr y + 1
+    """
+    assert e.fun_name in funcs, \
+        "Function {f} is not defined".format(f=e.fun_name)
+    fun_obj = funcs[e.fun_name]
+    fun_obj_expr = fun_obj.expr
+    assert len(e.exprs) == len(fun_obj.vars)
+    length = len(e.exprs)
+    for i in range(length):
+        # Substitute the parameters by arguments. 
+        # Example: for bar(y), substitute x with y in x + 1.
+        if str(fun_obj.vars[i]) != str(e.exprs[i]):
+            fun_obj_expr = fun_obj_expr.subst({fun_obj.vars[i]: e.exprs[i]})
 
-class IfExpr(AExpr):
+    return fun_obj_expr
+
+
+class IfExpr(Expr):
     def __init__(self, cond, expr1, expr2, meta=None):
         super(IfExpr, self).__init__()
-        assert isinstance(cond, BExpr) and isinstance(expr1, AExpr) and isinstance(expr2, AExpr)
+        assert isinstance(cond, Expr) and isinstance(expr1, Expr) and isinstance(expr2, Expr)
         self.cond = cond
         self.expr1 = expr1
         self.expr2 = expr2
@@ -288,7 +306,7 @@ class IfExpr(AExpr):
     
     def __str__(self):
         s0, s1, s2 = str(self.cond), str(self.expr1), str(self.expr2)
-        return "(%s ? %s : %s)" % (s0, s1, s2)
+        return "(if %s then %s else %s)" % (s0, s1, s2)
 
     def __eq__(self, other):
         return isinstance(other, IfExpr) and self.cond == other.cond and \
@@ -313,12 +331,12 @@ class IfExpr(AExpr):
         return IfExpr(self.cond.subst(inst), self.expr1.subst(inst), self.expr2.subst(inst))
 
 
-class ListExpr(AExpr):
+class ListExpr(Expr):
     """List expressions."""
     def __init__(self, *args, meta=None):
         super(ListExpr, self).__init__()
         args = tuple(args)
-        assert all(isinstance(arg, AExpr) for arg in args)
+        assert all(isinstance(arg, Expr) for arg in args)
         self.args = args
         self.count = 0
         self.meta = meta
@@ -351,14 +369,14 @@ class ListExpr(AExpr):
         return ListExpr(*(expr.subst(inst) for expr in self.args))
 
 
-class DictExpr(AExpr):
+class DictExpr(Expr):
     """Dictionary expressions (structures)."""
     def __init__(self, *args, meta=None):
         """Argument is a list of key-value pairs. Each key should be a string."""
         super(DictExpr, self).__init__()
         self.dict = dict()
         args = tuple(args)
-        assert all(isinstance(k, str) and isinstance(v, AExpr) for k, v in args)
+        assert all(isinstance(k, str) and isinstance(v, Expr) for k, v in args)
         for k, v in args:
             self.dict[k] = v
         self.meta = meta
@@ -391,7 +409,7 @@ class DictExpr(AExpr):
         return DictExpr(*((k, v.subst(inst)) for k, v in self.dict.items()))
 
 
-class ArrayIdxExpr(AExpr):
+class ArrayIdxExpr(Expr):
     """Expressions of the form a[i], where a evaluates to a list and i
     evaluates to an integer. Constructor also supports the case where the
     second argument is a list.
@@ -401,8 +419,8 @@ class ArrayIdxExpr(AExpr):
         super(ArrayIdxExpr, self).__init__()
         if isinstance(expr1, str):
             expr1 = AVar(expr1)
-        assert isinstance(expr1, AExpr)
-        if isinstance(expr2, AExpr):
+        assert isinstance(expr1, Expr)
+        if isinstance(expr2, Expr):
             self.expr1 = expr1
             self.expr2 = expr2
         else:
@@ -443,14 +461,14 @@ class ArrayIdxExpr(AExpr):
         return ArrayIdxExpr(expr1=self.expr1.subst(inst), expr2=self.expr2.subst(inst))
 
 
-class FieldNameExpr(AExpr):
+class FieldNameExpr(Expr):
     """Expression of the form a.name, where a evaluates to a structure
     and name is a field name.
 
     """
     def __init__(self, expr, field, meta=None):
         super(FieldNameExpr, self).__init__()
-        assert isinstance(expr, AExpr) and isinstance(field, str)
+        assert isinstance(expr, Expr) and isinstance(field, str)
         self.expr = expr
         self.field = field
         self.meta = meta
@@ -483,29 +501,7 @@ class FieldNameExpr(AExpr):
     def subst(self, inst):
         return FieldNameExpr(expr=self.expr.subst(inst), field=self.field)
 
-    
-class BExpr:
-    """Boolean expression."""
-    def __init__(self):
-        pass
-
-    def priority(self):
-        raise NotImplementedError
-
-    def get_vars(self):
-        raise NotImplementedError
-
-    def get_fun_names(self):
-        raise NotImplementedError
-
-    def get_zero_arity_funcs(self):
-        raise NotImplementedError   
-
-    def subst(self, inst):
-        raise NotImplementedError
-
-
-class BConst(BExpr):  # Boolean expression
+class BConst(Expr):  # Boolean expression
     def __init__(self, value, meta=None):
         super(BConst, self).__init__()
         assert isinstance(value, bool)
@@ -539,17 +535,15 @@ class BConst(BExpr):  # Boolean expression
     def subst(self, inst):
         return self
 
-
 true_expr = BConst(True)
 false_expr = BConst(False)
 
-
-class LogicExpr(BExpr):
+class LogicExpr(Expr):
     def __init__(self, op, *exprs, meta=None):
         super(LogicExpr, self).__init__()
-        assert op in ["&", "|", "->", "<->", "!"]
-        assert all(isinstance(expr, BExpr) for expr in exprs), \
-            "Expected BExpr: {}".format(exprs)
+        assert op in ["&&", "||", "->", "<->", "!"]
+        assert all(isinstance(expr, Expr) for expr in exprs), \
+            "Expected Expr: {}".format(exprs)
         assert len(exprs) > 0 and len(exprs) <= 2, \
             "LogicExpr: wrong number of arguments for %s" % op
         if len(exprs) == 1:
@@ -587,9 +581,9 @@ class LogicExpr(BExpr):
             return 25
         elif self.op == '->':
             return 20
-        elif self.op == '&':
+        elif self.op == '&&':
             return 35
-        elif self.op == '|':
+        elif self.op == '||':
             return 30
         elif self.op == '!':
             return 40
@@ -614,15 +608,15 @@ def list_conj(*args):
         return true_expr
     if len(args) == 1:
         return args[0]
-    return LogicExpr("&", args[0], list_conj(*args[1:]))
+    return LogicExpr("&&", args[0], list_conj(*args[1:]))
 
 def conj(*args):
     """Form the conjunction of the list of arguments.
     
-    Example: conj("x > 1", "x < 3") forms "x > 1 & x < 3"
+    Example: conj("x > 1", "x < 3") forms "x > 1 && x < 3"
 
     """
-    assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
+    assert isinstance(args, tuple) and all(isinstance(arg, Expr) for arg in args)
     if false_expr in args:
         return false_expr
     new_args = []
@@ -632,7 +626,7 @@ def conj(*args):
     return list_conj(*new_args)
 
 def split_conj(e):
-    if isinstance(e, LogicExpr) and e.op == '&':
+    if isinstance(e, LogicExpr) and e.op == '&&':
         return split_conj(e.exprs[0]) + split_conj(e.exprs[1])
     else:
         return [e]
@@ -642,15 +636,15 @@ def list_disj(*args):
         return false_expr
     if len(args) == 1:
         return args[0]
-    return LogicExpr("|", args[0], list_disj(*args[1:]))
+    return LogicExpr("||", args[0], list_disj(*args[1:]))
 
 def disj(*args):
     """Form the disjunction of the list of arguments.
     
-    Example: disj("x > 1", "x < 3") forms "x > 1 | x < 3"
+    Example: disj("x > 1", "x < 3") forms "x > 1 || x < 3"
 
     """
-    assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
+    assert isinstance(args, tuple) and all(isinstance(arg, Expr) for arg in args)
     if true_expr in args:
         return true_expr
     new_args = []
@@ -660,7 +654,7 @@ def disj(*args):
     return list_disj(*new_args)
 
 def split_disj(e):
-    if isinstance(e, LogicExpr) and e.op == '|':
+    if isinstance(e, LogicExpr) and e.op == '||':
         return [e.exprs[0]] + split_disj(e.exprs[1])
     else:
         return [e]
@@ -673,13 +667,13 @@ def imp(b1, b2):
     return LogicExpr("->", b1, b2)
     
 
-class RelExpr(BExpr):
+class RelExpr(Expr):
     neg_table = {"<": ">=", ">": "<=", "==": "!=", "!=": "==", ">=": "<", "<=": ">"}
 
     def __init__(self, op, expr1, expr2, meta=None):
         super(RelExpr, self).__init__()
         assert op in ["<", ">", "==", "!=", ">=", "<="]
-        assert isinstance(expr1, AExpr) and isinstance(expr2, AExpr)
+        assert isinstance(expr1, Expr) and isinstance(expr2, Expr)
         self.op = op
         self.expr1 = expr1
         self.expr2 = expr2
@@ -718,10 +712,10 @@ class RelExpr(BExpr):
     def subst(self, inst):
         return RelExpr(self.op, self.expr1.subst(inst), self.expr2.subst(inst))
 
-class ExistsExpr(BExpr):
+class ExistsExpr(Expr):
     """Exists expressions"""
     def __init__(self, vars, expr, meta=None):
-        assert isinstance(expr, BExpr)
+        assert isinstance(expr, Expr)
         if isinstance(vars, str):
             vars = AVar(vars)
         elif isinstance(vars, list):
@@ -740,9 +734,9 @@ class ExistsExpr(BExpr):
 
     def __str__(self):
         if isinstance(self.vars, AVar):
-            return "EX %s. %s" % (str(self.vars), str(self.expr))
+            return "\\exists %s. %s" % (str(self.vars), str(self.expr))
         else:
-            return "EX {%s}. %s" % ((', '.join(str(var) for var in self.vars)), str(self.expr))
+            return "\\exists {%s}. %s" % ((', '.join(str(var) for var in self.vars)), str(self.expr))
 
     def __eq__(self, other):
         # Currently does not consider alpha equivalence.
@@ -769,10 +763,10 @@ class ExistsExpr(BExpr):
         assert self.vars not in inst
         return ExistsExpr(self.vars, self.expr.subst(inst))
 
-class ForAllExpr(BExpr):
+class ForAllExpr(Expr):
     """ForAll expressions"""
     def __init__(self, vars, expr, meta=None):
-        assert isinstance(expr, BExpr)
+        assert isinstance(expr, Expr)
         if isinstance(vars, str):
             vars = AVar(vars)
         elif isinstance(vars, list):
@@ -830,12 +824,12 @@ def neg_expr(e):
     elif e == false_expr:
         return true_expr
     elif isinstance(e, LogicExpr):
-        if e.op == '&':
-            return LogicExpr('|', neg_expr(e.exprs[0]), neg_expr(e.exprs[1]))
-        elif e.op == '|':
-            return LogicExpr('&', neg_expr(e.exprs[0]), neg_expr(e.exprs[1]))
+        if e.op == '&&':
+            return LogicExpr('||', neg_expr(e.exprs[0]), neg_expr(e.exprs[1]))
+        elif e.op == '||':
+            return LogicExpr('&&', neg_expr(e.exprs[0]), neg_expr(e.exprs[1]))
         elif e.op == '->':
-            return LogicExpr('&', e.exprs[0], neg_expr(e.exprs[1]))
+            return LogicExpr('&&', e.exprs[0], neg_expr(e.exprs[1]))
         elif e.op == '<->':
             return LogicExpr('<->', e.exprs[0], neg_expr(e.exprs[1]))
         elif e.op == '!':

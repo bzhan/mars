@@ -1,0 +1,35 @@
+pre;
+ChartEL := [];
+x := 0;
+Chart_A := 0;
+Chart_B := 1;
+Chart_st := Chart_A;
+{
+  Chart_ret := 0;
+  if (Chart_st == Chart_A) {
+    Chart_A_done := 0;
+    if (x >= 1) {
+      if (Chart_st == Chart_A) {
+        Chart_st := Chart_B;
+        Chart_A_done := 1;
+      }
+    }
+    Chart_ret := Chart_A_done;
+  } else if (Chart_st == Chart_B) {
+    Chart_B_done := 0;
+    if (x <= 0) {
+      if (Chart_st == Chart_B) {
+        Chart_st := Chart_A;
+        Chart_B_done := 1;
+      }
+    }
+    Chart_ret := Chart_B_done;
+  }
+  if (Chart_st == Chart_A) {
+    {x_dot = 1 & x < 1}
+  } else if (Chart_st == Chart_B) {
+    {x_dot = -1 & x > 0}
+  }
+}*
+  invariant [0 <= x] [x <= 1];
+post [0 <= x] [x <= 1];

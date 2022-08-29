@@ -1,0 +1,7 @@
+# ArchiveEntry "Benchmarks/Basic/Dynamics: Exponential decay (2)"
+
+pre [x > 0];
+t := * (t >= 0);
+{x_dot = -x + 1, t_dot = -1 & t > 0}
+  invariant [x > 0] {dbx -1};
+post [x > 0];

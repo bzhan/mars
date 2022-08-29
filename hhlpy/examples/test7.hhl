@@ -1,0 +1,6 @@
+# {x >= 0} {x_dot=2 & x < 10} {x >= 0}
+# Use the boundary x == 10 to imply the post x >= 0.
+# No invariant attached.
+pre [x >= 0];
+{x_dot=2 & x < 10}
+post [x >= 0];

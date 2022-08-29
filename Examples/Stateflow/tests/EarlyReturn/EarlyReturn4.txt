@@ -5,7 +5,7 @@ procedure exec_Chart begin
   Chart_ret := 0;
   if (Chart_A_st == "Chart_A_A1") {
     Chart_A_A1_done := 0;
-    if (ChartEL != [] & top(ChartEL) == "E") {
+    if (ChartEL != [] && top(ChartEL) == "E") {
       if (Chart_A_st == "Chart_A_A1") {
         Chart_A_st := "Chart_A_A3";
         s := "en_A3";
@@ -14,7 +14,7 @@ procedure exec_Chart begin
         Chart_A_A1_done := 1;
       }
     }
-    if (Chart_A_st == "Chart_A_A1" & Chart_A_A1_done == 0) {
+    if (Chart_A_st == "Chart_A_A1" && Chart_A_A1_done == 0) {
       s := "ca";
       log("ca" + "\n");
       if (Chart_A_st == "Chart_A_A1") {

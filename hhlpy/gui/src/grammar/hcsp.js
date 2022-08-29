@@ -1,6 +1,6 @@
 import {parser} from "./hcsp_parser"
 import {LRLanguage, LanguageSupport, indentNodeProp, foldNodeProp, foldInside, continuedIndent} from "@codemirror/language"
-import {styleTags, tags as t} from "@codemirror/highlight"
+import {styleTags, tags as t} from "@lezer/highlight"
 import {linter} from "@codemirror/lint"
 import {annotationPlugin} from "../decoration/button"
 
@@ -36,7 +36,7 @@ export const HCSPLanguage = LRLanguage.define({
         "{ }": t.paren,
         "if then else rec log test assert pre post": t.controlKeyword,
         "+ - %": t.operator,
-        "| & -> <->": t.logicOperator,
+        "|| && -> <->": t.logicOperator,
         "> >= < <=" : t.compareOperator,
         "min max gcd" : t.operatorKeyword,
         "skip wait assert test log" : t.keyword

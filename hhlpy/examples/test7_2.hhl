@@ -1,0 +1,4 @@
+# {x > 2} {x_dot = 1 & x < 1} {x > 2}
+pre [x > 2];
+{x_dot = 1 & x < 1} invariant [false];
+post [x > 2];

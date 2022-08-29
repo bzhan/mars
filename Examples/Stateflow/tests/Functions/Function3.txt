@@ -17,7 +17,7 @@ begin
       a[2] := b[2] + 2;
       if (Chart_st == "Chart_A") {
         J29_done := 0;
-        if (a[0] == 0 & a[1] == 2 & a[2] == 4) {
+        if (a[0] == 0 && a[1] == 2 && a[2] == 4) {
           if (Chart_st == "Chart_A") {
             Chart_st := "";
           }

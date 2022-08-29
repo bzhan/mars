@@ -1,8 +1,8 @@
 systemDef isollete ::= babybox || ACT_sensor || COM_sensor || ACT_actuator || COM_actuator || ACT_controller || COM_controller || heatSW_Conn_0 || heatSW_Conn_1 || heatSW_Conn_2 || heatSW_Conn_3 || isollete_Conn_0 || isollete_Conn_1
 
-variableDef ::= heatCommand; InitFlag; diff; x; x0; run_now; t; e; boxTemp; c; run_queue; gain; q; state; run_prior; measuredTemp; ready_num; prior
+variableDef ::= InitFlag; ready_num; x0; heatCommand; diff; state; q; c; run_prior; boxTemp; prior; t; run_queue; e; run_now; measuredTemp; x; gain
 
-channelDef ::= heatSW_heatCommand; controller_measuredTemp; act_sensor; actuator_diff; babybox_boxTemp; run_sensor; actuator_heatCommand; heatSW_boxTemp; sensor_boxTemp; busy_sensor; act_controller; sensor_measuredTemp; free; controller_data_measuredTemp; tran_sensor; babybox_heatCommand; controller_diff; run_controller; busy_controller; act_actuator; busy_actuator; actuator_data_diff; tran_actuator; run_actuator; tran_controller
+channelDef ::= tran_controller; actuator_heatCommand; act_actuator; busy_actuator; actuator_data_diff; free; act_controller; sensor_boxTemp; controller_data_measuredTemp; controller_diff; act_sensor; tran_actuator; busy_controller; babybox_heatCommand; heatSW_boxTemp; run_controller; run_actuator; busy_sensor; controller_measuredTemp; sensor_measuredTemp; actuator_diff; tran_sensor; heatSW_heatCommand; run_sensor; babybox_boxTemp
 
 processDef SC0 ::= heatSW_boxTemp??x;; sensor_boxTemp!!x;
 processDef heatSW_Conn_0 ::= SC0**
@@ -28,7 +28,7 @@ processDef SC14 ::= c = 0;; actuator_data_diff??diff;; if diff > 0.0 then SC15 e
 processDef SC18 ::= state = "ready";
 processDef SC19 ::= free!!;; state = "dispatch";
 processDef SC20 ::= actuator_heatCommand!!heatCommand;; free!!;; state = "dispatch";
-processDef SC17 ::= DOT(t, c)={1, 1} DOMAIN(c < 0.03 & t < 1.0) INTERRUPT({busy_actuator??;}{SC18}); if t == 1.0 then SC19; if c == 0.03 then SC20
+processDef SC17 ::= DOT(t, c)={1, 1} DOMAIN(c < 0.03 && t < 1.0) INTERRUPT({busy_actuator??;}{SC18}); if t == 1.0 then SC19; if c == 0.03 then SC20
 processDef SC13 ::= if InitFlag == 0 then SC14; if InitFlag == 1 then SC17
 processDef SC9 ::= if state == "ready" then SC10 else SC13
 processDef SC7 ::= if state == "dispatch" then SC8 else SC9
@@ -53,7 +53,7 @@ processDef SC34 ::= c = 0;; controller_data_measuredTemp??measuredTemp;; gain = 
 processDef SC40 ::= state = "ready";
 processDef SC41 ::= free!!;; state = "dispatch";
 processDef SC42 ::= controller_diff!!diff;; free!!;; state = "dispatch";
-processDef SC39 ::= DOT(t, c)={1, 1} DOMAIN(c < 0.01 & t < 1.0) INTERRUPT({busy_controller??;}{SC40}); if t == 1.0 then SC41; if c == 0.01 then SC42
+processDef SC39 ::= DOT(t, c)={1, 1} DOMAIN(c < 0.01 && t < 1.0) INTERRUPT({busy_controller??;}{SC40}); if t == 1.0 then SC41; if c == 0.01 then SC42
 processDef SC33 ::= if InitFlag == 0 then SC34; if InitFlag == 1 then SC39
 processDef SC29 ::= if state == "ready" then SC30 else SC33
 processDef SC27 ::= if state == "dispatch" then SC28 else SC29
@@ -92,7 +92,7 @@ processDef SC72 ::= c = 0;; DOT(t)={1} DOMAIN(t < 1.0) INTERRUPT({sensor_boxTemp
 processDef SC76 ::= state = "ready";
 processDef SC77 ::= free!!;; state = "dispatch";
 processDef SC78 ::= sensor_measuredTemp!!measuredTemp;; free!!;; state = "dispatch";
-processDef SC75 ::= DOT(t, c)={1, 1} DOMAIN(c < 0.01 & t < 1.0) INTERRUPT({busy_sensor??;}{SC76}); if t == 1.0 then SC77; if c == 0.01 then SC78
+processDef SC75 ::= DOT(t, c)={1, 1} DOMAIN(c < 0.01 && t < 1.0) INTERRUPT({busy_sensor??;}{SC76}); if t == 1.0 then SC77; if c == 0.01 then SC78
 processDef SC71 ::= if InitFlag == 0 then SC72; if InitFlag == 1 then SC75
 processDef SC67 ::= if state == "ready" then SC68 else SC71
 processDef SC65 ::= if state == "dispatch" then SC66 else SC67

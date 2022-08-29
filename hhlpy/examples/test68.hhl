@@ -1,0 +1,8 @@
+# Strengthened post
+# {x == 0}
+# t := 0; {x_dot = 2, t_dot = 1 & t < 1}
+# stren_post: {x == 2*t & t == 1}
+# {x == 2}
+pre [x == 0];
+t := 0; {x_dot = 2, t_dot = 1 & t < 1} invariant [x == 2 * t];
+post [x == 2];

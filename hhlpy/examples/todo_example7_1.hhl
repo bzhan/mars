@@ -1,0 +1,4 @@
+# {true} {x_dot = 2 & x < 10} {true}
+pre [true];
+{x_dot = 2 & x < 10}
+post [true];

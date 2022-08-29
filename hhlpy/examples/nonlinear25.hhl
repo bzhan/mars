@@ -1,0 +1,13 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Hybrid Controller Mode 1".
+# 
+# Citation "Hui Kong, Sergiy Bogomolov, Christian Schilling, Yu Jiang, Thomas A. Henzinger. Invariant Clusters for Hybrid Systems. CoRR abs/1605.01450 (2016)".
+
+pre [(x-9)^2+(y-20)^20 <= 4];
+t := * (t >= 0);
+{x_dot = y^2+10*y+25, 
+ y_dot = 2*x*y+10*x-40*y-200,
+ t_dot = -1
+ & t > 0 && 5<x && x<35} 
+invariant 
+    [5133+8*((-40)+x)*x>=4*y*(10+y)];
+post [y <= 48];

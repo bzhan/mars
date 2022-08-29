@@ -44,7 +44,7 @@ begin
       Chart_B_done := 0;
       Chart_ret := 0;
     }
-    <tt_dot = 1 & tt < 0.1>
+    {tt_dot = 1 & tt < 0.1}
     t := t + tt;
     _tick := _tick + 1;
     tt := 0;

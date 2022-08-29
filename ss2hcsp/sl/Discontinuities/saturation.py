@@ -42,7 +42,7 @@ class Saturation(SL_Block):
         expr0 = AConst(self.low_lim)
         cond1 = RelExpr(">", in_var, AConst(self.up_lim))
         expr1 = AConst(self.up_lim)
-        cond2 = LogicExpr("&", cond0.neg(), cond1.neg())
+        cond2 = LogicExpr("&&", cond0.neg(), cond1.neg())
         expr2 = in_var
         out_var = self.src_lines[0][0].name
         return {out_var: [(cond0, expr0), (cond1, expr1), (cond2, expr2)]}

@@ -1,0 +1,4 @@
+pre [a > 0] [x > 0];
+a := A;
+{x_dot = v, v_dot = a & v < V}
+post [v < V];

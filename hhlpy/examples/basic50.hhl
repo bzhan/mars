@@ -1,0 +1,28 @@
+# ArchiveEntry "Benchmarks/Basic/STTT Tutorial: Example 9b"
+# 
+# Description "A PD controlled car with a trajectory generator for setting target speeds. The requirement to prove is that the car never runs a stop sign.".
+# Citation "Jan-David Quesel, Stefan Mitsch, Sarah Loos, Nikos Aréchiga, and André Platzer. How to model and prove hybrid systems with KeYmaera: A tutorial on safety. STTT, 18(1), pp. 67-91, 2016.".
+# Link "http://symbolaris.com/pub/KeYmaera-tutorial.pdf#page=18".
+
+pre [v >= 0] [xm <= x2] [x2 <= S] [xr == (xm + S)/2] [Kp == 2] [Kd == 3] 
+  [5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2];
+{ 
+  {
+    if (5/4*(x2-(x2 + S)/2)^2 + (x2-(x2 + S)/2)*v/2 + v^2/4 < ((S - x2)/2)^2) {
+      xm := x2; 
+      xr := (xm + S)/2; 
+    }
+  }
+  ++ 
+  { }
+
+  t := * (t >= 0);
+  {x2_dot = v, v_dot = -Kp * (x2 - xr) - Kd * v, t_dot = -1 &
+    t > 0 && v > 0} 
+    invariant [xm <= x2] 
+              [xr == (xm + S)/2] 
+              [5/4*(x2-(xm+S)/2)^2 + (x2-(xm+S)/2)*v/2 + v^2/4 < ((S-xm)/2)^2]; 
+}* 
+  invariant [v >= 0] [xm <= x2] [xr == (xm + S)/2]
+            [5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2];
+post [x2 <= S];

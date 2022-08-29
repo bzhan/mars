@@ -23,7 +23,7 @@ begin
       }
       if (Chart_st == "Chart_A") {
         J29_done := 0;
-        if (b[0][0] == 3 & b[0][1] == 1) {
+        if (b[0][0] == 3 && b[0][1] == 1) {
           if (Chart_st == "Chart_A") {
             Chart_st := "";
           }

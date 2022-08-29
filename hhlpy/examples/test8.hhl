@@ -1,0 +1,6 @@
+# {x * x + y * y == 1} {x_dot=y, y_dot=-x & x > 0} {x * x + y * y = 1}
+# Invariant for ODE is x * x + y * y == 1
+pre [x * x + y * y == 1];
+{x_dot=y, y_dot=-x & x > 0}
+invariant [x * x + y * y == 1] {di}{{maintain: z3}};
+post [x * x + y * y == 1];

@@ -64,10 +64,10 @@ begin
       }
     }
     if (Chart_st == "Chart_A") {
-      <x_dot = y, y_dot = -x & x < 0.5>
+      {x_dot = y, y_dot = -x & x < 0.5}
     } else if (Chart_st == "Chart_B") {
       if (Chart_B_st == "Chart_B_B1") {
-        <x_dot = 1 & x < 1>
+        {x_dot = 1 & x < 1}
       }
     }
   }*

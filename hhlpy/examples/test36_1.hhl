@@ -1,0 +1,8 @@
+# Benchmark, problem 29
+# constants: {"B()"}
+# {x + z == 0} 
+# t := 0; {x_dot = (A * x^2 + B() * x), z_dot = A * z * x + B() * z, t_dot = 1 & t < 10} 
+# {0 == -x - z}
+pre [x + z == 0];
+t := 0; {x_dot = (A * x^2 + B() * x), z_dot = A * z * x + B() * z, t_dot = 1 & t < 10} invariant [x + z == 0] {dbx};
+post [0 == -x - z];
