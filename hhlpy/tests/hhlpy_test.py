@@ -973,6 +973,9 @@ class SSHHLPyTest(unittest.TestCase):
     def testSawtooth2(self):
         runFile(self, file="simulink/sf_sawtooth2.hhl")
 
+    def testSawtooth3(self):
+        runFile(self, file="simulink/sf_sawtooth3.hhl")
+
     def testDelay(self):
         runFile(self, file="simulink/sl_delay.hhl")
 
