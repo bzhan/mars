@@ -737,7 +737,7 @@ class CmdVerifier:
         elif isinstance(cur_hp, hcsp.Sequence):
             # Sequence of several commands, apply compute_wp from bottom to top
             cur_post = post
-            i_num = 0 # the number of IChoice and ITE in the sub-programs of Sequence.
+            
             for i in reversed(range(len(cur_hp.hps))):
                 sub_pos = (pos[0] + (i,), pos[1])
                 if sub_pos not in self.infos:
@@ -746,9 +746,6 @@ class CmdVerifier:
                 sub_info.post = cur_post
                 sub_info.assume += self.infos[pos].assume
                 sub_info.parent_type = cur_hp.type
-
-                if isinstance(get_pos(self.hp, sub_pos[0]), (hcsp.IChoice, hcsp.ITE)):
-                    i_num += 1
 
                 self.compute_wp(pos=sub_pos)
                 cur_post = sub_info.pre

@@ -10,7 +10,9 @@ from multiprocessing import Process, Queue
 from queue import Empty
 import signal
 import sys
-
+import webbrowser
+from threading import Timer
+from flask import Flask, send_from_directory, redirect
 
 
 from operator import pos
@@ -333,20 +335,46 @@ def startComputationProcess():
     computationProcess.start()
     return computationProcess
 
-if __name__ == "__main__":
-    port = 8000
-    server = WebSocketServer(
+def startHttpServer(port):
+    print(dirname(__file__))
+    app = Flask('hhlpy', root_path=dirname(__file__))
+
+    @app.route('/')
+    def index():
+        return redirect('/index.html')
+
+    @app.route('/<path:path>')
+    def send_static(path):
+        return send_from_directory('dist', path)
+
+    app.run(port=port)
+
+def startHttpProcess(port):
+    httpProcess = Process(daemon=True, target=startHttpServer, args=[port])
+    httpProcess.start()
+
+def start(port, openBrowser, http):
+    websocketServer = WebSocketServer(
         ('', port),
         Resource(OrderedDict([('/', HHLPyApplication)]))
     )
     try:
         computationProcess = startComputationProcess()
-        print("Running python websocket server on ws://localhost:{0}".format(port), flush=True)
-        server.start()
+        if http:
+            startHttpProcess(port)
+        if openBrowser:
+            def open_browser():
+                webbrowser.open_new('http://127.0.0.1:{0}/'.format(port))
+            Timer(3, open_browser).start();
+        print("Running websocket server on ws://localhost:{0}".format(port), flush=True)
+        websocketServer.start()
         while True:
             checkComputationProcess() # Check whether there are new computation results
             gevent.sleep(0) # Pause to allow the server to handle new requests from the client
     except KeyboardInterrupt:
         print("KeyboardInterrupt")
         print("Closing python websocket server")
-        server.stop()
+        websocketServer.stop()
+
+if __name__ == "__main__":
+    start(8000, False, False)
