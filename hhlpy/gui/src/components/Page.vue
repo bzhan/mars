@@ -6,7 +6,7 @@
       </template>
       <template v-slot:right>
         <ErrorDisplay ref="errorDisplay" />
-        <VerificationCondition2 ref="vcs" :editorView="editorView" :file="file.name" />
+        <VerificationCondition ref="vcs" :editorView="editorView" :file="file.name" />
       </template>
     </Resizer>
   </div>
@@ -15,7 +15,7 @@
 <script>
 import Editor from './Editor.vue'
 import Resizer from './Resizer.vue'
-import VerificationCondition2 from "./VerificationCondition2.vue"
+import VerificationCondition from "./VerificationCondition.vue"
 import ErrorDisplay from './ErrorDisplay.vue'
 import { useOpenFilesStore } from '../stores/openFiles'
 import { mapStores } from 'pinia'
@@ -37,7 +37,7 @@ export default {
     }
   },
   components: {
-    Resizer, Editor, VerificationCondition2, ErrorDisplay
+    Resizer, Editor, VerificationCondition, ErrorDisplay
   },
   computed: {
     ...mapStores(useOpenFilesStore, useWebsocketStore)
