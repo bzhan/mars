@@ -1012,6 +1012,7 @@ class CmdVerifier:
                         dbx_inv = expr.RelExpr(dbx_inv.op, expr1, expr.AConst(0)) 
                     
                     e = dbx_inv.expr1
+                    assert self.is_polynomial(e, self.constant_names) is True
                     # Compute the lie derivative of e.
                     e_lie_deriv = compute_diff(e, eqs_dict=self.infos[sub_pos].eqs_dict, functions=self.functions)             
 
