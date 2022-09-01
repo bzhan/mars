@@ -963,8 +963,8 @@ class CmdVerifier:
 
                     dI_inv = self.infos[sub_pos].inv.expr          
                     # Compute the differential of inv.
-                    # Compute the boundary of constraint. 
-                    # One semi-verification condition is boundary of constraint -> differential of inv.
+                    # One semi-verification condition is constraint -> differential of inv.
+                    # (closure of constraint is not necessary because the differential is always a closed set.)
                     differential = compute_diff(dI_inv, eqs_dict=self.infos[sub_pos].eqs_dict, functions=self.functions)
                     vc = expr.imp(constraint, differential)
         
@@ -1036,7 +1036,8 @@ class CmdVerifier:
                             g = self.infos[sub_pos].dbx_cofactor
                             assert self.is_polynomial(g, self.constant_names) is True
 
-                            # Boundary of D -> e_lie_deriv == g * e
+                            # D -> e_lie_deriv == g * e
+                            # (closure of D is not necessary because "e_lie_deriv == g * e" is a closed set)
                             vc = expr.imp(constraint, expr.RelExpr('==', e_lie_deriv, 
                                                                         expr.OpExpr('*', g, e)))
 
