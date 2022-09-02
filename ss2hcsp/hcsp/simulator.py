@@ -9,6 +9,7 @@ import ast
 import math
 import random
 from decimal import Decimal
+from typing import Dict, Optional
 from scipy.integrate import solve_ivp
 from ss2hcsp.hcsp.expr import Expr, AVar, AConst, OpExpr, FunExpr, IfExpr, \
     ListExpr, DictExpr, ArrayIdxExpr, FieldNameExpr, BConst, LogicExpr, \
@@ -227,7 +228,9 @@ class SimInfo:
     or None if execution has reached the end.
 
     """
-    def __init__(self, name, hp, *, outputs=None, procedures=None, functions=None,
+    def __init__(self, name: str, hp: hcsp.HCSP, *, outputs=None,
+                 procedures: Optional[Dict[str, hcsp.Procedure]] = None,
+                 functions: Optional[Dict[str, hcsp.Function]] = None,
                  pos="start", state=None):
         """Initializes with starting position as the execution position."""
 

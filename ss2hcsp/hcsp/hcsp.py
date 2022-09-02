@@ -1,7 +1,7 @@
 """Hybrid programs"""
 
 from collections import OrderedDict
-from typing import Union
+from typing import List, Union
 
 from ss2hcsp.hcsp.expr import Expr, AVar, AConst, Expr, true_expr, false_expr, RelExpr, LogicExpr, Expr
 from ss2hcsp.hcsp import assertion
@@ -1408,6 +1408,7 @@ class HCSPInfo:
         self.outputs = outputs
 
         # List of declared procedures
+        self.procedures: List[Procedure]
         if procedures is None:
             procedures = []
         self.procedures = procedures
