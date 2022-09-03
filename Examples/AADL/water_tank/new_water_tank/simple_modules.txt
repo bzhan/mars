@@ -20,6 +20,13 @@ endmodule
 module controller():
 begin
 lb := 4.4; ub := 5.6; v := 1;
-{wl?h; wait(0.025);}*
+{wl?h; wait(0.025);
+# pre_v := v;
+if (h >= ub) {v := 0;} if (h <= lb) {v := 1;}
+# (pre_v == 1 && v == 0) -> log("here");
+wait(0.025);
+vc!v;
+wait(0.05);
+}*
 end
 endmodule

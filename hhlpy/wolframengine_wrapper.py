@@ -16,17 +16,19 @@ found_wolfram = False
 path = None
 session = None
 
-dirname = os.path.dirname(__file__)
-filename = os.path.join(dirname, './wolframpath.txt')
+default_locations = [
+    "C:\\Program Files\\Wolfram Research\\Wolfram Engine\\13.1\\WolframKernel.exe",
+    "/Applications/Wolfram Engine.app/Contents/MacOS/WolframKernel",
+    "/usr/local/Wolfram/WolframEngine/13.1/Executables/WolframKernel"
+]
 
-if platform.system() == "Darwin":
-    path = "/Applications/Wolfram Engine.app/Contents/Resources/Wolfram Player.app/Contents/MacOS/WolframKernel"
-else:
-    try:
-        with open(filename, 'r') as f:
-            path = f.readline().strip()
-    except FileNotFoundError as e:
-        print("Please add a file wolframpath.txt under hhlpy and place path to Wolfram Engine there.")
+for loc in default_locations:
+    if os.path.exists(loc):
+        path = loc
+        break
+
+if path is None:
+    path = os.getenv("WolframKernel")
 
 if path:
     try:
@@ -34,6 +36,8 @@ if path:
         found_wolfram = True
     except WolframKernelException:
         print("Failed to start Wolfram Kernel")
+else:
+    print("Please install Wolfram Kernel in a default location or specify its location in the environment variable \"WolframKernel\".")
 
 def toWLexpr(e, functions=dict()):
     """Convert a hcsp expression to WolframLanguage expression"""
