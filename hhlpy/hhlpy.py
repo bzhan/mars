@@ -963,10 +963,11 @@ class CmdVerifier:
 
                     dI_inv = self.infos[sub_pos].inv.expr          
                     # Compute the differential of inv.
-                    # One semi-verification condition is constraint -> differential of inv.
+                    # One semi-verification condition is closure of constraint -> differential of inv.
                     # (closure of constraint is not necessary because the differential is always a closed set.)
                     differential = compute_diff(dI_inv, eqs_dict=self.infos[sub_pos].eqs_dict, functions=self.functions)
-                    vc = expr.imp(constraint, differential)
+                    closureD = compute_closed_set(constraint)
+                    vc = expr.imp(closureD, differential)
         
                     self.infos[sub_pos].vcs.append(Condition(expr=vc, 
                                                         path=[sub_pos],
@@ -977,12 +978,12 @@ class CmdVerifier:
                 # Use dbx rule
                 # Cases when dbx_inv is "e == 0".
                     # Use Darboux Equality Rule
-                    #          D -> e_lie_deriv == g * e
+                    #    closure of D -> e_lie_deriv == g * e
                     #--------------------------------------------    (g is the cofactor)
                     #   {e == 0} <x_dot = f(x) & D> {e == 0}
                 # Cases when dbx_inv is e >(>=) 0.
                     # Use Darboux Inequality Rule.
-                    #           D -> e_lie_deriv >= g * e
+                    #     closure of D -> e_lie_deriv >= g * e
                     # ---------------------------------------------
                     #    e >(>=) 0 <x_dot = f(x) & D> e >(>=) 0
                 elif inv.rule == "dbx":
@@ -1037,9 +1038,10 @@ class CmdVerifier:
                             g = self.infos[sub_pos].dbx_cofactor
                             assert self.is_polynomial(g, self.constant_names) is True
 
-                            # D -> e_lie_deriv == g * e
+                            # closure of D -> e_lie_deriv == g * e
                             # (closure of D is not necessary because "e_lie_deriv == g * e" is a closed set)
-                            vc = expr.imp(constraint, expr.RelExpr('==', e_lie_deriv, 
+                            closureD = compute_closed_set(constraint)
+                            vc = expr.imp(closureD, expr.RelExpr('==', e_lie_deriv, 
                                                                         expr.OpExpr('*', g, e)))
 
                             self.infos[sub_pos].vcs.append(Condition(
@@ -1052,7 +1054,7 @@ class CmdVerifier:
 
                     # Cases when dbx_inv is e >(>=) 0.
                     # Use Darboux Inequality Rule.
-                    #           D -> e_lie_deriv >= g * e
+                    #     closure of D -> e_lie_deriv >= g * e
                     # ---------------------------------------------
                     #    e >(>=) 0 <x_dot = f(x) & D> e >(>=) 0
                     elif dbx_inv.op in {'>', '>='}:
@@ -1068,7 +1070,8 @@ class CmdVerifier:
                                 # remain (e_lie_deriv - g * e) >= 0.
                                 vc_comp = expr.RelExpr('>=', remain, expr.AConst(0))
                                 vc_comps.append(vc_comp)
-                            vc = expr.imp(constraint, expr.list_disj(*vc_comps))
+                            closureD = compute_closed_set(constraint)
+                            vc = expr.imp(closureD, expr.list_disj(*vc_comps))
 
                             self.infos[sub_pos].vcs.append(Condition(
                                                             expr=vc,
@@ -1082,8 +1085,9 @@ class CmdVerifier:
                         else:
                             g = self.infos[sub_pos].dbx_cofactor
                             assert self.is_polynomial(g, self.constant_names) is True
-
-                            vc = expr.imp(constraint, expr.RelExpr('>=', e_lie_deriv, 
+                            
+                            closureD = compute_closed_set(constraint)
+                            vc = expr.imp(closureD, expr.RelExpr('>=', e_lie_deriv, 
                                                                         expr.OpExpr('*', self.infos[sub_pos].dbx_cofactor, e)))
                             self.infos[sub_pos].vcs.append(Condition(
                                                             expr=vc,
@@ -1093,7 +1097,7 @@ class CmdVerifier:
                                                             bottom_loc=bottom_loc, isVC=True))
 
                 # Use barrier certificate
-                #             D && e == 0 -> e_lie > 0
+                #      closure of D && e == 0 -> e_lie > 0
                 # --------------------------------------------------
                 #      {e >=(>) 0} <x_dot = f(x) & D> {e >=(>) 0}                        
                 elif inv.rule == "bc":
@@ -1126,8 +1130,9 @@ class CmdVerifier:
                     e = barrier_inv.expr1
                     e_lie = compute_diff(e, eqs_dict=self.infos[sub_pos].eqs_dict, functions=self.functions)
 
-                    # vc: D && e == 0 -> e_lie > 0
-                    vc = expr.imp(expr.LogicExpr('&&', constraint, 
+                    # vc: closure of D && e == 0 -> e_lie > 0
+                    closureD = compute_closed_set(constraint)
+                    vc = expr.imp(expr.LogicExpr('&&', closureD, 
                                                     expr.RelExpr('==', e, expr.AConst(0))),
                                 expr.RelExpr('>', e_lie, expr.AConst(0)))
 
