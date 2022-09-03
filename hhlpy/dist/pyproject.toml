@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "hhlpy"
 version = "0.0.4"
 description = "Prove hybrid programs correct using Hybrid Hoare Logic"
+readme = "src/hhlpy/README.md"
 authors = [{ name = "Huanhuan Sheng" }, { name = "Bohua Zhan" }, { name = "Alexander Bentkamp" }]
 classifiers = [
     "Programming Language :: Python",
