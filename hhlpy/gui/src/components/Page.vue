@@ -71,8 +71,10 @@ export default {
       }
     },
     showError(data) {
-      this.$refs.errorDisplay.addError(data.error);
-      console.error("Server error:", data.error);
+      if (!data.file || data.file == this.file.name){
+        this.$refs.errorDisplay.addError(data.error);
+        console.error("Server error:", data.error);
+      }
     },
     verifyVCs() {
       this.$refs.vcs.verifyVCs();

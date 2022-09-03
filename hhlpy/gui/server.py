@@ -170,6 +170,8 @@ def runVerify(formula, code, solver):
 
     if solver == "z3":
         return z3_prove(formulaExpr, functions=hoare_triple.functions)
+    elif solver == "wolfram" and not found_wolfram:
+        raise Exception("Wolfram Engine not found.")
     elif solver == "wolfram":
         return wl_prove(formulaExpr)
     else:
@@ -204,10 +206,13 @@ def runComputationProcess(inputQueue, outputQueue):
                 outputQueue.put({"error": str(e), "type": "computed", "file": msg["file"]})
 
         elif msg["type"] == "verify":
-            result = runVerify(
-                formula=msg["formula"],
-                code=msg["code"],
-                solver=msg["solver"])
+            try:
+                result = runVerify(
+                    formula=msg["formula"],
+                    code=msg["code"],
+                    solver=msg["solver"])
+            except Exception as e:
+                outputQueue.put({"error": str(e), "type": "error", "file": msg["file"]})
         
             outputQueue.put({
                 "file": msg["file"],
