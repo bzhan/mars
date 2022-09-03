@@ -321,6 +321,9 @@ def wl_prove(e, functions=dict()):
 
     # wl_vars cannot be empty when using FindInstance function.
     if wl_vars:
+        # We use FindInstance instead of Reduce here 
+        # because that Reduce cannot reduce the VCs in basic 46, 47 into true，
+        # even though the VCs should be valid.
         result = session.evaluate(wl.FindInstance(wl.Not(wl_expr), wl_vars, wl.Reals))
         # result is an empty tuple, i.e. no instance found for the not expression.
         if not result:

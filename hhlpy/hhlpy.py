@@ -75,7 +75,7 @@ def compute_diff(e, eqs_dict, functions):
                 mid_expr = expr.OpExpr("^", e.exprs[0], expr.OpExpr("-", e.exprs[1], expr.AConst(1)))
                 return expr.OpExpr("*", e.exprs[1], expr.OpExpr("*", mid_expr, du)) 
             elif e.op == '/':
-                # d(u/v) = (u*dv + du * v)/ v^2
+                # d(u/v) = (du * v - u * dv)/ v^2   u'v-uv')/v²
                 # If v is constant, d(u/v) = 1/v * du, which is easier than using above rule.
                 if isinstance(e.exprs[1], expr.AConst) or \
                    isinstance(e.exprs[1], expr.FunExpr) and len(e.exprs == 0): # actually a constant
@@ -84,7 +84,7 @@ def compute_diff(e, eqs_dict, functions):
                 else:
                     du = rec(e.exprs[0])
                     dv = rec(e.exprs[1])
-                    numerator = expr.OpExpr("+", expr.OpExpr("*", e.exprs[0], dv), expr.OpExpr("*", du, e.exprs[1]))
+                    numerator = expr.OpExpr("-", expr.OpExpr("*", du, e.exprs[1]), expr.OpExpr("*", e.exprs[0], dv))
                     denominator = expr.OpExpr('*', e.exprs[1], e.exprs[1])
                     return expr.OpExpr('/', numerator, denominator)            
             else:
@@ -921,7 +921,7 @@ class CmdVerifier:
                         Condition(
                             expr=e, 
                             path=subpost.path,
-                            blabel=subpost.blabel,
+                            blabel=self.compute_branch_label(type=type, cur_branch='execute', post_blabel=subpost.blabel),
                             categ=subpost.categ,
                             origins=subpost.origins + 
                             [OriginLoc(index=i, isInv=True, hp_pos=pos[0]) for i in range(len(cur_hp.inv))] + [OriginLoc(isConstraint=True, hp_pos=pos[0])],
