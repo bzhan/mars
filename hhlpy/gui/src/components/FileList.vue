@@ -8,7 +8,7 @@
       </div>
       <FileList v-if="open[dir]" :path="[...path, dir]" />
     </div>
-    <div :class="`file supported-${supported[file]}`" v-for="file in files" :key="file" @click="openFile(file)">
+    <div :class="`file supported-${supported[file]}`" v-for="file in supportedFiles" :key="file" @click="openFile(file)">
       <v-icon name="align-left" scale="1" fill="#12a" v-if="supported[file]"></v-icon>
       <v-icon name="question" scale="1" fill="#888" v-if="!supported[file]"></v-icon>
       {{ file }}
@@ -37,6 +37,7 @@ export default {
   },
   data: () => { return {
     files: [],
+    supportedFiles: [],
     dirs: [],
     open: {},
     supported: {},
@@ -53,6 +54,7 @@ export default {
         for (let file in this.files) {
           Vue.set(this.supported, this.files[file], this.files[file].endsWith(".hhl"));
         }
+        this.supportedFiles = this.files.filter(file => this.supported[file])
       }
     });
     this.websocketStore.send({type: "get_file_list", path:this.path.join("/")})
@@ -75,9 +77,16 @@ export default {
   margin-left:5px;
   padding-left:10px;
 }
+
 .dir:hover, .file:hover {
   background: #ddd
 }
+
+.file, .dir {
+  overflow:hidden;
+  white-space: nowrap;
+}
+
 .supported-false {
   color: #888;
 }
