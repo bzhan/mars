@@ -8,6 +8,7 @@ rm -f -R ./dist/dist
 mkdir ./dist/src
 rsync -ar ../ss2hcsp ./dist/src
 rsync -ar ../hhlpy ./dist/src --exclude=dist/** --exclude=dist --exclude=gui/node_modules/**
+cp ./dist/src/hhlpy/README.md ./dist/README.md
 
 cd ./dist/src/hhlpy/gui
 npm install
@@ -25,7 +26,7 @@ python -m pip install -e .
 python -m pip install build twine
 python -m build
 
-echo "Run \`source $(dirname "${BASH_SOURCE[0]}")/dist/env/bin/activate\` and \`python3 -m hhlpy\` to test."
+echo "Run \`source $(dirname "${BASH_SOURCE[0]}")/dist/env/bin/activate\` and \`python3 -m hhlpy\` to test. (Make sure that there is no \`hhlpy\` package in your current directory or in your PYTHONPATH.)"
 echo "Make sure you have not forgotten to update the version number in \`pyproject.toml\` and run \`twine upload $(dirname "${BASH_SOURCE[0]}")/dist/dist/*\` to publish."
 
 # cd dist/
