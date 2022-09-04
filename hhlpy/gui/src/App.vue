@@ -15,9 +15,9 @@
               <span class="tab" v-for="(file, fileName) in openFilesStore.files" :key="fileName" 
                 :class="{open: fileName == openFilesStore.activeTab}"
                 @click="openFilesStore.activeTab = fileName">
-                {{fileName}}
                 <v-icon name="times" scale="1" fill="#888" class="close"
                   @click="openFilesStore.closeFile(fileName)"></v-icon>
+                {{fileName}}
               </span>
               
             </div>
@@ -92,15 +92,17 @@ body,
   display: inline-block;
   background: #ccc;
   margin: 0 1px;
-  padding: 10px;
+  padding: 5px;
   width: 200px;
   text-align: center;
   cursor: default;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .close {
   float:right;
-  padding: 8px 0;
 }
 
 .tab.open {
