@@ -44,12 +44,12 @@ export default {
 .left {
   box-sizing: border-box;
   flex: 1 1 auto;
-  overflow: scroll;
+  overflow: auto;
 }
 .right {
   box-sizing: border-box;
   flex: 1 1 auto;
-  overflow: scroll;
+  overflow: auto;
 }
 
 .resizer {
