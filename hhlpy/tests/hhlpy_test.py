@@ -315,7 +315,7 @@ class BasicHHLPyTest(unittest.TestCase):
                 expected_vcs={((), ()): ["x > 0 -> t1 >= 0 -> t1 > 0 -> (\exists y. x * y * y == 1)", \
                                          "x > 0 -> t1 >= 0 -> t1 <= 0 -> x > 0"],
                               ((1,), ()): ["x * y * y == 1 && t == 0 -> x > 0"],
-                              ((1,), (0,)): ["t > 0 -> x * y * (y / 2) + (x * (y / 2) + -x * y) * y == 0"]})
+                              ((1,), (0,)): ["t >= 0 -> x * y * (y / 2) + (x * (y / 2) + -x * y) * y == 0"]})
 
     def testBasic16(self):
         runFile(self, file="basic16.hhl",)
@@ -325,7 +325,7 @@ class BasicHHLPyTest(unittest.TestCase):
                 expected_vcs={((), ()): ["y > 0 -> x > 0 && y > 0 -> t1 >= 0 -> t1 > 0 -> (\exists z. x * z * z == 1)",
                                          "y > 0 -> x > 0 && y > 0 -> t1 >= 0 -> t1 <= 0 -> x > 0"],
                               ((1,), ()): ["y > 0 -> x * z * z == 1 && t == 0 -> x > 0"],
-                              ((1,), (0,)): ["y > 0 -> t > 0 -> x * z * (y * z / 2) + (x * (y * z / 2) + -y * x * z) * z == 0"]})
+                              ((1,), (0,)): ["y > 0 -> t >= 0 -> x * z * (y * z / 2) + (x * (y * z / 2) + -y * x * z) * z == 0"]})
 
     def testBasic18(self):
         runFile(self, file="basic18.hhl", print_vcs=False)
@@ -364,7 +364,7 @@ class BasicHHLPyTest(unittest.TestCase):
                                            y <= 0 -> x >= 1",
                                            "z == -2 -> x >= 1 && y == 10 && z == -2 -> \
                                            y <= 0 -> y >= 0"],
-                                ((), (0,)): ["z == -2 -> y > 0 -> y >= 0"] 
+                                ((), (0,)): ["z == -2 -> y >= 0 -> y >= 0"] 
                                           # This is from dI (condition implies differential of invariant)
                                 }) 
                                           # `y <= 0 -> x >= 1 && y >= 0` is the dW precondition
@@ -434,7 +434,7 @@ class BasicHHLPyTest(unittest.TestCase):
     
     # TODO: 48 is very slow.(But fast on interface)
     def testBasic48(self):
-        runFile(self, file="basic48.hhl",)
+        runFile(self, file="basic48.hhl")
 
     def testBasic49(self):
         runFile(self, file="basic49.hhl",)

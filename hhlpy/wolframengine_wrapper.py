@@ -199,6 +199,9 @@ def toHcsp(e):
             return expr.LogicExpr('<->', toHcsp(e.args[0]), toHcsp(e.args[1]))
 
         else:
+            # Apply toHCSP to e.head because e.head may include "Global`"
+            # For example, the solution is Global`x1[t] := t, 
+            # then we need to delete "Global`" to match x1 with the variable in ODE.
             return expr.FunExpr(str(toHcsp(e.head)), [toHcsp(arg) for arg in e.args])
 
     elif isinstance(e, WLSymbol):
@@ -355,20 +358,28 @@ def wl_simplify(e, functions=dict()):
 def wl_polynomial_div(p, q, functions=dict()):
     """Compute the quotient and remainder of polynomial p and q"""
     vars = q.get_vars()
-    vars = {toWLexpr(expr.AVar(var), functions) for var in vars}
+    # Sort the vars to get the same results everytime,
+    # because result of PolynomialReduce depends on the sort of vars but set has no sort.
+    vars_list = [var for var in vars]
+    vars_list.sort()
+    vars = wl.list(*[toWLexpr(expr.AVar(var), functions) for var in vars_list])
+
     p = toWLexpr(p, functions)
     q = toWLexpr(q, functions)
 
     # result is in the form, for example, (x, 1), 
     # in which x is the quotient, 1 is the remainder.
     quot_remains = dict()
-    for var in vars:
-        result = session.evaluate(wl.PolynomialQuotientRemainder(p, q, var))
+    # Use PolynomialReduce instead of PolynomialQuotientRemainder,
+    # because PolynomialQuotientRemainder only allows one var, 
+    # which may lead to a fractional expression as quotient.
+    # For example, quot is x/y, since x is the only var
+    result = session.evaluate(wl.PolynomialReduce(p, q, vars))
 
-        quot = toHcsp(result[0])
-        remain = toHcsp(result[1])
+    quot = toHcsp(result[0][0])
+    remain = toHcsp(result[1])
 
-        quot_remains[quot] = remain
+    quot_remains[quot] = remain
 
     return quot_remains
 
