@@ -192,7 +192,7 @@ categ_label { "init"
       | "maintain" }
 
 atom_label { int
-      | "execute"
+      | "exec"
       | "skip" }
 
 branch_label {

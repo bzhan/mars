@@ -125,7 +125,7 @@ grammar = r"""
     ?categ_label: label_category     -> categ_label
 
     ?atom_label: INT
-        | "execute"          -> atom_label_execute
+        | "exec"          -> atom_label_exec
         | "skip"             -> atom_label_skip
 
     ?branch_label: atom_label                 -> atom_label
@@ -447,7 +447,7 @@ class HPTransformer(Transformer):
     def label_categ_maintain(self, meta): return "maintain"
     def label_categ_init_all(self, meta): return "init_all"
 
-    def atom_label_execute(self, meta): return "execute"
+    def atom_label_exec(self, meta): return "exec"
     def atom_label_skip(self, meta): return "skip"
 
     def atom_label(self, meta, value):

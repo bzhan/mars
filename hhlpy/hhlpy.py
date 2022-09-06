@@ -921,7 +921,7 @@ class CmdVerifier:
                         Condition(
                             expr=e, 
                             path=subpost.path,
-                            blabel=self.compute_branch_label(type=type, cur_branch='execute', post_blabel=subpost.blabel),
+                            blabel=self.compute_branch_label(type=type, cur_branch='exec', post_blabel=subpost.blabel),
                             categ=subpost.categ,
                             origins=subpost.origins + 
                             [OriginLoc(index=i, isInv=True, hp_pos=pos[0]) for i in range(len(cur_hp.inv))] + [OriginLoc(isConstraint=True, hp_pos=pos[0])],
