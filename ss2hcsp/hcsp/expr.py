@@ -306,7 +306,7 @@ def subst_all_funcs(e: Expr, funcs=dict()):
             if e.fun_name in funcs:
                 return rec(replace_function(e, funcs))
             else:
-                raise NotImplementedError
+                return e
         elif isinstance(e, OpExpr):
             return OpExpr(e.op, *[rec(expr) for expr in e.exprs])
         elif isinstance(e, RelExpr):

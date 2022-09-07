@@ -421,7 +421,8 @@ class CmdVerifier:
             subpre_exprs = expr.split_conj(subpre_expr)
             for sub_expr in subpre_exprs:
                 # vars is not empty and does not include variable names.
-                if sub_expr.get_vars() and sub_expr.get_vars().isdisjoint(self.variable_names):
+                if (sub_expr.get_vars() or sub_expr.get_fun_names()) \
+                 and sub_expr.get_vars().isdisjoint(self.variable_names):
                     self.infos[root_pos].assume.append(Condition(expr=sub_expr,
                                                                  origins=subpre.origins))
 
@@ -1190,10 +1191,15 @@ class CmdVerifier:
         
                     # Compute the conclusion of implication
                     conclu = Q_y_t
-                    
-                    pre = pre + [Condition(expr=expr.ForAllExpr(time_var.name,
+                    pre_expr = expr.ForAllExpr(time_var.name,
                                                         expr.imp(expr.RelExpr('>', time_var, expr.AConst(0)),
-                                                                expr.imp(cond, conclu))),
+                                                                expr.imp(cond, conclu)))
+                    # ghost_var is a fresh variable not in P'
+                    for ghost_var in ghost_vars:
+                        print("ghost_vavr:", ghost_var, "pre_expr:", pre_expr)
+                        assert ghost_var not in pre_expr.get_vars()
+                    
+                    pre = pre + [Condition(expr=pre_expr,
                                     path=[sub_pos],
                                     origins=self.infos[sub_pos].inv.origins,
                                     categ="maintain",
