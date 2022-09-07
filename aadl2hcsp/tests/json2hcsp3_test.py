@@ -10,7 +10,8 @@ from ss2hcsp.hcsp import module
 
 class Json2HCSP3Test(unittest.TestCase):
     def testJson2HCSP3(self):
-        json_file = "./Examples/AADL/CCS/TCS/model_1bus.json"
+        json_file = "./output.json"
+        # json_file = "./Examples/AADL/CCS/TCS/model_1bus.json"
         with open(json_file, 'r') as f:
             dic = json.load(f)
 
@@ -42,25 +43,25 @@ class Json2HCSP3Test(unittest.TestCase):
             else:
                 raise NotImplementedError
 
-        with open('./Examples/AADL/CCS/TCS/other_modules.txt', 'w') as f:
+        with open('./Examples/AADL/CCS/TCS/generatedcode/other_modules.txt', 'w') as f:
             f.write("%type: module\n\n")
             for mod in mods:
                 f.write(mod.export())
                 f.write('\n\n')
 
-        with open('./Examples/AADL/CCS/TCS/DataBuffer.txt', 'w') as f:
+        with open('./Examples/AADL/CCS/TCS/generatedcode/DataBuffer.txt', 'w') as f:
             f.write("%type: module\n\n")
             for dataBuffer in dataBuffers.values():
                 f.write(dataBuffer.export())
                 f.write('\n\n')
 
-        with open('./Examples/AADL/CCS/TCS/Bus.txt', 'w') as f:
+        with open('./Examples/AADL/CCS/TCS/generatedcode/Bus.txt', 'w') as f:
             f.write("%type: module\n\n")
             for bus in buses:
                 f.write(bus.export())
                 f.write('\n\n')
 
-        with open('./Examples/AADL/CCS/TCS/system.txt', 'w') as f:
+        with open('./Examples/AADL/CCS/TCS/generatedcode/system.txt', 'w') as f:
             f.write("%type: module\n")
             f.write("import other_modules\n")
             f.write("import SCHEDULLER_HPF\n")

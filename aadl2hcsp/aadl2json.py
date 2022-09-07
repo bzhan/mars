@@ -103,10 +103,16 @@ def simplize(info):
             for k, v in value["connections"].items():
                 if v['source'] in value["components"].keys():
                     info[key]['connections'][k]['source'] = value["components"][v['source']]
+                    source = info[key]['connections'][k]['source'] + \
+                        '.'+v['source_port']
+                else:
+                    source = v['source']+'.'+v['source_port']
                 if v['target'] in value["components"].keys():
                     info[key]['connections'][k]['target'] = value["components"][v['target']]
-                source = v['source']+'.'+v['source_port']
-                target = v['target']+'.'+v['target_port']
+                    target = info[key]['connections'][k]['target'] + \
+                        '.'+v['target_port']
+                else:
+                    target = v['target']+'.'+v['target_port']
                 connmap = {}
                 connmap_rv = {}
                 if source not in connmap.keys():
@@ -121,7 +127,7 @@ def simplize(info):
                 if 'connmap_rv' not in info[key].keys():
                     info[key]['connmap_rv'] = {}
                 info[key]['connmap_rv'] .update(connmap_rv)
-            pop_list=[]
+            pop_list = []
             temp = deepcopy(info)
             for k, v in value["components"].items():
                 pop_list.append(k)
@@ -139,7 +145,7 @@ def simplize(info):
                         if info[v[0]][v[1]]["category"] != "process":
                             output[v[1]] = info[v[0]][v[1]]
                         else:
-                            for threadk,threadv in info[v[0]][v[1]]["components"].items():
+                            for threadk, threadv in info[v[0]][v[1]]["components"].items():
                                 output[threadk] = threadv
                     if type(v) == str:
                         vars[k] = deepcopy(info[v])
@@ -147,7 +153,7 @@ def simplize(info):
                         if info[v]["category"] != "process":
                             output[k] = info[v]
                         else:
-                            for threadk,threadv in info[v]["components"].items():
+                            for threadk, threadv in info[v]["components"].items():
                                 output[threadk] = threadv
             if "connections" in value.keys():
                 for k, v in value["connections"].items():
@@ -187,6 +193,7 @@ def simplize(info):
                         output[conn][vars[k]['category']
                                      ] = vars[k]['refered_name']
             info = output
+
     return info
 
 
@@ -256,7 +263,13 @@ class HPTransformer(Transformer):
         return args[1]+".."+args[2]
 
     def model_prop_cmd(self, meta, name, val):
-        return ['prop', {name: str(val)}]
+        if(str(val).isdigit()):
+            return ['prop', {name: int(val)}]
+        else:
+            val = str(val)
+            val = val.replace("(","")
+            val = val.replace(")","")
+            return ['prop', {name: val}]
 
     def system_prop_cmd(self, meta, name, ref_name, *args):
         text = []
@@ -518,9 +531,25 @@ class CompactJSONEncoder(json.JSONEncoder):
         """Required to also work with `json.dump`."""
         return self.encode(o)
 
-def convert_AADL(path):
+def mergedict(dict1,dict2):
+    dict3 =deepcopy(dict2)
+    for key, value in dict1.items():
+        if key in dict2:
+            if type(dict1[key]) == dict and type(dict2[key]) == dict:
+                dict3[key] = mergedict(dict1[key], dict2[key])
+            elif type(dict1[key]) == dict and type(dict2[key]) != dict:
+                dict3[key] = dict1[key]
+            elif type(dict1[key]) != dict and type(dict2[key]) == dict:
+                dict3[key] = dict2[key]
+            else:
+                dict3[key] = dict2[key]
+        else:
+            dict3[key] = value
+    return dict3
 
-    file1 = open(path, "r", encoding='utf-8')
+def convert_AADL(path1,path2):
+
+    file1 = open(path1, "r", encoding='utf-8')
     text = file1.read()
     file1.close()
 
@@ -538,6 +567,11 @@ def convert_AADL(path):
                 error_str += " " * (e.column-1) + "^" + '\n'
         raise ParseFileException(error_str)
 
+    with open(path2, 'r') as f:
+            config = json.load(f)
+
+    info = mergedict(info,config)
+        
     output = json.dumps(info, separators=(',', ': '),
                         indent=4, cls=CompactJSONEncoder)
 

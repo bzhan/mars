@@ -517,7 +517,7 @@ def new_translate_continuous(diagram):
             trig_procs.append((trig_cond, hp.Var(block.name)))
             constraints.append(neg_expr(trig_cond))
             procedures.extend(block.get_procedures())
-        elif block.type in ('scope'):  # ignore
+        elif block.type in ('scope in_port out_port'):  # ignore
             pass
         else:
             raise NotImplementedError('Unrecognized continuous block: %s' % block.type)

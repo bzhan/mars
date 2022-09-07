@@ -14,7 +14,7 @@
             "veh_v_w": "v"
         },
         "impl": "Simulink",
-        "code": "./Examples/AADL/CCS/Simulink/vehicle_imp.xml"
+        "discrete_computation": "./Examples/AADL/CCS/Simulink/vehicle_imp.xml"
     },
     "img_acq_imp": {
         "category": "thread",
