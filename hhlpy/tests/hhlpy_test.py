@@ -520,7 +520,15 @@ class BasicHHLPyTest(unittest.TestCase):
     def testBasic55(self):
         runFile(self, file="basic55.hhl",)
     
-    # TODO: Basic benchmark, problem 56 - 60, cannot be written into hcsp program.
+    # TODO: Does this example correspond to problem 57 in basic benchmark?
+    def testBasic57(self):
+        runFile(self, file="basic57.hhl")
+
+    # TODO: Does this example correspond to problem 57 in basic benchmark?
+    def testBasic60(self):
+        runFile(self, file="basic60.hhl")
+    
+    # TODO: Basic benchmark, problem 56, 58 - 60, cannot be written into hcsp program.
 
     # TODO: Proofs or invariants Unknown
     # def testOscillator(self):
@@ -978,6 +986,9 @@ class SSHHLPyTest(unittest.TestCase):
 
     def testDelay(self):
         runFile(self, file="simulink/sl_delay.hhl")
+
+    def testPIcontrol(self):
+        runFile(self, file="simulink/PIcontrol.hhl", print_vcs=True)
 
 
 class AdvancedHHLPyTest(unittest.TestCase):
