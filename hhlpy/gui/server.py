@@ -203,6 +203,7 @@ def runComputationProcess(inputQueue, outputQueue):
                 vcs = runCompute(code=msg["code"])
                 outputQueue.put({"vcs": vcs, "type": "computed", "file": msg["file"]})
             except Exception as e:
+                traceback.print_exc()
                 outputQueue.put({"error": str(e), "type": "computed", "file": msg["file"]})
 
         elif msg["type"] == "verify":
@@ -212,6 +213,7 @@ def runComputationProcess(inputQueue, outputQueue):
                     code=msg["code"],
                     solver=msg["solver"])
             except Exception as e:
+                traceback.print_exc()
                 outputQueue.put({"error": str(e), "type": "error", "file": msg["file"]})
         
             outputQueue.put({
