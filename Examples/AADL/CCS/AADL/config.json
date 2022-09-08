@@ -1,0 +1,225 @@
+{
+    "vehicle_imp": {
+        "display": [
+            "v",
+            "s",
+            "a"
+        ],
+        "input": {
+            "veh_a": {
+                "var": "a",
+                "val": 0.0
+            }
+        },
+        "output": {
+            "veh_s": "s",
+            "veh_v_l": "v",
+            "veh_v_w": "v"
+        }
+    },
+    "camera": {
+        "display": [
+            "img"
+        ]
+    },
+    "radar": {
+        "display": [
+            "obs_pos_radar"
+        ]
+    },
+    "actuator": {
+        "display": [
+            "cmd"
+        ],
+        "input": {
+            "cmd": {
+                "var": "cmd",
+                "val": 0.0
+            }
+        }
+    },
+    "GPS": {
+        "display": [
+            "data"
+        ],
+        "input": {
+            "veh_s": {
+                "var": "data",
+                "val": 0.0
+            }
+        },
+        "output": {
+            "veh_pos": "data"
+        }
+    },
+    "laser": {
+        "display": [],
+        "input": {
+            "veh_l_v": {
+                "var": "veh_l_v",
+                "val": 0.0
+            }
+        }
+    },
+    "wheel": {
+        "display": [],
+        "input": {
+            "veh_v_w": {
+                "var": "veh_v_w",
+                "val": 0.0
+            }
+        }
+    },
+    "user_panel": {
+        "display": [],
+        "input": {}
+    },
+    "img_acq": {
+        "display": [
+            "image",
+            "new_image"
+        ],
+        "input": {
+            "img": {
+                "var": "image",
+                "val": 0.0
+            }
+        },
+        "output": {
+            "proc_img": "new_image"
+        },
+        "initialization": ""
+    },
+    "comp_obs_pos": {
+        "display": [
+            "obs_pos_radar",
+            "proc_img",
+            "obs_pos"
+        ],
+        "input": {
+            "obs_pos_radar": {
+                "var": "obs_pos_radar",
+                "val": 0.0
+            },
+            "proc_img": {
+                "var": "proc_img",
+                "val": 0.0
+            }
+        },
+        "initialization": ""
+    },
+    "emerg": {
+        "display": [
+            "des_a",
+            "veh_v",
+            "obs_pos",
+            "veh_pos",
+            "cmd"
+        ],
+        "input": {
+            "des_a": {
+                "var": "des_a",
+                "val": 0.0
+            },
+            "veh_v": {
+                "var": "veh_v",
+                "val": 0.0
+            },
+            "obs_pos": {
+                "var": "obs_pos",
+                "val": 0.0
+            },
+            "veh_pos": {
+                "var": "veh_pos",
+                "val": 0.0
+            }
+        }
+    },
+    "velo_voter": {
+        "display": [
+            "wheel_v",
+            "laser_v",
+            "veh_v"
+        ],
+        "input": {
+            "wheel_v": {
+                "var": "wheel_v",
+                "val": 0.0
+            },
+            "wheel_valid": {
+                "var": "wheel_valid",
+                "val": -1.0
+            },
+            "laser_v": {
+                "var": "laser_v",
+                "val": 0.0
+            },
+            "laser_valid": {
+                "var": "laser_valid",
+                "val": -1.0
+            }
+        }
+    },
+    "pan_ctr_th": {
+        "display": [
+            "des_v"
+        ],
+        "event_input": {
+            "event": "event"
+        },
+        "initialization": "",
+        "priority": 0
+    },
+    "tran_img": {
+        "type": "data",
+        "init_value": 0.0
+    },
+    "tran_obs_pos_radar": {
+        "type": "data",
+        "init_value": 0.0
+    },
+    "tran_cmd": {
+        "type": "data",
+        "init_value": 0.0
+    },
+    "tran_veh_a": {
+        "type": "data",
+        "init_value": 0.0
+    },
+    "tran_veh_s": {
+        "type": "data",
+        "init_value": 0.0
+    },
+    "tran_veh_pos": {
+        "type": "data",
+        "init_value": 0.0
+    },
+    "tran_veh_l_v": {
+        "type": "data",
+        "init_value": 0.0
+    },
+    "tran_laser_valid": {
+        "type": "data",
+        "init_value": 0.0
+    },
+    "tran_laser_v": {
+        "type": "data",
+        "init_value": 0.0
+    },
+    "tran_wheel_valid": {
+        "type": "data",
+        "init_value": 0.0
+    },
+    "tran_wheel_v": {
+        "type": "data",
+        "init_value": 0.0
+    },
+    "tran_event": {
+        "type": "data",
+        "init_value": 0.0
+    },
+    "tran_des_v": {
+        "type": "data",
+        "init_value": 0.0
+    }
+}
