@@ -575,16 +575,8 @@ class NonlinearHHLPyTest(unittest.TestCase):
     def testNonlinear9(self):
         runFile(self, file="nonlinear9.hhl",)
 
-    # TODO: Nonlinear benchmark, problem 10.
-    # Cannot proved by keymaera following tactic.
-#     x^2+y^2<=1
-#   ->
-#   [
-#     {x'=3*(-4+x^2), y'=3+x*y-y^2}
-#     @invariant(
-#       (-0.0013138)*x^5+0.00048141*x^4*y+0.000828*x^2*y^3-0.0016748*x*y^4+0.0008106*y^5+0.010722*x^4-0.0018729*x^3*y+0.0041383*x^2*y^2-0.013911*x*y^3+0.0085091*y^4-0.039948*x^3-0.0060006*x^2*y-0.046355*x*y^2+0.054433*y^3-0.028132*x^2+0.13217*x*y+0.10916*y^2+0.62004*x-0.88775*y-1.1161<=0&(-0.00011438)*x^4*y^2+0.00015105*x^2*y^4-0.0018063*x^5+0.0012699*x^3*y^2+0.0014498*x^2*y^3-0.0014334*x*y^4+0.0013001*y^5+0.017567*x^4+0.0050023*x^3*y-0.0016674*x^2*y^2-0.015315*x*y^3+0.01038*y^4-0.072259*x^3-0.035874*x^2*y-0.050558*x*y^2+0.058708*y^3-0.05097*x^2+0.042626*x*y+0.19257*y^2+1.3148*x+0.014613*y-1.2585<=0,
-#       x^2+y^2-16<=0)
-#   ] !(x < -4 | y < -4 | x>4 | y>4) 
+    def testNonlinear10(self):
+        runFile(self, file="nonlinear10.hhl",)
     
     def testNonlinear11(self):
         runFile(self, file="nonlinear11.hhl",)
@@ -719,27 +711,26 @@ class NonlinearHHLPyTest(unittest.TestCase):
     def testNonlinear55(self):
         runFile(self, file="nonlinear55.hhl")
 
-    # TODO: nonlinear problem 56, ODE rule is not clear.
+    # TODO: ODE rule is not clear
     # def testNonlinear56(self):
-    #     # Nonlinear benchmark, problem 56
-    #     # {-3<=x & x<=-2 & -3<=y & y<=-2}
-    #     #      t := 0;
-    #     #     <x_dot = 4 + 21*x - 7*y + 42*x^2 - 24*x*y + 4*y^2 + 27*x^3 - 9*x^2*y + 6*x^4,
-    #     #      y_dot = 12 + 71*x -21*y + 150*x^2 -80*x*y + 12*y^2 + 99*x^3 - 39*x^2*y + 2*x*y^2 + 18*x^4, 
-    #     #      t_dot = 1 & t < 10>
-    #     #     @invariant(3+x>=0, 3+y>=0, 4+3*x*(1+x)*(7+x*(7+2*x))+4*y^2>(7+3*x*(8+3*x))*y, 1+x*(3+x)>y, 1+3*x*(2+x)>2*y, 2+3*x < y, x < 0, y < 0)
-    #     # {!(x >= 0 | y >= 0)}
-    #     runVerify(self, pre="-3<=x & x<=-2 & -3<=y & y<=-2",
-    #               hp="t := 0; \
-    #                 <x_dot = 4 + 21*x - 7*y + 42*x^2 - 24*x*y + 4*y^2 + 27*x^3 - 9*x^2*y + 6*x^4, \
-    #                 y_dot = 12 + 71*x -21*y + 150*x^2 -80*x*y + 12*y^2 + 99*x^3 - 39*x^2*y + 2*x*y^2 + 18*x^4, \
-    #                 t_dot = 1 & t < 10>",
-    #               post="!(x >= 0 | y >= 0)",
-    #               diff_cuts={((1,), ()): ["3+x >= 0", "3+y>=0", "4+3*x*(1+x)*(7+x*(7+2*x))+4*y^2>(7+3*x*(8+3*x))*y", "..."]},
-    #               darboux_rule={((1,), (0,)): "true",
-    #                             ((1,), (1,)): "true",
-    #                             ((1,), (2,)): "true"},
-    #               wolfram_engine=True)
+    #     runFile(self, file="nonlinear56.hhl")
+    # pre [-3 <= x][x <= -2][-3 <= y][y <= -2];
+
+    # t := *(t >= 0);
+    # {x_dot = 4 + 21*x - 7*y + 42*x^2 - 24*x*y + 4*y^2 + 27*x^3 - 9*x^2*y + 6*x^4,
+    # y_dot = 12 + 71*x -21*y + 150*x^2 -80*x*y + 12*y^2 + 99*x^3 - 39*x^2*y + 2*x*y^2 + 18*x^4,
+    # t_dot = -1 & t > 0}
+    #     invariant
+    #     [3+x>=0] {dbx}
+    #     [3+y>=0] {dbx}
+    #     [4+3*x*(1+x)*(7+x*(7+2*x))+4*y^2>(7+3*x*(8+3*x))*y]{?}
+    #     [1+x*(3+x)>y] {dbx}
+    #     [1+3*x*(2+x)>2*y] {dbx}
+    #     [2+3*x < y] {dbx}
+    #     [x < 0]{bc}
+    #     [y < 0]{bc};
+
+    # post [!(x >= 0 || y >= 0)];
 
     # TODO: Problem 57. Invariant not known.
 
@@ -752,7 +743,14 @@ class NonlinearHHLPyTest(unittest.TestCase):
     def testNonlinear60(self):
         runFile(self, file="nonlinear60.hhl")
 
-    # TODO: Nonlinear problem 61. Invariants unknown.
+     # TODO: Nonlinear problem 61. Invariants unknown.
+    # def testNonlinear61(self):
+    #     runFile(self, file="nonlinear61.hhl")
+    # pre [y >= 2.5 || x >= 0];
+    #     {x_dot = 6*x^2 - 6*x*y + 4*y^2 + 3*x^3 - 9*x^2*y + 6*x^4,
+    #     y_dot = -6*x*y + 10*y^2 + 27*x^3 - 39*x^2 + 2*x*y^2 + 18*x^4,
+    #     t_dot = 1 & t < 5}
+    # post [(x + 3)^2 + (y + 2)^2 > 3];
 
     def testNonlinear62(self):
         runFile(self, file="nonlinear62.hhl")
@@ -862,23 +860,16 @@ class NonlinearHHLPyTest(unittest.TestCase):
 
     # TODO:Nonlinear problem 100, result is false.
     # def testNonlinear100(self):
+    #     runFile(self, file="nonlinear100.hhl")
     #     # Nonlinear benchmark, problem 100
-    #     # {x1 == 1/20 & x2 == 1/32 & sint==0 & cost==1} /* t==0 initially */
-    #     #    t := 0;
-    #     #   <x1_dot=x2, x2_dot=-x2-(2+sint)*x1, sint_dot=cost, cost_dot=-sint,
-    #     #    t_dot = 1 & t < 10>
-    #     #   @invariant(cost^2+sint^2<=100000/99999, cost^2+sint^2>=1)
-    #     # {98*x1^2 + 24*x1*x2 + 24*x2*x1 + 55*x2^2 < 1}
-    #     runVerify(self, pre="x1 == 1/20 & x2 == 1/32 & sint==0 & cost==1",
-    #               hp="t := 0; \
-    #                  <x1_dot=x2, x2_dot=-x2-(2+sint)*x1, sint_dot=cost, cost_dot=-sint, \
-    #                  t_dot = 1 & t < 10>",
-    #               post="98*x1^2 + 24*x1*x2 + 24*x2*x1 + 55*x2^2 < 1",
-    #               diff_cuts={((1,), ()): ["cost^2+sint^2<=100000/99999", 
-    #                                        "cost^2+sint^2>=1",
-    #                                        "98*x1^2 + 24*x1*x2 + 24*x2*x1 + 55*x2^2 < 1"]},
-    #               darboux_rule={((1,), (2,)): "true"},
-    #               wolfram_engine=True)
+    #     pre [x1 == 1/20] [x2 == 1/32] [sint==0] [cost==1]; /* t==0 initially */
+        #     t := 0;
+        #     {x1_dot=x2, x2_dot=-x2-(2+sint)*x1, sint_dot=cost, cost_dot=-sint,
+        #     t_dot = 1 & t < 10}
+        #     invariant [cost^2+sint^2>=1]
+        #             [cost^2+sint^2<=100000/99999]
+        #             [98*x1^2 + 24*x1*x2 + 24*x2*x1 + 55*x2^2 < 1]{dbx};
+        # post [98*x1^2 + 24*x1*x2 + 24*x2*x1 + 55*x2^2 < 1];
 
     # TODO: Nonlinear problem 101. No tactic. Post not implied by inv.
 
@@ -894,6 +885,21 @@ class NonlinearHHLPyTest(unittest.TestCase):
     # TODO: Nonlinear problem 105, 106, 107. No tactic offered.
 
     # TODO: Nonlinear problem 108. Auto rule unknown. Too slow to give a result.
+    # def testNonlinear108(self):
+    #     runFile(self, file="nonlinear108.hhl")
+    # pre [-1.6<=x1][x1<=1.6][-1.6<=x2][x2<=1.6][-1.6<=x3][x3<=1.6][-1.6<=x4][x4<=1.6]
+    # [u1==0.9][u2==0.7][u3==1.5][u4==1][u5==1][u6==1.5][u7==1][u8==1.1];
+
+    # {x1_dot=u1*x2-x3-x4+(u2-x1^2-x2^2-x3^2-x4^2)*x1,
+    #     x2_dot=-x1+u3*x3-x4+(u4-x1^2-x2^2-x3^2-x4^2)*x2,
+    #     x3_dot=x1-x2+u5*x4+(u6-x1^2-x2^2-x3^2-x4^2)*x3,
+    #     x4_dot=x1+u7*x2-x3+(u8-x1^2-x2^2-x3^2-x4^2)*x4 &
+    #     -2<x1 && x1<2 && -2<x2 && x2<2 && -2<x3 && x3<2 && -2<x4 && x4<2}
+    #     invariant [8.2997-0.18912*x1-0.19551*x2-0.19371*x3-0.18707*x4-0.37075*x1^2
+    #     -0.37215*x2^2-0.37283*x3^2-0.37155*x4^2-0.14238*x1*x2-0.14189*x1*x3
+    #     -0.14254*x2*x3-0.14137*x1*x4-0.14203*x2*x4-0.14327*x3*x4>=0]{bc}{{init:wolfram, maintain: wolfram}};
+
+    # post [!(1.8<=x1&&x1<=2 && 1.8<=x2&&x2<=2 && 1.8<=x3&&x3<=2 && 1.8<=x4&&x4<=2)]{{exec: wolfram}};
 
     def testNonlinear109(self):
         runFile(self, file="nonlinear109.hhl")
@@ -948,6 +954,20 @@ class NonlinearHHLPyTest(unittest.TestCase):
 
     # TODO: Nonlinear 128, 129, 130, 131, 132. No invariants.
     # 128: Automation in keymaera doesn't work.
+    # 132: our tool cannot find g by auto, but keymaerax can. We don't know what g is.
+    # ArchiveEntry "Benchmarks/Nonlinear/Product of Dumortier Llibre Artes Ex. 1_11a and ZYLZCL Example C4"
+
+    # pre [xleft > -1/2][xleft < -1/3][yleft < 0][yleft >= -1/2][-1 <= x1right][x1right <= 0][-1 <= x2right][x2right <= 0];
+
+    # {xleft_dot=2*xleft-xleft^5-xleft*yleft^4,
+    # yleft_dot=yleft-xleft^2*yleft-yleft^3,
+    # x1right_dot=-1+x1right^2+x2right^2,
+    # x2right_dot=5*(-1+x1right*x2right) &-2 < x1right && x1right<2 && -2<x2right && x2right<2}
+    # invariant [xleft < 0]{dbx}
+    #         [yleft < 0]{dbx}
+    #         [22667*x1right^2+x2right*(257910+6221*x2right)+x1right*(141840+15973*x2right) < 42786]{dbx};
+
+    # post [!xleft+yleft > 0][!(1 <= x1right && x1right<=2 && 1<=x2right && x2right<=2)];
 
     def testNonlinear133(self):
         runFile(self, file="nonlinear133.hhl")
@@ -957,7 +977,10 @@ class NonlinearHHLPyTest(unittest.TestCase):
     def testNonlinear135(self):
         runFile(self, file="nonlinear135.hhl")
 
-    # TODO: Nonlinear 136, 137, 138, 139, 140, 141. No tactics.
+    # TODO: Nonlinear 136, 137, 138, 139, 140. No tactics.
+
+    def testNonlinear141(self):
+        runFile(self, file="nonlinear141.hhl")
 
 class SSHHLPyTest(unittest.TestCase):
 

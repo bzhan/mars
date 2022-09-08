@@ -355,15 +355,15 @@ def wl_simplify(e, functions=dict()):
 
     return hcsp_expr
 
-def wl_polynomial_div(p, q, functions=dict()):
+def wl_polynomial_div(p, q, constants, functions=dict()):
     """Compute the quotient and remainder of polynomial p and q"""
-    vars = q.get_vars()
+    vars = q.get_vars().difference(constants)
     # Sort the vars to get the same results everytime,
     # because result of PolynomialReduce depends on the sort of vars but set has no sort.
     vars_list = [var for var in vars]
     vars_list.sort()
-    vars = wl.list(*[toWLexpr(expr.AVar(var), functions) for var in vars_list])
-
+    vars = wl.List(*[toWLexpr(expr.AVar(var), functions) for var in vars_list])
+    
     p = toWLexpr(p, functions)
     q = toWLexpr(q, functions)
 

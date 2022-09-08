@@ -454,10 +454,10 @@ class CmdVerifier:
 
         return e
 
-    def polynomial_div(self, p, q):
+    def polynomial_div(self, p, q, constants):
         """Compute the quotient and remainder of polynomial p and q"""
         if found_wolfram:
-            quot_remains = wl_polynomial_div(p, q, self.functions)
+            quot_remains = wl_polynomial_div(p, q, constants, self.functions)
         else:
             quot_remains = sp_polynomial_div(p, q, self.functions)
 
@@ -1062,7 +1062,7 @@ class CmdVerifier:
                         # Cases when the cofactor g is not offered.
                         # Compute the cofactor automatically.
                         if self.infos[sub_pos].dbx_cofactor is None:
-                            quot_remains = self.polynomial_div(e_lie_deriv, e)
+                            quot_remains = self.polynomial_div(e_lie_deriv, e, self.constant_names)
                             
                             # Several quot and remain pairs may returned from the polynomial division.
                             # If there is a remain >= 0, there exists a quot satisfying g in dbx_rule.
