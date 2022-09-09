@@ -661,7 +661,7 @@ fun task_assn' :: "tid \<Rightarrow> nat \<Rightarrow> estate \<Rightarrow> stat
 
 
 fun task_dis_assn' :: "tid \<Rightarrow> nat \<Rightarrow> state \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate tassn" where
-  "task_dis_assn' t 0 dis_s task_es task_s tr \<longleftrightarrow> (emp\<^sub>t tr)"
+  "task_dis_assn' t 0 dis_s (Task st ent tp) task_s tr \<longleftrightarrow> (emp\<^sub>t tr)"
 | "task_dis_assn' t (Suc k) dis_s (Task WAIT ent tp) task_s tr \<longleftrightarrow>
    wait_orig_assn (0.045 - dis_s (CHR ''t'')) 
             (\<lambda>t. ParState (EState (Task WAIT ent tp, task_s))
@@ -2004,7 +2004,7 @@ fun sched_assn' :: "nat \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> e
    (exit_ch 2) {0} (\<lambda> v d. sched_assn' k (sched_del_proc 2 (Sch p rn rp) s) s) tr"
 
 definition properp :: "tid \<Rightarrow> real \<Rightarrow> bool" where
-"properp rn rp = ((rn = 1 \<longleftrightarrow> rp = 2) \<and> (rn = -1 \<longleftrightarrow> rp = -1) \<and> rp \<in> {-1,1,2} \<and> rn \<in> {-1,1,2})"
+"properp rn rp = ((rn = 1 \<longleftrightarrow> rp = 2) \<and> (rn = 2 \<longleftrightarrow> rp = 1) \<and> (rn = -1 \<longleftrightarrow> rp = -1) \<and> rp \<in> {-1,1,2} \<and> rn \<in> {-1,1,2})"
 
 fun properl :: "(real \<times> tid) list \<Rightarrow> bool" where
   "properl [] = True"
@@ -2178,25 +2178,25 @@ inductive io_out0_out0 :: "cname \<Rightarrow> real \<Rightarrow> cname \<Righta
 
 
 fun tdsch1' :: "nat \<Rightarrow> nat \<Rightarrow> state \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate tassn" where
-  "tdsch1' 0 0 dis_s task_es task_s schs s tr \<longleftrightarrow> (emp\<^sub>t tr)"
-| "tdsch1' 0 (Suc kk) dis_s task_es task_s (Sch p rn rp) s tr \<longleftrightarrow> 
+  "tdsch1' 0 0 dis_s (Task st ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> (emp\<^sub>t tr)"
+| "tdsch1' 0 (Suc kk) dis_s (Task st ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> 
    waitin_assms'_assn UNIV (\<lambda> t. EState(Sch p rn rp, s)) ({},{req_ch 1,req_ch 2,free_ch 1,free_ch 2,exit_ch 1,exit_ch 2})
-   (req_ch 2) {1} (\<lambda> v d. if (v\<le>rp) then tdsch1' 0 kk dis_s task_es task_s (sched_push 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v))
+   (req_ch 2) {1} (\<lambda> v d. if (v\<le>rp) then tdsch1' 0 kk dis_s (Task st ent tp) task_s (sched_push 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v))
                                      else if rn \<noteq> -1 then out_0assm_assn (preempt_ch rn) 0 (out_0assm_assn (run_ch 2) 0 
-                                         (tdsch1' 0 kk dis_s task_es task_s (sched_assign 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v))))
+                                         (tdsch1' 0 kk dis_s (Task st ent tp) task_s (sched_assign 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v))))
                                             else out_0assm_assn (run_ch 2) 0 
-                                         (tdsch1' 0 kk dis_s task_es task_s (sched_assign 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v)))) tr
+                                         (tdsch1' 0 kk dis_s (Task st ent tp) task_s (sched_assign 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v)))) tr
  \<or> waitin_assms'_assn UNIV (\<lambda> t. EState(Sch p rn rp, s)) ({},{req_ch 1,req_ch 2,free_ch 1,free_ch 2,exit_ch 1,exit_ch 2})
    (free_ch 2) {0} (\<lambda> v d. if length p > 0 then out_0assm_assn (run_ch (run_now (sched_get_max (Sch p rn rp) s))) 0 
-                                          (tdsch1' 0 kk dis_s task_es task_s (sched_get_max (Sch p rn rp) s) s)
+                                          (tdsch1' 0 kk dis_s (Task st ent tp) task_s (sched_get_max (Sch p rn rp) s) s)
                                             else 
-                                          (tdsch1' 0 kk dis_s task_es task_s (sched_clear (Sch p rn rp) s) s)) tr
+                                          (tdsch1' 0 kk dis_s (Task st ent tp) task_s (sched_clear (Sch p rn rp) s) s)) tr
  \<or> waitin_assms'_assn UNIV (\<lambda> t. EState(Sch p rn rp, s)) ({},{req_ch 1,req_ch 2,free_ch 1,free_ch 2,exit_ch 1,exit_ch 2})
-   (exit_ch 2) {0} (\<lambda> v d. tdsch1' 0 kk dis_s task_es task_s (sched_del_proc 2 (Sch p rn rp) s) s) tr"
-| "tdsch1' (Suc k) 0 dis_s (Task WAIT ent tp) task_s schs s tr \<longleftrightarrow> 
-   (tdsch1' k 0 (dis_s(CHR ''t'' := 0)) (Task READY 0 tp) (task_s(CHR ''t'' := 0)) schs s) tr"
-| "tdsch1' (Suc k) 0 dis_s (Task READY ent tp) task_s schs s tr \<longleftrightarrow> False"
-| "tdsch1' (Suc k) 0 dis_s (Task RUNNING ent tp) task_s schs s tr \<longleftrightarrow> False"
+   (exit_ch 2) {0} (\<lambda> v d. tdsch1' 0 kk dis_s (Task st ent tp) task_s (sched_del_proc 2 (Sch p rn rp) s) s) tr"
+| "tdsch1' (Suc k) 0 dis_s (Task WAIT ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> 
+   (tdsch1' k 0 (dis_s(CHR ''t'' := 0)) (Task READY 0 tp) (task_s(CHR ''t'' := 0)) (Sch p rn rp) s) tr"
+| "tdsch1' (Suc k) 0 dis_s (Task READY ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> False"
+| "tdsch1' (Suc k) 0 dis_s (Task RUNNING ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> False"
 | "tdsch1' (Suc k) (Suc kk) dis_s (Task WAIT ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> 
  wait_orig_assn (0.045 - dis_s CHR ''t'')
      (\<lambda>t. ParState
@@ -2310,9 +2310,10 @@ fun tdsch1' :: "nat \<Rightarrow> nat \<Rightarrow> state \<Rightarrow> estate \
                                                                 (CHR ''t'' := task_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
                                                                  CHR ''c'' := task_s CHR ''c'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))) 
                                                                 (sched_clear (Sch p rn rp) s) s)) tr"
-
-
-
+|  "tdsch1' k kk dis_s (Sch p rn rp) task_s schs s tr \<longleftrightarrow> False"
+|  "tdsch1' k kk dis_s None task_s schs s tr \<longleftrightarrow> False"
+|  "tdsch1' k kk dis_s task_es task_s (Task st ent tp) s tr \<longleftrightarrow> False"
+|  "tdsch1' k kk dis_s task_es task_s None s tr \<longleftrightarrow> False"
 
 thm tdsch1'.simps
 
@@ -2933,41 +2934,42 @@ lemma combine_taskdis_sch1':
           apply (cases kk)
           subgoal apply simp
             apply (cases schs)
-              apply simp
-            subgoal premises pre
+              apply auto
+              apply (cases task_es)
+              apply auto
+              subgoal premises pre
               thm pre
               apply (rule combine_blocks_assn)
                  apply(rule pre(1))
                 apply(rule pre(2))
-               apply(rule pre(6))
+               apply(rule pre(5))
               by (auto elim!: sync_elims)
-            apply auto
             done
           subgoal for kk'
             apply simp
             apply(cases schs)
-            subgoal premises pre for p rn rp
-              thm pre
-              using pre(3)
-              apply (simp only: pre(10))
-              apply (subst tdsch1'.simps)
-              apply (simp only: sched_assn'.simps)
+              apply(cases task_es)
+            subgoal by auto
+            apply (simp del: tdsch1'.simps)
+            subgoal for p rn rp st ent tp
               apply(erule disjE)
-              subgoal premises pre'
-                apply(rule disjI1)
+              subgoal premises pre
+                thm pre
                 apply (rule combine_blocks_assn)
                    apply(rule pre(2))
-                  apply(rule pre')
-                 apply(rule pre(7))
+                  apply(rule pre(11))
+                 apply(rule pre(6))
                 apply(rule combine_emp_waitin_assms'1)
                 by auto
               apply(erule disjE)        
-              subgoal premises pre'
+              subgoal premises pre
+                thm pre
+                apply (simp only:tdsch1'.simps)
                 apply(rule disjI1)
                 apply (rule combine_blocks_assn)
                    apply(rule pre(2))
-                  apply(rule pre')
-                 apply(rule pre(7))
+                  apply(rule pre(11))
+                 apply(rule pre(6))
                 apply(rule entails_tassn_trans)
                  apply(rule combine_emp_waitin_assms'2)
                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
@@ -2982,7 +2984,7 @@ lemma combine_taskdis_sch1':
                     unfolding entails_tassn_def combine_assn_def
                     apply clarify
                     subgoal for tr tr1 tr2
-                      using pre(1)[of 0 kk' dis_s task_es task_s tr1 "(Sch (p @ [(1, 2)]) rn rp)"" (s(CHR ''p'' := 1))" tr2 tr]
+                      using pre(1)[of 0 kk' dis_s "(Task st ent 2)" task_s tr1 "(Sch (p @ [(1, 2)]) rn rp)"" (s(CHR ''p'' := 1))" tr2 tr]
                       using pre(4,5,6)[unfolded pre(10)] 
                       unfolding proper_def properp_def
                       using properl_p1 propc_def
@@ -3023,30 +3025,30 @@ lemma combine_taskdis_sch1':
                   unfolding entails_tassn_def combine_assn_def
                   apply clarify
                   subgoal for tr tr1 tr2
-                    using pre(1)[of 0 kk' dis_s task_es task_s tr1 "(Sch p 2 1)" "(s(CHR ''p'' := 1))" tr2 tr ]
+                    using pre(1)[of 0 kk' dis_s "(Task st ent 2)" task_s tr1 "(Sch p 2 1)" "(s(CHR ''p'' := 1))" tr2 tr ]
                     using pre(4,5,6)[unfolded pre(10)] 
                     unfolding proper_def properp_def propc_def
                     by auto
                   done
                 done
               apply(erule disjE)
-              subgoal premises pre'
-                apply(rule disjI2)
-                apply(rule disjI1)
+              subgoal premises pre
+                thm pre
                 apply (rule combine_blocks_assn)
                    apply(rule pre(2))
-                  apply(rule pre')
-                 apply(rule pre(7))
+                  apply(rule pre(11))
+                 apply(rule pre(6))
                 apply(rule combine_emp_waitin_assms'1)
                 by auto
               apply(erule disjE)
-              subgoal premises pre'
+              subgoal premises pre
+                apply(simp only:tdsch1'.simps)
                 apply(rule disjI2)
                 apply(rule disjI1)
                 apply (rule combine_blocks_assn)
                    apply(rule pre(2))
-                  apply(rule pre')
-                 apply(rule pre(7))
+                  apply(rule pre(11))
+                 apply(rule pre(6))
                 apply(rule entails_tassn_trans)
                  apply(rule combine_emp_waitin_assms'2)
                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
@@ -3062,7 +3064,7 @@ lemma combine_taskdis_sch1':
                     unfolding entails_tassn_def combine_assn_def
                     apply auto
                     subgoal for tr tr1 tr2
-                      using pre(1)[of 0 kk' dis_s task_es task_s tr1 "(case get_max p of (prior, t) \<Rightarrow> Sch (del_proc p t) t prior)" s tr2 tr ]
+                      using pre(1)[of 0 kk' dis_s "(Task st ent 2)" task_s tr1 "(case get_max p of (prior, t) \<Rightarrow> Sch (del_proc p t) t prior)" s tr2 tr ]
                       using pre(4,5,6)[unfolded pre(10)] 
                       unfolding proper_def propc_def
                       apply auto
@@ -3075,29 +3077,28 @@ lemma combine_taskdis_sch1':
                   unfolding entails_tassn_def combine_assn_def
                   apply auto
                   subgoal for tr tr1 tr2
-                    using pre(1)[of 0 kk' dis_s task_es task_s tr1 "(Sch [] (- 1) (- 1))" s tr2 tr]
+                    using pre(1)[of 0 kk' dis_s "(Task st ent 2)" task_s tr1 "(Sch [] (- 1) (- 1))" s tr2 tr]
                     using pre(4,5,6) 
                     unfolding proper_def properp_def propc_def
                     by auto
                   done
                 done
               apply(erule disjE)
-              subgoal premises pre'
-                apply(rule disjI2)
-                apply(rule disjI2)
+              subgoal premises pre
                 apply (rule combine_blocks_assn)
                    apply(rule pre(2))
-                  apply(rule pre')
-                 apply(rule pre(7))
+                  apply(rule pre(11))
+                 apply(rule pre(6))
                 apply(rule combine_emp_waitin_assms'1)
                 by auto
-              subgoal premises pre'
+              subgoal premises pre
+                apply(simp only: tdsch1'.simps)
                 apply(rule disjI2)
                 apply(rule disjI2)
                 apply (rule combine_blocks_assn)
                    apply(rule pre(2))
-                  apply(rule pre')
-                 apply(rule pre(7))
+                  apply(rule pre(11))
+                 apply(rule pre(6))
                 apply(rule entails_tassn_trans)
                  apply(rule combine_emp_waitin_assms'2)
                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
@@ -3106,7 +3107,7 @@ lemma combine_taskdis_sch1':
                 unfolding entails_tassn_def combine_assn_def
                  apply auto
                 subgoal for tr tr1 tr2
-                  using pre(1)[of 0 kk' dis_s task_es task_s tr1 "(Sch (del_proc p 2) rn rp)" s tr2 tr]
+                  using pre(1)[of 0 kk' dis_s "(Task st ent 2)" task_s tr1 "(Sch (del_proc p 2) rn rp)" s tr2 tr]
                   using pre(4,5,6)[unfolded pre(10)]
                   unfolding proper_def propc_def
                   using properl_p4[of p 2]
