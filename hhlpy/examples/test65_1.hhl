@@ -1,0 +1,4 @@
+# Solution Rule
+pre [x == 0][y == 0];
+{x_dot = 1, y_dot = x & x < 2} solution;
+post [y == 2];

@@ -17,7 +17,6 @@ pre [v^2 <= 2*b*(m-x)] [v >= 0] [A >= 0] [b > 0];
   t := 0;
   s := * (s >= 0);
   {x_dot = v, v_dot = a, t_dot = 1, s_dot = -1 &
-    s > 0 && v > 0 && t < ep}
-    invariant [v^2 <= 2*b*(m-x)] {sln};
+    s > 0 && v > 0 && t < ep} solution;
 }* invariant [v^2 <= 2*b*(m-x)];
 post [x <= m];

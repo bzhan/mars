@@ -3,5 +3,5 @@
 # {x_dot = v, v_dot = a, c_dot = 1 & c < 10}
 # {x >= 0}
 pre [x >= 0] [v >= 0] [a >= 0] [c == 0];
-{x_dot = v, v_dot = a, c_dot = 1 & c < 10} invariant [x >= 0] {sln};
+{x_dot = v, v_dot = a, c_dot = 1 & c < 10} solution;
 post [x >= 0];

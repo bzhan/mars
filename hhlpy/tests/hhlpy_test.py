@@ -238,6 +238,9 @@ class HHLPyTest(unittest.TestCase):
     def testVerify65(self):
         runFile(self, file="test65.hhl",)
 
+    def testVerify65_1(self):
+        runFile(self, file="test65_1.hhl",)
+
     def testVerify66(self):
         runFile(self, file="test66.hhl",)
 
@@ -1011,7 +1014,7 @@ class SSHHLPyTest(unittest.TestCase):
         runFile(self, file="simulink/sl_delay.hhl")
 
     def testPIcontrol(self):
-        runFile(self, file="simulink/PIcontrol.hhl", print_vcs=True)
+        runFile(self, file="simulink/PIcontrol.hhl")
 
 
 class AdvancedHHLPyTest(unittest.TestCase):

@@ -33,10 +33,8 @@ pre [true];
       }
       Chart_ret := Chart_All_B_done;
     }
-      {x_dot = y, t_dot = 1 & t < 1}
-      invariant [Chart_All_st == Chart_All_A -> x == t]{sln}
-                [Chart_All_st == Chart_All_B -> x == -t + 1]{sln}
-	          [Chart_All_st == Chart_All_A || Chart_All_st == Chart_All_B];
+      {x_dot = y, t_dot = 1 & t < 1} solution;
+      
 
   }*
   invariant [Chart_All_st == Chart_All_A -> x == 1]

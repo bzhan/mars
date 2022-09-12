@@ -820,20 +820,10 @@ class CmdVerifier:
         # Reconstruct ODE
         # Only Cut invariant
         elif isinstance(cur_hp, hcsp.ODE):
-            # ODE, use differential weakening rule first to prove the hoare triple, 
-            # then use other rules to prove invariant.
-
             # Currently assume out_hp is Skip.
             constraint = cur_hp.constraint
-            # The pre-condition computed for invariant  is set as empty.
-            # The pre-condition for dw rule is set as None initially.
-            pre = []
-            pre_dw = None
-            ghost_vars = []
-
-
             if cur_hp.out_hp != hcsp.Skip():
-                raise NotImplementedError
+                    raise NotImplementedError
             for name, _ in cur_hp.eqs:
                 if name in self.constant_names:
                     raise NotImplementedError("Constants cannot be changed in ODEs!")
@@ -846,379 +836,396 @@ class CmdVerifier:
                 for name, deriv in cur_hp.eqs:
                     self.infos[pos].eqs_dict[name] = deriv
 
- 
-            # TODO: also run if no invariants are specified? testVerify62 testVerify54 testVerify53 testVerify52 testVerify50 testVerify55
-            if cur_hp.inv is None:
-                cur_hp.inv = (assertion.CutInvariant(expr=expr.true_expr, proof_methods=None),)
+            if cur_hp.rule == "dw":
 
-            assert all(isinstance(inv, assertion.CutInvariant) for inv in cur_hp.inv)
-            inv_exprs = [inv.expr for inv in cur_hp.inv]
-            inv_conj = expr.conj(*inv_exprs)
-
-            # Add ghosts
-            # [[bar of D]] <x_dot = e, y_dot = f(x, y)> [[I]]    I && Boundary of D -> Q
-            # ----------------------------------------------------------------------------
-            #           {(D -> \exists y I) && (!D -> Q)} <x_dot = e & D> {Q}
-            # y is a fresh variable, not occurring in <x_dot = e & D> and Q. f(x, y) satisfies
-            # Lipschitz condition.
-            if cur_hp.ghosts:
-                for ghost in cur_hp.ghosts:
-                    # Verify the reasonablity of ghost equations.
-                    # f(x, y) should be in the form: a(x) * y + b(x), y is not in a(x) or b(x)
-                    ghost_var_degree = degree(sympify(str(ghost.diff).replace('^', '**')), gen=symbols(ghost.var))
-                    if not ghost_var_degree in {0,1}:
-                        raise AssertionError("Ghost equations should be linear in ghost variable!")
-                    self.infos[pos].eqs_dict[ghost.var] = ghost.diff
-                    ghost_vars.append(ghost.var)
-                exists_inv = expr.ExistsExpr(ghost_vars, inv_conj)
-                init_cond = [Condition(expr=expr.imp(constraint, exists_inv), 
-                                        origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0])
-                                                for i in range(len(cur_hp.inv))] + 
-                                                [OriginLoc(index=i, isGhost=True, hp_pos=pos[0])
-                                                for i in range(len(cur_hp.ghosts))] + 
-                                                [OriginLoc(isConstraint=True, hp_pos=pos[0])],
-                                        categ="init_all",
-                                        bottom_loc=OriginLoc(index=len(cur_hp.inv)-1, isInv=True, hp_pos=pos[0]),
-                            )]
-                
-            # Apply differential weakening (dW)
-
-            # dW Rule (always applied automatically)
-            #   [[bar of D]] <x_dot = f(x)> [[I]]      I && Boundary of D -> Q  
-            #-----------------------------------------------------------------------
-            #           {(D -> I) && (!D -> Q)} <x_dot = f(x) & D> {Q}
-            
-            # dWT: Case when no invariant is offered(I is set as true)
-            #                 Boundary of D -> Q  
-            #-----------------------------------------------------------------------
-            #           {!D -> Q} <x_dot = f(x) & D> {Q}
-            else:
-                init_cond = [Condition(expr=expr.imp(constraint, inv.expr), 
-                                origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0]), 
-                                            OriginLoc(isConstraint=True, hp_pos=pos[0])],
-                                categ="init",
-                                bottom_loc=OriginLoc(index=i, isInv=True, hp_pos=pos[0]),
-                    ) for i, inv in enumerate(cur_hp.inv) if inv.expr is not expr.true_expr]
-
-            pre_dw = init_cond \
-                    + \
-                        [Condition(expr=expr.imp(expr.neg_expr(constraint), 
-                                                    subpost.expr),
-                                path=subpost.path,
-                                post_blabel=subpost.blabel,
-                                blabel=self.compute_branch_label(type=type, cur_branch='skip', post_blabel=subpost.blabel),
-                                origins=subpost.origins + [OriginLoc(isConstraint=True, hp_pos=pos[0])],
-                                bottom_loc=subpost.bottom_loc,
-                                categ=subpost.categ
-                                )
-                        for subpost in post]
-            boundary = compute_boundary(constraint)
-
-            # When I is false_expr, (I && Boundary of D -> Q) is true_expr, which can be omitted. 
-            if inv_conj is not expr.false_expr:
-                for subpost in post:
-                    e = expr.imp(expr.conj(inv_conj, boundary), subpost.expr)
-                    self.infos[pos].vcs.append(
-                        Condition(
-                            expr=e, 
-                            path=subpost.path,
-                            blabel=self.compute_branch_label(type=type, cur_branch='exec', post_blabel=subpost.blabel),
-                            categ=subpost.categ,
-                            origins=subpost.origins + 
-                            [OriginLoc(index=i, isInv=True, hp_pos=pos[0]) for i in range(len(cur_hp.inv))] + [OriginLoc(isConstraint=True, hp_pos=pos[0])],
-                            bottom_loc=subpost.bottom_loc,
-                            isVC=True
-                            ))
-            invs = []
-            for i, inv in enumerate(cur_hp.inv):
-                sub_pos = (pos[0], pos[1] + (i,))
-                if sub_pos not in self.infos:
-                    self.infos[sub_pos] = CmdInfo()
-
-                self.infos[sub_pos].assume = self.infos[pos].assume + invs[:i]
-                self.infos[sub_pos].eqs_dict = self.infos[pos].eqs_dict
-                self.infos[sub_pos].inv = Condition(expr=inv.expr, 
-                                            origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0])], 
-                                            bottom_loc=OriginLoc(index=i, isInv=True, hp_pos=pos[0]))
-                invs.append(self.infos[sub_pos].inv)
-                self.infos[sub_pos].post = [Condition(expr=inv.expr, 
-                                            origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0])], 
-                                            bottom_loc=OriginLoc(index=i, isInv=True, hp_pos=pos[0]))]
-
-
-                inv_origin = [OriginLoc(index=i, isInv=True, hp_pos=pos[0])]
-
-                inv_vars = inv.expr.get_vars()
-                ghost_origins = [OriginLoc(index=idx, isGhost=True, hp_pos=pos[0]) \
-                    for idx, var in enumerate(ghost_vars) if var in inv_vars]
+                # ODE, use differential weakening rule first to prove the hoare triple, 
+                # then use other rules to prove invariant.
     
-                origins = inv_origin + ghost_origins
-                # Invariant triple trivally holds 
-                if inv.rule is None and inv.expr in (expr.true_expr, expr.false_expr):
-                    assert inv.rule_arg is None
+                # The pre-condition for dw rule is set as None initially.
+                pre_dw = None
+                ghost_vars = []
+    
+                # TODO: also run if no invariants are specified? testVerify62 testVerify54 testVerify53 testVerify52 testVerify50 testVerify55
+                if cur_hp.inv is None:
+                    cur_hp.inv = (assertion.CutInvariant(expr=expr.true_expr, proof_methods=None),)
+
+                assert all(isinstance(inv, assertion.CutInvariant) for inv in cur_hp.inv)
+                inv_exprs = [inv.expr for inv in cur_hp.inv]
+                inv_conj = expr.conj(*inv_exprs)
+
+                # Add ghosts
+                # [[bar of D]] <x_dot = e, y_dot = f(x, y)> [[I]]    I && Boundary of D -> Q
+                # ----------------------------------------------------------------------------
+                #           {(D -> \exists y I) && (!D -> Q)} <x_dot = e & D> {Q}
+                # y is a fresh variable, not occurring in <x_dot = e & D> and Q. f(x, y) satisfies
+                # Lipschitz condition.
+                if cur_hp.ghosts:
+                    for ghost in cur_hp.ghosts:
+                        # Verify the reasonablity of ghost equations.
+                        # f(x, y) should be in the form: a(x) * y + b(x), y is not in a(x) or b(x)
+                        ghost_var_degree = degree(sympify(str(ghost.diff).replace('^', '**')), gen=symbols(ghost.var))
+                        if not ghost_var_degree in {0,1}:
+                            raise AssertionError("Ghost equations should be linear in ghost variable!")
+                        self.infos[pos].eqs_dict[ghost.var] = ghost.diff
+                        ghost_vars.append(ghost.var)
+                    exists_inv = expr.ExistsExpr(ghost_vars, inv_conj)
+                    init_cond = [Condition(expr=expr.imp(constraint, exists_inv), 
+                                            origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0])
+                                                    for i in range(len(cur_hp.inv))] + 
+                                                    [OriginLoc(index=i, isGhost=True, hp_pos=pos[0])
+                                                    for i in range(len(cur_hp.ghosts))] + 
+                                                    [OriginLoc(isConstraint=True, hp_pos=pos[0])],
+                                            categ="init_all",
+                                            bottom_loc=OriginLoc(index=len(cur_hp.inv)-1, isInv=True, hp_pos=pos[0]),
+                                )]
+                    
+                # Apply differential weakening (dW)
+
+                # dW Rule (always applied automatically)
+                #   [[bar of D]] <x_dot = f(x)> [[I]]      I && Boundary of D -> Q  
+                #-----------------------------------------------------------------------
+                #           {(D -> I) && (!D -> Q)} <x_dot = f(x) & D> {Q}
                 
-                # Use dI rule
-                elif inv.rule == "di" or \
-                (inv.rule is None and inv.expr not in (expr.true_expr, expr.false_expr)):
-                    assert inv.rule_arg is None
+                # dWT: Case when no invariant is offered(I is set as true)
+                #                 Boundary of D -> Q  
+                #-----------------------------------------------------------------------
+                #           {!D -> Q} <x_dot = f(x) & D> {Q}
+                else:
+                    init_cond = [Condition(expr=expr.imp(constraint, inv.expr), 
+                                    origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0]), 
+                                                OriginLoc(isConstraint=True, hp_pos=pos[0])],
+                                    categ="init",
+                                    bottom_loc=OriginLoc(index=i, isInv=True, hp_pos=pos[0]),
+                        ) for i, inv in enumerate(cur_hp.inv) if inv.expr is not expr.true_expr]
 
-                    dI_inv = self.infos[sub_pos].inv.expr          
-                    # Compute the differential of inv.
-                    # One semi-verification condition is closure of constraint -> differential of inv.
-                    # (closure of constraint is not necessary because the differential is always a closed set.)
-                    differential = compute_diff(dI_inv, eqs_dict=self.infos[sub_pos].eqs_dict, functions=self.functions)
-                    closureD = compute_closed_set(constraint)
-                    vc = expr.imp(closureD, differential)
+                pre_dw = init_cond \
+                        + \
+                            [Condition(expr=expr.imp(expr.neg_expr(constraint), 
+                                                        subpost.expr),
+                                    path=subpost.path,
+                                    post_blabel=subpost.blabel,
+                                    blabel=self.compute_branch_label(type=type, cur_branch='skip', post_blabel=subpost.blabel),
+                                    origins=subpost.origins + [OriginLoc(isConstraint=True, hp_pos=pos[0])],
+                                    bottom_loc=subpost.bottom_loc,
+                                    categ=subpost.categ
+                                    )
+                            for subpost in post]
+                boundary = compute_boundary(constraint)
+
+                # When I is false_expr, (I && Boundary of D -> Q) is true_expr, which can be omitted. 
+                if inv_conj is not expr.false_expr:
+                    for subpost in post:
+                        e = expr.imp(expr.conj(inv_conj, boundary), subpost.expr)
+                        self.infos[pos].vcs.append(
+                            Condition(
+                                expr=e, 
+                                path=subpost.path,
+                                blabel=self.compute_branch_label(type=type, cur_branch='exec', post_blabel=subpost.blabel),
+                                categ=subpost.categ,
+                                origins=subpost.origins + 
+                                [OriginLoc(index=i, isInv=True, hp_pos=pos[0]) for i in range(len(cur_hp.inv))] + [OriginLoc(isConstraint=True, hp_pos=pos[0])],
+                                bottom_loc=subpost.bottom_loc,
+                                isVC=True
+                                ))
+                invs = []
+                for i, inv in enumerate(cur_hp.inv):
+                    sub_pos = (pos[0], pos[1] + (i,))
+                    if sub_pos not in self.infos:
+                        self.infos[sub_pos] = CmdInfo()
+
+                    self.infos[sub_pos].assume = self.infos[pos].assume + invs[:i]
+                    self.infos[sub_pos].eqs_dict = self.infos[pos].eqs_dict
+                    self.infos[sub_pos].inv = Condition(expr=inv.expr, 
+                                                origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0])], 
+                                                bottom_loc=OriginLoc(index=i, isInv=True, hp_pos=pos[0]))
+                    invs.append(self.infos[sub_pos].inv)
+                    self.infos[sub_pos].post = [Condition(expr=inv.expr, 
+                                                origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0])], 
+                                                bottom_loc=OriginLoc(index=i, isInv=True, hp_pos=pos[0]))]
+
+
+                    inv_origin = [OriginLoc(index=i, isInv=True, hp_pos=pos[0])]
+
+                    inv_vars = inv.expr.get_vars()
+                    ghost_origins = [OriginLoc(index=idx, isGhost=True, hp_pos=pos[0]) \
+                        for idx, var in enumerate(ghost_vars) if var in inv_vars]
         
-                    self.infos[sub_pos].vcs.append(Condition(expr=vc, 
-                                                        path=[sub_pos],
-                                                        origins=origins,
-                                                        categ="maintain", 
-                                                        bottom_loc=self.infos[sub_pos].inv.bottom_loc,
-                                                        isVC=True))
-                # Use dbx rule
-                # Cases when dbx_inv is "e == 0".
-                    # Use Darboux Equality Rule
-                    #    closure of D -> e_lie_deriv == g * e
-                    #--------------------------------------------    (g is the cofactor)
-                    #   {e == 0} <x_dot = f(x) & D> {e == 0}
-                # Cases when dbx_inv is e >(>=) 0.
-                    # Use Darboux Inequality Rule.
-                    #     closure of D -> e_lie_deriv >= g * e
-                    # ---------------------------------------------
-                    #    e >(>=) 0 <x_dot = f(x) & D> e >(>=) 0
-                elif inv.rule == "dbx":
-                    if inv.rule_arg is not None:
-                        self.infos[sub_pos].dbx_cofactor = inv.rule_arg
-
-                    dbx_inv = self.infos[sub_pos].inv.expr
-                    bottom_loc = self.infos[sub_pos].inv.bottom_loc
-
-                    # For example, simplify !(x > 1) to x <= 1
-                    if isinstance(dbx_inv, expr.LogicExpr): 
-                        dbx_inv = self.simplify_expression(dbx_inv)
+                    origins = inv_origin + ghost_origins
+                    # Invariant triple trivally holds 
+                    if inv.rule is None and inv.expr in (expr.true_expr, expr.false_expr):
+                        assert inv.rule_arg is None
                     
-                    assert isinstance(dbx_inv, expr.RelExpr) and \
-                        dbx_inv.op in {'==', '>', '>=', '<', '<='}, \
-                        print("The wrong type of %s is %s" %(dbx_inv, type(dbx_inv)))
+                    # Use dI rule
+                    elif inv.rule == "di" or \
+                    (inv.rule is None and inv.expr not in (expr.true_expr, expr.false_expr)):
+                        assert inv.rule_arg is None
 
-                    # Tranlate '<' and '<=' into '>' and '>='.
-                    if dbx_inv.op == '<':
-                        dbx_inv = expr.RelExpr('>', dbx_inv.expr2, dbx_inv.expr1)
-                    elif dbx_inv.op == '<=':
-                        dbx_inv = expr.RelExpr('>=', dbx_inv.expr2, dbx_inv.expr1)
-                    # Translate into the form e == 0 or e >(>=) 0
-                    if dbx_inv.expr2 != expr.AConst(0):
-                        expr1 =  expr.OpExpr('-', dbx_inv.expr1, dbx_inv.expr2)
-                        expr1 = self.simplify_expression(expr1)
-                        dbx_inv = expr.RelExpr(dbx_inv.op, expr1, expr.AConst(0)) 
-                    
-                    e = dbx_inv.expr1
-                    assert self.is_polynomial(e, self.constant_names) is True
-                    # Compute the lie derivative of e.
-                    e_lie_deriv = compute_diff(e, eqs_dict=self.infos[sub_pos].eqs_dict, functions=self.functions)             
-
-                    # Cases when dbx_inv is "e == 0".
-                    # Use Darboux Equality Rule
-                    #          D -> e_lie_deriv == g * e
-                    #--------------------------------------------    (g is the cofactor)
-                    #   {e == 0} <x_dot = f(x) & D> {e == 0}
-                    if dbx_inv.op == "==" :
-
-                        # Case when the cofactor g is not offered.
-                        # Compute the cofactor g by auto.
-                        if self.infos[sub_pos].dbx_cofactor is None:
-                            g = expr.OpExpr('/', e_lie_deriv, e)
-                            g = self.simplify_expression(g)
-
-                            assert self.is_polynomial(g, self.constant_names) is True
-                            self.infos[sub_pos].dbx_cofactor = g
-
-                        # Case when cofactor g is offered by the user.
-                        else:
-                            g = self.infos[sub_pos].dbx_cofactor
-                            assert self.is_polynomial(g, self.constant_names) is True
-
-                            # closure of D -> e_lie_deriv == g * e
-                            # (closure of D is not necessary because "e_lie_deriv == g * e" is a closed set)
-                            closureD = compute_closed_set(constraint)
-                            vc = expr.imp(closureD, expr.RelExpr('==', e_lie_deriv, 
-                                                                        expr.OpExpr('*', g, e)))
-
-                            self.infos[sub_pos].vcs.append(Condition(
-                                                            expr=vc, 
+                        dI_inv = self.infos[sub_pos].inv.expr          
+                        # Compute the differential of inv.
+                        # One semi-verification condition is closure of constraint -> differential of inv.
+                        # (closure of constraint is not necessary because the differential is always a closed set.)
+                        differential = compute_diff(dI_inv, eqs_dict=self.infos[sub_pos].eqs_dict, functions=self.functions)
+                        closureD = compute_closed_set(constraint)
+                        vc = expr.imp(closureD, differential)
+            
+                        self.infos[sub_pos].vcs.append(Condition(expr=vc, 
                                                             path=[sub_pos],
-                                                            origins=origins, 
-                                                            bottom_loc=bottom_loc,
+                                                            origins=origins,
                                                             categ="maintain", 
+                                                            bottom_loc=self.infos[sub_pos].inv.bottom_loc,
                                                             isVC=True))
-
+                    # Use dbx rule
+                    # Cases when dbx_inv is "e == 0".
+                        # Use Darboux Equality Rule
+                        #    closure of D -> e_lie_deriv == g * e
+                        #--------------------------------------------    (g is the cofactor)
+                        #   {e == 0} <x_dot = f(x) & D> {e == 0}
                     # Cases when dbx_inv is e >(>=) 0.
-                    # Use Darboux Inequality Rule.
-                    #     closure of D -> e_lie_deriv >= g * e
-                    # ---------------------------------------------
-                    #    e >(>=) 0 <x_dot = f(x) & D> e >(>=) 0
-                    elif dbx_inv.op in {'>', '>='}:
-                        # Cases when the cofactor g is not offered.
-                        # Compute the cofactor automatically.
-                        if self.infos[sub_pos].dbx_cofactor is None:
-                            quot_remains = self.polynomial_div(e_lie_deriv, e, self.constant_names)
-                            
-                            # Several quot and remain pairs may returned from the polynomial division.
-                            # If there is a remain >= 0, there exists a quot satisfying g in dbx_rule.
-                            vc_comps = []
-                            for _, remain in quot_remains.items():
-                                # remain (e_lie_deriv - g * e) >= 0.
-                                vc_comp = expr.RelExpr('>=', remain, expr.AConst(0))
-                                vc_comps.append(vc_comp)
-                            closureD = compute_closed_set(constraint)
-                            vc = expr.imp(closureD, expr.list_disj(*vc_comps))
+                        # Use Darboux Inequality Rule.
+                        #     closure of D -> e_lie_deriv >= g * e
+                        # ---------------------------------------------
+                        #    e >(>=) 0 <x_dot = f(x) & D> e >(>=) 0
+                    elif inv.rule == "dbx":
+                        if inv.rule_arg is not None:
+                            self.infos[sub_pos].dbx_cofactor = inv.rule_arg
 
-                            self.infos[sub_pos].vcs.append(Condition(
-                                                            expr=vc,
-                                                            path=[sub_pos], 
-                                                            origins=origins, 
-                                                            categ="maintain",
-                                                            bottom_loc=bottom_loc, 
-                                                            isVC=True))
+                        dbx_inv = self.infos[sub_pos].inv.expr
+                        bottom_loc = self.infos[sub_pos].inv.bottom_loc
 
-                        # Cases when the cofactor g is offered by the user.
-                        else:
-                            g = self.infos[sub_pos].dbx_cofactor
-                            assert self.is_polynomial(g, self.constant_names) is True
-                            
-                            closureD = compute_closed_set(constraint)
-                            vc = expr.imp(closureD, expr.RelExpr('>=', e_lie_deriv, 
-                                                                        expr.OpExpr('*', self.infos[sub_pos].dbx_cofactor, e)))
-                            self.infos[sub_pos].vcs.append(Condition(
-                                                            expr=vc,
-                                                            path=[sub_pos], 
-                                                            origins=origins, 
-                                                            categ="maintain", 
-                                                            bottom_loc=bottom_loc, isVC=True))
+                        # For example, simplify !(x > 1) to x <= 1
+                        if isinstance(dbx_inv, expr.LogicExpr): 
+                            dbx_inv = self.simplify_expression(dbx_inv)
+                        
+                        assert isinstance(dbx_inv, expr.RelExpr) and \
+                            dbx_inv.op in {'==', '>', '>=', '<', '<='}, \
+                            print("The wrong type of %s is %s" %(dbx_inv, type(dbx_inv)))
 
-                # Use barrier certificate
-                #      closure of D && e == 0 -> e_lie > 0
-                # --------------------------------------------------
-                #      {e >=(>) 0} <x_dot = f(x) & D> {e >=(>) 0}                        
-                elif inv.rule == "bc":
-                    assert inv.rule_arg is None
+                        # Tranlate '<' and '<=' into '>' and '>='.
+                        if dbx_inv.op == '<':
+                            dbx_inv = expr.RelExpr('>', dbx_inv.expr2, dbx_inv.expr1)
+                        elif dbx_inv.op == '<=':
+                            dbx_inv = expr.RelExpr('>=', dbx_inv.expr2, dbx_inv.expr1)
+                        # Translate into the form e == 0 or e >(>=) 0
+                        if dbx_inv.expr2 != expr.AConst(0):
+                            expr1 =  expr.OpExpr('-', dbx_inv.expr1, dbx_inv.expr2)
+                            expr1 = self.simplify_expression(expr1)
+                            dbx_inv = expr.RelExpr(dbx_inv.op, expr1, expr.AConst(0)) 
+                        
+                        e = dbx_inv.expr1
+                        assert self.is_polynomial(e, self.constant_names) is True
+                        # Compute the lie derivative of e.
+                        e_lie_deriv = compute_diff(e, eqs_dict=self.infos[sub_pos].eqs_dict, functions=self.functions)             
 
-                    barrier_inv = self.infos[sub_pos].inv.expr
-                    bottom_loc = self.infos[sub_pos].inv.bottom_loc
-                    origins = self.infos[sub_pos].inv.origins
+                        # Cases when dbx_inv is "e == 0".
+                        # Use Darboux Equality Rule
+                        #          D -> e_lie_deriv == g * e
+                        #--------------------------------------------    (g is the cofactor)
+                        #   {e == 0} <x_dot = f(x) & D> {e == 0}
+                        if dbx_inv.op == "==" :
 
-                    if isinstance(barrier_inv, expr.LogicExpr):
-                        barrier_inv = self.simplify_expression(barrier_inv)
+                            # Case when the cofactor g is not offered.
+                            # Compute the cofactor g by auto.
+                            if self.infos[sub_pos].dbx_cofactor is None:
+                                g = expr.OpExpr('/', e_lie_deriv, e)
+                                g = self.simplify_expression(g)
 
-                    assert isinstance(barrier_inv, expr.RelExpr) and \
-                        barrier_inv.op in {'<=', '>=', '>', '<'}
+                                assert self.is_polynomial(g, self.constant_names) is True
+                                self.infos[sub_pos].dbx_cofactor = g
 
-                    # TODO: e should be continous
+                            # Case when cofactor g is offered by the user.
+                            else:
+                                g = self.infos[sub_pos].dbx_cofactor
+                                assert self.is_polynomial(g, self.constant_names) is True
 
-                    # Translate '<=' into '>='
-                    if barrier_inv.op == '<=':
-                        barrier_inv = expr.RelExpr('>=', barrier_inv.expr2, barrier_inv.expr1)
-                    elif barrier_inv.op == '<':
-                        barrier_inv = expr.RelExpr('>', barrier_inv.expr2, barrier_inv.expr1)
+                                # closure of D -> e_lie_deriv == g * e
+                                # (closure of D is not necessary because "e_lie_deriv == g * e" is a closed set)
+                                closureD = compute_closed_set(constraint)
+                                vc = expr.imp(closureD, expr.RelExpr('==', e_lie_deriv, 
+                                                                            expr.OpExpr('*', g, e)))
 
-                    # Translate 'e >= c' into 'e - c >= 0'
-                    if barrier_inv.expr2 != 0:
-                        expr1 = expr.OpExpr('-', barrier_inv.expr1, barrier_inv.expr2)
-                        # expr1 = self.simplify_expression(expr1)
-                        barrier_inv = expr.RelExpr(barrier_inv.op, expr1, expr.AConst(0))
+                                self.infos[sub_pos].vcs.append(Condition(
+                                                                expr=vc, 
+                                                                path=[sub_pos],
+                                                                origins=origins, 
+                                                                bottom_loc=bottom_loc,
+                                                                categ="maintain", 
+                                                                isVC=True))
 
-                    e = barrier_inv.expr1
-                    e_lie = compute_diff(e, eqs_dict=self.infos[sub_pos].eqs_dict, functions=self.functions)
+                        # Cases when dbx_inv is e >(>=) 0.
+                        # Use Darboux Inequality Rule.
+                        #     closure of D -> e_lie_deriv >= g * e
+                        # ---------------------------------------------
+                        #    e >(>=) 0 <x_dot = f(x) & D> e >(>=) 0
+                        elif dbx_inv.op in {'>', '>='}:
+                            # Cases when the cofactor g is not offered.
+                            # Compute the cofactor automatically.
+                            if self.infos[sub_pos].dbx_cofactor is None:
+                                quot_remains = self.polynomial_div(e_lie_deriv, e, self.constant_names)
+                                
+                                # Several quot and remain pairs may returned from the polynomial division.
+                                # If there is a remain >= 0, there exists a quot satisfying g in dbx_rule.
+                                vc_comps = []
+                                for _, remain in quot_remains.items():
+                                    # remain (e_lie_deriv - g * e) >= 0.
+                                    vc_comp = expr.RelExpr('>=', remain, expr.AConst(0))
+                                    vc_comps.append(vc_comp)
+                                closureD = compute_closed_set(constraint)
+                                vc = expr.imp(closureD, expr.list_disj(*vc_comps))
 
-                    # vc: closure of D && e == 0 -> e_lie > 0
-                    closureD = compute_closed_set(constraint)
-                    vc = expr.imp(expr.LogicExpr('&&', closureD, 
-                                                    expr.RelExpr('==', e, expr.AConst(0))),
-                                expr.RelExpr('>', e_lie, expr.AConst(0)))
+                                self.infos[sub_pos].vcs.append(Condition(
+                                                                expr=vc,
+                                                                path=[sub_pos], 
+                                                                origins=origins, 
+                                                                categ="maintain",
+                                                                bottom_loc=bottom_loc, 
+                                                                isVC=True))
 
-                    self.infos[sub_pos].vcs.append(Condition(
-                        expr=vc, 
-                        path=[sub_pos], 
-                        origins=origins, 
-                        categ="maintain", 
-                        bottom_loc=bottom_loc, 
-                        isVC=True))
+                            # Cases when the cofactor g is offered by the user.
+                            else:
+                                g = self.infos[sub_pos].dbx_cofactor
+                                assert self.is_polynomial(g, self.constant_names) is True
+                                
+                                closureD = compute_closed_set(constraint)
+                                vc = expr.imp(closureD, expr.RelExpr('>=', e_lie_deriv, 
+                                                                            expr.OpExpr('*', self.infos[sub_pos].dbx_cofactor, e)))
+                                self.infos[sub_pos].vcs.append(Condition(
+                                                                expr=vc,
+                                                                path=[sub_pos], 
+                                                                origins=origins, 
+                                                                categ="maintain", 
+                                                                bottom_loc=bottom_loc, isVC=True))
 
-                # Use solution axiom
-                #
-                # ---------------------------------------------------------------------------
-                # [[ bar of D, 
-                #    \forall t > 0. (\forall 0 <= s <= t bar of D(y(s))) -> Q(y(t))]] 
-                # <x_dot = f(x) & D(x)> 
-                # [[Q(x)]]
-                #
-                # f(x) is linear in x. Assume y(.) solve the symbolic initial value problem y'(t) = f(y), y(0) = x
-                elif inv.rule == "sln":
-                    assert inv.rule_arg is None
-                    for var, diff in self.infos[sub_pos].eqs_dict.items():
-                        d = degree(sympify(str(diff).replace('^', '**')), gen=symbols(var))
-                        if not d in {0,1}:
-                            raise AssertionError("{0} should be linear in {1} when using sln rule!".format(diff, var))
+                    # Use barrier certificate
+                    #      closure of D && e == 0 -> e_lie > 0
+                    # --------------------------------------------------
+                    #      {e >=(>) 0} <x_dot = f(x) & D> {e >=(>) 0}                        
+                    elif inv.rule == "bc":
+                        assert inv.rule_arg is None
 
-                    # Create a new variable to represent time
-                    time_var = create_newvar('t', self.names)
+                        barrier_inv = self.infos[sub_pos].inv.expr
+                        bottom_loc = self.infos[sub_pos].inv.bottom_loc
+                        origins = self.infos[sub_pos].inv.origins
 
-                    # Solution is, e.g. {'x' : x + v*t + a*t^2/2, 'v' : v + a*t}.
-                    solution_dict = solveODE(cur_hp, self.names, time_var.name)
+                        if isinstance(barrier_inv, expr.LogicExpr):
+                            barrier_inv = self.simplify_expression(barrier_inv)
 
-                    # Create a new variable to represent 's' in 'ForAll 0 <= s < t'
-                    in_var = create_newvar('s', self.names)
-                    self.names.add(in_var.name)
+                        assert isinstance(barrier_inv, expr.RelExpr) and \
+                            barrier_inv.op in {'<=', '>=', '>', '<'}
 
-                    # Compute y_s, alias y(s)
-                    # e.g. {'x' : x + v*s + a*s^2/2, 'v' : v + a*s
-                    y_s = dict()
-                    for fun_name, sol in solution_dict.items():
-                        sol_s = sol.subst({time_var.name : in_var})
-                        y_s[fun_name] = sol_s
+                        # TODO: e should be continous
 
-                    D_y_s = constraint.subst(y_s)
-                    Q_y_t = self.infos[sub_pos].inv.expr.subst(solution_dict)
+                        # Translate '<=' into '>='
+                        if barrier_inv.op == '<=':
+                            barrier_inv = expr.RelExpr('>=', barrier_inv.expr2, barrier_inv.expr1)
+                        elif barrier_inv.op == '<':
+                            barrier_inv = expr.RelExpr('>', barrier_inv.expr2, barrier_inv.expr1)
+
+                        # Translate 'e >= c' into 'e - c >= 0'
+                        if barrier_inv.expr2 != 0:
+                            expr1 = expr.OpExpr('-', barrier_inv.expr1, barrier_inv.expr2)
+                            # expr1 = self.simplify_expression(expr1)
+                            barrier_inv = expr.RelExpr(barrier_inv.op, expr1, expr.AConst(0))
+
+                        e = barrier_inv.expr1
+                        e_lie = compute_diff(e, eqs_dict=self.infos[sub_pos].eqs_dict, functions=self.functions)
+
+                        # vc: closure of D && e == 0 -> e_lie > 0
+                        closureD = compute_closed_set(constraint)
+                        vc = expr.imp(expr.LogicExpr('&&', closureD, 
+                                                        expr.RelExpr('==', e, expr.AConst(0))),
+                                    expr.RelExpr('>', e_lie, expr.AConst(0)))
+
+                        self.infos[sub_pos].vcs.append(Condition(
+                            expr=vc, 
+                            path=[sub_pos], 
+                            origins=origins, 
+                            categ="maintain", 
+                            bottom_loc=bottom_loc, 
+                            isVC=True))
+   
+                    else:
+                        if inv.rule is not None:
+                            raise NotImplementedError("Unknown ODE method")
+
+                    # Add the assume into the hypothesis of every verification condition at sub_pos.
+                    self.add_vc_assume(sub_pos)
+             
+                pre = pre_dw
+                
+            elif cur_hp.rule == "solution":
+                # P' = \forall t > 0. (\forall 0 <= s < t. D(u(s))) && !D(u(t)) -> Q(u(t))
+                # 
+                # -----------------------------------------------------
+                #    {(D -> P') && (!D -> Q)} <x_dot = f(x) & D(x)> {Q}
+                # f(x) is linear in x. Assume u(.) solve the symbolic initial value problem u'(t) = f(u), u(0) = x
+                for var, diff in self.infos[pos].eqs_dict.items():
+                            d = degree(sympify(str(diff).replace('^', '**')), gen=symbols(var))
+                            if not d in {0,1}:
+                                raise AssertionError("{0} should be linear in {1} when using sln rule!".format(diff, var))
+
+                # Create a new variable to represent time
+                time_var = create_newvar('t', self.names)
+
+                # Solution is, e.g. {'x' : x + v*t + a*t^2/2, 'v' : v + a*t}.
+                solution_dict = solveODE(cur_hp, self.names, time_var.name)
+
+                # Create a new variable to represent 's' in 'ForAll 0 <= s < t'
+                in_var = create_newvar('s', self.names)
+                self.names.add(in_var.name)
+
+                # Compute u_s, alias u(s)
+                # e.g. {'x' : x + v*s + a*s^2/2, 'v' : v + a*s
+                u_s = dict()
+                for fun_name, sol in solution_dict.items():
+                    sol_s = sol.subst({time_var.name : in_var})
+                    u_s[fun_name] = sol_s
+
+                D_u_s = constraint.subst(u_s)
+                D_u_t = constraint.subst(solution_dict)
+
+                pre = []
+                for subpost in post:
+                    Q_u_t = subpost.expr.subst(solution_dict)
 
                     # Compute the hypothesis of implication
-                    # \forall 0 <= s <= t bar of D(y(s))
-                    cond = expr.ForAllExpr(in_var.name, 
+                    # \forall 0 <= s < t D(u(s)) && !D(u(t))
+                    subcond = expr.ForAllExpr(in_var.name, 
                                 expr.imp(expr.LogicExpr('&&', 
                                                         expr.RelExpr('<=', expr.AConst(0), in_var),
-                                                        expr.RelExpr('<=', in_var, time_var)),
-                                            compute_closed_set(D_y_s)))
-        
+                                                        expr.RelExpr('<', in_var, time_var)),
+                                         D_u_s))
+                    cond = expr.LogicExpr('&&', 
+                                subcond,
+                                expr.LogicExpr('!', D_u_t))
+
                     # Compute the conclusion of implication
-                    conclu = Q_y_t
+                    conclu = Q_u_t
+
+                    # Compute P'
                     pre_expr = expr.ForAllExpr(time_var.name,
-                                                        expr.imp(expr.RelExpr('>', time_var, expr.AConst(0)),
-                                                                expr.imp(cond, conclu)))
-                    # ghost_var is a fresh variable not in P'
-                    for ghost_var in ghost_vars:
-                        print("ghost_vavr:", ghost_var, "pre_expr:", pre_expr)
-                        assert ghost_var not in pre_expr.get_vars()
-                    
-                    pre = pre + [Condition(expr=pre_expr,
-                                    path=[sub_pos],
-                                    origins=self.infos[sub_pos].inv.origins,
-                                    categ="maintain",
-                                    bottom_loc=self.infos[sub_pos].inv.bottom_loc)]   
-                else:
-                    if inv.rule is not None:
-                        raise NotImplementedError("Unknown ODE method")
+                                               expr.imp(expr.RelExpr('>', time_var, expr.AConst(0)),
+                                                        expr.imp(cond, conclu)))
 
-                # Add the assume into the hypothesis of every verification condition at sub_pos.
-                self.add_vc_assume(sub_pos)
+                    pre_exec = Condition(expr=pre_expr,
+                                         path=subpost.path + [pos],
+                                         post_blabel=subpost.blabel,
+                                         blabel=self.compute_branch_label(type=type, cur_branch='exec', post_blabel=subpost.blabel),
+                                         origins=subpost.origins,
+                                         bottom_loc=subpost.bottom_loc,
+                                         categ=subpost.categ)
+                    pre_skip = Condition(expr=expr.imp(expr.neg_expr(constraint), 
+                                                        subpost.expr),
+                                        path=subpost.path,
+                                        post_blabel=subpost.blabel,
+                                        blabel=self.compute_branch_label(type=type, cur_branch='skip', post_blabel=subpost.blabel),
+                                        origins=subpost.origins + [OriginLoc(isConstraint=True, hp_pos=pos[0])],
+                                        bottom_loc=subpost.bottom_loc,
+                                        categ=subpost.categ
+                                        )
+                    pre = pre + [pre_exec, pre_skip]
 
-
-            if pre is not None and pre_dw is not None:
-                pre = pre + pre_dw
-            elif pre_dw is not None:
-                pre = pre_dw
             else:
                 raise NotImplementedError
-            # If pre is None and pre_dw is None, no pre is computed, so pre is still None.
 
         else:
             raise NotImplementedError
