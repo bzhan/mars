@@ -290,7 +290,7 @@ class CmdInfo:
 
 class Condition:
     """Stores a condition(pre-condition, post-condition, verification condition) and the parts of the program that it originates from."""
-    def __init__(self, expr, path=[], origins=[], blabel=None, post_blabel=None, bottom_loc=None, categ=None, isVC=False):
+    def __init__(self, expr, path=[], origins=[], blabel=None, blabel_depth=0, bottom_loc=None, categ=None, isVC=False):
         # The expression stating the condition itself
         self.expr = expr
         # The positions of hps where the condition originates from
@@ -303,9 +303,9 @@ class Condition:
         # which can be "init" or "maintain"
         self.categ = categ
 
-        # The branch label of the last post condition from which the wp is computed from,
-        # only acquired when the Condition is a computed wp, otherwise, set as None by default.
-        self.post_blabel = post_blabel
+        # The depth at which new branch labels are added while computing a wp,
+        # only acquired when the Condition is a computed wp, otherwise, set as 0 by default.
+        self.blabel_depth = blabel_depth
 
         # The branch label of this condition 
         self.blabel = blabel
@@ -512,50 +512,33 @@ class CmdVerifier:
                 sub_pos = pos + (i,)
                 self.compute_variable_set(sub_pos)
 
-    def compute_branch_label(self, type, cur_branch=None, sub_blabel=None, post_blabel=None):
+    def compute_branch_label(self, cur_branch=None, old_blabel=None, blabel_depth=None):
         """Compute the branch label for the weakest precondition.
         {P} c {Q}, P is the wp computed by c and Q.
 
         type: the type of the hcsp program, i.e. c.
-        cur_branch: the branch index of the hcsp program, acquired in IChoice, ITE, ODE.
+        cur_branch: the branch index of current branch point, acquired in IChoice, ITE, ODE.
             Example, {P1, P2} c1 ++ c2 {Q}, P1 is computed from c1, P2 is computed from c2,
             then the cur_branch for P1 is 1, the cur_branch for P2 is 2.
-        sub_blabel: the branch label of the weakest precondition of sub-hcsp program, acquired in   
-            IChoice, ITE, Sequence.
-        post_blabel: the branch label of Q. 
-                     Note that if P has nothing to do with Q, post_blabel is None by default, for example, the wp, D -> I for ODE.
+        old_blabel: the branch label of the weakest precondition of sub-hcsp program below
+            the current point, acquired in IChoice, ITE, Sequence.
+        blabel_depth: The depth that the labels are currently extended at
         """
-        if type == 'skip' or type == 'assign' or type == 'randomassign':
-            blabel = post_blabel
-        
-        elif type == 'ichoice' or type == 'ite':
-            assert isinstance(cur_branch, int)
 
-            # Case when sub-hp is Skip, Assign or RandomAssign
-            if sub_blabel == post_blabel:
-                blabel = label.SequenceLabel(label.AtomLabel(cur_branch), post_blabel)
-
-            # Case when sub-hp is IChioce, ITE or ODE
-            else:
-                assert isinstance(sub_blabel, label.SequenceLabel)
-                assert len(sub_blabel.labels) == 2 and sub_blabel.labels[-1] == post_blabel \
-                or len(sub_blabel.labels) == 1 # True because all branch labels are built by SequenceLabel(label1, post_blabel), post_blabel could be None
-                blabel = label.SequenceLabel(label.NestLabel(cur_branch, sub_blabel.labels[0]), post_blabel)
-
-        elif type == 'ode':
-            assert isinstance(cur_branch, str)
-            blabel = label.SequenceLabel(label.AtomLabel(cur_branch), post_blabel)
-
-        elif type == 'sequence':
-            # The branch label for wp of sequence is equal to 
-            # the branch label for wp of the first sub-hp
-            blabel = sub_blabel
-        
-        # Loop is not included because the wp of loop is the invariant, without branch label.
+        if blabel_depth == 0:
+            assert isinstance(old_blabel, label.SequenceLabel) or old_blabel is None
+            return label.SequenceLabel(label.AtomLabel(cur_branch), old_blabel)
         else:
-            raise NotImplementedError
+            assert isinstance(old_blabel, label.SequenceLabel)
+            first_label = old_blabel.labels[0]
+            rest_labels = old_blabel.labels[1:]
+            if isinstance(first_label, label.NestLabel):
+                sublabel = first_label.sub_label
+            else:
+                sublabel = None
+            extended_first_label = self.compute_branch_label(cur_branch, sublabel, blabel_depth - 1)
+            return label.SequenceLabel(label.NestLabel(first_label.value, extended_first_label), *rest_labels)
 
-        return blabel
 
     def add_vc_assume(self, pos):
         # Add assume into the hypothesis of every verification condition.
@@ -595,8 +578,8 @@ class CmdVerifier:
                 expr=subpost.expr, 
                 path=subpost.path + [pos],
                 origins=subpost.origins,
-                post_blabel=subpost.blabel,
-                blabel=self.compute_branch_label(type=type, post_blabel=subpost.blabel),
+                blabel_depth=subpost.blabel_depth,
+                blabel=subpost.blabel,
                 bottom_loc=subpost.bottom_loc, 
                 categ=subpost.categ
                 ) for subpost in post]
@@ -615,8 +598,8 @@ class CmdVerifier:
                 expr=subpost.expr.subst({var: cur_hp.expr}), 
                 path=subpost.path + [pos],
                 origins=subpost.origins,
-                post_blabel=subpost.blabel,
-                blabel=self.compute_branch_label(type=type, post_blabel=subpost.blabel),
+                blabel_depth=subpost.blabel_depth,
+                blabel=subpost.blabel,
                 bottom_loc=subpost.bottom_loc,
                 categ=subpost.categ
                 ) for subpost in post]
@@ -641,8 +624,8 @@ class CmdVerifier:
                 expr=expr.imp(cur_hp.expr.subst({var_str: newvar}), subpost.expr.subst({var_str: newvar})), 
                 path=subpost.path + [pos],
                 origins=subpost.origins,
-                post_blabel=subpost.blabel,
-                blabel=self.compute_branch_label(type=type, post_blabel=subpost.blabel),
+                blabel_depth=subpost.blabel_depth,
+                blabel=subpost.blabel,
                 bottom_loc=subpost.bottom_loc,
                 categ=subpost.categ
                 ) for subpost in post]
@@ -661,7 +644,17 @@ class CmdVerifier:
                 if sub_pos not in self.infos:
                     self.infos[sub_pos] = CmdInfo()
                 sub_info = self.infos[sub_pos]
-                sub_info.post = post
+                sub_info.post = [Condition(
+                    expr=subpost.expr,
+                    path=subpost.path,
+                    origins=subpost.origins,
+                    blabel=self.compute_branch_label(cur_branch=i+1, 
+                                                     old_blabel=subpost.blabel,
+                                                     blabel_depth=subpost.blabel_depth),
+                    blabel_depth=subpost.blabel_depth+1,
+                    bottom_loc=subpost.bottom_loc,
+                    categ=subpost.categ
+                    ) for subpost in post]
                 sub_info.assume += self.infos[pos].assume
                 sub_info.parent_type = cur_hp.type
 
@@ -671,10 +664,8 @@ class CmdVerifier:
                     expr=subpre.expr, 
                     path=subpre.path,
                     origins=subpre.origins,
-                    post_blabel=subpre.post_blabel,
-                    blabel=self.compute_branch_label(type=type, cur_branch=i+1, 
-                                                     sub_blabel=subpre.blabel,
-                                                     post_blabel=subpre.post_blabel),
+                    blabel_depth=max(0,subpre.blabel_depth-1),
+                    blabel=subpre.blabel,
                     bottom_loc=subpre.bottom_loc, 
                     categ=subpre.categ
                     ) 
@@ -695,12 +686,22 @@ class CmdVerifier:
                 sub_pos = (pos[0] + (i,), pos[1])
                 if sub_pos not in self.infos:
                     self.infos[sub_pos] = CmdInfo()
-                self.infos[sub_pos].post = post
+                self.infos[sub_pos].post = [Condition(
+                    expr=subpost.expr,
+                    path=subpost.path,
+                    origins=subpost.origins,
+                    blabel=self.compute_branch_label(cur_branch=i+1, 
+                                                     old_blabel=subpost.blabel,
+                                                     blabel_depth=subpost.blabel_depth),
+                    blabel_depth=subpost.blabel_depth+1,
+                    bottom_loc=subpost.bottom_loc,
+                    categ=subpost.categ
+                    ) for subpost in post]
                 self.infos[sub_pos].assume += self.infos[pos].assume
                 self.infos[sub_pos].parent_type = cur_hp.type
 
                 if i == len(if_hps) and cur_hp.else_hp is None:
-                    sub_pre = post
+                    sub_pre = self.infos[sub_pos].post
                 else:
                     # Compute the sub-pre-condition for each sub_hp, 
                     # e.g. P1, P2, P3 for c1, c2 and c3
@@ -725,10 +726,8 @@ class CmdVerifier:
                         Condition(expr=expr.imp(sub_cond, subpre.expr), 
                             path=subpre.path,
                             origins=subpre.origins,
-                            post_blabel=subpre.post_blabel,
-                            blabel=self.compute_branch_label(type=type, cur_branch=i+1, 
-                                                             sub_blabel=subpre.blabel,
-                                                             post_blabel=subpre.post_blabel),
+                            blabel=subpre.blabel,
+                            blabel_depth=max(0,subpre.blabel_depth-1),
                             bottom_loc=subpre.bottom_loc,
                             categ=subpre.categ
                             ))
@@ -754,8 +753,8 @@ class CmdVerifier:
             pre = [Condition(expr=subpre.expr, 
                     path=subpre.path,
                     origins=subpre.origins,
-                    post_blabel=subpre.post_blabel,
-                    blabel=self.compute_branch_label(type=type, sub_blabel=subpre.blabel),
+                    blabel=subpre.blabel,
+                    blabel_depth=subpre.blabel_depth,
                     bottom_loc=subpre.bottom_loc, 
                     categ=subpre.categ
                     ) for subpre in pre]
@@ -795,7 +794,7 @@ class CmdVerifier:
             if body_pos not in self.infos:
                 self.infos[body_pos] = CmdInfo()
             body_info = self.infos[body_pos]
-            body_info.post = [Condition(expr=sub_inv.expr, 
+            body_info.post = [Condition(expr=sub_inv.expr,
                                         origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0])],
                                         bottom_loc=OriginLoc(index=i, isInv=True, hp_pos=pos[0]),
                                         categ="maintain")
@@ -844,7 +843,7 @@ class CmdVerifier:
                 # The pre-condition for dw rule is set as None initially.
                 pre_dw = None
                 ghost_vars = []
-    
+ 
                 # TODO: also run if no invariants are specified? testVerify62 testVerify54 testVerify53 testVerify52 testVerify50 testVerify55
                 if cur_hp.inv is None:
                     cur_hp.inv = (assertion.CutInvariant(expr=expr.true_expr, proof_methods=None),)
@@ -903,8 +902,8 @@ class CmdVerifier:
                             [Condition(expr=expr.imp(expr.neg_expr(constraint), 
                                                         subpost.expr),
                                     path=subpost.path,
-                                    post_blabel=subpost.blabel,
-                                    blabel=self.compute_branch_label(type=type, cur_branch='skip', post_blabel=subpost.blabel),
+                                    blabel=self.compute_branch_label(cur_branch='skip', old_blabel=subpost.blabel, blabel_depth=subpost.blabel_depth),
+                                    blabel_depth=subpost.blabel_depth,
                                     origins=subpost.origins + [OriginLoc(isConstraint=True, hp_pos=pos[0])],
                                     bottom_loc=subpost.bottom_loc,
                                     categ=subpost.categ
@@ -920,7 +919,7 @@ class CmdVerifier:
                             Condition(
                                 expr=e, 
                                 path=subpost.path,
-                                blabel=self.compute_branch_label(type=type, cur_branch='exec', post_blabel=subpost.blabel),
+                                blabel=self.compute_branch_label(cur_branch='exec', old_blabel=subpost.blabel, blabel_depth=subpost.blabel_depth),
                                 categ=subpost.categ,
                                 origins=subpost.origins + 
                                 [OriginLoc(index=i, isInv=True, hp_pos=pos[0]) for i in range(len(cur_hp.inv))] + [OriginLoc(isConstraint=True, hp_pos=pos[0])],
@@ -1208,20 +1207,23 @@ class CmdVerifier:
 
                     pre_exec = Condition(expr=pre_expr,
                                          path=subpost.path + [pos],
-                                         post_blabel=subpost.blabel,
-                                         blabel=self.compute_branch_label(type=type, cur_branch='exec', post_blabel=subpost.blabel),
+                                         blabel=self.compute_branch_label(cur_branch='exec',
+                                                old_blabel=subpost.blabel, blabel_depth=subpost.blabel_depth),
+                                         blabel_depth=subpost.blabel_depth,
                                          origins=subpost.origins,
                                          bottom_loc=subpost.bottom_loc,
                                          categ=subpost.categ)
                     pre_skip = Condition(expr=expr.imp(expr.neg_expr(constraint), 
                                                         subpost.expr),
                                         path=subpost.path,
-                                        post_blabel=subpost.blabel,
-                                        blabel=self.compute_branch_label(type=type, cur_branch='skip', post_blabel=subpost.blabel),
+                                        blabel=self.compute_branch_label(cur_branch='skip', 
+                                            old_blabel=subpost.blabel, blabel_depth=subpost.blabel_depth),
+                                        blabel_depth=subpost.blabel_depth,
                                         origins=subpost.origins + [OriginLoc(isConstraint=True, hp_pos=pos[0])],
                                         bottom_loc=subpost.bottom_loc,
                                         categ=subpost.categ
                                         )
+                                    
                     pre = pre + [pre_exec, pre_skip]
 
             else:
