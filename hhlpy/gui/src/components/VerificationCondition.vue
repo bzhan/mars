@@ -21,6 +21,7 @@
               <li>show: {{ vc_info.show }}</li>
             </ul> 
             <!-- vc_info.solver is also changed by using v-model -->
+            <span class="vc-label" v-show="vc_info.label != 'None'">{{ vc_info.label + ": " }}</span>
             <select v-model="vc_info.solver" @change="changeSolver(vc_info.index, vc_info.solver)" class="vc-button" v-show="!outdated">
                 <option value="z3">Z3</option>
                 <option value="wolfram">Wolfram Engine</option>
@@ -292,6 +293,10 @@ export default ({
   font-family: Avenir, Helvetica, Arial, sans-serif;
   font-size: smaller;
   cursor: pointer;
+}
+
+.vc-label {
+  font-size: smaller
 }
 
 .vc-icon {
