@@ -40,8 +40,7 @@ pre [initial(m, z, v)];
     }         
             
     t := 0;                                                  /* reset control cycle timer */
-    {z_dot=v, v_dot=a, t_dot=1  & v > 0 && t < ep}
-        invariant [safeInv(m, z, v)]{sln};                /* drive (not backwards v>=0)
+    {z_dot=v, v_dot=a, t_dot=1  & v > 0 && t < ep} solution;                /* drive (not backwards v>=0)
                                                               for at most ep time (t<=ep) until next controller run */
 }* invariant [v >= 0][safeInv(m, z, v)];                   /* repeat, loop invariant documents system design property */
     

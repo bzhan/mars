@@ -875,7 +875,7 @@ class ODE(HCSP):
     {F(s',s) = 0 & B} |> Q
 
     """
-    def __init__(self, eqs, constraint, *, out_hp=Skip(), meta=None, ghosts=tuple(), inv=tuple()):
+    def __init__(self, eqs, constraint, *, out_hp=Skip(), meta=None, rule="dw", ghosts=tuple(), inv=tuple()):
         """Each equation is of the form (var_name, expr), where var_name
         is the name of the variable, and expr is its derivative.
 
@@ -888,6 +888,8 @@ class ODE(HCSP):
             assert isinstance(eq, tuple) and len(eq) == 2
             assert isinstance(eq[0], str) and isinstance(eq[1], Expr)
         assert isinstance(constraint, Expr)
+        assert isinstance(rule, str)
+        self.rule = rule
         assert isinstance(ghosts, tuple)
         for ghost in ghosts:
             assert isinstance(ghost, assertion.GhostIntro)

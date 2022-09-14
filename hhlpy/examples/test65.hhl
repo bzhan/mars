@@ -3,5 +3,5 @@
 # {v_dot = 1 & v < 10}
 # {v >= 0}
 pre [v >= 0];
-{v_dot = 1 & v < 10} invariant [v >= 0] {sln};
+{v_dot = 1 & v < 10} solution;
 post [v >= 0];

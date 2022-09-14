@@ -106,6 +106,7 @@ grammar = r"""
         | "{" cmd "}" "*" maybe_loop_invariant -> repeat_cmd
         | "{" cmd "}" "*" "(" expr ")" maybe_loop_invariant -> repeat_cond_cmd
         | "{" ode_seq "&" expr "}" maybe_ode_invariant -> ode
+        | "{" ode_seq "&" expr "}" sln_rule ";" -> ode_sln
         | "{" "&" expr "}" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm_const
         | "{" ode_seq "&" expr "}" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm
         | "if" "(" expr ")" "{" cmd "}" ("else" "if" "(" expr ")" "{" cmd "}")* ("else" "{" cmd "}")? -> ite_cmd
@@ -141,14 +142,14 @@ grammar = r"""
 
     ?maybe_ode_invariant: ("invariant" ode_invariant+ ";")? -> maybe_ode_invariant
 
-    ?ode_invariant: "[" expr "]" ("{" ode_rule expr? "}")? maybe_proof_methods -> ode_invariant
+    ?ode_invariant: "[" expr "]" ("{" ode_inv_rule expr? "}")? maybe_proof_methods -> ode_invariant
       | "ghost" CNAME "(" CNAME "=" expr ")" -> ghost_intro
 
-    ?ode_rule: "di" -> ode_rule_di
-      | "dbx" -> ode_rule_dbx
-      | "bc" -> ode_rule_bc
-      | "dw" -> ode_rule_dw
-      | "sln" -> ode_rule_sln
+    ?ode_inv_rule: "di" -> inv_rule_di
+      | "dbx" -> inv_rule_dbx
+      | "bc" -> inv_rule_bc
+
+    ?sln_rule: "solution" -> ode_rule_sln
 
     ?ichoice_cmd: atom_cmd ("++" atom_cmd)*  // Priority: 80
 
@@ -434,11 +435,12 @@ class HPTransformer(Transformer):
         assert var == var_dot[:-4]
         return assertion.GhostIntro(var=var, diff=diff, meta=meta)
 
-    def ode_rule_di(self, meta): return "di"
-    def ode_rule_bc(self, meta): return "bc"
-    def ode_rule_dbx(self, meta): return "dbx"
+    def inv_rule_di(self, meta): return "di"
+    def inv_rule_bc(self, meta): return "bc"
+    def inv_rule_dbx(self, meta): return "dbx"
+
     def ode_rule_dw(self, meta): return "dw"
-    def ode_rule_sln(self, meta): return "sln"
+    def ode_rule_sln(self, meta): return "solution"
 
     def method_z3(self, meta): return "z3"
     def method_wolfram(self, meta): return "wolfram"
@@ -508,6 +510,9 @@ class HPTransformer(Transformer):
             else:
                 raise NotImplementedError
         return hcsp.ODE(eqs, constraint, meta=meta, ghosts=tuple(ghosts), inv=tuple(inv))
+
+    def ode_sln(self, meta, eqs, constraint, rule):
+        return hcsp.ODE(eqs, constraint, meta=meta, rule=rule)
 
     def ode_comm_const(self, meta, constraint, io_comms, inv):
         return hcsp.ODE_Comm([], constraint, io_comms, meta=meta)

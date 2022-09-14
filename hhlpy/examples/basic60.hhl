@@ -13,8 +13,8 @@ pre [x + v^2 / (2 * b) <= m][v >= 0][A >= 0][b > 0];
       t := 0;
       s := *(s >= 0);
       {x_dot=v, v_dot=a, t_dot=1 & v > 0 && t < ep && s > 0}
-        invariant [x + v^2 / (2 * b) <= m]{sln}
-            {{maintain 1(1): wolfram, maintain 1(2): wolfram, 
-              maintain 2: wolfram}};
-    }* invariant [x + v^2 / (2 * b) <= m];
+        solution;
+    }* invariant [x + v^2 / (2 * b) <= m] {{maintain 1(1).exec: wolfram, 
+                                            maintain 1(2).exec: wolfram, 
+                                            maintain 2.exec: wolfram}};
 post [x <= m];

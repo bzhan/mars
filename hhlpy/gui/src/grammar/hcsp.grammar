@@ -149,6 +149,7 @@ atom_cmd {
   | RepeatCmd { "{" cmd "}" "*" maybe_loop_invariant }
   | RepeatCondCmd { "{" cmd "}*(" expr ")" maybe_loop_invariant}
   | Ode { OdeNoInv maybe_ode_invariant }
+  | OdeSln { OdeNoInv ode_rule ";"}
   | OdeCommConst { "{" "&" expr "}" "|>" "[]" "(" interrupt ")" maybe_ode_invariant}
   | OdeComm { "{" ode_seq "&" expr "}" "|>" "[]" "(" interrupt ")" maybe_ode_invariant} 
   | RecCmd { "rec" CNAME "{" cmd "}" }
@@ -212,13 +213,14 @@ Ode_invariant { InvariantWithRule maybe_proof_methods
               | "ghost" CNAME "(" CNAME "=" expr ")"
 }
 
-InvariantWithRule { Invariant ("{" ode_rule expr? "}")? }
+InvariantWithRule { Invariant ("{" inv_rule expr? "}")? }
 
 OdeNoInv { "{" ode_seq "&" expr "}" }
 
-ode_rule {
-  "di" | "dbx" | "bc" | "dw" | "sln"
+inv_rule {
+  "di" | "dbx" | "bc" 
 }
+ode_rule { "solution" }
 
 
 function_decl { "function" CNAME "(" CNAME ("," CNAME)* ")" "=" expr ";" }
@@ -314,7 +316,7 @@ Decls {
   @precedence { 
     SIGNED_NUMBER, "-", "pre", "post",
     "true", "false", "gcd", "if", "else", "log", "max", "min", "rec", "skip", 
-    "test", "wait", "\\exists", "\\forall", "assert", "invariant", CNAME }
+    "test", "wait", "\\exists", "\\forall", "assert", "invariant", "solution", CNAME }
 
   @precedence {
     LineComment, "/" 

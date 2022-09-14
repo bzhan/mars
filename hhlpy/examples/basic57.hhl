@@ -14,6 +14,6 @@ pre [x + v^2 / (2 * b()) <= m()][v >= 0][A >= 0][b() > 0];
       t := 0;
       s := * (s >= 0);
       {x_dot = v, v_dot = a, t_dot = 1 & v > 0 && t < ep && s > 0}
-        invariant [v^2<=2*b()*(m()-x)] {sln};
+        solution;
     }* invariant [v^2 <= 2*b()*(m()-x)];
 post [x <= m()];
