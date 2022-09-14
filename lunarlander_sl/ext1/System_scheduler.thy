@@ -2180,19 +2180,19 @@ inductive io_out0_out0 :: "cname \<Rightarrow> real \<Rightarrow> cname \<Righta
 fun tdsch1' :: "nat \<Rightarrow> nat \<Rightarrow> state \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate tassn" where
   "tdsch1' 0 0 dis_s (Task st ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> (emp\<^sub>t tr)"
 | "tdsch1' 0 (Suc kk) dis_s (Task st ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> 
-   waitin_assms'_assn UNIV (\<lambda> t. EState(Sch p rn rp, s)) ({},{req_ch 1,req_ch 2,free_ch 1,free_ch 2,exit_ch 1,exit_ch 2})
-   (req_ch 2) {1} (\<lambda> v d. if (v\<le>rp) then tdsch1' 0 kk dis_s (Task st ent tp) task_s (sched_push 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v))
+   in_0orig_vassm'_assn 
+   (req_ch 2) {1} (\<lambda> v . if (v\<le>rp) then tdsch1' 0 kk dis_s (Task st ent tp) task_s (sched_push 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v))
                                      else if rn \<noteq> -1 then out_0assm_assn (preempt_ch rn) 0 (out_0assm_assn (run_ch 2) 0 
                                          (tdsch1' 0 kk dis_s (Task st ent tp) task_s (sched_assign 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v))))
                                             else out_0assm_assn (run_ch 2) 0 
                                          (tdsch1' 0 kk dis_s (Task st ent tp) task_s (sched_assign 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v)))) tr
- \<or> waitin_assms'_assn UNIV (\<lambda> t. EState(Sch p rn rp, s)) ({},{req_ch 1,req_ch 2,free_ch 1,free_ch 2,exit_ch 1,exit_ch 2})
-   (free_ch 2) {0} (\<lambda> v d. if length p > 0 then out_0assm_assn (run_ch (run_now (sched_get_max (Sch p rn rp) s))) 0 
+ \<or> in_0orig_vassm'_assn
+   (free_ch 2) {0} (\<lambda> v . if length p > 0 then out_0assm_assn (run_ch (run_now (sched_get_max (Sch p rn rp) s))) 0 
                                           (tdsch1' 0 kk dis_s (Task st ent tp) task_s (sched_get_max (Sch p rn rp) s) s)
                                             else 
                                           (tdsch1' 0 kk dis_s (Task st ent tp) task_s (sched_clear (Sch p rn rp) s) s)) tr
- \<or> waitin_assms'_assn UNIV (\<lambda> t. EState(Sch p rn rp, s)) ({},{req_ch 1,req_ch 2,free_ch 1,free_ch 2,exit_ch 1,exit_ch 2})
-   (exit_ch 2) {0} (\<lambda> v d. tdsch1' 0 kk dis_s (Task st ent tp) task_s (sched_del_proc 2 (Sch p rn rp) s) s) tr"
+ \<or> in_0orig_vassm'_assn
+   (exit_ch 2) {0} (\<lambda> v . tdsch1' 0 kk dis_s (Task st ent tp) task_s (sched_del_proc 2 (Sch p rn rp) s) s) tr"
 | "tdsch1' (Suc k) 0 dis_s (Task WAIT ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> 
    (tdsch1' k 0 (dis_s(CHR ''t'' := 0)) (Task READY 0 tp) (task_s(CHR ''t'' := 0)) (Sch p rn rp) s) tr"
 | "tdsch1' (Suc k) 0 dis_s (Task READY ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> False"
@@ -2245,14 +2245,14 @@ fun tdsch1' :: "nat \<Rightarrow> nat \<Rightarrow> state \<Rightarrow> estate \
              (task_s(CHR ''c'' := up_ent_c ent (task_s CHR ''c''))) (Sch p 1 2) (s(CHR ''p'' := 2)))
        else tdsch1' k kk dis_s (Task RUNNING (Suc 0) 2)
              (task_s(CHR ''c'' := up_ent_c ent (task_s CHR ''c''))) (Sch p 1 2) (s(CHR ''p'' := 2))) tr \<or>
-      in_0orig_vassm_assn (req_ch 2) {1} (\<lambda> v. if v \<le> rp then (tdsch1' (Suc k) kk dis_s (Task READY ent tp) task_s (Sch (p @ [(1, 2)]) rn rp)(s(CHR ''p'' := 1))) 
+      in_0orig_vassm'_assn (req_ch 2) {1} (\<lambda> v. if v \<le> rp then (tdsch1' (Suc k) kk dis_s (Task READY ent tp) task_s (Sch (p @ [(1, 2)]) rn rp)(s(CHR ''p'' := 1))) 
                                                          else if rn \<noteq> -1 then (out_0assm_assn (preempt_ch rn) 0 (out_0assm_assn (run_ch 2) 0 (tdsch1' (Suc k) kk dis_s (Task READY ent 2) task_s (Sch p 2 1) (s(CHR ''p'' := 1))))) 
                                                                         else (out_0assm_assn (run_ch 2) 0 (tdsch1' (Suc k) kk dis_s (Task READY ent 2) task_s (Sch p 2 1) (s(CHR ''p'' := 1))))) tr \<or> 
-      in_0orig_vassm_assn (free_ch 2) {0} (\<lambda> v. if length p > 0 then out_0assm_assn (run_ch (run_now (sched_get_max (Sch p rn rp) s))) 0 
+      in_0orig_vassm'_assn (free_ch 2) {0} (\<lambda> v. if length p > 0 then out_0assm_assn (run_ch (run_now (sched_get_max (Sch p rn rp) s))) 0 
                                                                   (tdsch1' (Suc k) kk dis_s (Task READY ent tp) task_s (sched_get_max (Sch p rn rp) s) s)
                                                                 else 
                                                                   (tdsch1' (Suc k) kk dis_s (Task READY ent tp) task_s (sched_clear (Sch p rn rp) s) s)) tr \<or>
-      in_0orig_vassm_assn (exit_ch 2) {0} (\<lambda> v. tdsch1' (Suc k) kk dis_s (Task READY ent tp) task_s (Sch (del_proc p 2) rn rp) s) tr"
+      in_0orig_vassm'_assn (exit_ch 2) {0} (\<lambda> v. tdsch1' (Suc k) kk dis_s (Task READY ent tp) task_s (Sch (del_proc p 2) rn rp) s) tr"
 |"tdsch1' (Suc k) (Suc kk) dis_s (Task RUNNING ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> 
                                waitin_tguar'_vassm'_assn {0..min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')} 
                                         (\<lambda>t. ParState
@@ -2973,7 +2973,7 @@ lemma combine_taskdis_sch1':
                 apply(rule entails_tassn_trans)
                  apply(rule combine_emp_waitin_assms'2)
                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
-                apply(rule waitin_assms'_assn_tran)
+                apply(rule in_0orig_vassm'_assn_tran)
                 apply clarify
                 apply simp
                 apply(rule conjI)
@@ -3052,8 +3052,8 @@ lemma combine_taskdis_sch1':
                 apply(rule entails_tassn_trans)
                  apply(rule combine_emp_waitin_assms'2)
                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
-                apply(rule waitin_assms'_assn_tran)
-                subgoal for v d
+                apply(rule in_0orig_vassm'_assn_tran)
+                subgoal for v 
                   apply clarify
                   apply simp
                   apply(rule conjI)
@@ -3102,7 +3102,7 @@ lemma combine_taskdis_sch1':
                 apply(rule entails_tassn_trans)
                  apply(rule combine_emp_waitin_assms'2)
                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
-                apply(rule waitin_assms'_assn_tran)
+                apply(rule in_0orig_vassm'_assn_tran)
                 apply auto
                 unfolding entails_tassn_def combine_assn_def
                  apply auto
@@ -4353,7 +4353,7 @@ lemma combine_taskdis_sch1':
                        apply(rule entails_tassn_trans)
                         apply(rule combine_out_0assm_waitin_assm'2)
                        subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
-                       apply(rule in_0orig_vassm_assn_tran)
+                       apply(rule in_0orig_vassm'_assn_tran)
                        apply(subgoal_tac "rp<2 \<and> rn\<noteq>1")
                         prefer 2
                        subgoal using pre(4,5,6,8,9,10,11,12)
@@ -4446,7 +4446,7 @@ lemma combine_taskdis_sch1':
                        apply(rule entails_tassn_trans)
                         apply(rule combine_out_0assm_waitin_assm'2)
                        subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
-                       apply(rule in_0orig_vassm_assn_tran)
+                       apply(rule in_0orig_vassm'_assn_tran)
                        apply(simp del:fun_upd_apply)
                        apply(cases "p \<noteq> []")
                        subgoal
@@ -4508,7 +4508,7 @@ lemma combine_taskdis_sch1':
                          apply(rule entails_tassn_trans)
                           apply(rule combine_out_0assm_waitin_assm'2)
                          subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
-                         apply(rule in_0orig_vassm_assn_tran)
+                         apply(rule in_0orig_vassm'_assn_tran)
                          apply (simp del:fun_upd_apply)
                          unfolding combine_assn_def entails_tassn_def
                          apply clarify
@@ -4582,7 +4582,7 @@ lemma combine_taskdis_sch1':
                          apply(rule entails_tassn_trans)
                           apply(rule combine_out_0assm_waitin_assm'2)
                          subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
-                         apply(rule in_0orig_vassm_assn_tran)
+                         apply(rule in_0orig_vassm'_assn_tran)
                          apply(subgoal_tac "rp<2 \<and> rn\<noteq>1")
                         prefer 2
                        subgoal using pre(4,5,6,8,9,10,11,12)
@@ -4675,7 +4675,7 @@ lemma combine_taskdis_sch1':
                        apply(rule entails_tassn_trans)
                         apply(rule combine_out_0assm_waitin_assm'2)
                        subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
-                       apply(rule in_0orig_vassm_assn_tran)
+                       apply(rule in_0orig_vassm'_assn_tran)
                        apply(simp del:fun_upd_apply)
                        apply(cases "p \<noteq> []")
                        subgoal
@@ -4737,7 +4737,7 @@ lemma combine_taskdis_sch1':
                          apply(rule entails_tassn_trans)
                           apply(rule combine_out_0assm_waitin_assm'2)
                          subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
-                         apply(rule in_0orig_vassm_assn_tran)
+                         apply(rule in_0orig_vassm'_assn_tran)
                          apply (simp del:fun_upd_apply)
                          unfolding combine_assn_def entails_tassn_def
                          apply clarify
@@ -4832,7 +4832,7 @@ lemma combine_taskdis_sch1':
                          apply(rule entails_tassn_trans)
                           apply(rule combine_out_0assm_waitin_assm'2)
                          subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
-                         apply(rule in_0orig_vassm_assn_tran)
+                         apply(rule in_0orig_vassm'_assn_tran)
                          apply(subgoal_tac "rp<2 \<and> rn\<noteq>1")
                         prefer 2
                        subgoal using pre(4,5,6,8,9,10,11,12)
@@ -4925,7 +4925,7 @@ lemma combine_taskdis_sch1':
                        apply(rule entails_tassn_trans)
                         apply(rule combine_out_0assm_waitin_assm'2)
                        subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
-                       apply(rule in_0orig_vassm_assn_tran)
+                       apply(rule in_0orig_vassm'_assn_tran)
                        apply(simp del:fun_upd_apply)
                        apply(cases "p \<noteq> []")
                        subgoal
@@ -4987,7 +4987,7 @@ lemma combine_taskdis_sch1':
                          apply(rule entails_tassn_trans)
                           apply(rule combine_out_0assm_waitin_assm'2)
                          subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
-                         apply(rule in_0orig_vassm_assn_tran)
+                         apply(rule in_0orig_vassm'_assn_tran)
                          apply (simp del:fun_upd_apply)
                          unfolding combine_assn_def entails_tassn_def
                          apply clarify
