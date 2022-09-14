@@ -790,7 +790,8 @@ class ExistsExpr(Expr):
 
     def subst(self, inst):
         # Currently assume the bound variable cannot be substituded.
-        assert self.vars not in inst
+        for var in self.vars:
+            assert str(var) not in inst
         return ExistsExpr(self.vars, self.expr.subst(inst))
 
 class ForAllExpr(Expr):
@@ -841,7 +842,8 @@ class ForAllExpr(Expr):
     
     def subst(self, inst):
         # Currently assume the bound variable cannot be substituded.
-        assert self.vars not in inst
+        for var in self.vars:
+            assert str(var) not in inst
         return ForAllExpr(self.vars, self.expr.subst(inst))
 
 def neg_expr(e):
@@ -868,6 +870,11 @@ def neg_expr(e):
             raise NotImplementedError
     elif isinstance(e, RelExpr):
         return e.neg()
+
+    elif isinstance(e, ForAllExpr):
+        return ExistsExpr(e.vars, neg_expr(e.expr))
+    elif isinstance(e, ExistsExpr):
+        return ForAllExpr(e.vars, neg_expr(e.expr))
     else:
         raise NotImplementedError
 

@@ -527,7 +527,7 @@ class BasicHHLPyTest(unittest.TestCase):
     def testBasic57(self):
         runFile(self, file="basic57.hhl")
 
-    # TODO: Does this example correspond to problem 57 in basic benchmark?
+    # TODO: Does this example correspond to problem 60 in basic benchmark?
     def testBasic60(self):
         runFile(self, file="basic60.hhl")
     
