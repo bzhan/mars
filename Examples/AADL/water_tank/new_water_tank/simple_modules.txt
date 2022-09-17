@@ -19,11 +19,15 @@ endmodule
 
 module controller():
 begin
-lb := 4.4; ub := 5.6; v := 1;
-{wl?h; wait(0.025);
-# pre_v := v;
-if (h >= ub) {v := 0;} if (h <= lb) {v := 1;}
-# (pre_v == 1 && v == 0) -> log("here");
+lb := 4.6; ub := 5.4;
+buf_h := [4.5, 4.5];
+buf_v := [1, 1];
+{
+wl?h;
+buf_h := push(buf_h, h); h := bottom(buf_h); buf_h := get(buf_h);
+wait(0.025);
+if (h >= ub) { v:= 0; } else if (h <= lb) { v := 1;}
+buf_v := push(buf_v, v); v := bottom(buf_v); buf_v := get(buf_v);
 wait(0.025);
 vc!v;
 wait(0.05);
