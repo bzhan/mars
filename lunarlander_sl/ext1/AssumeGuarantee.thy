@@ -1877,11 +1877,17 @@ lemma combine_emp_out_0assm2:
     done
   done
 
+lemma pure_assn_true [simp]:
+  "( P \<Longrightarrow>\<^sub>t \<up>True )"
+  unfolding entails_tassn_def conj_assn_def pure_assn_def by auto
+
 lemma combine_emp_out_0assm3:
-"combine_assn chs emp\<^sub>t (out_0assm_assn ch v P) \<Longrightarrow>\<^sub>t (out_0assm_assn ch v (combine_assn chs emp\<^sub>t P))"
+"combine_assn chs emp\<^sub>t (out_0assm_assn ch v P) \<Longrightarrow>\<^sub>t \<up>(ch\<notin>chs) \<and>\<^sub>t(out_0assm_assn ch v (combine_assn chs emp\<^sub>t P))"
   apply(cases "ch\<in>chs")
    apply(rule "combine_emp_out_0assm1")
-   apply auto
+  subgoal by auto
+   apply (rule entails_tassn_conj)
+  apply auto
   apply(rule "combine_emp_out_0assm2")
   by auto
 
