@@ -5,23 +5,29 @@ begin
 
 
 
-fun tdsch2' :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> state \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> state \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate tassn" where
-  "tdsch2' k2 k1 0 dis_s2 (Task st2 ent2 t2) task_s2 dis_s1 (Task st1 ent1 t1) task_s1 (Sch p rn rp) s tr \<longleftrightarrow> (emp\<^sub>t tr)"
-| "tdsch2' 0 (Suc k1') (Suc kk') dis_s2 (Task st2 ent2 t2) task_s2 dis_s1 (Task WAIT ent1 t1) task_s1 (Sch p rn rp) s tr \<longleftrightarrow> 9 / 200 - dis_s1 CHR ''t'' = 0 \<and>
-   tdsch2' 0 k1' (Suc kk') dis_s2 (Task st2 ent2 t2) task_s2 (dis_s1(CHR ''t'' := 0)) (Task READY 0 t1) (task_s1(CHR ''t'' := 0)) (Sch p rn rp) s tr"
-| "tdsch2' 0 (Suc k1') (Suc kk') dis_s2 (Task st2 ent2 t2) task_s2 dis_s1 (Task READY ent1 t1) task_s1 (Sch p rn rp) s tr \<longleftrightarrow> (if rn \<noteq> - 1 then False else 
-  tdsch2' 0 k1' kk' dis_s2 (Task st2 ent2 t2) task_s2 dis_s1 (Task RUNNING (Suc 0) t1) (task_s1(CHR ''c'' := up_ent_c ent1 (task_s1 CHR ''c''))) (Sch p 1 2) (s(CHR ''p'' := 2)) tr)"
-| "tdsch2' 0 (Suc k1') (Suc kk') dis_s2 (Task st2 ent2 t2) task_s2 dis_s1 (Task RUNNING ent1 t1) task_s1 (Sch p rn rp) s tr \<longleftrightarrow> (if length p > 0 then False else
-  tdsch2' 0 k1' kk' dis_s2 (Task st2 ent2 t2) task_s2 dis_s1 (Task WAIT ent1 t1) task_s1 (Sch [] (- 1) (- 1)) s tr)"
-| "tdsch2' (Suc k2') 0 (Suc kk') dis_s2 (Task WAIT ent2 t2) task_s2 dis_s1 (Task st1 ent1 t1) task_s1 (Sch p rn rp) s tr \<longleftrightarrow> (9 / 200 - dis_s2 CHR ''t'' = 0 \<and>
-  tdsch2' k2' 0 (Suc kk') (dis_s2(CHR ''t'' := 0)) (Task READY 0 t2) (task_s2(CHR ''t'' := 0)) dis_s1 (Task st1 ent1 t1) task_s1 (Sch p rn rp) s tr)"
-| "tdsch2' (Suc k2') 0 (Suc kk') dis_s2 (Task READY ent2 t2) task_s2 dis_s1 (Task st1 ent1 t1) task_s1 (Sch p rn rp) s tr \<longleftrightarrow> 
+fun tdsch2' :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> real \<Rightarrow> real \<Rightarrow>state \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> real \<Rightarrow> real \<Rightarrow> state \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate tassn" where
+  "tdsch2' k2 k1 0 pd2 pc2 dis_s2 (Task st2 ent2 t2) task_s2 pd1 pc1 dis_s1 (Task st1 ent1 t1) task_s1 (Sch p rn rp) s tr \<longleftrightarrow> (emp\<^sub>t tr)"
+
+| "tdsch2' 0 (Suc k1') (Suc kk') pd2 pc2 dis_s2 (Task st2 ent2 t2) task_s2 pd1 pc1 dis_s1 (Task WAIT ent1 t1) task_s1 (Sch p rn rp) s tr \<longleftrightarrow> pd1 - dis_s1 CHR ''t'' = 0 \<and>
+   tdsch2' 0 k1' (Suc kk') pd2 pc2 dis_s2 (Task st2 ent2 t2) task_s2 pd1 pc1 (dis_s1(CHR ''t'' := 0)) (Task READY 0 t1) (task_s1(CHR ''t'' := 0)) (Sch p rn rp) s tr"
+
+| "tdsch2' 0 (Suc k1') (Suc kk') pd2 pc2 dis_s2 (Task st2 ent2 t2) task_s2 pd1 pc1 dis_s1 (Task READY ent1 t1) task_s1 (Sch p rn rp) s tr \<longleftrightarrow> (if rn \<noteq> - 1 then False else
+  tdsch2' 0 k1' kk' pd2 pc2 dis_s2 (Task st2 ent2 t2) task_s2 pd1 pc1 dis_s1 (Task RUNNING (Suc 0) t1) (task_s1(CHR ''c'' := up_ent_c ent1 (task_s1 CHR ''c''))) (Sch p 1 2) (s(CHR ''p'' := 2)) tr)"
+
+| "tdsch2' 0 (Suc k1') (Suc kk') pd2 pc2 dis_s2 (Task st2 ent2 t2) task_s2 pd1 pc1 dis_s1 (Task RUNNING ent1 t1) task_s1 (Sch p rn rp) s tr \<longleftrightarrow> (if length p > 0 then False else
+  tdsch2' 0 k1' kk' pd2 pc2 dis_s2 (Task st2 ent2 t2) task_s2 pd1 pc1 dis_s1 (Task WAIT ent1 t1) task_s1 (Sch [] (- 1) (- 1)) s tr)"
+
+| "tdsch2' (Suc k2') 0 (Suc kk') pd2 pc2 dis_s2 (Task WAIT ent2 t2) task_s2 pd1 pc1 dis_s1 (Task st1 ent1 t1) task_s1 (Sch p rn rp) s tr \<longleftrightarrow> (pd2 - dis_s2 CHR ''t'' = 0 \<and>
+  tdsch2' k2' 0 (Suc kk') pd2 pc2 (dis_s2(CHR ''t'' := 0)) (Task READY 0 t2) (task_s2(CHR ''t'' := 0)) pd1 pc1 dis_s1 (Task st1 ent1 t1) task_s1 (Sch p rn rp) s tr)"
+
+| "tdsch2' (Suc k2') 0 (Suc kk') pd2 pc2 dis_s2 (Task READY ent2 t2) task_s2 pd1 pc1 dis_s1 (Task st1 ent1 t1) task_s1 (Sch p rn rp) s tr \<longleftrightarrow>
   (\<up>(rn = -1 \<and> 1 > rp) \<and>\<^sub>t
-  tdsch2' k2' 0 kk' dis_s2 (Task RUNNING (Suc 0) t2) (task_s2(CHR ''c'' := up_ent_c ent2 (task_s2 CHR ''c''))) dis_s1 (Task st1 ent1 t1) task_s1 (Sch p 2 1) (s(CHR ''p'' := 1))) tr \<or>
-  (\<up>(rp \<ge> 1 \<and> kk'> 0 \<and> 9 / 200 - task_s2 CHR ''t'' = 0) \<and>\<^sub>t
-  tdsch2' k2' 0 (kk'-1) (dis_s2(CHR ''t'' := 9 / 200)) (Task WAIT ent2 1) (task_s2(CHR ''t'' := 9 / 200)) dis_s1 (Task st1 ent1 t1) task_s1 (Sch (del_proc (p @ [(1, 2)]) 2) rn rp)  (s(CHR ''p'' := 1))) tr"
-| "tdsch2' (Suc k2') 0 (Suc kk') dis_s2 (Task RUNNING ent2 t2) task_s2 dis_s1 (Task st1 ent1 t1) task_s1 (Sch p rn rp) s tr \<longleftrightarrow> 
-  (\<up>(p = []) \<and>\<^sub>t  tdsch2' k2' 0  kk' dis_s2 (Task WAIT ent2 t2) task_s2 dis_s1 (Task st1 ent1 t1) task_s1 (Sch [] (- 1) (- 1)) s) tr"
+  tdsch2' k2' 0 kk' pd2 pc2 dis_s2 (Task RUNNING (Suc 0) t2) (task_s2(CHR ''c'' := up_ent_c ent2 (task_s2 CHR ''c''))) pd1 pc1 dis_s1 (Task st1 ent1 t1) task_s1 (Sch p 2 1) (s(CHR ''p'' := 1))) tr \<or>
+  (\<up>(rp \<ge> 1 \<and> kk'> 0 \<and> pd2 - task_s2 CHR ''t'' = 0) \<and>\<^sub>t
+  tdsch2' k2' 0 (kk'-1) pd2 pc2 (dis_s2(CHR ''t'' := pd2)) (Task WAIT ent2 1) (task_s2(CHR ''t'' := pd2)) pd1 pc1 dis_s1 (Task st1 ent1 t1) task_s1 (Sch (del_proc (p @ [(1, 2)]) 2) rn rp)  (s(CHR ''p'' := 1))) tr"
+
+| "tdsch2' (Suc k2') 0 (Suc kk') pd2 pc2 dis_s2 (Task RUNNING ent2 t2) task_s2 pd1 pc1 dis_s1 (Task st1 ent1 t1) task_s1 (Sch p rn rp) s tr \<longleftrightarrow>
+  (\<up>(p = []) \<and>\<^sub>t  tdsch2' k2' 0  kk' pd2 pc2 dis_s2 (Task WAIT ent2 t2) task_s2 pd1 pc1 dis_s1 (Task st1 ent1 t1) task_s1 (Sch [] (- 1) (- 1)) s) tr"
 
 
 
@@ -557,14 +563,14 @@ definition propc1 :: "nat \<Rightarrow> estate \<Rightarrow> nat \<Rightarrow> e
 
 
 lemma combine_taskdis_sch1':
-  "task_dis_assn' 2 k2 dis_s2 task_es2 task_s2 tr1 \<Longrightarrow>
-   tdsch1' k1 kk dis_s1 task_es1 task_s1 schs s tr2 \<Longrightarrow>
+  "task_dis_assn' 2 k2 pd2 pc2 dis_s2 task_es2 task_s2 tr1 \<Longrightarrow>
+   tdsch1' k1 kk pd1 pc1 dis_s1 task_es1 task_s1 schs s tr2 \<Longrightarrow>
    task_prior task_es1 = 2 \<Longrightarrow>
    task_prior task_es2 = 1 \<Longrightarrow>
    propc1 k1 task_es1 k2 task_es2 schs \<Longrightarrow> 
    proper1 schs \<Longrightarrow>
    combine_blocks {req_ch 2, preempt_ch 2, run_ch 2, free_ch 2, exit_ch 2} tr1 tr2 tr \<Longrightarrow>
-   tdsch2' k2 k1 kk dis_s2 task_es2 task_s2 dis_s1 task_es1 task_s1 schs s tr"
+   tdsch2' k2 k1 kk pd2 pc2 dis_s2 task_es2 task_s2 pd1 pc1 dis_s1 task_es1 task_s1 schs s tr"
    proof(induction " k2+k1+kk"  arbitrary: k2 k1 kk dis_s2 task_es2 task_s2 dis_s1 task_es1 task_s1 schs s tr1 tr2 tr rule: less_induct)
       case less
       then show ?case 
@@ -1085,10 +1091,15 @@ lemma combine_taskdis_sch1':
                     unfolding combine_assn_def entails_tassn_def
                     apply clarify
                     subgoal premises pre' for tr tr1 tr2
-                      thm pre'
+                    proof-
+                      have a:"dis_s2 CHR ''t'' = pd2" using pre' by auto
+                        thm pre'
+                        then show ?thesis
+                          apply(subst a)
                       apply(rule pre(1)[of k2' 0 "(Suc kk')" "(dis_s2(CHR ''t'' := 0))" "(Task READY 0 1)" "(task_s2(CHR ''t'' := 0))" tr1 dis_s1 "(Task st1 ent1 2)" task_s1 "(Sch p rn rp)" s tr2 tr])
                       using pre' pre unfolding propc1_def
                       by auto
+                  qed
                     done
                   apply(erule disjE)
                   subgoal premises pre
@@ -1107,10 +1118,16 @@ lemma combine_taskdis_sch1':
                     apply(simp only:tdsch2'.simps)
                     apply simp
                     subgoal premises pre' for tr tr1 tr2
+                    proof-
+                      have a:"dis_s2 CHR ''t'' = pd2" using pre' by auto
+                        thm pre'
+                        then show ?thesis
+                          apply(subst a)
                       thm pre'
                       apply(rule pre(1)[of k2' 0 "(Suc kk')" "(dis_s2(CHR ''t'' := 0))" "(Task READY 0 1)" "(task_s2(CHR ''t'' := 0))" tr1 dis_s1 "(Task st1 ent1 2)" task_s1 "(Sch p rn rp)" s tr2 tr])
                       using pre' pre unfolding propc1_def
                       by auto
+                  qed
                     done
                   subgoal premises pre
                     thm pre
@@ -1125,10 +1142,16 @@ lemma combine_taskdis_sch1':
                     unfolding combine_assn_def entails_tassn_def
                     apply clarify
                     subgoal premises pre' for tr tr1 tr2
+                    proof-
+                      have a:"dis_s2 CHR ''t'' = pd2" using pre' by auto
+                        thm pre'
+                        then show ?thesis
+                          apply(subst a)
                       thm pre'
                       apply(rule pre(1)[of k2' 0 "(Suc kk')" "(dis_s2(CHR ''t'' := 0))" "(Task READY 0 1)" "(task_s2(CHR ''t'' := 0))" tr1 dis_s1 "(Task st1 ent1 2)" task_s1 "(Sch p rn rp)" s tr2 tr])
                       using pre' pre unfolding propc1_def
                       by auto
+                  qed
                     done
                   done
                 subgoal by auto
@@ -1326,10 +1349,16 @@ lemma combine_taskdis_sch1':
                             subgoal by auto
                             unfolding combine_assn_def entails_tassn_def
                             apply auto
-                            subgoal for tr tr1 tr2
-                              apply(rule pre(1)[of k2' 0 kk'' "(dis_s2(CHR ''t'' := 9 / 200))" "(Task WAIT ent2 1)" "(task_s2(CHR ''t'' := 9 / 200))" tr1 dis_s1 "(Task st1 ent1 2)" task_s1
+                            subgoal premises pre'' for tr tr1 tr2
+                            proof-
+                              have a:"task_s2 CHR ''t'' = pd2" using pre'' by auto
+                              thm pre'
+                              then show ?thesis
+                                apply(subst a)
+                              apply(rule pre(1)[of k2' 0 kk'' "(dis_s2(CHR ''t'' := task_s2 CHR ''t''))" "(Task WAIT ent2 1)" "(task_s2)" tr1 dis_s1 "(Task st1 ent1 2)" task_s1
                                     "(Sch (del_proc (p @ [(1, 2)]) 2) rn rp)" "(s(CHR ''p'' := 1))" tr2 tr])
-                              using pre' pre properl1_p6[of "p"] properl1_p1[of p 1 2]  apply auto unfolding propc1_def proper1_def properp_def by auto
+                                using pre' pre pre'' properl1_p6[of "p"] properl1_p1[of p 1 2]  apply auto unfolding propc1_def proper1_def properp_def by auto
+                            qed
                             done
                           done
                         done
@@ -1465,17 +1494,24 @@ lemma combine_taskdis_sch1':
                       subgoal by auto
                       unfolding combine_assn_def entails_tassn_def
                       apply (simp del: fun_upd_apply tdsch2'.simps)
-                      apply clarify
-                      subgoal for tr tr1 tr2
+                      apply clarify                      
+                      subgoal premises pre' for tr tr1 tr2
+                        thm pre'
+                      proof-
+                        have a:"task_s2 CHR ''t'' = pd2" using pre' by auto
+                        then show ?thesis
+                          using pre'
                         apply simp
-                        apply(rule disjI1)
+                          apply(rule disjI1)
+                          apply(subst a)
                         apply(rule pre(1)[of k2' 0 kk' dis_s2 "(Task RUNNING (Suc 0) 1)" "(task_s2(CHR ''c'' := up_ent_c ent2 (task_s2 CHR ''c'')))" tr1 dis_s1 "(Task st1 ent1 2)" task_s1
                             "(Sch p 2 1)" "(s(CHR ''p'' := 1))" tr2 tr])
                         apply auto
-                        apply(subgoal_tac "(dis_s2(CHR ''t'' := dis_s2 CHR ''t'' + 9 / 200 - task_s2 CHR ''t'')) = dis_s2")
-                            apply(subgoal_tac "(task_s2(CHR ''t'' := 9 / 200, CHR ''c'' := up_ent_c ent2 (task_s2 CHR ''c''))) = (task_s2(CHR ''c'' := up_ent_c ent2 (task_s2 CHR ''c'')))")
+                        apply(subgoal_tac "(dis_s2(CHR ''t'' := dis_s2 CHR ''t'' + pd2 - task_s2 CHR ''t'')) = dis_s2")
+                            apply(subgoal_tac "(task_s2(CHR ''t'' := pd2, CHR ''c'' := up_ent_c ent2 (task_s2 CHR ''c''))) = (task_s2(CHR ''c'' := up_ent_c ent2 (task_s2 CHR ''c'')))")
                              apply auto
-                        using pre unfolding propc1_def proper1_def properp_def by auto
+                          using pre unfolding propc1_def proper1_def properp_def by auto
+                      qed
                       done
                     apply(erule disjE)
                   subgoal premises pre
@@ -1632,6 +1668,8 @@ lemma combine_taskdis_sch1':
                   apply(cases st1)
                   subgoal
                     apply (simp del: tdsch2'.simps)
+                    apply(erule disjE)
+                    subgoal
 
                       
                       
