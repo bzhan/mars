@@ -150,7 +150,7 @@ function addAnnotationButtons(view) {
               }))
               },
             "Add Invariant"),
-          side: 1    
+          side: 2    
         })
 
         // Button for adding ghost for ODE.
@@ -163,8 +163,22 @@ function addAnnotationButtons(view) {
               }))
               },
             "Add Ghost"),
-          side: 2
+          side: 3
         })
+
+        let sln_deco = Decoration.widget({
+          widget: new AnnotationButtonWidget(
+            () => {
+                view.dispatch(view.state.update({
+                    changes: {from: to, insert: "\n\tsolution;"},
+                    selection: {anchor: to + "\n\tsolution;".length}
+                }))
+            },
+            "Solve"),
+          side: 1
+        })
+        
+        builder.add(cursor.node.to, cursor.node.to, sln_deco)
         builder.add(cursor.node.to, cursor.node.to, inv_deco)
         builder.add(cursor.node.to, cursor.node.to, ghost_deco)
       }
