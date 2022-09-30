@@ -768,7 +768,7 @@ class CmdVerifier:
             if cur_hp.constraint != expr.true_expr:
                 raise NotImplementedError
 
-            if cur_hp.inv is None:
+            if not cur_hp.inv:
                 raise AssertionError("Loop invariant at position %s is not set." % str(pos))
 
             # for sub_inv in cur_hp.inv:
