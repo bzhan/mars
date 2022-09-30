@@ -2241,22 +2241,22 @@ fun tdsch1' :: "nat \<Rightarrow> nat \<Rightarrow> real \<Rightarrow> real \<Ri
      (\<lambda> v d. tdsch1' (Suc k) kk pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) (Task WAIT ent tp) task_s (Sch (del_proc p 2) rn rp) s) tr"
 | "tdsch1' (Suc k) (Suc kk) pd pc dis_s (Task READY ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> 
       (if rn \<noteq> -1 then out_0assm_assn (preempt_ch rn) 0 
-            (tdsch1' k kk pd pc dis_s (Task RUNNING (Suc 0) 2)
+            (tdsch1' k kk pd pc dis_s (Task RUNNING (Suc 0) tp)
              (task_s(CHR ''c'' := up_ent_c ent (task_s CHR ''c''))) (Sch p 1 2) (s(CHR ''p'' := 2)))
-       else tdsch1' k kk pd pc dis_s (Task RUNNING (Suc 0) 2)
+       else tdsch1' k kk pd pc dis_s (Task RUNNING (Suc 0) tp)
              (task_s(CHR ''c'' := up_ent_c ent (task_s CHR ''c''))) (Sch p 1 2) (s(CHR ''p'' := 2))) tr \<or>
       in_0orig_vassm'_assn (req_ch 2) {1} (\<lambda> v. if v \<le> rp then (tdsch1' (Suc k) kk pd pc dis_s (Task READY ent tp) task_s (Sch (p @ [(1, 2)]) rn rp)(s(CHR ''p'' := 1))) 
-                                                         else if rn \<noteq> -1 then (out_0assm_assn (preempt_ch rn) 0 (out_0assm_assn (run_ch 2) 0 (tdsch1' (Suc k) kk pd pc dis_s (Task READY ent 2) task_s (Sch p 2 1) (s(CHR ''p'' := 1))))) 
-                                                                        else (out_0assm_assn (run_ch 2) 0 (tdsch1' (Suc k) kk pd pc dis_s (Task READY ent 2) task_s (Sch p 2 1) (s(CHR ''p'' := 1))))) tr \<or> 
+                                                         else if rn \<noteq> -1 then (out_0assm_assn (preempt_ch rn) 0 (out_0assm_assn (run_ch 2) 0 (tdsch1' (Suc k) kk pd pc dis_s (Task READY ent tp) task_s (Sch p 2 1) (s(CHR ''p'' := 1))))) 
+                                                                        else (out_0assm_assn (run_ch 2) 0 (tdsch1' (Suc k) kk pd pc dis_s (Task READY ent tp) task_s (Sch p 2 1) (s(CHR ''p'' := 1))))) tr \<or> 
       in_0orig_vassm'_assn (free_ch 2) {0} (\<lambda> v. if length p > 0 then out_0assm_assn (run_ch (run_now (sched_get_max (Sch p rn rp) s))) 0 
                                                                   (tdsch1' (Suc k) kk pd pc dis_s (Task READY ent tp) task_s (sched_get_max (Sch p rn rp) s) s)
                                                                 else 
                                                                   (tdsch1' (Suc k) kk pd pc dis_s (Task READY ent tp) task_s (sched_clear (Sch p rn rp) s) s)) tr \<or>
       in_0orig_vassm'_assn (exit_ch 2) {0} (\<lambda> v. tdsch1' (Suc k) kk pd pc dis_s (Task READY ent tp) task_s (Sch (del_proc p 2) rn rp) s) tr"
 |"tdsch1' (Suc k) (Suc kk) pd pc dis_s (Task RUNNING ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> 
-                               waitin_tguar'_vassm'_assn {0..min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')} 
+                               waitin_tguar'_vassm'_assn {..min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')} 
                                         (\<lambda>t. ParState
-                                                  (ParState (EState (Task RUNNING (Suc 0) 2, task_s
+                                                  (ParState (EState (Task RUNNING ent tp, task_s
                                                                       (CHR ''t'' := task_s CHR ''t'' + t,
                                                                        CHR ''c'' := task_s CHR ''c'' + t)))
                                                             (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))
@@ -2267,9 +2267,9 @@ fun tdsch1' :: "nat \<Rightarrow> nat \<Rightarrow> real \<Rightarrow> real \<Ri
                                         (task_s(CHR ''t'' := task_s CHR ''t'' + d,
                                                 CHR ''c'' := task_s CHR ''c'' + d)) 
                                         (Sch (p @ [(1, 2)]) 1 2) (s(CHR ''p'' := 1))) tr \<or>
-                               waitin_tguar'_vassm'_assn {0..min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')} 
+                               waitin_tguar'_vassm'_assn {..min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')} 
                                         (\<lambda>t. ParState
-                                                  (ParState (EState (Task RUNNING (Suc 0) 2, task_s
+                                                  (ParState (EState (Task RUNNING ent tp, task_s
                                                                       (CHR ''t'' := task_s CHR ''t'' + t,
                                                                        CHR ''c'' := task_s CHR ''c'' + t)))
                                                             (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))
@@ -2277,9 +2277,9 @@ fun tdsch1' :: "nat \<Rightarrow> nat \<Rightarrow> real \<Rightarrow> real \<Ri
                                         ({preempt_ch 1},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})
                                         (free_ch 2) {0} 
                                   (\<lambda> v d. true\<^sub>A ) tr \<or>
-                               waitin_tguar'_vassm'_assn {0..min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')} 
+                               waitin_tguar'_vassm'_assn {..min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')} 
                                         (\<lambda>t. ParState
-                                                  (ParState (EState (Task RUNNING (Suc 0) 2, task_s
+                                                  (ParState (EState (Task RUNNING ent tp, task_s
                                                                       (CHR ''t'' := task_s CHR ''t'' + t,
                                                                        CHR ''c'' := task_s CHR ''c'' + t)))
                                                             (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))
@@ -2292,7 +2292,7 @@ fun tdsch1' :: "nat \<Rightarrow> nat \<Rightarrow> real \<Rightarrow> real \<Ri
                                         (Sch (del_proc p 2) rn rp) s) tr \<or>
                                wait_orig_assn (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))
                                      (\<lambda>t. ParState
-                                           (ParState (EState (Task RUNNING (Suc 0) 2, task_s(CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
+                                           (ParState (EState (Task RUNNING ent tp, task_s(CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                              (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))
                                            (EState (Sch p rn rp, s)))
                                      ({preempt_ch 1}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})
