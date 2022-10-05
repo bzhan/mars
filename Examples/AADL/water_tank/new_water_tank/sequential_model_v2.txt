@@ -1,0 +1,10 @@
+P ::= Qmax := 2; r := 0.18; h := 4.5; lb := 4.6; ub := 5.4; g := 9.8; pi := 3.14; u:= 1; cmd := 1;
+h1 := h; h2 := h; cmd1 := cmd; cmd2 := cmd;
+UB := 6; LB := 4;
+{
+h0 := h1; h1 := h2; h2 := h;
+t := 0; {h_dot = cmd*Qmax-pi*r*r*sqrt(2*g*h)*u, t_dot = 1 & t < 0.05}
+if (h0 <= lb) { cmd0 := 1; } else if (h0 >= ub) { cmd0 := 0; }
+cmd := cmd1; cmd1 := cmd2; cmd2 := cmd0;
+t := 0; {h_dot = cmd*Qmax-pi*r*r*sqrt(2*g*h)*u, t_dot = 1 & t < 0.05}
+}*
