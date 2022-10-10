@@ -640,7 +640,7 @@ fun task_assn' :: "tid \<Rightarrow> nat \<Rightarrow> real \<Rightarrow> real \
                             \<inter> {0..< pc - start_s (CHR ''c'')})
      (\<lambda>t. EState (Task RUNNING 1 tp, start_s(CHR ''t'' := start_s (CHR ''t'') + t,
                                              CHR ''c'' := start_s (CHR ''c'') + t)))
-     ({preempt_ch t}, {}) (preempt_ch t) {0} 
+     ({}, {preempt_ch t}) (preempt_ch t) {0} 
    (\<lambda> v d. task_assn' t k pd pc (Task READY 1 tp)
      (start_s(CHR ''t'' := start_s (CHR ''t'') + d,
               CHR ''c'' := start_s (CHR ''c'') + d))) tr
@@ -648,8 +648,8 @@ fun task_assn' :: "tid \<Rightarrow> nat \<Rightarrow> real \<Rightarrow> real \
    wait_orig_assn (min (pd-start_s (CHR ''t'')) (pc-start_s (CHR ''c'')))
      (\<lambda>t. EState (Task RUNNING 1 tp, start_s(CHR ''t'' := start_s (CHR ''t'') + t,
                                              CHR ''c'' := start_s (CHR ''c'') + t)))
-     ({preempt_ch t}, {}) 
-   (out_0assm_assn (free_ch t) 0 
+     ({}, {preempt_ch t}) 
+   (out_0assm_srdy_assn (free_ch t) 0 ({free_ch t},{preempt_ch t})
       (task_assn' t k pd pc (Task WAIT 1 tp) 
                (start_s(CHR ''t'' := start_s (CHR ''t'') + 
                               (min (pd-start_s (CHR ''t'')) (pc-start_s (CHR ''c''))),
@@ -700,7 +700,7 @@ fun task_dis_assn' :: "tid \<Rightarrow> nat \<Rightarrow> real \<Rightarrow> re
      (\<lambda>t. ParState (EState (Task RUNNING 1 tp, task_s(CHR ''t'' := task_s (CHR ''t'') + t,
                                              CHR ''c'' := task_s (CHR ''c'') + t)))
                    (EState (None, dis_s(CHR ''t'' := dis_s (CHR ''t'') + t))))
-     ({preempt_ch t}, {}) (preempt_ch t) {0} 
+     ({}, {preempt_ch t}) (preempt_ch t) {0} 
    (\<lambda> v d. task_dis_assn' t k pd pc (dis_s(CHR ''t'' := dis_s (CHR ''t'') + d)) (Task READY 1 tp)
      (task_s(CHR ''t'' := task_s (CHR ''t'') + d, CHR ''c'' := task_s (CHR ''c'') + d))) tr
    \<or>
@@ -708,8 +708,8 @@ fun task_dis_assn' :: "tid \<Rightarrow> nat \<Rightarrow> real \<Rightarrow> re
      (\<lambda>t. ParState (EState (Task RUNNING 1 tp, task_s(CHR ''t'' := task_s (CHR ''t'') + t,
                                              CHR ''c'' := task_s (CHR ''c'') + t)))
                    (EState (None, dis_s(CHR ''t'' := dis_s (CHR ''t'') + t))))
-     ({preempt_ch t}, {}) 
-   (out_0assm_assn (free_ch t) 0
+     ({}, {preempt_ch t}) 
+   (out_0assm_srdy_assn (free_ch t) 0 ({free_ch t}, {preempt_ch t})
       (task_dis_assn' t k pd pc (dis_s(CHR ''t'' := dis_s (CHR ''t'') + 
                    (min (pd-task_s (CHR ''t'')) (pc-task_s (CHR ''c''))))) 
                            (Task WAIT 1 tp)
@@ -822,6 +822,115 @@ lemma combine_out_0assm_wait_orig_out_orig:
            apply(rule out_0assm_assn.intros(2))
             apply auto
            apply(cases rdy)
+           by auto
+         done
+       done
+     done
+   done
+
+lemma combine_out_0assm_srdy_wait_orig_out_orig:
+  assumes "dh \<notin> chs"
+   and "ch \<in> chs"
+ shows "combine_assn chs (out_0assm_srdy_assn dh v rdy' P) (wait_orig_assn d p rdy (out_orig_assn ch v' s Q))
+        \<Longrightarrow>\<^sub>t (out_0assm_srdy_assn dh v rdy'
+            (combine_assn chs P (wait_orig_assn d p rdy (out_orig_assn ch v' s Q))))"
+  apply(auto simp add:entails_tassn_def combine_assn_def)
+  subgoal for tr tr1 tr2
+    apply(cases rule: out_0assm_srdy_assn.cases[of dh v rdy' P tr1])
+      apply auto
+    subgoal for tr1'
+      apply(cases rule: wait_orig_assn.cases[of d p rdy "(out_orig_assn ch v' s Q)" tr2])
+        apply auto
+      subgoal
+        apply(cases rule: out_orig_assn.cases[of ch v' s Q tr2])
+          apply auto
+        subgoal for tr2'
+          using assms
+          apply(elim combine_blocks_unpairE1)
+            apply auto
+          apply(rule out_0assm_srdy_assn.intros(1))
+          by auto
+        subgoal for tr2' d
+          using assms
+          apply(elim combine_blocks_unpairE3)
+           apply auto
+          apply(rule out_0assm_srdy_assn.intros(1))
+          by auto
+        done
+      subgoal for tr2'
+        using assms
+          apply(elim combine_blocks_unpairE3)
+           apply auto
+          apply(rule out_0assm_srdy_assn.intros(1))
+          by auto
+        done
+      subgoal for d1 a b p1 tr1'
+        apply(cases rule: wait_orig_assn.cases[of d p rdy "(out_orig_assn ch v' s Q)" tr2])
+          apply auto
+        subgoal
+          apply(cases rule: out_orig_assn.cases[of ch v' s Q tr2])
+            apply auto
+          subgoal for tr2'
+            using assms
+            apply(auto elim:sync_elims)
+            done
+          subgoal for tr2' d2
+            apply(cases "\<not>compat_rdy (a, b) ({ch}, {})")
+            subgoal
+              by(auto elim:sync_elims)
+            subgoal
+           apply(cases "d1>d2")
+           subgoal 
+             apply(elim combine_blocks_waitE4)
+                apply auto
+             apply(rule out_0assm_srdy_assn.intros(2))
+             by auto
+           apply(cases "d2=d1")
+           subgoal 
+             apply simp
+             apply(elim combine_blocks_waitE2)
+              apply auto
+             apply(rule out_0assm_srdy_assn.intros(2))
+             by auto
+           apply(elim combine_blocks_waitE3)
+              apply auto
+           apply(rule out_0assm_srdy_assn.intros(2))
+           by auto
+         done
+       done
+     subgoal for tr2'
+       apply(cases "\<not>compat_rdy (a,b) rdy")
+            subgoal
+              by(auto elim:sync_elims)
+            subgoal
+           apply(cases "d1>d")
+           subgoal 
+             apply(elim combine_blocks_waitE4)
+                apply auto
+             apply(rule out_0assm_srdy_assn.intros(2))
+             apply auto
+              apply (cases rdy)
+              apply auto
+             apply (cases rdy)
+             by auto
+           apply(cases "d=d1")
+           subgoal 
+             apply simp
+             apply(elim combine_blocks_waitE2)
+              apply auto
+             apply(rule out_0assm_srdy_assn.intros(2))
+              apply auto
+              apply(cases rdy)
+              apply auto
+             apply (cases rdy)
+             by auto
+           apply(elim combine_blocks_waitE3)
+              apply auto
+           apply(rule out_0assm_srdy_assn.intros(2))
+            apply auto
+            apply(cases rdy)
+            apply auto
+             apply (cases rdy)
            by auto
          done
        done
@@ -1548,9 +1657,9 @@ next
                 apply(rule wait_orig_assn_tran)
                 subgoal 
                   apply(rule entails_tassn_trans)
-                   apply(rule combine_out_0assm_emp2)
+                   apply(rule combine_out_0assm_srdy_emp2)
                   subgoal using ch_dist pre(3) by auto
-                  apply(rule out_0assm_assn_tran)
+                  apply(rule out_0assm_srdy_assn_tran)
                   unfolding entails_tassn_def combine_assn_def
                   apply clarify
                   subgoal for tr tr1 tr2
@@ -1811,10 +1920,10 @@ next
               apply auto
               apply(rule wait_orig_assn_tran)
               apply(rule entails_tassn_trans)
-               apply(rule combine_out_0assm_wait_orig_out_orig)
+               apply(rule combine_out_0assm_srdy_wait_orig_out_orig)
               subgoal using pre ch_dist by auto
               subgoal by auto
-              apply(rule out_0assm_assn_tran)
+              apply(rule out_0assm_srdy_assn_tran)
               unfolding combine_assn_def entails_tassn_def
               apply auto
               subgoal for tr tr1 tr2
@@ -2261,7 +2370,7 @@ fun tdsch1' :: "nat \<Rightarrow> nat \<Rightarrow> real \<Rightarrow> real \<Ri
                                                                        CHR ''c'' := task_s CHR ''c'' + t)))
                                                             (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))
                                                   (EState (Sch p rn rp, s)))
-                                        ({preempt_ch 1},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})
+                                        ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, preempt_ch 1})
                                         (req_ch 2) {1} 
                                   (\<lambda> v d. tdsch1' (Suc k) kk pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) (Task RUNNING ent tp) 
                                         (task_s(CHR ''t'' := task_s CHR ''t'' + d,
@@ -2274,7 +2383,7 @@ fun tdsch1' :: "nat \<Rightarrow> nat \<Rightarrow> real \<Rightarrow> real \<Ri
                                                                        CHR ''c'' := task_s CHR ''c'' + t)))
                                                             (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))
                                                   (EState (Sch p rn rp, s)))
-                                        ({preempt_ch 1},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})
+                                        ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, preempt_ch 1})
                                         (free_ch 2) {0} 
                                   (\<lambda> v d. true\<^sub>A ) tr \<or>
                                waitin_tguar'_vassm'_assn {..min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')} 
@@ -2284,7 +2393,7 @@ fun tdsch1' :: "nat \<Rightarrow> nat \<Rightarrow> real \<Rightarrow> real \<Ri
                                                                        CHR ''c'' := task_s CHR ''c'' + t)))
                                                             (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))
                                                   (EState (Sch p rn rp, s)))
-                                        ({preempt_ch 1},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})
+                                        ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, preempt_ch 1})
                                         (exit_ch 2) {0} 
                                   (\<lambda> v d. tdsch1' (Suc k) kk pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) (Task RUNNING ent tp) 
                                         (task_s(CHR ''t'' := task_s CHR ''t'' + d,
@@ -2295,7 +2404,7 @@ fun tdsch1' :: "nat \<Rightarrow> nat \<Rightarrow> real \<Rightarrow> real \<Ri
                                            (ParState (EState (Task RUNNING ent tp, task_s(CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                              (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))
                                            (EState (Sch p rn rp, s)))
-                                     ({preempt_ch 1}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})
+                                     ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, preempt_ch 1})
                                      (if length p > 0 then out_0assm_assn (run_ch (run_now (sched_get_max (Sch p rn rp) s))) 0 
                                                  (tdsch1' k kk pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
                                                                (Task WAIT ent tp)
@@ -3202,7 +3311,7 @@ lemma combine_taskdis_sch1':
                  apply(rule pre(5))
                 apply(rule entails_tassn_trans)
                  apply(rule combine_wait_orig_emp5)
-                apply(rule combine_out_0assm_emp1)
+                apply(rule combine_out_0assm_srdy_emp1)
                 by auto
               done
             done
@@ -5049,7 +5158,7 @@ lemma combine_taskdis_sch1':
                                    (Task RUNNING (Suc 0) 2, task_s
                                     (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                  (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
-                           "({preempt_ch 1}, {})" "(preempt_ch 1)" "{0}"
+                           "({}, {preempt_ch 1})" "(preempt_ch 1)" "{0}"
                            "(\<lambda>v d. task_dis_assn' 1 k' pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d))
                                    (Task READY (Suc 0) 2)
                                    (task_s
@@ -5180,7 +5289,7 @@ lemma combine_taskdis_sch1':
                                                         (CHR ''t'' := task_s CHR ''t'' + (t + d2),
                                                          CHR ''c'' := task_s CHR ''c'' + (t + d2))))
                                                      (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))
-                                               ({preempt_ch 1}, {}) #
+                                               ({}, {preempt_ch 1}) #
                                               InBlock (preempt_ch 1) 0 # tr1')" "(Sch (p @ [(1, 2)]) 1 2)" "(s(CHR ''p'' := 1))" tr2' tr']
                              apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d2))
                                                  (Task RUNNING (Suc 0) 2)
@@ -5192,7 +5301,7 @@ lemma combine_taskdis_sch1':
                                                             (CHR ''t'' := task_s CHR ''t'' + (t + d2),
                                                              CHR ''c'' := task_s CHR ''c'' + (t + d2))))
                                                          (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))
-                                                   ({preempt_ch 1}, {}) #
+                                                   ({}, {preempt_ch 1}) #
                                                   InBlock (preempt_ch 1) 0 # tr1')")
                               prefer 2
                              subgoal premises pre'
@@ -5449,7 +5558,7 @@ lemma combine_taskdis_sch1':
                                                         (CHR ''t'' := task_s CHR ''t'' + (t + d2),
                                                          CHR ''c'' := task_s CHR ''c'' + (t + d2))))
                                                      (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))
-                                               ({preempt_ch 1}, {}) #
+                                               ({}, {preempt_ch 1}) #
                                               InBlock (preempt_ch 1) v1 # tr1')" "(Sch (p @ [(1, 2)]) 1 2)" "(s(CHR ''p'' := 1))" tr2' tr']
                              apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d2))
                                                  (Task RUNNING (Suc 0) 2)
@@ -5461,7 +5570,7 @@ lemma combine_taskdis_sch1':
                                                             (CHR ''t'' := task_s CHR ''t'' + (t + d2),
                                                              CHR ''c'' := task_s CHR ''c'' + (t + d2))))
                                                          (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))
-                                                   ({preempt_ch 1}, {}) #
+                                                   ({}, {preempt_ch 1}) #
                                                   InBlock (preempt_ch 1) v1 # tr1')")
                               prefer 2
                              subgoal premises pre'
@@ -5614,7 +5723,7 @@ lemma combine_taskdis_sch1':
                                    (Task RUNNING (Suc 0) 2, task_s
                                     (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                  (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
-                           "({preempt_ch 1}, {})" "(preempt_ch 1)" "{0}"
+                           "({}, {preempt_ch 1})" "(preempt_ch 1)" "{0}"
                            "(\<lambda>v d. task_dis_assn' 1 k' pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d))
                                    (Task READY (Suc 0) 2)
                                    (task_s
@@ -5875,7 +5984,7 @@ lemma combine_taskdis_sch1':
                                    (Task RUNNING (Suc 0) 2, task_s
                                     (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                  (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
-                           "({preempt_ch 1}, {})" "(preempt_ch 1)" "{0}"
+                           "({}, {preempt_ch 1})" "(preempt_ch 1)" "{0}"
                            "(\<lambda>v d. task_dis_assn' 1 k' pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d))
                                    (Task READY (Suc 0) 2)
                                    (task_s
@@ -5936,7 +6045,7 @@ lemma combine_taskdis_sch1':
                                                                (Task RUNNING (Suc 0) 2, task_s
                                                                 (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                                              (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))
-                                                       ({preempt_ch 1}, {}) #
+                                                       ({}, {preempt_ch 1}) #
                                                       InBlock (preempt_ch 1) 0 # tr1')"
                                                  "(Sch (del_proc p 2) rn rp)" "s" tr2' tr'])
                              using pre properl_p4 unfolding proper_def properp_def propc_def
@@ -5973,7 +6082,7 @@ lemma combine_taskdis_sch1':
                                                           (CHR ''t'' := task_s CHR ''t'' + (t + d2),
                                                            CHR ''c'' := task_s CHR ''c'' + (t + d2))))
                                                        (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))
-                                                 ({preempt_ch 1}, {}) #
+                                                 ({}, {preempt_ch 1}) #
                                                 InBlock (preempt_ch 1) 0 # tr1')"
                                                  "(Sch (del_proc p 2) rn rp)" "s" tr2' tr'])
                                subgoal by auto
@@ -6124,7 +6233,7 @@ lemma combine_taskdis_sch1':
                                                                (Task RUNNING (Suc 0) 2, task_s
                                                                 (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                                              (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))
-                                                       ({preempt_ch 1}, {}) #
+                                                       ({}, {preempt_ch 1}) #
                                                       InBlock (preempt_ch 1) v1 # tr1')"
                                                  "(Sch (del_proc p 2) rn rp)" "s" tr2' tr'])
                              using pre properl_p4 unfolding proper_def properp_def propc_def
@@ -6161,7 +6270,7 @@ lemma combine_taskdis_sch1':
                                                           (CHR ''t'' := task_s CHR ''t'' + (t + d2),
                                                            CHR ''c'' := task_s CHR ''c'' + (t + d2))))
                                                        (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))
-                                                 ({preempt_ch 1}, {}) #
+                                                 ({}, {preempt_ch 1}) #
                                                 InBlock (preempt_ch 1) v1 # tr1')"
                                                  "(Sch (del_proc p 2) rn rp)" "s" tr2' tr'])
                                subgoal by auto
@@ -6269,8 +6378,8 @@ lemma combine_taskdis_sch1':
                                                                        (Task RUNNING (Suc 0) 2, task_s
                                                                         (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                                                      (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
-                                                               "({preempt_ch 1}, {})"
-                                                               "(out_0assm_assn (free_ch 1) 0
+                                                               "({}, {preempt_ch 1})"
+                                                               "(out_0assm_srdy_assn (free_ch 1) 0 ({free_ch 1}, {preempt_ch 1})
                                                                  (task_dis_assn' 1 k' pd pc
                                                                    (dis_s
                                                                     (CHR ''t'' :=
@@ -6286,7 +6395,7 @@ lemma combine_taskdis_sch1':
                                                                        min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))))" tr1])
                        apply simp
                      subgoal
-                       apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
+                       apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
                                        "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
@@ -6371,7 +6480,7 @@ lemma combine_taskdis_sch1':
                          done
                        done
                      subgoal for tr1'
-                     apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
+                     apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
                                        "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
@@ -6544,8 +6653,8 @@ lemma combine_taskdis_sch1':
                                            (Task RUNNING (Suc 0) 2, task_s
                                             (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                          (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
-                                   "({preempt_ch 1}, {})"
-                                   "(out_0assm_assn (free_ch 1) 0
+                                   "({}, {preempt_ch 1})"
+                                   "(out_0assm_srdy_assn (free_ch 1) 0 ({free_ch 1}, {preempt_ch 1})
                                      (task_dis_assn' 1 k' pd pc
                                        (dis_s
                                         (CHR ''t'' :=
@@ -6561,7 +6670,7 @@ lemma combine_taskdis_sch1':
                                            min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))))" tr1])
                        apply simp
                      subgoal
-                       apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
+                       apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
                                        "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
@@ -6701,7 +6810,7 @@ lemma combine_taskdis_sch1':
                          done
                        done
                      subgoal for tr1'
-                       apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
+                       apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
                                        "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
@@ -6786,7 +6895,7 @@ lemma combine_taskdis_sch1':
                                                           (CHR ''t'' := task_s CHR ''t'' + (t + d2),
                                                            CHR ''c'' := task_s CHR ''c'' + (t + d2))))
                                                        (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))
-                                                 ({preempt_ch 1}, {}) #
+                                                 ({}, {preempt_ch 1}) #
                                                 OutBlock (free_ch 1) 0 # tr1'')"
                                                 "(Sch (p @ [(1, 2)]) 1 2)" "(s(CHR ''p'' := 1))" tr2' tr'])
                                subgoal by auto
@@ -6808,7 +6917,7 @@ lemma combine_taskdis_sch1':
                                                      (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))")
                                   apply auto
                                   apply(rule wait_orig_assn.intros(2))
-                                   apply(rule out_0assm_assn.intros(1))
+                                   apply(rule out_0assm_srdy_assn.intros(1))
                                  subgoal using pre' by auto
                                  subgoal using pre' by auto
                                  apply(rule ext)
@@ -6859,7 +6968,7 @@ lemma combine_taskdis_sch1':
                                   apply auto
                                  apply(rule wait_orig_assn.intros(1))
                                   apply auto
-                                 apply(rule out_0assm_assn.intros(1))
+                                 apply(rule out_0assm_srdy_assn.intros(1))
                                  using pre' by auto
                                subgoal by auto
                                subgoal by auto
@@ -7001,7 +7110,7 @@ lemma combine_taskdis_sch1':
                                                           (CHR ''t'' := task_s CHR ''t'' + (t + d2),
                                                            CHR ''c'' := task_s CHR ''c'' + (t + d2))))
                                                        (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))
-                                                 ({preempt_ch 1}, {}) #
+                                                 ({}, {preempt_ch 1}) #
                                                 WaitBlk d1 p1 rdy1 # tr1'')"
                                                 "(Sch (p @ [(1, 2)]) 1 2)" "(s(CHR ''p'' := 1))" tr2' tr'])
                                subgoal by auto
@@ -7023,7 +7132,8 @@ lemma combine_taskdis_sch1':
                                                      (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))")
                                   apply auto
                                   apply(rule wait_orig_assn.intros(2))
-                                   apply(rule out_0assm_assn.intros(2))
+                                   apply(rule out_0assm_srdy_assn.intros(2))
+                                 subgoal using pre' by auto
                                  subgoal using pre' by auto
                                  subgoal using pre' by auto
                                  subgoal using pre' by auto
@@ -7074,7 +7184,7 @@ lemma combine_taskdis_sch1':
                                   apply auto
                                  apply(rule wait_orig_assn.intros(1))
                                   apply auto
-                                 apply(rule out_0assm_assn.intros(2))
+                                 apply(rule out_0assm_srdy_assn.intros(2))
                                  using pre' by auto
                                subgoal by auto
                                subgoal by auto
@@ -7153,8 +7263,8 @@ lemma combine_taskdis_sch1':
                                                    (Task RUNNING (Suc 0) 2, task_s
                                                     (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                                  (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
-                                           "({preempt_ch 1}, {})"
-                                           "(out_0assm_assn (free_ch 1) 0
+                                           "({}, {preempt_ch 1})"
+                                           "(out_0assm_srdy_assn (free_ch 1) 0 ({free_ch 1}, {preempt_ch 1})
                                              (task_dis_assn' 1 k' pd pc
                                                (dis_s
                                                 (CHR ''t'' :=
@@ -7170,7 +7280,7 @@ lemma combine_taskdis_sch1':
                                                    min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))))" tr1])
                           apply simp
                         subgoal
-                          apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
+                          apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
                                        "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
@@ -7480,7 +7590,7 @@ lemma combine_taskdis_sch1':
                             done
                           done
                         subgoal for tr1'
-                          apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
+                          apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
                                        "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
@@ -7873,8 +7983,8 @@ lemma combine_taskdis_sch1':
                                                    (Task RUNNING (Suc 0) 2, task_s
                                                     (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                                  (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
-                                           "({preempt_ch 1}, {})"
-                                           "(out_0assm_assn (free_ch 1) 0
+                                           "({}, {preempt_ch 1})"
+                                           "(out_0assm_srdy_assn (free_ch 1) 0 ({free_ch 1}, {preempt_ch 1})
                                              (task_dis_assn' 1 k' pd pc
                                                (dis_s
                                                 (CHR ''t'' :=
@@ -7890,7 +8000,7 @@ lemma combine_taskdis_sch1':
                                                    min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))))" tr1])
                           apply simp
                         subgoal
-                          apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
+                          apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
                                        "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
@@ -7985,7 +8095,7 @@ lemma combine_taskdis_sch1':
                             done
                           done
                         subgoal for tr1'
-                          apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
+                          apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
                                        "(task_dis_assn' 1 k' pd pc 
                                          (dis_s
                                           (CHR ''t'' :=
@@ -8228,8 +8338,8 @@ lemma combine_taskdis_sch1':
                                                    (Task RUNNING (Suc 0) 2, task_s
                                                     (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                                  (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
-                                           "({preempt_ch 1}, {})"
-                                           "(out_0assm_assn (free_ch 1) 0
+                                           "({}, {preempt_ch 1})"
+                                           "(out_0assm_srdy_assn (free_ch 1) 0 ({free_ch 1}, {preempt_ch 1})
                                              (task_dis_assn' 1 k' pd pc
                                                (dis_s
                                                 (CHR ''t'' :=
@@ -8245,7 +8355,7 @@ lemma combine_taskdis_sch1':
                                                    min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))))" tr1])
                           apply simp
                         subgoal
-                          apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
+                          apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
                                        "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
@@ -8314,7 +8424,7 @@ lemma combine_taskdis_sch1':
                             done
                           done
                         subgoal for tr1'
-                          apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
+                          apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
                                        "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
@@ -8480,8 +8590,8 @@ lemma combine_taskdis_sch1':
                                                    (Task RUNNING (Suc 0) 2, task_s
                                                     (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                                  (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
-                                           "({preempt_ch 1}, {})"
-                                           "(out_0assm_assn (free_ch 1) 0
+                                           "({}, {preempt_ch 1})"
+                                           "(out_0assm_srdy_assn (free_ch 1) 0 ({free_ch 1}, {preempt_ch 1})
                                              (task_dis_assn' 1 k' pd pc
                                                (dis_s
                                                 (CHR ''t'' :=
@@ -8497,7 +8607,7 @@ lemma combine_taskdis_sch1':
                                                    min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))))" tr1])
                           apply simp
                         subgoal
-                          apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
+                          apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
                                        "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
@@ -8608,7 +8718,7 @@ lemma combine_taskdis_sch1':
                             done
                           done
                         subgoal for tr1'
-                          apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
+                          apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
                                        "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
@@ -8685,7 +8795,7 @@ lemma combine_taskdis_sch1':
                                                               (CHR ''t'' := task_s CHR ''t'' + (t + d2),
                                                                CHR ''c'' := task_s CHR ''c'' + (t + d2))))
                                                            (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))
-                                                     ({preempt_ch 1}, {}) #
+                                                     ({}, {preempt_ch 1}) #
                                                     OutBlock (free_ch 1) 0 # tr1'')"
                                                    "(Sch (del_proc p 2) 1 2)" s tr2' tr'])
                                   subgoal by auto
@@ -8708,7 +8818,7 @@ lemma combine_taskdis_sch1':
                                                        (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))")
                                       apply simp
                                       apply(rule wait_orig_assn.intros(2))
-                                       apply(rule out_0assm_assn.intros(1))
+                                       apply(rule out_0assm_srdy_assn.intros(1))
                                     subgoal using pre' by auto
                                     subgoal using pre' by auto
                                     subgoal apply(rule ext) by auto
@@ -8749,7 +8859,7 @@ lemma combine_taskdis_sch1':
                                                      min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))) = 0")
                                      apply auto
                                     apply(rule wait_orig_assn.intros(1))
-                                     apply(rule out_0assm_assn.intros(1))
+                                     apply(rule out_0assm_srdy_assn.intros(1))
                                     using pre' by auto
                                   subgoal by auto
                                   subgoal by auto
@@ -8879,7 +8989,7 @@ lemma combine_taskdis_sch1':
                                                                               (CHR ''t'' := task_s CHR ''t'' + (t + d2),
                                                                                CHR ''c'' := task_s CHR ''c'' + (t + d2))))
                                                                            (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))
-                                                                     ({preempt_ch 1}, {}) #
+                                                                     ({}, {preempt_ch 1}) #
                                                                     WaitBlk d1 p1 rdy1 # tr1'')"
                                                      and ?tr2.0 = tr2' and ?tr = tr'])
                                   subgoal by auto
@@ -8902,7 +9012,8 @@ lemma combine_taskdis_sch1':
                                                        (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))")
                                     apply auto
                                     apply(rule wait_orig_assn.intros(2))
-                                    apply(rule out_0assm_assn.intros(2))
+                                    apply(rule out_0assm_srdy_assn.intros(2))
+                                    subgoal using pre' by auto
                                     subgoal using pre' by auto
                                     subgoal using pre' by auto
                                     subgoal using pre' by auto
@@ -8942,7 +9053,7 @@ lemma combine_taskdis_sch1':
                                                      min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))) = 0")
                                      apply auto
                                     apply(rule wait_orig_assn.intros(1))
-                                     apply(rule out_0assm_assn.intros(2))
+                                     apply(rule out_0assm_srdy_assn.intros(2))
                                     using pre' by auto
                                   subgoal by auto
                                   subgoal by auto

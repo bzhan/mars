@@ -63,7 +63,7 @@ fun tdsch2' :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> real \<Rig
              (ParState (EState (Task RUNNING ent1 t1, task_s1(CHR ''t'' := task_s1 CHR ''t'' + t, CHR ''c'' := task_s1 CHR ''c'' + t)))
                (EState (estate.None, dis_s1(CHR ''t'' := dis_s1 CHR ''t'' + t))))
              (EState (Sch p rn rp, s))))
-     ({preempt_ch 1}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, dispatch_ch 2})
+     ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, dispatch_ch 2, preempt_ch 1})
      (tdsch2' (Suc k2') k1' kk' pd2 pc2 (dis_s2(CHR ''t'' := dis_s2 CHR ''t'' + min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c''))) (Task WAIT ent2 t2) task_s2 
                                 pd1 pc1 (dis_s1(CHR ''t'' := dis_s1 CHR ''t'' + min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c''))) (Task WAIT ent1 t1)
          (task_s1
@@ -77,10 +77,10 @@ fun tdsch2' :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> real \<Rig
              (ParState (EState (Task RUNNING ent1 t1, task_s1(CHR ''t'' := task_s1 CHR ''t'' + t, CHR ''c'' := task_s1 CHR ''c'' + t)))
                (EState (estate.None, dis_s1(CHR ''t'' := dis_s1 CHR ''t'' + t))))
              (EState (Sch p rn rp, s))))
-     ({preempt_ch 1}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, dispatch_ch 2}) 
+     ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, dispatch_ch 2, preempt_ch 1}) 
      (tdsch2' k2' (Suc k1') (Suc kk') pd2 pc2 (dis_s2(CHR ''t'' := 0)) (Task READY 0 t2) (task_s2(CHR ''t'' := 0)) 
                                       pd1 pc1 (dis_s1(CHR ''t'' := dis_s1 CHR ''t'' + (pd2 - dis_s2 CHR ''t''))) (Task RUNNING ent1 t1) (task_s1(CHR ''t'' := task_s1 CHR ''t'' + (pd2 - dis_s2 CHR ''t''),CHR ''c'' := task_s1 CHR ''c'' + (pd2 - dis_s2 CHR ''t''))) 
-          (Sch p rn rp) s )) tr"
+          (Sch p rn rp) s )) tr  "
 
 |"tdsch2' (Suc k2') (Suc k1') (Suc kk') pd2 pc2 dis_s2 (Task READY ent2 t2) task_s2 pd1 pc1 dis_s1 (Task WAIT ent1 t1) task_s1 (Sch p rn rp) s tr \<longleftrightarrow> 
   (\<up>(pd1 = dis_s1 CHR ''t'') \<and>\<^sub>t 
@@ -93,7 +93,7 @@ fun tdsch2' :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> real \<Rig
   tdsch2' k2' (Suc k1') kk' pd2 pc2 dis_s2 (Task RUNNING (Suc 0) t2) (task_s2(CHR ''c'' := up_ent_c ent2 (task_s2 CHR ''c''))) pd1 pc1 dis_s1 (Task READY ent1 t1) task_s1 (Sch p 2 1) (s(CHR ''p'' := 1)) tr"
 
 |"tdsch2' (Suc k2') (Suc k1') (Suc kk') pd2 pc2 dis_s2 (Task READY ent2 t2) task_s2 pd1 pc1 dis_s1 (Task RUNNING ent1 t1) task_s1 (Sch p rn rp) s tr \<longleftrightarrow> 
-  (\<up>(kk' > 0 \<and> min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c'') < pd2 - task_s2 CHR ''t'') \<and>\<^sub>t 
+  (\<up>(kk' > 0 \<and> min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c'') \<le> pd2 - task_s2 CHR ''t'') \<and>\<^sub>t 
   wait_orig_assn (min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c''))
      (\<lambda>t. ParState
            (ParState (EState (Task READY ent2 t2, task_s2(CHR ''t'' := task_s2 CHR ''t'' + t)))
@@ -102,7 +102,7 @@ fun tdsch2' :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> real \<Rig
              (ParState (EState (Task RUNNING ent1 t1, task_s1(CHR ''t'' := task_s1 CHR ''t'' + t, CHR ''c'' := task_s1 CHR ''c'' + t)))
                (EState (estate.None, dis_s1(CHR ''t'' := dis_s1 CHR ''t'' + t))))
              (EState (Sch (p @ [(1, 2)]) 1 2, s(CHR ''p'' := 1)))))
-     ({preempt_ch 1}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, run_ch 2}) 
+     ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, run_ch 2, preempt_ch 1}) 
   (tdsch2' k2' k1' (kk'-1) pd2 pc2 (dis_s2(CHR ''t'' := dis_s2 CHR ''t'' + min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c'')))
        (Task RUNNING (Suc 0) t2)
        (task_s2(CHR ''t'' := task_s2 CHR ''t'' + min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c''), CHR ''c'' := up_ent_c ent2 (task_s2 CHR ''c'')))
@@ -110,7 +110,63 @@ fun tdsch2' :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> real \<Rig
        (task_s1
         (CHR ''t'' := task_s1 CHR ''t'' + min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c''),
          CHR ''c'' := task_s1 CHR ''c'' + min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c'')))
-       (Sch p 2 1) (s(CHR ''p'' := 1)))) tr"
+       (Sch p 2 1) (s(CHR ''p'' := 1)))) tr \<or>
+  (\<up>(min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c'') = 0 ) \<and>\<^sub>t 
+   tdsch2' (Suc k2') k1' kk' pd2 pc2 dis_s2 (Task READY ent2 t2) task_s2 pd1 pc1 dis_s1 (Task WAIT ent1 t1) task_s1 (Sch [] (- 1) (- 1)) s) tr \<or>
+  (\<up>(kk' > 0 \<and> min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c'') \<ge> pd2 - task_s2 CHR ''t'') \<and>\<^sub>t 
+  wait_orig_assn (pd2 - task_s2 CHR ''t'')
+     (\<lambda>t. ParState
+           (ParState (EState (Task READY ent2 1, task_s2(CHR ''t'' := task_s2 CHR ''t'' + t)))
+             (EState (estate.None, dis_s2(CHR ''t'' := dis_s2 CHR ''t'' + t))))
+           (ParState
+             (ParState (EState (Task RUNNING ent1 2, task_s1(CHR ''t'' := task_s1 CHR ''t'' + t, CHR ''c'' := task_s1 CHR ''c'' + t)))
+               (EState (estate.None, dis_s1(CHR ''t'' := dis_s1 CHR ''t'' + t))))
+             (EState (Sch (p @ [(1, 2)]) 1 2, s(CHR ''p'' := 1)))))
+     ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, run_ch 2, preempt_ch 1}) 
+  (tdsch2' k2' (Suc k1') (kk'-1) pd2 pc2 (dis_s2(CHR ''t'' := pd2)) (Task WAIT ent2 t2) (task_s2(CHR ''t'' := pd2)) 
+                                 pd1 pc1 (dis_s1(CHR ''t'' := dis_s1 CHR ''t'' + (pd2 - task_s2 CHR ''t''))) (Task RUNNING ent1 t1)
+       (task_s1(CHR ''t'' := task_s1 CHR ''t'' + (pd2 - task_s2 CHR ''t''), CHR ''c'' := task_s1 CHR ''c'' + (pd2 - task_s2 CHR ''t'')))
+       (Sch [] 1 2) (s(CHR ''p'' := 1)) )) tr"
+
+|"tdsch2' (Suc k2') (Suc k1') (Suc kk') pd2 pc2 dis_s2 (Task RUNNING ent2 t2) task_s2 pd1 pc1 dis_s1 (Task WAIT ent1 t1) task_s1 (Sch p rn rp) s tr \<longleftrightarrow>
+  (\<up>(min (pd2 - task_s2 CHR ''t'') (pc2 - task_s2 CHR ''c'') \<ge> pd1 - dis_s1 CHR ''t'') \<and>\<^sub>t 
+  wait_orig_assn (pd1 - dis_s1 CHR ''t'')
+     (\<lambda>t. ParState
+           (ParState (EState (Task RUNNING ent2 t2, task_s2(CHR ''t'' := task_s2 CHR ''t'' + t, CHR ''c'' := task_s2 CHR ''c'' + t)))
+             (EState (estate.None, dis_s2(CHR ''t'' := dis_s2 CHR ''t'' + t))))
+           (ParState (ParState (EState (Task WAIT ent1 t1, task_s1)) (EState (estate.None, dis_s1(CHR ''t'' := dis_s1 CHR ''t'' + t))))
+             (EState (Sch p rn rp, s))))
+     ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, dispatch_ch 1, preempt_ch 2})
+  (tdsch2' (Suc k2') k1' (Suc kk') pd2 pc2 (dis_s2(CHR ''t'' := dis_s2 CHR ''t'' + (pd1 - dis_s1 CHR ''t''))) (Task RUNNING ent2 t2) (task_s2
+                  (CHR ''t'' := task_s2 CHR ''t'' + (pd1 - dis_s1 CHR ''t''),
+                   CHR ''c'' := task_s2 CHR ''c'' + (pd1 - dis_s1 CHR ''t'')))   
+                pd1 pc1 (dis_s1(CHR ''t'' := 0)) (Task READY 0 t1) (task_s1(CHR ''t'' := 0)) (Sch p rn rp) s)) tr \<or>
+  (\<up>(min (pd2 - task_s2 CHR ''t'') (pc2 - task_s2 CHR ''c'') < pd1 - dis_s1 CHR ''t'') \<and>\<^sub>t 
+  wait_orig_assn (min (pd2 - task_s2 CHR ''t'') (pc2 - task_s2 CHR ''c''))
+     (\<lambda>t. ParState
+           (ParState (EState (Task RUNNING (Suc 0) 1, task_s2(CHR ''t'' := task_s2 CHR ''t'' + t, CHR ''c'' := task_s2 CHR ''c'' + t)))
+             (EState (estate.None, dis_s2(CHR ''t'' := dis_s2 CHR ''t'' + t))))
+           (ParState (ParState (EState (Task WAIT ent1 t1, task_s1)) (EState (estate.None, dis_s1(CHR ''t'' := dis_s1 CHR ''t'' + t))))
+             (EState (Sch p rn rp, s))))
+     ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, dispatch_ch 1, preempt_ch 2})  
+  (tdsch2' k2' (Suc k1') kk' pd2 pc2 (dis_s2(CHR ''t'' := dis_s2 CHR ''t'' + min (pd2 - task_s2 CHR ''t'') (pc2 - task_s2 CHR ''c'')))
+         (Task WAIT (Suc 0) t2)
+         (task_s2
+          (CHR ''t'' := task_s2 CHR ''t'' + min (pd2 - task_s2 CHR ''t'') (pc2 - task_s2 CHR ''c''),
+           CHR ''c'' := task_s2 CHR ''c'' + min (pd2 - task_s2 CHR ''t'') (pc2 - task_s2 CHR ''c'')))
+           pd1 pc1 (dis_s1(CHR ''t'' := dis_s1 CHR ''t'' + min (pd2 - task_s2 CHR ''t'') (pc2 - task_s2 CHR ''c'')))
+         (Task WAIT ent1 t1) task_s1 (Sch [] (- 1) (- 1)) s))tr"
+
+|"tdsch2' (Suc k2') (Suc k1') (Suc kk') pd2 pc2 dis_s2 (Task RUNNING ent2 t2) task_s2 pd1 pc1 dis_s1 (Task READY ent1 t1) task_s1 (Sch p rn rp) s tr \<longleftrightarrow>
+  (\<up>(0 < min (pd2 - task_s2 CHR ''t'') (pc2 - task_s2 CHR ''c'')) \<and>\<^sub>t 
+  tdsch2' k2' k1' kk' pd2 pc2 (dis_s2(CHR ''t'' := dis_s2 CHR ''t'')) (Task READY (Suc 0) t2)
+       (task_s2(CHR ''t'' := task_s2 CHR ''t'', CHR ''c'' := task_s2 CHR ''c'')) 
+      pd1 pc1 dis_s1 (Task RUNNING (Suc 0) t1) (task_s1(CHR ''c'' := up_ent_c ent1 (task_s1 CHR ''c''))) 
+       (Sch p 1 2) (s(CHR ''p'' := 2))) tr \<or>
+  (\<up>(0 = min (pd2 - task_s2 CHR ''t'') (pc2 - task_s2 CHR ''c'')) \<and>\<^sub>t 
+  tdsch2' k2' (Suc k1') kk' pd2 pc2 dis_s2 (Task WAIT (Suc 0) t2) task_s2
+      pd1 pc1 dis_s1 (Task READY ent1 t1) task_s1 
+       (Sch [] (- 1) (- 1)) s) tr"
 
 lemma conj_join_pure_true [simp]:
   "(\<up>True \<and>\<^sub>t P) = P"
@@ -247,6 +303,64 @@ lemma combine_out_0assm_in_0orig_vassm'2:
   apply auto
   subgoal for tr tr1 tr2
     apply(cases rule:out_0assm_assn.cases[of ch1 v P tr1])
+      apply simp
+    subgoal 
+      apply(cases rule:in_0orig_vassm'_assn.cases[of ch2 V Q tr2])
+        apply auto
+      subgoal
+        apply(elim combine_blocks_pairE)
+        by auto
+      subgoal
+        apply(elim combine_blocks_pairE)
+        by auto
+      done
+    subgoal 
+      apply(cases rule:in_0orig_vassm'_assn.cases[of ch2 V Q tr2])
+        apply auto
+      subgoal
+        by (auto elim!: sync_elims)
+      subgoal
+        by (auto elim!: sync_elims)
+      done
+    done
+  done
+
+
+
+lemma combine_out_0assm_srdy_in_0orig_vassm'1:
+"ch \<in> chs \<and> v \<in> V\<Longrightarrow> combine_assn chs (out_0assm_srdy_assn ch v rdy P)(in_0orig_vassm'_assn ch V Q) \<Longrightarrow>\<^sub>t combine_assn chs P (Q v)"
+  unfolding combine_assn_def entails_tassn_def
+  apply auto
+  subgoal for tr tr1 tr2
+    apply(cases rule:out_0assm_srdy_assn.cases[of ch v rdy P tr1])
+      apply simp
+    subgoal 
+      apply(cases rule:in_0orig_vassm'_assn.cases[of ch V Q tr2])
+        apply auto
+      subgoal
+        apply(elim combine_blocks_pairE)
+        by auto
+      subgoal
+        apply(elim combine_blocks_pairE)
+        by auto
+      done
+    subgoal 
+      apply(cases rule:in_0orig_vassm'_assn.cases[of ch V Q tr2])
+        apply auto
+      subgoal
+        by (auto elim!: sync_elims)
+      subgoal
+        by (auto elim!: sync_elims)
+      done
+    done
+  done
+
+lemma combine_out_0assm_srdy_in_0orig_vassm'2:
+"ch1 \<in> chs \<and> ch2 \<in> chs \<and> ch1\<noteq>ch2 \<Longrightarrow> combine_assn chs (out_0assm_srdy_assn ch1 v rdy P)(in_0orig_vassm'_assn ch2 V Q) \<Longrightarrow>\<^sub>t R"
+  unfolding combine_assn_def entails_tassn_def
+  apply auto
+  subgoal for tr tr1 tr2
+    apply(cases rule:out_0assm_srdy_assn.cases[of ch1 v rdy P tr1])
       apply simp
     subgoal 
       apply(cases rule:in_0orig_vassm'_assn.cases[of ch2 V Q tr2])
@@ -658,6 +772,49 @@ lemma combine_wait_orig_wait_orig5:
     done
   done
 
+lemma combine_wait_orig_wait_orig6:
+"compat_rdy rdy1 rdy2 \<and> d1 \<ge> d2 \<Longrightarrow> combine_assn chs (wait_orig_assn d1 p1 rdy1 P1) (wait_orig_assn d2 p2 rdy2 P2) \<Longrightarrow>\<^sub>t 
+  wait_orig_assn d2 (\<lambda>t. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) (combine_assn chs (wait_orig_assn (d1-d2) (\<lambda> t. p1(t+d2)) rdy1 P1) P2)"
+  unfolding combine_assn_def entails_tassn_def
+  apply auto
+  subgoal for tr tr1 tr2
+    apply(cases rule: wait_orig_assn.cases[of d1 p1 rdy1 P1 tr1])
+      apply auto
+    subgoal
+      apply(cases rule: wait_orig_assn.cases[of d2 p2 rdy2 P2 tr2])
+        apply auto
+      apply(rule wait_orig_assn.intros(1))
+      by auto
+    subgoal for tr1'
+      apply(cases rule: wait_orig_assn.cases[of d2 p2 rdy2 P2 tr2])
+        apply auto
+      subgoal
+        apply(rule wait_orig_assn.intros(1))
+        by auto
+      subgoal for tr2'
+        apply(cases "d2<d1")
+        subgoal
+        apply(elim combine_blocks_waitE4)
+           apply auto
+        apply(rule wait_orig_assn.intros(2))
+         apply auto
+        apply(rule exI[where x ="(WaitBlk (d1 - d2) (\<lambda>t. p1 (t + d2)) rdy1 # tr1')"])
+        apply auto
+        apply(rule wait_orig_assn.intros(2))
+          by auto
+        apply simp
+        apply(elim combine_blocks_waitE2)
+         apply auto
+        apply(rule wait_orig_assn.intros(2))
+         apply auto
+        apply(rule exI[where x ="tr1'"])
+        apply auto
+        apply(rule wait_orig_assn.intros(1))
+        by auto
+      done
+    done
+  done
+
 
 lemma combine_wait_orig_waitin_tguar'_vassm'1:
 "compat_rdy rdy1 rdy2 \<and> d1 \<ge> d2 \<and> ch\<in>chs \<Longrightarrow> combine_assn chs (wait_orig_assn d1 p1 rdy1 P1) (waitin_tguar'_vassm'_assn ({..<d2}) p2 rdy2 ch V P2) \<Longrightarrow>\<^sub>t R"
@@ -767,6 +924,15 @@ unfolding combine_assn_def entails_tassn_def
       done
     done
   done
+
+lemma combine_wait_orig_waitin_tguar'_vassm'2':
+"compat_rdy rdy1 rdy2 \<and> ch\<in>chs \<Longrightarrow> combine_assn chs (wait_orig_assn d1 p1 rdy1 P1) (waitin_tguar'_vassm'_assn ({..<d2}) p2 rdy2 ch V P2) \<Longrightarrow>\<^sub>t 
+   \<up>(d1<d2) \<and>\<^sub>t wait_orig_assn d1 (\<lambda>t. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) (combine_assn chs P1 (waitin_tguar'_vassm'_assn ({..<d2-d1}) (\<lambda> t. p2(t+d1)) rdy2 ch V (\<lambda> v d. P2 v (d+d1))))"
+  apply(cases "d1\<ge>d2")
+  subgoal
+    apply(rule combine_wait_orig_waitin_tguar'_vassm'1) by auto
+  apply simp
+  apply(rule combine_wait_orig_waitin_tguar'_vassm'2) by auto
 
 lemma combine_wait_orig_waitin_tguar'_vassm'3:
 "compat_rdy rdy1 rdy2 \<and> d1 > d2 \<and> ch\<in>chs \<Longrightarrow> combine_assn chs (wait_orig_assn d1 p1 rdy1 P1) (waitin_tguar'_vassm'_assn ({..d2}) p2 rdy2 ch V P2) \<Longrightarrow>\<^sub>t R"
@@ -903,6 +1069,35 @@ lemma combine_out_0assm_wait_orig1:
      done
   done
 
+
+lemma combine_out_0assm_srdy_wait_orig1:
+  assumes "ch\<in>chs \<and> ch \<in> snd rdy \<and> ch \<in> fst rdy'"
+    shows "combine_assn chs (out_0assm_srdy_assn ch v rdy' Q) (wait_orig_assn d p rdy P) \<Longrightarrow>\<^sub>t
+          \<up>(d=0) \<and>\<^sub>t combine_assn chs (out_0assm_srdy_assn ch v rdy' Q) P"
+  unfolding entails_tassn_def combine_assn_def
+  apply auto
+  subgoal for tr tr1 tr2
+    apply(cases rule:wait_orig_assn.cases[of d p rdy P tr2])
+      apply auto
+    unfolding conj_assn_def pure_assn_def
+    apply auto
+    subgoal for tr2'
+      apply(cases rule:out_0assm_srdy_assn.cases[of ch v rdy'  Q tr1])
+        apply auto
+      subgoal for tr1'
+        using assms
+         by (auto elim!: sync_elims)
+       subgoal for d' a b p' tr1'
+         apply(cases rdy)
+         apply(cases rdy')
+         using assms
+         apply auto
+         apply(elim combine_blocks_waitE1)
+         by auto
+       done
+     done
+  done
+
 lemma combine_out_0assm_waitin_tguar'_vassm'1:
 "ch\<in>chs \<and> v\<in>V \<and> ch \<in> snd rdy \<Longrightarrow> combine_assn chs (out_0assm_assn ch v P) (waitin_tguar'_vassm'_assn S p rdy ch V Q) \<Longrightarrow>\<^sub>t \<up>(0\<in>S) \<and>\<^sub>t combine_assn chs P (Q v 0)"
   unfolding combine_assn_def entails_tassn_def
@@ -1002,6 +1197,109 @@ lemma combine_out_0assm_waitin_tguar'_vassm'2:
       done
     done
   done
+
+lemma combine_out_0assm_srdy_waitin_tguar'_vassm'1:
+"ch\<in>chs \<and> v\<in>V \<and> ch \<in> snd rdy \<and> ch \<in> fst rdy'\<Longrightarrow> combine_assn chs (out_0assm_srdy_assn ch v rdy' P) (waitin_tguar'_vassm'_assn S p rdy ch V Q) \<Longrightarrow>\<^sub>t \<up>(0\<in>S) \<and>\<^sub>t combine_assn chs P (Q v 0)"
+  unfolding combine_assn_def entails_tassn_def
+  apply auto
+  subgoal for tr tr1 tr2
+    apply(cases rule: out_0assm_srdy_assn.cases[of ch v rdy' P tr1])
+      apply simp
+    subgoal
+      apply(cases rule:waitin_tguar'_vassm'_assn.cases[of S p rdy ch V Q tr2])
+          apply simp
+      subgoal
+        apply auto
+        apply(elim combine_blocks_pairE)
+        by auto
+      subgoal 
+        apply auto
+        by (auto elim!: sync_elims)
+      subgoal
+        apply auto
+        apply(elim combine_blocks_pairE)
+        by auto
+      subgoal 
+        apply auto
+        by (auto elim!: sync_elims)
+      done
+    subgoal for d rdya pa tra
+      apply(cases rule:waitin_tguar'_vassm'_assn.cases[of S p rdy ch V Q tr2])
+          apply simp
+      subgoal 
+        apply auto
+        by (auto elim!: sync_elims)
+      subgoal
+        apply auto
+        apply(elim combine_blocks_waitE1)
+        apply(cases rdy)
+        apply(cases rdya)
+        apply(cases rdy')
+        by auto
+      subgoal 
+        apply auto
+        by (auto elim!: sync_elims)
+      subgoal
+        apply auto
+        apply(elim combine_blocks_waitE1)
+        apply(cases rdy)
+        apply(cases rdya)
+        by auto
+      done
+    done
+  done
+
+
+lemma combine_out_0assm_srdy_waitin_tguar'_vassm'2:
+"ch1\<in>chs \<and> ch2\<in>chs \<and> ch1 \<in> snd rdy \<and> ch1 \<in> fst rdy' \<and> ch1 \<noteq> ch2 \<Longrightarrow> combine_assn chs (out_0assm_srdy_assn ch1 v rdy' P) (waitin_tguar'_vassm'_assn S p rdy ch2 V Q) \<Longrightarrow>\<^sub>t R"
+  unfolding combine_assn_def entails_tassn_def
+  apply auto
+  subgoal for tr tr1 tr2
+    apply(cases rule: out_0assm_srdy_assn.cases[of ch1 v rdy' P tr1])
+      apply simp
+    subgoal
+      apply(cases rule:waitin_tguar'_vassm'_assn.cases[of S p rdy ch2 V Q tr2])
+          apply simp
+      subgoal
+        apply auto
+        apply(elim combine_blocks_pairE)
+        by auto
+      subgoal 
+        apply auto
+        by (auto elim!: sync_elims)
+      subgoal
+        apply auto
+        apply(elim combine_blocks_pairE)
+        by auto
+      subgoal 
+        apply auto
+        by (auto elim!: sync_elims)
+      done
+    subgoal for d rdya pa tra
+      apply(cases rule:waitin_tguar'_vassm'_assn.cases[of S p rdy ch2 V Q tr2])
+          apply simp
+      subgoal 
+        apply auto
+        by (auto elim!: sync_elims)
+      subgoal
+        apply auto
+        apply(elim combine_blocks_waitE1)
+        apply(cases rdy)
+        apply(cases rdya)
+        by auto
+      subgoal 
+        apply auto
+        by (auto elim!: sync_elims)
+      subgoal
+        apply auto
+        apply(elim combine_blocks_waitE1)
+        apply(cases rdy)
+        apply(cases rdya)
+        by auto
+      done
+    done
+  done
+
 
 lemma combine_waitin_tguar'_vassm'_waitin_tguar'_vassm'1:
 "ch1 \<in> chs \<and> ch2 \<in> chs \<Longrightarrow> combine_assn chs (waitin_tguar'_vassm'_assn S1 p1 rdy1 ch1 V1 P1) (waitin_tguar'_vassm'_assn S2 p2 rdy2 ch2 V2 P2) \<Longrightarrow>\<^sub>t R"
@@ -1273,6 +1571,316 @@ lemma combine_waitin_tguar'_vassm'_wait_orig2:
       done
     done
   done
+
+
+lemma combine_waitin_tguar'_vassm'_wait_orig2':
+"ch\<in>chs \<and> compat_rdy rdy1 rdy2 \<Longrightarrow> combine_assn chs (waitin_tguar'_vassm'_assn {0 ..< d1} p1 rdy1 ch V P1)(wait_orig_assn d2 p2 rdy2 P2) \<Longrightarrow>\<^sub>t
+  \<up>(d2<d1) \<and>\<^sub>t wait_orig_assn d2 (\<lambda> t. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2)    
+(combine_assn chs (waitin_tguar'_vassm'_assn {0..< d1-d2} (\<lambda> t. p1(t+d2)) rdy1 ch V (\<lambda> v d. P1 v (d+d2))) (P2))"
+  unfolding combine_assn_def entails_tassn_def
+  apply auto
+  subgoal for tr tr1 tr2
+    apply(cases rule: wait_orig_assn.cases[of d2 p2 rdy2 P2 tr2])
+      apply simp
+    subgoal
+     apply(cases rule: waitin_tguar'_vassm'_assn.cases[of "{0..<d1}" p1 rdy1 ch V P1 tr1])
+          apply simp
+      subgoal 
+        apply auto
+        apply(rule wait_orig_assn.intros(1))
+         apply auto
+        done
+      subgoal 
+        apply auto
+        apply(rule wait_orig_assn.intros(1))
+        apply(rule exI[where x=tr1])
+        apply auto
+        done
+      subgoal 
+        apply auto
+        apply(rule wait_orig_assn.intros(1))
+        apply auto
+        done
+      subgoal 
+        apply auto
+        apply(rule wait_orig_assn.intros(1))
+        by auto
+        done
+      subgoal for tr2'
+     apply(cases rule: waitin_tguar'_vassm'_assn.cases[of "{0..<d1}" p1 rdy1 ch V P1 tr1])
+          apply simp
+      subgoal
+        apply auto
+        by (auto elim!: sync_elims)
+      subgoal for d1' v tr1'
+        apply auto
+        apply(cases "d2\<ge>d1")
+        subgoal
+          apply(elim combine_blocks_waitE3)
+             apply auto
+          by (auto elim!: sync_elims)
+        apply auto
+        apply(cases "d2>d1'")
+        subgoal
+          apply(elim combine_blocks_waitE3)
+             apply auto
+          by (auto elim!: sync_elims)
+        apply(cases "d2<d1'")
+        subgoal
+          apply(elim combine_blocks_waitE4)
+             apply auto
+          apply(rule wait_orig_assn.intros(2))
+           apply auto
+          apply(rule exI[where x="(WaitBlk (d1' - d2) (\<lambda>t. p1 (t + d2)) rdy1 # InBlock ch v # tr1')"])
+          apply auto
+          apply(rule waitin_tguar'_vassm'_assn.intros(2))
+          by auto
+        apply simp
+        apply(elim combine_blocks_waitE2)
+             apply auto
+          apply(rule wait_orig_assn.intros(2))
+         apply auto
+        apply(rule exI[where x="(InBlock ch v # tr1')"])
+        apply auto
+        apply(rule waitin_tguar'_vassm'_assn.intros(1))
+        by auto
+      subgoal
+        apply auto
+        by (auto elim!: sync_elims)
+      subgoal for d1' v tr1'
+        apply auto
+        apply(cases "d2\<ge>d1")
+        subgoal
+          apply(elim combine_blocks_waitE3)
+             apply auto
+          by (auto elim!: sync_elims)
+        apply auto
+        apply(cases "d2>d1'")
+        subgoal
+          apply(elim combine_blocks_waitE3)
+             apply auto
+          by (auto elim!: sync_elims)
+        apply(cases "d2<d1'")
+        subgoal
+          apply(elim combine_blocks_waitE4)
+             apply auto
+          apply(rule wait_orig_assn.intros(2))
+           apply auto
+          apply(rule exI[where x="(WaitBlk (d1' - d2) (\<lambda>t. p1 (t + d2)) rdy1 # InBlock ch v # tr1')"])
+          apply auto
+          apply(rule waitin_tguar'_vassm'_assn.intros(4))
+          by auto
+        apply simp
+        apply(elim combine_blocks_waitE2)
+             apply auto
+          apply(rule wait_orig_assn.intros(2))
+         apply auto
+        apply(rule exI[where x="(InBlock ch v # tr1')"])
+        apply auto
+        apply(rule waitin_tguar'_vassm'_assn.intros(3))
+        by auto
+      done
+    done
+  done
+
+lemma combine_out_0assm_rdy_waitin_tguar'_vassm'1:
+"ch \<in> chs \<and> v\<in>V \<and> \<not> compat_rdy rdy1 rdy2 \<Longrightarrow> combine_assn chs (out_0assm_rdy_assn ch v rdy1 P) (waitin_tguar'_vassm'_assn S p rdy2 ch V Q) \<Longrightarrow>\<^sub>t \<up>(0\<in>S) \<and>\<^sub>t combine_assn chs P (Q v 0)"
+  unfolding combine_assn_def entails_tassn_def
+  apply auto
+  subgoal for tr tr1 tr2
+    apply(cases rule: out_0assm_rdy_assn.cases[of ch v rdy1 P])
+      apply simp
+    subgoal
+      apply(cases rule:waitin_tguar'_vassm'_assn.cases[of S p rdy2 ch V Q])
+          apply auto
+      subgoal
+        apply(elim combine_blocks_pairE)
+        by auto
+      subgoal
+        by (auto elim!: sync_elims)
+      subgoal
+        apply(elim combine_blocks_pairE)
+        by auto
+      subgoal
+        by (auto elim!: sync_elims)
+      done
+    subgoal
+      apply(cases rule:waitin_tguar'_vassm'_assn.cases[of S p rdy2 ch V Q])
+          apply auto
+      subgoal
+        by (auto elim!: sync_elims)
+      subgoal
+        by (auto elim!: sync_elims)
+      subgoal
+        by (auto elim!: sync_elims)
+      subgoal
+        by (auto elim!: sync_elims)
+      done
+    done
+  done
+
+lemma combine_out_0assm_rdy_waitin_tguar'_vassm'2:
+"ch1 \<in> chs \<and> ch2 \<in> chs \<and> ch1 \<noteq> ch2 \<and> \<not> compat_rdy rdy1 rdy2 \<Longrightarrow> combine_assn chs (out_0assm_rdy_assn ch1 v rdy1 P) (waitin_tguar'_vassm'_assn S p rdy2 ch2 V Q) \<Longrightarrow>\<^sub>t R"
+  unfolding combine_assn_def entails_tassn_def
+  apply auto
+  subgoal for tr tr1 tr2
+    apply(cases rule: out_0assm_rdy_assn.cases[of ch1 v rdy1 P])
+      apply simp
+    subgoal
+      apply(cases rule:waitin_tguar'_vassm'_assn.cases[of S p rdy2 ch2 V Q])
+          apply auto
+      subgoal
+        apply(elim combine_blocks_pairE)
+        by auto
+      subgoal
+        by (auto elim!: sync_elims)
+      subgoal
+        apply(elim combine_blocks_pairE)
+        by auto
+      subgoal
+        by (auto elim!: sync_elims)
+      done
+    subgoal
+      apply(cases rule:waitin_tguar'_vassm'_assn.cases[of S p rdy2 ch2 V Q])
+          apply auto
+      subgoal
+        by (auto elim!: sync_elims)
+      subgoal
+        by (auto elim!: sync_elims)
+      subgoal
+        by (auto elim!: sync_elims)
+      subgoal
+        by (auto elim!: sync_elims)
+      done
+    done
+  done
+
+lemma combine_in_0assm_rdy_waitin_tguar'_vassm'1:
+"ch1 \<in> chs \<and> ch2 \<in> chs \<and> \<not> compat_rdy rdy1 rdy2 \<Longrightarrow> combine_assn chs (in_0assm_rdy_assn ch1 V1 rdy1 P1) (waitin_tguar'_vassm'_assn S p2 rdy2 ch2 V2 P2) \<Longrightarrow>\<^sub>t R"
+  unfolding entails_tassn_def combine_assn_def
+  apply auto
+  subgoal for tr tr1 tr2
+    apply(cases rule:in_0assm_rdy_assn.cases[of ch1 V1 rdy1 P1 tr1])
+       apply auto
+    subgoal
+      apply(cases rule: waitin_tguar'_vassm'_assn.cases[of S p2 rdy2 ch2 V2 P2 tr2])
+          apply auto
+    subgoal
+      apply(elim combine_blocks_pairE)
+      by auto
+    subgoal
+      by (auto elim!: sync_elims)
+    subgoal
+      apply(elim combine_blocks_pairE)
+      by auto
+    subgoal
+      by (auto elim!: sync_elims)
+    done
+  subgoal
+      apply(cases rule: waitin_tguar'_vassm'_assn.cases[of S p2 rdy2 ch2 V2 P2 tr2])
+          apply auto
+    subgoal
+      apply(elim combine_blocks_pairE)
+      by auto
+    subgoal
+      by (auto elim!: sync_elims)
+    subgoal
+      apply(elim combine_blocks_pairE)
+      by auto
+    subgoal
+      by (auto elim!: sync_elims)
+    done
+  subgoal
+      apply(cases rule: waitin_tguar'_vassm'_assn.cases[of S p2 rdy2 ch2 V2 P2 tr2])
+          apply auto
+    subgoal
+      by (auto elim!: sync_elims)
+    subgoal
+      by (auto elim!: sync_elims)
+    subgoal
+      by (auto elim!: sync_elims)
+    subgoal
+      by (auto elim!: sync_elims)
+    done
+  done
+  done
+
+
+lemma combine_out_0assm_rdy_wait_orig3:
+  assumes "d>0 \<and> ch\<in>chs \<and> \<not> compat_rdy rdy' rdy"
+      shows "combine_assn chs (out_0assm_rdy_assn ch v rdy' Q) (wait_orig_assn d p rdy P) \<Longrightarrow>\<^sub>t R"
+  unfolding entails_tassn_def combine_assn_def
+  apply auto
+  subgoal for tr tr1 tr2
+    apply(cases rule:wait_orig_assn.cases[of d p rdy P tr2])
+    using assms apply auto
+    subgoal for tr2'
+      apply(cases rule:out_0assm_rdy_assn.cases[of ch v rdy' Q tr1])
+        apply auto
+      subgoal for tr1'
+        by (auto elim!: sync_elims)
+      by (auto elim!: sync_elims)
+    done
+      done
+
+lemma combine_wait_orig_out_0assm3:
+  assumes "d>0 \<and> ch\<in>chs \<and> ch\<in>snd rdy"
+    shows "combine_assn chs (wait_orig_assn d p rdy P)(out_0assm_assn ch v Q) \<Longrightarrow>\<^sub>t R"
+  unfolding entails_tassn_def combine_assn_def
+  apply auto
+  subgoal for tr tr1 tr2
+    apply(cases rule:wait_orig_assn.cases[of d p rdy P tr1])
+    using assms apply auto
+    subgoal for tr1'
+      apply(cases rule:out_0assm_assn.cases[of ch v Q tr2])
+        apply auto
+      subgoal for tr2'
+        by (auto elim!: sync_elims)
+      apply(cases rdy)
+      by (auto elim!: sync_elims)
+    done
+  done
+
+
+lemma combine_in_0assm_rdy_wait_orig2:
+"ch \<in> chs \<and> \<not>compat_rdy rdy rdy' \<and> d>0 \<Longrightarrow> combine_assn chs (in_0assm_rdy_assn ch V rdy P) (wait_orig_assn d p rdy' Q) \<Longrightarrow>\<^sub>t R"
+unfolding entails_tassn_def combine_assn_def
+  apply auto
+  subgoal for tr tr1 tr2
+    apply(cases rule: wait_orig_assn.cases[of d p rdy' Q tr2])
+      apply auto
+    apply(cases rule:in_0assm_rdy_assn.cases[of ch V rdy P tr1])
+       apply auto
+    by (auto elim!: sync_elims)
+  done
+    
+lemma combine_out_0assm_srdy_out_0assm1:
+"ch1\<in>chs \<and> ch2 \<in> chs \<and> ch2 \<in> snd srdy\<Longrightarrow> combine_assn chs (out_0assm_srdy_assn ch1 v1 srdy P1) (out_0assm_assn ch2 v2 P2) \<Longrightarrow>\<^sub>t R"
+unfolding entails_tassn_def combine_assn_def
+  apply auto
+  subgoal for tr tr1 tr2
+    apply(cases rule: out_0assm_srdy_assn.cases[of ch1 v1 srdy P1 tr1])
+      apply auto
+    subgoal
+     apply(cases rule: out_0assm_assn.cases[of ch2 v2 P2 tr2])
+       apply auto
+    subgoal
+      apply(elim combine_blocks_pairE) 
+      by auto
+    subgoal
+      by (auto elim!: sync_elims)
+    done
+  subgoal
+     apply(cases rule: out_0assm_assn.cases[of ch2 v2 P2 tr2])
+      apply auto
+    subgoal
+      by (auto elim!: sync_elims)
+    apply(elim combine_blocks_waitE1)
+    apply(cases srdy)
+    by auto
+  done
+  done
+
 
 
 
@@ -1827,7 +2435,7 @@ lemma combine_taskdis_sch1':
                     apply(rule entails_tassn_trans)
                      apply(rule combine_wait_orig_emp1)
                     apply auto
-                    apply(rule combine_out_0assm_emp1)
+                    apply(rule combine_out_0assm_srdy_emp1)
                     by auto
                   done
                 by auto
@@ -1943,7 +2551,7 @@ lemma combine_taskdis_sch1':
                 apply(rule entails_tassn_trans)
                  apply(rule combine_wait_orig_emp1)
                 apply auto
-                apply(rule combine_out_0assm_emp1)
+                apply(rule combine_out_0assm_srdy_emp1)
                 by auto
               done
             by auto
@@ -2489,7 +3097,7 @@ lemma combine_taskdis_sch1':
                       apply simp
                       apply (simp del: fun_upd_apply tdsch2'.simps)
                       apply clarify
-                      apply(rule combine_out_0assm_in_0orig_vassm'2)
+                      apply(rule combine_out_0assm_srdy_in_0orig_vassm'2)
                       by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                     apply(erule disjE)
                       subgoal premises pre
@@ -2504,7 +3112,7 @@ lemma combine_taskdis_sch1':
                       apply (simp only:pure_assn_entails)
                       apply clarify
                       apply(rule entails_tassn_trans)
-                       apply(rule combine_out_0assm_in_0orig_vassm'1)
+                       apply(rule combine_out_0assm_srdy_in_0orig_vassm'1)
                        apply simp
                       apply(cases "p \<noteq> []")
                       subgoal apply simp
@@ -2531,7 +3139,7 @@ lemma combine_taskdis_sch1':
                        apply simp
                       apply (simp del: fun_upd_apply tdsch2'.simps)
                       apply clarify
-                      apply(rule combine_out_0assm_in_0orig_vassm'2)
+                      apply(rule combine_out_0assm_srdy_in_0orig_vassm'2)
                       by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                     done
                   by auto
@@ -3051,8 +3659,11 @@ lemma combine_taskdis_sch1':
                        apply(rule combine_wait_orig_wait_orig4)
                       subgoal using pre 
                         by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
-                      apply (simp del:fun_upd_apply)
-                      apply(rule wait_orig_assn_tran)
+                      apply (auto simp del:fun_upd_apply)
+                      apply(subgoal_tac"({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, dispatch_ch 2, preempt_ch 1}) = ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, preempt_ch 1, dispatch_ch 2})")
+                      prefer 2 subgoal by auto
+                      apply (auto simp del:fun_upd_apply)
+                       apply(rule wait_orig_assn_tran)
                       unfolding combine_assn_def entails_tassn_def
                         apply clarify
                         subgoal for tr tr1 tr2
@@ -3097,6 +3708,9 @@ lemma combine_taskdis_sch1':
                       subgoal using pre 
                         by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                       apply(simp del:tdsch2'.simps fun_upd_apply)
+                      apply(subgoal_tac"({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, dispatch_ch 2, preempt_ch 1}) = ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, preempt_ch 1, dispatch_ch 2})")
+                      prefer 2 subgoal by auto
+                      apply (auto simp del:fun_upd_apply)
                       apply(rule wait_orig_assn_tran)
                       unfolding combine_assn_def entails_tassn_def
                         apply clarify
@@ -3206,6 +3820,9 @@ lemma combine_taskdis_sch1':
                       subgoal using pre 
                         by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                       apply(simp del:tdsch2'.simps fun_upd_apply)
+                      apply(subgoal_tac"({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, dispatch_ch 2, preempt_ch 1}) = ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, preempt_ch 1, dispatch_ch 2})")
+                      prefer 2 subgoal by auto
+                      apply (auto simp del:fun_upd_apply)
                       apply(rule wait_orig_assn_tran)
                       unfolding combine_assn_def entails_tassn_def
                         apply clarify
@@ -3291,6 +3908,9 @@ lemma combine_taskdis_sch1':
                       subgoal using pre 
                         by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                       apply(simp del:tdsch2'.simps fun_upd_apply)
+                      apply(subgoal_tac"({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, dispatch_ch 2, preempt_ch 1}) = ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, preempt_ch 1, dispatch_ch 2})")
+                      prefer 2 subgoal by auto
+                      apply (auto simp del:fun_upd_apply)
                       apply(rule wait_orig_assn_tran)
                       unfolding combine_assn_def entails_tassn_def
                         apply clarify
@@ -3403,6 +4023,9 @@ lemma combine_taskdis_sch1':
                       subgoal using pre 
                         by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                       apply(simp del:tdsch2'.simps fun_upd_apply)
+                      apply(subgoal_tac"({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, dispatch_ch 2, preempt_ch 1}) = ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, preempt_ch 1, dispatch_ch 2})")
+                      prefer 2 subgoal by auto
+                      apply (auto simp del:fun_upd_apply)
                       apply(rule wait_orig_assn_tran)
                       unfolding combine_assn_def entails_tassn_def
                         apply clarify
@@ -3916,6 +4539,8 @@ lemma combine_taskdis_sch1':
                       apply (simp del: tdsch2'.simps)
                       apply(erule disjE)
                       subgoal premises pre
+                        apply simp
+                        apply(rule disjI1)
                         thm pre
                         apply(rule combine_blocks_assn)
                           apply(rule pre(14))
@@ -3977,6 +4602,9 @@ lemma combine_taskdis_sch1':
                               subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                               apply (simp del: fun_upd_apply)
                               apply clarify
+                              apply(subgoal_tac"({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, run_ch 2, preempt_ch 1}) = ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, preempt_ch 1, run_ch 2})")
+                               prefer 2 subgoal by auto
+                              apply (auto simp del:fun_upd_apply)
                               apply(rule wait_orig_assn_tran)
                               apply(rule entails_tassn_trans)
                                apply(rule combine_waitin_tguar'_vassm'_out_0assm1)
@@ -4017,6 +4645,9 @@ lemma combine_taskdis_sch1':
                       subgoal using properl1_p7 unfolding proper1_def by auto
                       apply (simp del: fun_upd_apply tdsch2'.simps)
                       subgoal premises pre
+                        apply simp
+                        apply(rule disjI2)
+                        apply(rule disjI1)
                         thm pre
                         apply(rule combine_blocks_assn)
                           apply(rule pre(14))
@@ -4027,54 +4658,858 @@ lemma combine_taskdis_sch1':
                         subgoal by auto
                         apply (simp del: fun_upd_apply tdsch2'.simps)
                         apply clarify
-
-
-
-
-
-
-                        
-                                
-                        
-                        
-
-                                
-                            
-
-
-
-
-
-                      
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                        unfolding combine_assn_def entails_tassn_def
+                          apply clarify
+                          subgoal premises pre' for tr tr1 tr2
+                          thm pre'
+                          apply(rule pre(1)[where ?tr1.0 = tr1 and ?tr2.0 = tr2])
+                          apply simp
+                          using pre pre'
+                          unfolding propc1_def proper1_def properp_def by auto
+                        done
+                      done
+                    apply(erule disjE)
+                    subgoal
+                      apply (simp del: tdsch2'.simps)
+                      apply(erule disjE)
+                      subgoal premises pre
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(14))
+                          apply(rule pre(15))
+                         apply(rule pre(5))  
+                        apply(rule entails_tassn_trans)
+                         apply(rule combine_out_0assm_waitin_tguar'_vassm'1)
+                        subgoal by auto
+                        apply (simp del: fun_upd_apply tdsch2'.simps)
+                        apply clarify
+                        unfolding combine_assn_def entails_tassn_def
+                        apply clarify
+                        subgoal for tr tr1 tr2
+                          apply(cases kk')
+                          subgoal
+                            by(simp only:tdsch1'.simps)
+                          subgoal for kk''
+                            apply(simp only:tdsch1'.simps)
+                            apply (simp del: fun_upd_apply tdsch2'.simps)
+                            apply(erule disjE)
+                            subgoal premises pre'
+                              apply simp
+                              apply(rule disjI2)
+                              apply(rule disjI2)
+                              thm pre'
+                              apply(rule combine_blocks_assn)
+                                 apply(rule pre'(3))
+                                apply(rule pre'(6))
+                               apply(rule pre'(4))
+                              apply(cases "pd2 - task_s2 CHR ''t'' > min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c'')")
+                              subgoal
+                                apply(rule combine_wait_orig_waitin_tguar'_vassm'3)
+                                by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                              apply(cases "pd2 - task_s2 CHR ''t'' \<le> min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c'')")
+                              subgoal
+                                apply(rule entails_tassn_trans)
+                                 apply(rule combine_wait_orig_waitin_tguar'_vassm'4)
+                                subgoal
+                                  by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                                apply (simp del: fun_upd_apply)
+                                apply(subgoal_tac"({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, run_ch 2, preempt_ch 1}) = ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, preempt_ch 1, run_ch 2})")
+                               prefer 2 subgoal by auto
+                              apply (auto simp del:fun_upd_apply)
+                                apply(rule wait_orig_assn_tran)
+                                apply(rule combine_out_0assm_rdy_waitin_tguar'_vassm'2)
+                                by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                              by auto
+                            apply(erule disjE)
+                            subgoal premises pre'
+                              apply simp
+                              apply(rule disjI2)
+                              apply(rule disjI2)
+                              thm pre'
+                              apply(rule combine_blocks_assn)
+                                 apply(rule pre'(3))
+                                apply(rule pre'(6))
+                               apply(rule pre'(4))
+                              apply(cases "pd2 - task_s2 CHR ''t'' > min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c'')")
+                              subgoal
+                                apply(rule combine_wait_orig_waitin_tguar'_vassm'3)
+                                by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                              apply(cases "pd2 - task_s2 CHR ''t'' \<le> min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c'')")
+                              subgoal
+                                apply(rule entails_tassn_trans)
+                                 apply(rule combine_wait_orig_waitin_tguar'_vassm'4)
+                                subgoal
+                                  by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                                apply (simp del: fun_upd_apply)
+                                apply(subgoal_tac"({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, run_ch 2, preempt_ch 1}) = ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, preempt_ch 1, run_ch 2})")
+                               prefer 2 subgoal by auto
+                              apply (auto simp del:fun_upd_apply)
+                                apply(rule wait_orig_assn_tran)
+                                apply(rule combine_out_0assm_rdy_waitin_tguar'_vassm'2)
+                                by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                              by auto
+                            apply(erule disjE)
+                            subgoal premises pre'
+                              apply simp
+                              apply(rule disjI2)
+                              apply(rule disjI2)
+                              thm pre'
+                              apply(rule combine_blocks_assn)
+                                 apply(rule pre'(3))
+                                apply(rule pre'(6))
+                               apply(rule pre'(4))
+                              apply(cases "pd2 - task_s2 CHR ''t'' > min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c'')")
+                              subgoal
+                                apply(rule combine_wait_orig_waitin_tguar'_vassm'3)
+                                by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                              apply(cases "pd2 - task_s2 CHR ''t'' \<le> min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c'')")
+                              subgoal
+                                apply(rule entails_tassn_trans)
+                                 apply(rule combine_wait_orig_waitin_tguar'_vassm'4)
+                                subgoal
+                                  by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                                apply (simp del: fun_upd_apply)
+                                apply(subgoal_tac"({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, run_ch 2, preempt_ch 1}) = ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, preempt_ch 1, run_ch 2})")
+                               prefer 2 subgoal by auto
+                              apply (auto simp del:fun_upd_apply)
+                                apply(rule wait_orig_assn_tran)
+                                apply(rule entails_tassn_trans)
+                                 apply(rule combine_out_0assm_rdy_waitin_tguar'_vassm'1)
+                                subgoal
+                                  by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                                apply (simp del: fun_upd_apply)
+                                apply(subgoal_tac "p=[]")
+                                 prefer 2
+                                subgoal using properl1_p7 pre pre' unfolding proper1_def by auto
+                                apply (simp del: fun_upd_apply tdsch2'.simps)
+                                unfolding combine_assn_def entails_tassn_def
+                                apply clarify
+                                subgoal premises pre'' for tr tr1 tr2
+                                  thm pre'
+                                  apply(rule pre(1)[where ?tr1.0 = tr1 and ?tr2.0 = tr2])
+                                         apply simp
+                                  using pre pre' pre''
+                                  unfolding propc1_def proper1_def properp_def by auto
+                                done
+                              by auto
+                            apply(subgoal_tac "p=[]")
+                                 prefer 2
+                                subgoal using properl1_p7 pre unfolding proper1_def by auto
+                                apply (simp del: fun_upd_apply tdsch2'.simps)
+                            subgoal premises pre'
+                              thm pre
+                              apply(rule combine_blocks_assn)
+                                 apply(rule pre'(3))
+                                 apply(rule pre'(6))
+                                 apply(rule pre'(4))  
+                                apply(cases "(pd2 - task_s2 CHR ''t'') < (min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c''))")
+                            subgoal
+                              apply(rule entails_tassn_trans)
+                               apply(rule combine_wait_orig_wait_orig3)
+                              subgoal 
+                                by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                              apply (simp del: fun_upd_apply tdsch2'.simps)
+                              apply(rule entails_tassn_trans)
+                               apply(rule wait_orig_assn_tran)
+                               apply(rule combine_out_0assm_rdy_wait_orig3[where R = "false\<^sub>A"])
+                              subgoal 
+                                by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                              unfolding entails_tassn_def false_assn_def
+                              by(auto simp add: wait_orig_assn.simps)
+                            apply(cases "(pd2 - task_s2 CHR ''t'') > (min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c''))")
+                            subgoal
+                              apply(rule entails_tassn_trans)
+                               apply(rule combine_wait_orig_wait_orig4)
+                              subgoal 
+                                by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                              apply (simp del: fun_upd_apply tdsch2'.simps)
+                              apply(rule entails_tassn_trans)
+                               apply(rule wait_orig_assn_tran)
+                               apply(rule combine_wait_orig_out_0assm3[where R = "false\<^sub>A"])
+                              subgoal 
+                                by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                              unfolding entails_tassn_def false_assn_def
+                              by(auto simp add: wait_orig_assn.simps)
+                            apply(cases "(pd2 - task_s2 CHR ''t'') = (min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c''))")
+                            subgoal
+                              apply(rule entails_tassn_trans)
+                               apply(rule combine_wait_orig_wait_orig2)
+                              subgoal 
+                                by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                              apply (simp del: fun_upd_apply tdsch2'.simps)
+                              apply(rule entails_tassn_trans)
+                               apply(rule wait_orig_assn_tran)
+                               apply(rule combine_out_0assm_rdy_out_0assm[where R = "false\<^sub>A"])
+                              subgoal 
+                                by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                              unfolding entails_tassn_def false_assn_def
+                              by(auto simp add: wait_orig_assn.simps)
+                            by auto
+                          done
+                        done
+                      done
+                    apply(erule disjE)
+                    subgoal premises pre
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(14))
+                          apply(rule pre(15))
+                         apply(rule pre(5))  
+                      apply(rule combine_out_0assm_waitin_tguar'_vassm'2)
+                      by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                    apply(erule disjE)
+                    subgoal premises pre
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(14))
+                          apply(rule pre(15))
+                         apply(rule pre(5))  
+                      apply(rule combine_out_0assm_waitin_tguar'_vassm'2)
+                      by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                    apply(subgoal_tac "p=[]")
+                    prefer 2
+                    subgoal using properl1_p7 unfolding proper1_def by auto
+                    apply (simp del: fun_upd_apply tdsch2'.simps)
+                    subgoal premises pre
+                      apply simp
+                      apply(rule disjI2)
+                      apply(rule disjI1)
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(14))
+                          apply(rule pre(15))
+                       apply(rule pre(5))  
+                      apply(rule entails_tassn_trans)
+                       apply(rule combine_out_0assm_wait_orig1)
+                      subgoal by auto
+                      apply (simp del: fun_upd_apply tdsch2'.simps)
+                      apply clarify
+                      unfolding combine_assn_def entails_tassn_def
+                      apply clarify
+                      subgoal premises pre' for tr tr1 tr2
+                      thm pre'
+                      apply(rule pre(1)[where ?tr1.0 = tr1 and ?tr2.0 = tr2])
+                      apply simp
+                      using pre pre' 
+                      unfolding propc1_def proper1_def properp_def by auto
+                      done
+                    done
+                  apply (simp del: tdsch2'.simps)
+                      apply(erule disjE)
+                      subgoal premises pre
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(14))
+                          apply(rule pre(15))
+                         apply(rule pre(5))  
+                        apply(rule entails_tassn_trans)
+                         apply(rule combine_out_0assm_waitin_tguar'_vassm'1)
+                        subgoal by auto
+                        apply (simp del: fun_upd_apply tdsch2'.simps)
+                        apply clarify
+                        unfolding combine_assn_def entails_tassn_def
+                        apply clarify
+                        subgoal for tr tr1 tr2
+                          apply(cases kk')
+                          subgoal
+                            by(simp only:tdsch1'.simps)
+                          subgoal for kk''
+                            apply(simp only:tdsch1'.simps)
+                            apply (simp del: fun_upd_apply tdsch2'.simps)
+                            apply(erule disjE)
+                            subgoal premises pre'
+                              apply simp
+                              apply(rule disjI2)
+                              apply(rule disjI2)
+                              thm pre'
+                              apply(rule combine_blocks_assn)
+                                 apply(rule pre'(3))
+                                apply(rule pre'(6))
+                               apply(rule pre'(4))
+                              apply(cases "pd2 - task_s2 CHR ''t'' > min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c'')")
+                              subgoal
+                                apply(rule combine_wait_orig_waitin_tguar'_vassm'3)
+                                by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                              apply(cases "pd2 - task_s2 CHR ''t'' \<le> min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c'')")
+                              subgoal
+                                apply(rule entails_tassn_trans)
+                                 apply(rule combine_wait_orig_waitin_tguar'_vassm'4)
+                                subgoal
+                                  by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                                apply (simp del: fun_upd_apply)
+                                apply(subgoal_tac"({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, run_ch 2, preempt_ch 1}) = ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, preempt_ch 1, run_ch 2})")
+                               prefer 2 subgoal by auto
+                              apply (auto simp del:fun_upd_apply)
+                                apply(rule wait_orig_assn_tran)
+                                apply(rule combine_in_0assm_rdy_waitin_tguar'_vassm'1)
+                                by auto
+                              by auto
+                            apply(erule disjE)
+                            subgoal premises pre'
+                              apply simp
+                              apply(rule disjI2)
+                              apply(rule disjI2)
+                              thm pre'
+                              apply(rule combine_blocks_assn)
+                                 apply(rule pre'(3))
+                                apply(rule pre'(6))
+                               apply(rule pre'(4))
+                              apply(cases "pd2 - task_s2 CHR ''t'' > min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c'')")
+                              subgoal
+                                apply(rule combine_wait_orig_waitin_tguar'_vassm'3)
+                                by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                              apply(cases "pd2 - task_s2 CHR ''t'' \<le> min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c'')")
+                              subgoal
+                                apply(rule entails_tassn_trans)
+                                 apply(rule combine_wait_orig_waitin_tguar'_vassm'4)
+                                subgoal
+                                  by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                                apply (simp del: fun_upd_apply)
+                                apply(subgoal_tac"({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, run_ch 2, preempt_ch 1}) = ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, preempt_ch 1, run_ch 2})")
+                               prefer 2 subgoal by auto
+                              apply (auto simp del:fun_upd_apply)
+                                apply(rule wait_orig_assn_tran)
+                                apply(rule combine_in_0assm_rdy_waitin_tguar'_vassm'1)
+                                by auto
+                              by auto
+                            apply(erule disjE)
+                            subgoal premises pre'
+                              apply simp
+                              apply(rule disjI2)
+                              apply(rule disjI2)
+                              thm pre'
+                              apply(rule combine_blocks_assn)
+                                 apply(rule pre'(3))
+                                apply(rule pre'(6))
+                               apply(rule pre'(4))
+                              apply(cases "pd2 - task_s2 CHR ''t'' > min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c'')")
+                              subgoal
+                                apply(rule combine_wait_orig_waitin_tguar'_vassm'3)
+                                by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                              apply(cases "pd2 - task_s2 CHR ''t'' \<le> min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c'')")
+                              subgoal
+                                apply(rule entails_tassn_trans)
+                                 apply(rule combine_wait_orig_waitin_tguar'_vassm'4)
+                                subgoal
+                                  by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                                apply (simp del: fun_upd_apply)
+                                apply(subgoal_tac"({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, run_ch 2, preempt_ch 1}) = ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, preempt_ch 1, run_ch 2})")
+                               prefer 2 subgoal by auto
+                              apply (auto simp del:fun_upd_apply)
+                                apply(rule wait_orig_assn_tran)
+                                apply(rule combine_in_0assm_rdy_waitin_tguar'_vassm'1)
+                                by auto
+                              by auto
+                            apply(subgoal_tac "p=[]")
+                             prefer 2
+                            subgoal using properl1_p7 pre unfolding proper1_def by auto
+                            apply (simp del: fun_upd_apply tdsch2'.simps)
+                            subgoal premises pre'
+                              apply simp
+                              apply (rule disjI1)
+                              apply(rule combine_blocks_assn)
+                                 apply(rule pre'(3))
+                                apply(rule pre'(6))
+                               apply(rule pre'(4))
+                              apply(cases "pd2 - task_s2 CHR ''t'' > min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c'')")
+                              subgoal
+                                apply(rule entails_tassn_trans)
+                                 apply(rule combine_wait_orig_wait_orig4)
+                                subgoal
+                                  by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                                apply (simp del: fun_upd_apply tdsch2'.simps)
+                                apply(rule entails_tassn_trans)
+                                 apply(rule wait_orig_assn_tran)
+                                 apply(rule combine_wait_orig_out_0assm1)
+                                subgoal by auto
+                                apply (simp del: fun_upd_apply tdsch2'.simps)
+                                by(auto simp add: pure_assn_def conj_assn_def wait_orig_assn.simps entails_tassn_def)
+                              apply(cases "pd2 - task_s2 CHR ''t'' < min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c'')")
+                              subgoal
+                                apply(rule entails_tassn_trans)
+                                 apply(rule combine_wait_orig_wait_orig3)
+                                subgoal
+                                  by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                                apply (simp del: fun_upd_apply tdsch2'.simps)
+                                apply(rule entails_tassn_trans)
+                                 apply(rule wait_orig_assn_tran)
+                                apply(rule combine_in_0assm_rdy_wait_orig2[where R = "false\<^sub>A"])
+                                subgoal by auto                  
+                                by(auto simp add: false_assn_def wait_orig_assn.simps entails_tassn_def)
+                              apply(cases "min (pd1 - task_s1 CHR ''t'') (pc1 - task_s1 CHR ''c'') = pd2 - task_s2 CHR ''t''")
+                              subgoal
+                                apply(rule entails_tassn_trans)
+                                 apply(rule combine_wait_orig_wait_orig2)
+                                subgoal
+                                  by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                                apply (simp del: fun_upd_apply tdsch2'.simps)
+                                apply(rule entails_tassn_trans)
+                                 apply(rule wait_orig_assn_tran)
+                                 apply(rule combine_in_0assm_rdy_out_0assm)
+                                subgoal by auto
+                                apply(subgoal_tac"({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, run_ch 2, preempt_ch 1}) = ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, preempt_ch 1, run_ch 2})")
+                               prefer 2 subgoal by auto
+                              apply (auto simp del:fun_upd_apply)
+                                apply (rule wait_orig_assn_tran)
+                                unfolding combine_assn_def entails_tassn_def
+                                apply clarify
+                                subgoal premises pre'' for tr tr1 tr2
+                                  thm pre'
+                                  apply(rule pre(1)[where ?tr1.0 = tr1 and ?tr2.0 = tr2])
+                                         apply simp
+                                  using pre pre' pre''
+                                  unfolding propc1_def proper1_def properp_def apply auto
+                                  apply(subgoal_tac"(dis_s2(CHR ''t'' := dis_s2 CHR ''t'' + (pd2 - task_s2 CHR ''t''))) = (dis_s2(CHR ''t'' := dis_s2 CHR ''t'' + pd2 - task_s2 CHR ''t''))")
+                                  by auto
+                                done
+                              by auto
+                            done
+                          done
+                        done
+                      apply(erule disjE)
+                      subgoal premises pre
+                      apply simp
+                      apply(rule disjI2)
+                      apply(rule disjI1)
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(14))
+                          apply(rule pre(15))
+                       apply(rule pre(5))  
+                        apply(rule combine_out_0assm_waitin_tguar'_vassm'2)
+                        by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                      apply(erule disjE)
+                      subgoal premises pre
+                      apply simp
+                      apply(rule disjI2)
+                      apply(rule disjI1)
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(14))
+                          apply(rule pre(15))
+                       apply(rule pre(5))  
+                        apply(rule combine_out_0assm_waitin_tguar'_vassm'2)
+                        by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                      apply(subgoal_tac "p=[]")
+                    prefer 2
+                    subgoal using properl1_p7 unfolding proper1_def by auto
+                    apply (simp del: fun_upd_apply tdsch2'.simps)
+                      subgoal premises pre
+                      apply simp
+                      apply(rule disjI2)
+                      apply(rule disjI1)
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(14))
+                          apply(rule pre(15))
+                       apply(rule pre(5))  
+                        apply(rule entails_tassn_trans)
+                       apply(rule combine_out_0assm_wait_orig1)
+                      subgoal by auto
+                      apply (simp del: fun_upd_apply tdsch2'.simps)
+                      apply clarify
+                      unfolding combine_assn_def entails_tassn_def
+                      apply clarify
+                      subgoal premises pre' for tr tr1 tr2
+                      thm pre'
+                      apply(rule pre(1)[where ?tr1.0 = tr1 and ?tr2.0 = tr2])
+                      apply simp
+                      using pre pre' 
+                      unfolding propc1_def proper1_def properp_def by auto
+                      done
+                    done
+                  done
+                by auto
+              subgoal apply(cases task_es1) by auto
+              subgoal apply(cases task_es1) by auto
+              done
+            apply(cases schs)
+            subgoal for p rn rp
+              apply(cases task_es1)
+              subgoal by auto
+              subgoal for st1 ent1 t1
+                apply(cases st1)
+                subgoal
+                  apply(simp del:tdsch2'.simps)
+                  apply(cases "ent2 = Suc 0")
+                  prefer 2 subgoal by auto
+                   apply(simp del:tdsch2'.simps)
+                   apply(erule disjE)
+                  subgoal
+                    apply(erule disjE)
+                    subgoal premises pre
+                      apply simp
+                      apply(rule disjI1)
+                      thm pre
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(15))
+                          apply(rule pre(16))
+                         apply(rule pre(5))  
+                        apply(rule entails_tassn_trans)
+                       apply(rule combine_waitin_tguar'_vassm'_wait_orig2')
+                      subgoal
+                      by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                    apply(simp del:fun_upd_apply tdsch2'.simps)
+                    apply clarify
+                    apply(rule wait_orig_assn_tran)
+                    unfolding combine_assn_def entails_tassn_def
+                      apply clarify
+                      subgoal premises pre' for tr tr1 tr2
+                      thm pre'
+                      apply(rule pre(1)[where ?tr1.0 = tr1 and ?tr2.0 = tr2])
+                             apply simp
+                      subgoal 
+                      proof-
+                        have a:"min (pd2 - (task_s2 CHR ''t'' + (pd1 - dis_s1 CHR ''t''))) (pc2 - (task_s2 CHR ''c'' + (pd1 - dis_s1 CHR ''t''))) = min (pd2 - task_s2 CHR ''t'') (pc2 - task_s2 CHR ''c'') - (pd1 - dis_s1 CHR ''t'') " 
+                          by auto
+                        have b:" (\<lambda>t. ParState
+           (EState
+             (Task RUNNING (Suc 0) 1, task_s2
+              (CHR ''t'' := task_s2 CHR ''t'' + (pd1 - dis_s1 CHR ''t'') + t, CHR ''c'' := task_s2 CHR ''c'' + (pd1 - dis_s1 CHR ''t'') + t)))
+           (EState (estate.None, dis_s2(CHR ''t'' := dis_s2 CHR ''t'' + (pd1 - dis_s1 CHR ''t'') + t)))) =
+                                 (\<lambda>t. ParState
+           (EState
+             (Task RUNNING (Suc 0) 1, task_s2
+              (CHR ''t'' := task_s2 CHR ''t'' + (t + (pd1 - dis_s1 CHR ''t'')), CHR ''c'' := task_s2 CHR ''c'' + (t + (pd1 - dis_s1 CHR ''t'')))))
+           (EState (estate.None, dis_s2(CHR ''t'' := dis_s2 CHR ''t'' + (t + (pd1 - dis_s1 CHR ''t''))))))"
+                          apply(rule ext)+
+                          by auto
+                        have c:"(dis_s2(CHR ''t'' := dis_s2 CHR ''t'' + (pd1 - dis_s1 CHR ''t'') + d)) = (dis_s2(CHR ''t'' := dis_s2 CHR ''t'' + (d + (pd1 - dis_s1 CHR ''t''))))" for d
+                          by auto
+                        have d:"(task_s2(CHR ''t'' := task_s2 CHR ''t'' + (pd1 - dis_s1 CHR ''t'') + d, CHR ''c'' := task_s2 CHR ''c'' + (pd1 - dis_s1 CHR ''t'') + d)) = (task_s2(CHR ''t'' := task_s2 CHR ''t'' + (d + (pd1 - dis_s1 CHR ''t'')), CHR ''c'' := task_s2 CHR ''c'' + (d + (pd1 - dis_s1 CHR ''t''))))" for d
+                          by auto
+                        have e:"(\<lambda>v d. task_dis_assn' 2 k2' pd2 pc2 (dis_s2(CHR ''t'' := dis_s2 CHR ''t'' + (pd1 - dis_s1 CHR ''t'') + d)) (Task READY (Suc 0) 1)
+             (task_s2(CHR ''t'' := task_s2 CHR ''t'' + (pd1 - dis_s1 CHR ''t'') + d, CHR ''c'' := task_s2 CHR ''c'' + (pd1 - dis_s1 CHR ''t'') + d))) =
+                                (\<lambda>v d. task_dis_assn' 2 k2' pd2 pc2 (dis_s2(CHR ''t'' := dis_s2 CHR ''t'' + (d + (pd1 - dis_s1 CHR ''t'')))) (Task READY (Suc 0) 1)
+             (task_s2
+              (CHR ''t'' := task_s2 CHR ''t'' + (d + (pd1 - dis_s1 CHR ''t'')), CHR ''c'' := task_s2 CHR ''c'' + (d + (pd1 - dis_s1 CHR ''t'')))))"
+                          apply(rule ext)+
+                          apply (subst c)
+                          apply (subst d)
+                          by auto
+                        show ?thesis
+                          apply simp
+                          apply(rule disjI1)
+                          using pre'(3)
+                          apply(subst a)
+                          apply(subst b) 
+                          apply(subst e)
+                          by auto
+                      qed
+                      using pre pre' 
+                      unfolding propc1_def proper1_def properp_def by auto
+                    done
+                  apply(erule disjE)
+                  subgoal premises pre
+                      apply simp
+                      thm pre
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(15))
+                          apply(rule pre(16))
+                         apply(rule pre(5))  
+                      apply(rule combine_waitin_tguar'_vassm'_waitin_tguar'_vassm'1)
+                      by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                    apply(erule disjE)
+                  subgoal premises pre
+                      apply simp
+                      thm pre
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(15))
+                          apply(rule pre(16))
+                         apply(rule pre(5))  
+                      apply(rule combine_waitin_tguar'_vassm'_waitin_tguar'_vassm'1)
+                      by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                  subgoal premises pre
+                      apply simp
+                      thm pre
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(15))
+                          apply(rule pre(16))
+                         apply(rule pre(5))  
+                      apply(rule combine_waitin_tguar'_vassm'_waitin_tguar'_vassm'1)
+                      by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                    done
+                  subgoal
+                    apply(erule disjE)
+                    subgoal premises pre
+                      apply simp
+                      apply(rule disjI1)
+                      thm pre
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(15))
+                          apply(rule pre(16))
+                       apply(rule pre(5))  
+                      apply(cases "min (pd2 - task_s2 CHR ''t'') (pc2 - task_s2 CHR ''c'') < pd1 - dis_s1 CHR ''t''")
+                      subgoal
+                        apply(rule entails_tassn_trans)
+                         apply(rule combine_wait_orig_wait_orig3)
+                        subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                        apply(simp del:fun_upd_apply tdsch2'.simps)
+                        apply(rule entails_tassn_trans)
+                         apply(rule wait_orig_assn_tran)
+                         apply(rule combine_out_0assm_srdy_wait_orig1)
+                        subgoal by auto
+                        by(auto simp add: pure_assn_def conj_assn_def entails_tassn_def wait_orig_assn.simps)
+                      apply(cases "min (pd2 - task_s2 CHR ''t'') (pc2 - task_s2 CHR ''c'') \<ge> pd1 - dis_s1 CHR ''t''")
+                        apply(rule entails_tassn_trans)
+                       apply(rule combine_wait_orig_wait_orig6)
+                      subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                       apply(auto simp del:fun_upd_apply tdsch2'.simps)
+                      apply(rule wait_orig_assn_tran)
+                      unfolding combine_assn_def entails_tassn_def
+                      apply clarify
+                      subgoal premises pre' for tr tr1 tr2
+                      thm pre'
+                      apply(rule pre(1)[where ?tr1.0 = tr1 and ?tr2.0 = tr2])
+                             apply simp
+                      subgoal 
+                      proof-
+                        have a:"(min (pd2 - (task_s2 CHR ''t'' + (pd1 - dis_s1 CHR ''t''))) (pc2 - (task_s2 CHR ''c'' + (pd1 - dis_s1 CHR ''t'')))) = (min (pd2 - task_s2 CHR ''t'') (pc2 - task_s2 CHR ''c'') - (pd1 - dis_s1 CHR ''t''))"
+                          by auto
+                        have b:"(\<lambda>t. ParState
+           (EState
+             (Task RUNNING (Suc 0) 1, task_s2
+              (CHR ''t'' := task_s2 CHR ''t'' + (pd1 - dis_s1 CHR ''t'') + t, CHR ''c'' := task_s2 CHR ''c'' + (pd1 - dis_s1 CHR ''t'') + t)))
+           (EState (estate.None, dis_s2(CHR ''t'' := dis_s2 CHR ''t'' + (pd1 - dis_s1 CHR ''t'') + t)))) = 
+(\<lambda>t. ParState
+           (EState
+             (Task RUNNING (Suc 0) 1, task_s2
+              (CHR ''t'' := task_s2 CHR ''t'' + (t + (pd1 - dis_s1 CHR ''t'')), CHR ''c'' := task_s2 CHR ''c'' + (t + (pd1 - dis_s1 CHR ''t'')))))
+           (EState (estate.None, dis_s2(CHR ''t'' := dis_s2 CHR ''t'' + (t + (pd1 - dis_s1 CHR ''t''))))))"
+                          apply(rule ext)
+                          by auto
+                          have c:"(dis_s2
+          (CHR ''t'' :=
+             dis_s2 CHR ''t'' + (pd1 - dis_s1 CHR ''t'') +
+             min (pd2 - (task_s2 CHR ''t'' + (pd1 - dis_s1 CHR ''t''))) (pc2 - (task_s2 CHR ''c'' + (pd1 - dis_s1 CHR ''t''))))) = 
+(dis_s2(CHR ''t'' := dis_s2 CHR ''t'' + min (pd2 - task_s2 CHR ''t'') (pc2 - task_s2 CHR ''c'')))"
+                            apply (subst a)
+                            by auto
+                          have d:"(task_s2
+          (CHR ''t'' :=
+             task_s2 CHR ''t'' + (pd1 - dis_s1 CHR ''t'') +
+             min (pd2 - (task_s2 CHR ''t'' + (pd1 - dis_s1 CHR ''t''))) (pc2 - (task_s2 CHR ''c'' + (pd1 - dis_s1 CHR ''t''))),
+           CHR ''c'' :=
+             task_s2 CHR ''c'' + (pd1 - dis_s1 CHR ''t'') +
+             min (pd2 - (task_s2 CHR ''t'' + (pd1 - dis_s1 CHR ''t''))) (pc2 - (task_s2 CHR ''c'' + (pd1 - dis_s1 CHR ''t'')))))=
+(task_s2
+          (CHR ''t'' := task_s2 CHR ''t'' + min (pd2 - task_s2 CHR ''t'') (pc2 - task_s2 CHR ''c''),
+           CHR ''c'' := task_s2 CHR ''c'' + min (pd2 - task_s2 CHR ''t'') (pc2 - task_s2 CHR ''c'')))"
+                            apply(subst a)+
+                            by auto
+                        show ?thesis
+                          apply simp
+                          apply(rule disjI2)
+                          using pre'(3)
+                          apply(subst a)
+                          apply(subst b)  
+                          apply(subst c)
+                          apply(subst d)
+                          by auto
+                      qed
+                      using pre pre' 
+                      unfolding propc1_def proper1_def properp_def by auto
+                    done
+                  subgoal
+                    apply(erule disjE)
+                    subgoal
+                      subgoal premises pre
+                      thm pre
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(15))
+                          apply(rule pre(16))
+                       apply(rule pre(5)) 
+                       apply(rule entails_tassn_trans)
+                       apply(rule combine_wait_orig_waitin_tguar'_vassm'2')
+                      subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                      apply(auto simp del:fun_upd_apply tdsch2'.simps)
+                      apply(rule entails_tassn_trans)
+                       apply(rule wait_orig_assn_tran)
+                      apply(rule combine_out_0assm_srdy_waitin_tguar'_vassm'2[where R = "false\<^sub>A"])
+                      subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                      by(auto simp add: false_assn_def entails_tassn_def wait_orig_assn.simps)
+                    done
+                  apply(erule disjE)
+                  subgoal premises pre
+                    apply simp
+                    apply(rule disjI2)
+                      thm pre
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(15))
+                          apply(rule pre(16))
+                       apply(rule pre(5)) 
+                       apply(rule entails_tassn_trans)
+                       apply(rule combine_wait_orig_waitin_tguar'_vassm'2')
+                      subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                      apply(auto simp del:fun_upd_apply tdsch2'.simps)
+                      apply(rule wait_orig_assn_tran)
+                      apply(rule entails_tassn_trans)
+                       apply(rule combine_out_0assm_srdy_waitin_tguar'_vassm'1)
+                      subgoal by auto
+                       apply(subgoal_tac "p=[]")
+                        prefer 2
+                      subgoal using properl1_p7 pre unfolding proper1_def by auto
+                      apply (auto simp del: fun_upd_apply tdsch2'.simps)
+                      unfolding combine_assn_def entails_tassn_def
+                      apply clarify
+                      subgoal premises pre' for tr tr1 tr2
+                      thm pre'
+                      apply(rule pre(1)[where ?tr1.0 = tr1 and ?tr2.0 = tr2])
+                             apply simp
+                      using pre pre' 
+                      unfolding propc1_def proper1_def properp_def by auto
+                    done
+                  subgoal premises pre
+                      thm pre
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(15))
+                          apply(rule pre(16))
+                       apply(rule pre(5)) 
+                       apply(rule entails_tassn_trans)
+                       apply(rule combine_wait_orig_waitin_tguar'_vassm'2')
+                      subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                      apply(auto simp del:fun_upd_apply tdsch2'.simps)
+                      apply(rule entails_tassn_trans)
+                       apply(rule wait_orig_assn_tran)
+                      apply(rule combine_out_0assm_srdy_waitin_tguar'_vassm'2[where R = "false\<^sub>A"])
+                      subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                      by(auto simp add: false_assn_def entails_tassn_def wait_orig_assn.simps)
+                    done
+                  done
+                done
+              subgoal
+                apply(simp del:tdsch2'.simps)
+                apply(cases "ent2 = Suc 0")
+                 prefer 2 subgoal by auto
+                apply(simp del:tdsch2'.simps)
+                   apply(erule disjE)
+                  subgoal
+                    apply(erule disjE)
+                     apply(subgoal_tac "rn = 2")
+                      prefer 2 subgoal unfolding propc1_def by auto
+                     apply(simp del:tdsch2'.simps)
+                    subgoal premises pre
+                      apply simp
+                      thm pre
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(15))
+                          apply(rule pre(16))
+                         apply(rule pre(5))  
+                      apply(rule entails_tassn_trans)
+                       apply(rule combine_waitin_tguar'_vassm'_out_0assm1')
+                      subgoal by auto
+                      apply(simp del:tdsch2'.simps fun_upd_apply)
+                      unfolding combine_assn_def entails_tassn_def
+                      apply clarify
+                      subgoal premises pre' for tr tr1 tr2
+                      thm pre'
+                      apply(rule pre(1)[where ?tr1.0 = tr1 and ?tr2.0 = tr2])
+                             apply simp
+                      using pre pre' 
+                      unfolding propc1_def proper1_def properp_def by auto
+                    done
+                  apply(erule disjE)
+                  subgoal premises pre
+                      thm pre
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(15))
+                          apply(rule pre(16))
+                         apply(rule pre(5))  
+                      apply(rule combine_waitin_tguar'_vassm'_in_0orig_vassm'1)
+                      by auto   
+                    apply(erule disjE)
+                  subgoal premises pre
+                      thm pre
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(15))
+                          apply(rule pre(16))
+                         apply(rule pre(5))  
+                      apply(rule combine_waitin_tguar'_vassm'_in_0orig_vassm'1)
+                      by auto
+                  subgoal premises pre
+                      thm pre
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(15))
+                          apply(rule pre(16))
+                         apply(rule pre(5))  
+                      apply(rule combine_waitin_tguar'_vassm'_in_0orig_vassm'1)
+                      by auto
+                    done
+                  apply(subgoal_tac"rn =2 \<and> p=[]")
+                   prefer 2 subgoal using properl1_p7 unfolding proper1_def propc1_def  by auto
+                  apply(simp del:tdsch2'.simps fun_upd_apply)
+                  apply(erule disjE)
+                  subgoal premises pre
+                      thm pre
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(15))
+                          apply(rule pre(17))
+                       apply(rule pre(5)) 
+                      apply(rule entails_tassn_trans)
+                       apply(rule combine_wait_orig_out_0assm1)
+                      subgoal by auto
+                      apply(simp del:tdsch2'.simps fun_upd_apply)
+                      apply clarify
+                      apply(rule combine_out_0assm_srdy_out_0assm1)
+                      by auto
+                    apply(erule disjE)
+                  subgoal premises pre
+                      thm pre
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(15))
+                          apply(rule pre(17))
+                       apply(rule pre(5)) 
+                      apply(rule entails_tassn_trans)
+                       apply(rule combine_wait_orig_in_0orig_vassm'1)
+                      subgoal by auto
+                      apply(simp del:tdsch2'.simps fun_upd_apply add:pre)
+                      apply clarify
+                      apply(rule combine_out_0assm_srdy_in_0orig_vassm'2)
+                      by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                    apply(erule disjE)
+                    subgoal premises pre
+                      apply simp
+                      apply(rule disjI2)
+                      thm pre
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(15))
+                          apply(rule pre(17))
+                       apply(rule pre(5)) 
+                      apply(rule entails_tassn_trans)
+                       apply(rule combine_wait_orig_in_0orig_vassm'1)
+                      subgoal by auto
+                      apply(simp del:tdsch2'.simps fun_upd_apply)
+                      apply clarify
+                      apply(rule entails_tassn_trans)
+                       apply(rule combine_out_0assm_srdy_in_0orig_vassm'1)
+                      subgoal by auto
+                      unfolding combine_assn_def entails_tassn_def
+                      apply clarify
+                      subgoal premises pre' for tr tr1 tr2
+                      thm pre'
+                      apply(rule pre(1)[where ?tr1.0 = tr1 and ?tr2.0 = tr2])
+                             apply simp
+                      using pre pre' 
+                      unfolding propc1_def proper1_def properp_def by auto
+                    done
+                    subgoal premises pre
+                      thm pre
+                        apply(rule combine_blocks_assn)
+                          apply(rule pre(15))
+                          apply(rule pre(17))
+                       apply(rule pre(5)) 
+                      apply(rule entails_tassn_trans)
+                       apply(rule combine_wait_orig_in_0orig_vassm'1)
+                      subgoal by auto
+                      apply(simp del:tdsch2'.simps fun_upd_apply add:pre)
+                      apply clarify
+                      apply(rule combine_out_0assm_srdy_in_0orig_vassm'2)
+                      by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
+                    done
+                  subgoal
+                    unfolding propc1_def by auto
+                  done
+                by auto
+              subgoal apply(cases task_es1) by auto
+              subgoal apply(cases task_es1) by auto
+              done
+            done
+          done
+        done
+      done
+  qed
 
 
 end
