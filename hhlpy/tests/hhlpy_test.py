@@ -28,6 +28,7 @@ def runFile(self, file,
         pre=hoare_triple.pre, 
         hp=hoare_triple.hp,
         post=hoare_triple.post,
+        constants=hoare_triple.constants,
         functions=hoare_triple.functions)
     
     if andR_rule:

@@ -160,10 +160,11 @@ grammar = r"""
     ?cmd: select_cmd
 
     ?function_decl: "function" CNAME "(" CNAME ("," CNAME)* ")" "=" expr ";"
+    ?constants_decl: "constants" (expr ";")* "end"  -> constants_decl
 
     ?hoare_pre : "pre" (ord_assertion)* ";" -> hoare_pre
     ?hoare_post : "post" (ord_assertion)* ";" -> hoare_post
-    ?hoare_triple: (function_decl)* hoare_pre cmd hoare_post
+    ?hoare_triple: constants_decl? (function_decl)* hoare_pre cmd hoare_post
 
     ?procedure: "procedure" CNAME "begin" cmd "end"
 
@@ -555,6 +556,13 @@ class HPTransformer(Transformer):
         else:
             return hcsp.Parallel(*args, meta=meta)
 
+    def constants_decl(self, meta, *args):
+        preds = list(args)
+        vars = set()
+        for pred in preds:
+            vars.union(pred.get_vars())
+        return hcsp.Constants(vars, preds)
+
     def function_decl(self, meta, *args):
         name = str(args[0])
         vars = list(str(var) for var in args[1:-1])
@@ -573,12 +581,17 @@ class HPTransformer(Transformer):
         hp = args[-2]
         post = args[-1]
 
-        # The other arguments are functions
+        # The other arguments are constants or functions
         functions = dict()
+        constants = hcsp.Constants()
         for item in args[:-3]:
-            assert isinstance(item, hcsp.Function);
-            functions[item.name] = item
-        return hcsp.HoareTriple(pre, hp, post, functions=functions, meta=meta)
+            if isinstance(item, hcsp.Constants):
+                constants = item
+            elif isinstance(item, hcsp.Function):
+                functions[item.name] = item
+            else:
+                raise NotImplementedError
+        return hcsp.HoareTriple(pre, hp, post, constants=constants, functions=functions, meta=meta)
 
     def module_sig(self, meta, *args):
         return tuple(str(arg) for arg in args)

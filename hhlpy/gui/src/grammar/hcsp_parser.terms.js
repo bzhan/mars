@@ -2,11 +2,11 @@
 export const
   LineComment = 1,
   hoare_triple = 2,
-  CNAME = 3,
-  SIGNED_NUMBER = 32,
-  SeqCmd = 75,
-  Loop_invariant = 98,
-  Invariant = 99,
-  OdeNoInv = 103,
-  Ode_invariant = 105,
-  InvariantWithRule = 106
+  CNAME = 5,
+  SIGNED_NUMBER = 28,
+  SeqCmd = 76,
+  Loop_invariant = 99,
+  Invariant = 100,
+  OdeNoInv = 104,
+  Ode_invariant = 106,
+  InvariantWithRule = 107

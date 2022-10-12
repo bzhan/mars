@@ -1,7 +1,7 @@
 """Hybrid programs"""
 
 from collections import OrderedDict
-from typing import List, Union
+from typing import List, Union, Set
 
 from ss2hcsp.hcsp.expr import Expr, AVar, AConst, Expr, true_expr, false_expr, RelExpr, LogicExpr, Expr
 from ss2hcsp.hcsp import assertion
@@ -1368,13 +1368,29 @@ def get_comm_chs(hp):
     rec(hp)
     return list(OrderedDict.fromkeys(collect))
 
+class Constants:
+    """Represent constants in a program.
+    -vars: a set of constant vars
+    -preds: a list of constant predicates"""
+    def __init__(self, vars=set(), preds=list()):
+        assert isinstance(vars, set)
+        assert isinstance(preds, list)
+        self.vars: Set[str] = vars
+        self.preds: List[Expr] = preds
+
+    def __str__(self):
+        return "constants " + ";".join([str(pred) for pred in self.preds])
+
+
 class HoareTriple:
     """A program with pre- and post-conditions"""
-    def __init__(self, pre, hp, post, functions=None, meta=None):
+    def __init__(self, pre, hp, post, constants=Constants(), functions=None, meta=None):
         self.pre = list(pre)
         self.post = list(post)
         assert all(isinstance(subpost, assertion.OrdinaryAssertion) for subpost in post)
         self.hp = hp
+        assert isinstance(constants, Constants)
+        self.constants = constants
         if functions is None:
             functions = dict()
         self.functions = functions

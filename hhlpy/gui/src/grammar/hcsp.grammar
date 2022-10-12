@@ -1,7 +1,7 @@
 
 // Capital letters indicate that the rule produces a node in the parse tree!
 // When changing this file, regenerate the grammar: 
-// lezer-generator ./src/grammar/hcsp.grammar > ./src/grammar/hcsp_parser.js
+// lezer-generator ./src/grammar/hcsp.grammar -o ./src/grammar/hcsp_parser.js
 
 @precedence { conj @right, disj @right, equiv @right, imp @right }
 
@@ -222,12 +222,12 @@ inv_rule {
 }
 ode_rule { "solution" }
 
-
+constants_decl { "constants" (expr ";")* "end"}
 function_decl { "function" CNAME "(" CNAME ("," CNAME)* ")" "=" expr ";" }
 
 hoare_pre { "pre" ("[" expr "]")* ";" }
 hoare_post { "post" (ord_assertion)* ";" }
-@top hoare_triple { function_decl* hoare_pre cmd hoare_post }
+@top hoare_triple { constants_decl? function_decl* hoare_pre cmd hoare_post }
 
 parallel_cmd { cmd ("||" cmd)* }  // Priority 30, outermost level only
 
@@ -316,7 +316,7 @@ Decls {
   @precedence { 
     SIGNED_NUMBER, "-", "pre", "post",
     "true", "false", "gcd", "if", "else", "log", "max", "min", "rec", "skip", 
-    "test", "wait", "\\exists", "\\forall", "assert", "invariant", "solution", CNAME }
+    "test", "wait", "\\exists", "\\forall", "assert", "invariant", "solution", "end", CNAME }
 
   @precedence {
     LineComment, "/" 

@@ -356,12 +356,17 @@ class OriginLoc:
 
 class CmdVerifier:
     """Contains current state of verification of an HCSP program."""
-    def __init__(self, *, pre, hp, post, functions=dict()):
+    def __init__(self, *, pre, hp, post, constants, functions=dict()):
         # The HCSP program to be verified.
         self.hp = hp
 
         # The list of post conditions of the whole HCSP program
         self.post = post
+
+        # The constants object of the HCSP program
+        self.constants = constants
+        # The list of constant predicates, for example, [g == 9.8, pi == 3.14]
+        self.constant_preds = [pred for pred in constants.preds]
 
         # Mapping from program position to CmdInfo objects.
         self.infos = dict()
@@ -559,6 +564,22 @@ class CmdVerifier:
                     categ=vc.categ,
                     isVC=True
                     )
+
+    def add_vc_constants(self, pos):
+        # Add constant predicates into the hypothesis of every verification condition.
+        if self.constant_preds:
+            constant_preds = expr.list_conj(*self.constant_preds)
+            for i in range(len(self.infos[pos].vcs)):
+                    vc = self.infos[pos].vcs[i]
+                    self.infos[pos].vcs[i] = Condition(
+                        expr=expr.imp(constant_preds, vc.expr), 
+                        path=vc.path,
+                        blabel=vc.blabel,
+                        origins=vc.origins,
+                        bottom_loc=vc.bottom_loc, 
+                        categ=vc.categ,
+                        isVC=True
+                        )  
 
     def compute_wp(self, *, pos=((),())):
         """Compute weakest-preconditions using the given information."""
@@ -1148,6 +1169,7 @@ class CmdVerifier:
 
                     # Add the assume into the hypothesis of every verification condition at sub_pos.
                     self.add_vc_assume(sub_pos)
+                    self.add_vc_constants(sub_pos)
              
                 pre = pre_dw
                 
@@ -1255,7 +1277,8 @@ class CmdVerifier:
 
         # Add assume into the hypothesis of every verification condition at pos.
         self.add_vc_assume(pos)
-        
+        self.add_vc_constants(pos)
+
     def convert_imp(self, e):
         """Convert implication from (p -> q -> u) to (p && q) -> u,
         in which the right expression won't be an implication """
@@ -1299,7 +1322,7 @@ class CmdVerifier:
     def get_all_vcs(self):
         all_vcs = dict()
         for pos, info in self.infos.items():   
-            if info.vcs:
+            if info.vcs:    
                 all_vcs[pos] = info.vcs
         return all_vcs
 

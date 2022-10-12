@@ -38,6 +38,7 @@ def runCompute(code):
         pre=hoare_triple.pre, 
         hp=hoare_triple.hp,
         post=hoare_triple.post,
+        constants=hoare_triple.constants,
         functions=hoare_triple.functions)
 
     # Compute wp and verify
@@ -49,9 +50,14 @@ def runCompute(code):
     for _, vcs in verifier.get_all_vcs().items():
 
         for vc in vcs:
-            assume = split_imp(vc.expr)[:-1]
-            show = split_imp(vc.expr)[-1] 
 
+            show = split_imp(vc.expr)[-1] 
+            if hoare_triple.constants.preds:
+                constants = split_imp(vc.expr)[0]
+                assume = split_imp(vc.expr)[1:-1]
+            else:
+                constants = None
+                assume = split_imp(vc.expr)[:-1]            
 
             # Get the proof method
             label_computed = vc.comp_label
@@ -153,6 +159,7 @@ def runCompute(code):
 
             vc_infos.append({
                 "formula": str(vc.expr),
+                "constants": str(constants),
                 "assume": [str(asm) for asm in assume],
                 "show": str(show),
                 "label": str(vc.comp_label),
