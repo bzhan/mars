@@ -41,9 +41,9 @@ inductive out_0assm_rdy_assn :: "cname \<Rightarrow> real \<Rightarrow> rdy_info
   "P tr \<Longrightarrow> (out_0assm_rdy_assn ch v rdy P) (OutBlock ch v # tr)"
 | "d > 0 \<Longrightarrow> (out_0assm_rdy_assn ch v rdy P) (WaitBlk d p rdy # tr)"
 
-inductive out_0assm_prdy_assn :: "cname \<Rightarrow> real \<Rightarrow> (rdy_info \<Rightarrow> bool) \<Rightarrow> 'a tassn \<Rightarrow> 'a tassn" where
-  "P tr \<Longrightarrow> (out_0assm_prdy_assn ch v prdy P) (OutBlock ch v # tr)"
-| "d > 0 \<Longrightarrow> prdy rdy \<Longrightarrow> (out_0assm_prdy_assn ch v prdy P) (WaitBlk d p rdy # tr)"
+inductive out_0assm_srdy_assn :: "cname \<Rightarrow> real \<Rightarrow> rdy_info \<Rightarrow> 'a tassn \<Rightarrow> 'a tassn" where
+  "P tr \<Longrightarrow> (out_0assm_srdy_assn ch v srdy P) (OutBlock ch v # tr)"
+| "d > 0 \<Longrightarrow> fst srdy \<subseteq> fst rdy \<Longrightarrow> snd srdy \<subseteq> snd rdy\<Longrightarrow> (out_0assm_srdy_assn ch v srdy P) (WaitBlk d p rdy # tr)"
 
 lemma out_orig_assn_tran:
   assumes "P \<Longrightarrow>\<^sub>t Q"
@@ -119,19 +119,19 @@ lemma out_0assm_rdy_assn_tran:
     done
   done
 
-lemma out_0assm_prdy_assn_tran:
+lemma out_0assm_srdy_assn_tran:
   assumes"P \<Longrightarrow>\<^sub>t Q "
-  shows "out_0assm_prdy_assn ch v prdy P \<Longrightarrow>\<^sub>t out_0assm_prdy_assn ch v prdy Q"
+  shows "out_0assm_srdy_assn ch v prdy P \<Longrightarrow>\<^sub>t out_0assm_srdy_assn ch v prdy Q"
   unfolding entails_tassn_def
   apply auto
   subgoal for tr
-    apply(cases rule: out_0assm_prdy_assn.cases[of ch v prdy P tr])
+    apply(cases rule: out_0assm_srdy_assn.cases[of ch v prdy P tr])
         apply auto
     subgoal for tr'
-      apply(rule out_0assm_prdy_assn.intros(1))
+      apply(rule out_0assm_srdy_assn.intros(1))
       using assms by(auto simp add: entails_tassn_def)
     subgoal for d p tr'
-      apply(rule out_0assm_prdy_assn.intros(2))
+      apply(rule out_0assm_srdy_assn.intros(2))
       using assms by(auto simp add: entails_tassn_def)
     done
   done
@@ -1818,6 +1818,14 @@ lemma combine_out_0assm_emp1:
     by (auto elim!: sync_elims)
   done
 
+lemma combine_out_0assm_srdy_emp1:
+"ch\<in>chs \<Longrightarrow> combine_assn chs (out_0assm_srdy_assn ch v rdy P) emp\<^sub>t \<Longrightarrow>\<^sub>t Q"
+  apply(auto simp add:entails_tassn_def combine_assn_def emp_assn_def)
+  subgoal for tr tr1 
+    apply(cases rule:out_0assm_srdy_assn.cases[of ch v rdy P])
+      apply auto
+    by (auto elim!: sync_elims)
+  done
 
 lemma combine_out_0assm_emp2:
 "ch\<notin>chs \<Longrightarrow> combine_assn chs (out_0assm_assn ch v P) emp\<^sub>t \<Longrightarrow>\<^sub>t (out_0assm_assn ch v (combine_assn chs P emp\<^sub>t))"
@@ -1841,6 +1849,18 @@ lemma combine_out_0assm_rdy_emp2:
        apply (auto elim!: sync_elims)
     subgoal for tr1' tr'
       apply(rule out_0assm_rdy_assn.intros(1))
+      by auto
+    done
+  done
+lemma combine_out_0assm_srdy_emp2:
+"ch\<notin>chs \<Longrightarrow> combine_assn chs (out_0assm_srdy_assn ch v rdy P) emp\<^sub>t \<Longrightarrow>\<^sub>t (out_0assm_srdy_assn ch v rdy' (combine_assn chs P emp\<^sub>t))"
+  apply(auto simp add:entails_tassn_def combine_assn_def emp_assn_def)
+  subgoal for tr tr1 
+    apply(cases rule:out_0assm_srdy_assn.cases[of ch v rdy P])
+      apply auto
+       apply (auto elim!: sync_elims)
+    subgoal for tr1' tr'
+      apply(rule out_0assm_srdy_assn.intros(1))
       by auto
     done
   done
@@ -2282,6 +2302,7 @@ lemma combine_wait_orig_out_0assm2:
       done
     done
   done
+
             
 lemma combine_out_0assm_waitin_assm'1:
   assumes "ch \<in> chs"
