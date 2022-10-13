@@ -29,7 +29,9 @@
 
             <span class="vc-icon">
                 <v-icon name="check-circle" style="fill:green" v-show="vc_info.result === true" scale="1.5"></v-icon>
+                <span v-show="vc_info.result === true" style="color:green">correct</span>
                 <v-icon name="times-circle" style="fill:red" v-show="vc_info.result === false" scale="1.5"></v-icon>
+                <span v-show="vc_info.result === false" style="color:red">wrong</span>
             </span>
 
         </li>

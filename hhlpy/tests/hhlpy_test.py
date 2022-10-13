@@ -1037,6 +1037,9 @@ class AdvancedHHLPyTest(unittest.TestCase):
     def testWatertank(self):
         runFile(self, file="water_tank.hhl")
 
+    def testWatertank2(self):
+        runFile(self, file="water_tank_new_v2.hhl")
+
 
 if __name__ == "__main__":
     unittest.main()
