@@ -738,6 +738,7 @@ class ParaOutputChannel(OutputChannel):
                 result += "[\"" + str(para) + "\"]"
             else:
                 result += "[" + str(para) + "]"
+        result += "!"
         if self.expr:
             result += str(self.expr)
         result += ";"
