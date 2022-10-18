@@ -1,0 +1,51 @@
+%type: module
+
+module Bus_bus0():
+procedure BLOCK begin
+  t := 0;
+  {
+    {t_dot = 1 & t < 0.003} |> [] (
+      block["emerg"] -->
+        skip;
+    )
+  }*(t < 0.003)
+end
+
+procedure BLOCK_by_emerg begin
+  wait(0.003);
+end
+
+begin
+  {
+    reqBus["emerg"]? -->
+      outputs["emerg"]["cmd"]?cmd;
+      @BLOCK_by_emerg;
+      outputs["bus0"]["cmd"]cmd; $
+    outputs["camera"]["img"]?img -->
+      @BLOCK;
+      outputs["bus0"]["img"]img; $
+    outputs["radar"]["obs_pos_radar"]?obs_pos_radar -->
+      @BLOCK;
+      outputs["bus0"]["obs_pos_radar"]obs_pos_radar; $
+    outputs["GPS"]["veh_pos"]?veh_pos -->
+      @BLOCK;
+      outputs["bus0"]["veh_pos"]veh_pos; $
+    outputs["laser"]["laser_valid"]?laser_valid -->
+      outputs["laser"]["laser_v"]?laser_v;
+      @BLOCK;
+      outputs["bus0"]["laser_valid"]laser_valid;
+      outputs["bus0"]["laser_v"]laser_v; $
+    outputs["wheel"]["wheel_valid"]?wheel_valid -->
+      outputs["wheel"]["wheel_v"]?wheel_v;
+      @BLOCK;
+      outputs["bus0"]["wheel_valid"]wheel_valid;
+      outputs["bus0"]["wheel_v"]wheel_v; $
+    outputs["user_panel"]["event"]?event -->
+      @BLOCK;
+      outputs["bus0"]["event"]event; $
+    unblock["emerg"] -->
+      skip;
+  }*
+end
+endmodule
+

@@ -511,7 +511,7 @@ class SL_Diagram:
                 block_type = get_attribute_value(block, "SourceType")
                 if block_type and block_type.startswith("PID"):
                     controller = get_attribute_value(block, "Controller")
-                    st = eval(get_attribute_value(block, "SampleTime"))
+                    st = Decimal(eval(get_attribute_value(block, "SampleTime")))
                     assert get_attribute_value(block, "IntegratorMethod") == "Backward Euler"
                     assert get_attribute_value(block, "FilterMethod") == "Forward Euler"
                     assert get_attribute_value(block, "AntiWindupMode") == "back-calculation"
