@@ -182,10 +182,22 @@ def simplize(info):
                     else:
                         target = v['target']
                         target_port = v['target_port']
-                    output[k]['source'] = source
-                    output[k]['source_port'] = source_port
-                    output[k]['target'] = target
-                    output[k]['target_port'] = target_port
+                    if isinstance(source,list):
+                        output[k]['source'] = source[0]
+                    else:
+                        output[k]['source'] = source
+                    if isinstance(source_port, list):
+                        output[k]['source_port'] = source_port[0]
+                    else:
+                        output[k]['source_port'] = source_port
+                    if isinstance(target, list):
+                        output[k]['target'] = target
+                    else:
+                        output[k]['target'] = [target]
+                    if isinstance(target_port, list):
+                        output[k]['target_port'] = target_port
+                    else:
+                        output[k]['target_port'] = [target_port]
                     output[k]["category"] = "connection"
             if "actual_connection_binding" in value.keys():
                 for k, v in value["actual_connection_binding"].items():

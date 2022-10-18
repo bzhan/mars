@@ -2,7 +2,7 @@ package platform
 public
 	bus bus0
 		properties
-			latency => 3ms..3ms;
+			latency => 3ms;
 	end bus0;
 	
 	bus implementation bus0.imp0

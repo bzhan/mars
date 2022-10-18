@@ -8,7 +8,6 @@ from ss2hcsp.hcsp import hcsp as hp
 class DiscretePID(SL_Block):
     """Block for unit delay."""
     def __init__(self, name, controller="PI", st=-1, pid=(), init_value=0, saturation=(), kb=0):
-        super(DiscretePID, self).__init__()
         self.name = name
         self.type = "discrete_PID_controller"
         self.is_continuous = False
@@ -64,5 +63,5 @@ class DiscretePID(SL_Block):
 
         time_cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
 
-        return hp.Condition(cond=time_cond,
-                            hp=hp.Sequence(step0, step1, step2, step3, step4, step5, step6, step7, step8))
+        return hp.ITE([(time_cond,
+            hp.Sequence(step0, step1, step2, step3, step4, step5, step6, step7, step8))])

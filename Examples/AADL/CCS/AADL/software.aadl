@@ -98,11 +98,11 @@ public
 			deadline => 7ms;
 			compute_execution_time => 1ms;
 			priority => 1;
-	end PI_ctr
+	end PI_ctr;
 
 	thread implementation PI_ctr.imp
 	    annex Simulink{** ./Examples/AADL/CCS/Simulink/PI_ctr_imp.xml **};
-	end PI_ctr.imp
+	end PI_ctr.imp;
 	
 	-- compute acceleration
 	thread emerg
@@ -166,7 +166,7 @@ public
 			des_v: out data port;
 		properties
 			dispatch_protocol => (aperiodic);
-			compute_execution_time => 10ms..10ms;
+			compute_execution_time => 10ms;
 			deadline => 100ms;
 	end pan_ctr_th;
 	

@@ -59,7 +59,7 @@ public
 	end laser;
 	
 	device implementation laser.imp
-		annex HCSP{** { inputs["PHY_vehicle_imp"]["veh_v_l"]?data; t := 0; {t_dot = 1 & t < 0.01} |> [] (outputs["laser"]["laser_valid"]!1.0 --> error := 0; x := data + error; outputs["laser"]["laser_v"]!data+error;) {t_dot = 1 & t < 0.01} }* **};
+		annex HCSP{** { inputs["PHY_vehicle_imp"]["veh_v_l"]?data; t := 0; {t_dot = 1 & t < 0.01} |> [] (outputs["laser"]["laser_valid"]!1.0 --> {error := 0; x := data + error; outputs["laser"]["laser_v"]!(data+error);}) {t_dot = 1 & t < 0.01} }* **};
 	end laser.imp;
 	
 	device wheel
@@ -73,7 +73,7 @@ public
 	end wheel;
 	
 	device implementation wheel.imp
-		annex HCSP{** { inputs["PHY_vehicle_imp"]["veh_v_w"]?data; t := 0; {t_dot = 1 & t < 0.01} |> [] (outputs["wheel"]["wheel_valid"]!1.0 --> error := 0; x := data + error; outputs["wheel"]["wheel_v"]!data+error;); {t_dot = 1 & t < 0.01} }* **};
+		annex HCSP{** { inputs["PHY_vehicle_imp"]["veh_v_w"]?data; t := 0; {t_dot = 1 & t < 0.01} |> [] (outputs["wheel"]["wheel_valid"]!1.0 --> {error := 0; x := data + error; outputs["wheel"]["wheel_v"]!(data+error);}) {t_dot = 1 & t < 0.01} }* **};
 	end wheel.imp;
 	
 	device user_panel

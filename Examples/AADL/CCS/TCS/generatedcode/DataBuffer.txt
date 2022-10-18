@@ -1,0 +1,16 @@
+%type: module
+
+module DataBuffer1(send,out_port,recv0,in_port0,init_value):
+begin
+  data := init_value;
+  {
+    {data_dot = 0 & true} |> [] (
+      outputs[send][out_port]?data -->
+        skip;,
+      inputs[recv0][in_port0]data -->
+        skip;
+    )
+  }*
+end
+endmodule
+

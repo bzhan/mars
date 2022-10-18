@@ -7,7 +7,6 @@ from aadl2hcsp import json2hcsp3
 from ss2hcsp.aadl.get_modules import get_databuffer_module
 from ss2hcsp.hcsp import module
 
-
 class Json2HCSP3Test(unittest.TestCase):
     def testJson2HCSP3(self):
         json_file = "./output.json"
@@ -22,7 +21,7 @@ class Json2HCSP3Test(unittest.TestCase):
             if content['category'] == 'thread':
                 mod = json2hcsp3.translate_thread(name, content)
                 for _content in dic.values():
-                    if _content['category'] == "connection" and _content['source'] == name and _content['bus']:
+                    if _content['category'] == "connection" and _content['source'] == name and ('bus' in _content.keys()):
                         mod = json2hcsp3.translate_thread(name, content, _content['bus'])
                         break
                 mods.append(mod)
@@ -34,12 +33,15 @@ class Json2HCSP3Test(unittest.TestCase):
                 mods.append(mod)
             elif content['category'] == "connection":
                 if content['type'] == 'data':
-                    recv_num = len(content['targets'])
+                    recv_num = len(content['target'])
                     if recv_num not in dataBuffers:
                         dataBuffers[recv_num] = get_databuffer_module(recv_num)
             elif content['category'] == "bus":
                 bus = json2hcsp3.translate_bus(name, content, dic)
                 buses.append(bus)
+            elif content['category'] == "processor":
+                # processor use for change protocal, remain tobe done
+                continue
             else:
                 raise NotImplementedError
 

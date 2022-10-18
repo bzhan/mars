@@ -110,15 +110,15 @@
     },
     "emerg": {
         "display": [
-            "des_a",
+            "des_v",
             "veh_v",
             "obs_pos",
             "veh_pos",
             "cmd"
         ],
         "input": {
-            "des_a": {
-                "var": "des_a",
+            "des_v": {
+                "var": "des_v",
                 "val": 0.0
             },
             "veh_v": {
@@ -221,5 +221,22 @@
     "tran_des_v": {
         "type": "data",
         "init_value": 0.0
+    },
+    "PI_ctr":{
+       "display": [
+        "des_v",
+        "veh_v",
+        "des_a"
+        ],
+        "input": {
+            "des_v": {
+                "var": "des_v",
+                "val": 0.0
+            },
+            "veh_v": {
+                "var": "veh_v",
+                "val": 0.0
+            }
+        }
     }
 }
