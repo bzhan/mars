@@ -7,7 +7,7 @@ begin
     {data_dot = 0 & true} |> [] (
       outputs[send][out_port]?data -->
         skip;,
-      inputs[recv0][in_port0]data -->
+      inputs[recv0][in_port0]!data -->
         skip;
     )
   }*

@@ -12,15 +12,15 @@ begin
   PHY_vehicle_imp_veh_l_v := 0;
   PHY_vehicle_imp_veh_w_v := 0;
   {
-    inputs["PHY_vehicle_imp"]["veh_s"]s -->
+    inputs["PHY_vehicle_imp"]["veh_s"]!s -->
       PHY_vehicle_imp_veh_s := 1; $
-    inputs["PHY_vehicle_imp"]["veh_v_l"]v -->
+    inputs["PHY_vehicle_imp"]["veh_v_l"]!v -->
       PHY_vehicle_imp_veh_v_l := 1; $
-    inputs["PHY_vehicle_imp"]["veh_v_w"]v -->
+    inputs["PHY_vehicle_imp"]["veh_v_w"]!v -->
       PHY_vehicle_imp_veh_v_w := 1; $
-    inputs["PHY_vehicle_imp"]["veh_l_v"]veh_l_v -->
+    inputs["PHY_vehicle_imp"]["veh_l_v"]!veh_l_v -->
       PHY_vehicle_imp_veh_l_v := 1; $
-    inputs["PHY_vehicle_imp"]["veh_w_v"]veh_w_v -->
+    inputs["PHY_vehicle_imp"]["veh_w_v"]!veh_w_v -->
       PHY_vehicle_imp_veh_w_v := 1;
   }*(PHY_vehicle_imp_veh_s == 0 || PHY_vehicle_imp_veh_v_l == 0 || PHY_vehicle_imp_veh_v_w == 0 || PHY_vehicle_imp_veh_l_v == 0 || PHY_vehicle_imp_veh_w_v == 0)
   outputs["PHY_vehicle_imp"]["veh_a"]?a;
@@ -28,15 +28,15 @@ begin
     {v_dot = a, s_dot = v & true} |> [] (
       outputs["PHY_vehicle_imp"]["veh_a"]?a -->
         skip;,
-      inputs["PHY_vehicle_imp"]["veh_s"]s -->
+      inputs["PHY_vehicle_imp"]["veh_s"]!s -->
         skip;,
-      inputs["PHY_vehicle_imp"]["veh_v_l"]v -->
+      inputs["PHY_vehicle_imp"]["veh_v_l"]!v -->
         skip;,
-      inputs["PHY_vehicle_imp"]["veh_v_w"]v -->
+      inputs["PHY_vehicle_imp"]["veh_v_w"]!v -->
         skip;,
-      inputs["PHY_vehicle_imp"]["veh_l_v"]veh_l_v -->
+      inputs["PHY_vehicle_imp"]["veh_l_v"]!veh_l_v -->
         skip;,
-      inputs["PHY_vehicle_imp"]["veh_w_v"]veh_w_v -->
+      inputs["PHY_vehicle_imp"]["veh_w_v"]!veh_w_v -->
         skip;
     )
   }*
