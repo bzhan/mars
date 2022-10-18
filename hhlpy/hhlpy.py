@@ -10,16 +10,15 @@ import copy
 from sympy import sympify, degree, symbols, factor_list, fraction, simplify
 
 from hhlpy.sympy_wrapper import sp_polynomial_div, sp_simplify, sp_is_polynomial
-from hhlpy.wolframengine_wrapper import solveODE
-from hhlpy.wolframengine_wrapper import wl_prove
-from hhlpy.wolframengine_wrapper import wl_simplify, wl_polynomial_div, wl_is_polynomial
+from hhlpy.wolframengine_wrapper import solveODE, wl_prove
+from hhlpy.wolframengine_wrapper import wl_simplify, wl_polynomial_div, wl_is_polynomial, found_wolfram
 from hhlpy.z3wrapper import z3_prove
 from ss2hcsp.hcsp import hcsp, expr, assertion, label
 from ss2hcsp.hcsp.parser import expr_parser, expr_parser
 from ss2hcsp.hcsp.simulator import get_pos
 
 
-def compute_diff(e, eqs_dict):
+def compute_diff(e, eqs_dict, functions):
     """Compute differential of an arithmetic or boolean expression."""
     def rec(e):
         if isinstance(e, expr.LogicExpr):
@@ -49,6 +48,8 @@ def compute_diff(e, eqs_dict):
         elif isinstance(e, expr.FunExpr):
             if len(e.exprs) == 0:
                 return expr.AConst(0)      
+            elif e.fun_name in functions:
+                return rec(expr.replace_function(e, functions))
             else:
                 raise NotImplementedError
         elif isinstance(e, expr.AVar):
@@ -74,7 +75,7 @@ def compute_diff(e, eqs_dict):
                 mid_expr = expr.OpExpr("^", e.exprs[0], expr.OpExpr("-", e.exprs[1], expr.AConst(1)))
                 return expr.OpExpr("*", e.exprs[1], expr.OpExpr("*", mid_expr, du)) 
             elif e.op == '/':
-                # d(u/v) = (u*dv + du * v)/ v^2
+                # d(u/v) = (du * v - u * dv)/ v^2   u'v-uv')/v²
                 # If v is constant, d(u/v) = 1/v * du, which is easier than using above rule.
                 if isinstance(e.exprs[1], expr.AConst) or \
                    isinstance(e.exprs[1], expr.FunExpr) and len(e.exprs == 0): # actually a constant
@@ -83,7 +84,7 @@ def compute_diff(e, eqs_dict):
                 else:
                     du = rec(e.exprs[0])
                     dv = rec(e.exprs[1])
-                    numerator = expr.OpExpr("+", expr.OpExpr("*", e.exprs[0], dv), expr.OpExpr("*", du, e.exprs[1]))
+                    numerator = expr.OpExpr("-", expr.OpExpr("*", du, e.exprs[1]), expr.OpExpr("*", e.exprs[0], dv))
                     denominator = expr.OpExpr('*', e.exprs[1], e.exprs[1])
                     return expr.OpExpr('/', numerator, denominator)            
             else:
@@ -133,6 +134,35 @@ def compute_boundary(e):
             return expr.LogicExpr('||', disj1, disj2)
         elif e.op == '!':
             return compute_boundary(expr.neg_expr(e.exprs[0]))
+        else:
+            raise NotImplementedError
+    else:
+        raise NotImplementedError
+
+def compute_closed_set(e):
+    """Compute the closed set for an open interval"""
+    if isinstance(e, expr.RelExpr):
+        if e.op == '<':
+            return expr.RelExpr("<=", e.expr1, e.expr2)
+        elif e.op == '>':
+            return expr.RelExpr(">=", e.expr1, e.expr2)
+        elif e.op == '!=':
+            return expr.true_expr
+        else:
+            raise NotImplementedError
+
+    elif isinstance(e, expr.LogicExpr):
+        if e.op == '&&':
+            return expr.LogicExpr('&&', compute_closed_set(e.exprs[0]), compute_closed_set(e.exprs[1]))
+        elif e.op == '||':
+            return expr.LogicExpr('||', compute_closed_set(e.exprs[0]), compute_closed_set(e.exprs[1]))
+        elif e.op == '!':
+            return compute_closed_set(expr.neg_expr(e))
+        else:
+            raise NotImplementedError
+
+    else:
+        raise NotImplementedError
 
 # Return the relexpression 'denomibator != 0' for term e.           
 def demoninator_not_zero(e):
@@ -157,14 +187,14 @@ def create_newvar(s, names):
     if s not in names:
         return expr.AVar(s)
     # Increase the suffix number until it's a new variable name.
-    suffix_n = 0
+    suffix_n = 1
     while (s + str(suffix_n) in names):
         suffix_n = suffix_n + 1
     return expr.AVar(s + str(suffix_n))
 
 
 class CmdInfo:
-    """Information associated to each HCSP program."""
+    """Information associated to each HCSP program branch."""
     def __init__(self):
         # Pre-condition and post-condition are assertions.
         self.pre = None
@@ -211,8 +241,10 @@ class CmdInfo:
         # Ghost invariants for new ODEs in which ghost equation is added.
         self.ghost_inv = None
 
-        # Name of the ghost variable
-        self.ghost_var = None
+        # Names of related ghost variables
+        # Note that it does not include all ghost variable names of the ODE, but the related ones in this branch.
+        # For example, in the branch with invariant x * y > 0, ghost z is not in ghost_vars.
+        self.ghost_vars = []
 
         # Computed differential equations for ghosts.
         self.ghost_eqs = dict()
@@ -258,33 +290,31 @@ class CmdInfo:
 
 class Condition:
     """Stores a condition(pre-condition, post-condition, verification condition) and the parts of the program that it originates from."""
-    def __init__(self, expr, pos, blabel=None, post_blabel=None, annot_pos=None, categ=None, vc=False, pc = False):
-        assert isinstance(pos, list)
+    def __init__(self, expr, path=[], origins=[], blabel=None, blabel_depth=0, bottom_loc=None, categ=None, isVC=False):
         # The expression stating the condition itself
         self.expr = expr
-        # The positions where the verification condition originates from
-        self.pos = pos
-        # The positions of annotations from which the verification condition originates from
-        self.annot_pos = annot_pos
+        # The positions of hps where the condition originates from
+        self.path = path
+        # The locations of assertions and expressions that the condition originates from
+        self.origins = origins
+        # The location of the bottom-most assertion assocated with the condition
+        self.bottom_loc = bottom_loc
         # The category of VC, used in VC generated by loop and ODE,
         # which can be "init" or "maintain"
         self.categ = categ
-        # Whether this condition is a verification condition or not
-        self.vc = vc
 
-        # The branch label of the last post condition from which the wp is computed from,
-        # only acquired when the Condition is a computed wp, otherwise, set as None by default.
-        self.post_blabel = post_blabel
+        # The depth at which new branch labels are added while computing a wp,
+        # only acquired when the Condition is a computed wp, otherwise, set as 0 by default.
+        self.blabel_depth = blabel_depth
 
         # The branch label of this condition 
         self.blabel = blabel
-        
-        # The composite label of this verification condition, 
-        # set as None by default when this is not a verification condition.
-        self.comp_label = None
 
-        # Compute the composite label when vc is True
-        if self.vc:
+        # Whether this condition is a verification condition or not
+        self.isVC = isVC
+
+        if self.isVC:
+            # Compute the composite label when vc is True
             if self.categ and self.blabel:
                 self.comp_label = label.CompLabel(categ_label=label.CategLabel(categ=self.categ),
                                                   branch_label=self.blabel)
@@ -295,28 +325,54 @@ class Condition:
             else:
                 self.comp_label = None
 
-        # Whether the condition is post-condtion of the whole hp or computed by post-condition of the whole hp
-        self.pc = pc
+            # The solver used to verify this verification condition.
+            # Set as 'z3' by default.
+            self.solver = 'z3'
 
     def __str__(self):
         return str(self.expr)
 
+
+class OriginLoc:
+    """Location of an assertion(pre-condition, post-condition, invariant) or expression
+    that a Condition originates from"""
+    def __init__(self, index=None, isPre=False, isPost=False, isInv=False, isGhost=False, isConstraint=False, hp_pos=None):
+        # The index of the assertion
+        self.index = index
+        # Whether it is pre-condition of the whole program
+        self.isPre = isPre
+        # Whether it is post-condition of the whole program
+        self.isPost = isPost
+        # Whether it is invariant
+        self.isInv = isInv
+        # Whether it is a ghost introduction
+        self.isGhost = isGhost
+        # Whether it is ode constraint
+        self.isConstraint = isConstraint
+        # Only required if it is an invariant or constraint.
+        # The position of the hcsp program, to which the invariant is attached.
+        self.hp_pos = hp_pos
+
+
 class CmdVerifier:
     """Contains current state of verification of an HCSP program."""
-    def __init__(self, *, pre, hp, post, functions=dict(), z3 = True, wolfram_engine = False):
+    def __init__(self, *, pre, hp, post, constants, functions=dict()):
         # The HCSP program to be verified.
         self.hp = hp
 
-        # The prover used to verify conditions.
-        # Use z3 by default.
-        self.wolfram_engine = wolfram_engine
-        self.z3 = z3
-        if self.wolfram_engine:
-            self.z3 = False
+        # The list of post conditions of the whole HCSP program
+        self.post = post
+
+        # The constants object of the HCSP program
+        self.constants = constants
+        # The list of constant predicates, for example, [g == 9.8, pi == 3.14]
+        self.constant_preds = [pred for pred in constants.preds]
 
         # Mapping from program position to CmdInfo objects.
         self.infos = dict()
 
+        # The conjunction of post expression
+        pre_conj = expr.list_conj(*[subpre.expr for subpre in pre])
         # The conjunction of post expression
         post_conj = expr.list_conj(*[subpost.expr for subpost in post])
 
@@ -325,10 +381,10 @@ class CmdVerifier:
         self.functions = functions
 
         # Set of function names that are used
-        fun_names = hp.get_fun_names().union(pre.get_fun_names(), post_conj.get_fun_names())
+        fun_names = hp.get_fun_names().union(pre_conj.get_fun_names(), post_conj.get_fun_names())
 
         # Set of var_names that are used, the names of AVar expression 
-        var_names = hp.get_vars().union(pre.get_vars(), post_conj.get_vars())
+        var_names = hp.get_vars().union(pre_conj.get_vars(), post_conj.get_vars())
 
         # Set of names(function names and var_names) that are used
         self.names = fun_names.union(var_names)
@@ -338,7 +394,7 @@ class CmdVerifier:
         self.compute_variable_set()
 
         # Set of functions with zero arity that are used, which can be treated as constants
-        zero_arity_funcs = hp.get_zero_arity_funcs().union(pre.get_zero_arity_funcs(), post_conj.get_zero_arity_funcs())
+        zero_arity_funcs = hp.get_zero_arity_funcs().union(pre_conj.get_zero_arity_funcs(), post_conj.get_zero_arity_funcs())
 
         self.constant_names = zero_arity_funcs.union(var_names - self.variable_names)
 
@@ -348,21 +404,32 @@ class CmdVerifier:
         # pos[1] is the number of subproof of the same sub_hp
         root_pos = ((),())
         self.infos[root_pos] = CmdInfo()
-        self.infos[root_pos].pre = pre
+        self.infos[root_pos].pre = [Condition(expr=subpre.expr, 
+                                              origins=[OriginLoc(isPre=True, index=idx)]) 
+                                        for idx, subpre in enumerate(pre)]
         self.infos[root_pos].post = [Condition(expr=subpost.expr, 
-                                               pos=[root_pos], 
-                                               annot_pos=idx, 
-                                               pc=True) 
-                                    for idx, subpost in enumerate(post)]
+                                               origins=[OriginLoc(isPost=True, index=idx)],
+                                               bottom_loc=OriginLoc(index=idx, isPost=True)
+                                               ) 
+                                        for idx, subpost in enumerate(post)]
 
         # If there are pre-conditions of constants in the form: A op c, 
         # in which A is a constant symbol, c doesn't include variable symbols, op is in RelExpr.op
         # the pre-conditions will always hold.
         # Add this kind of pre-conditions into assumptions in HCSPs.
-        pre_list = expr.split_conj(pre)
-        for sub_pre in pre_list:
-            if sub_pre.get_vars().isdisjoint(self.variable_names):
-                self.infos[root_pos].assume.append(sub_pre)
+        for subpre in self.infos[root_pos].pre:
+            subpre_expr = subpre.expr
+            # Replace the FunExpr by corresponding LogicExpr or OpExpr
+            subpre_expr = expr.subst_all_funcs(subpre_expr, self.functions)
+
+            # Split the subpre_expr if it is a conjunction, for example, A >= 0 && x >= A
+            subpre_exprs = expr.split_conj(subpre_expr)
+            for sub_expr in subpre_exprs:
+                # vars is not empty and does not include variable names.
+                if (sub_expr.get_vars() or sub_expr.get_fun_names()) \
+                 and sub_expr.get_vars().isdisjoint(self.variable_names):
+                    self.infos[root_pos].assume.append(Condition(expr=sub_expr,
+                                                                 origins=subpre.origins))
 
     def set_andR_rule(self, pos, andR):
         if pos not in self.infos:
@@ -383,35 +450,35 @@ class CmdVerifier:
         return res
 
     def simplify_expression(self, e):
-        if self.wolfram_engine:
-            e = wl_simplify(e)
+        if found_wolfram:
+            e = wl_simplify(e, self.functions)
 
         # Use sympy to simplify
         else:
-            e = sp_simplify(e)
+            e = sp_simplify(e, self.functions)
 
         return e
 
-    def polynomial_div(self, p, q):
+    def polynomial_div(self, p, q, constants):
         """Compute the quotient and remainder of polynomial p and q"""
-        if self.wolfram_engine:
-            quot_remains = wl_polynomial_div(p, q)
+        if found_wolfram:
+            quot_remains = wl_polynomial_div(p, q, constants, self.functions)
         else:
-            quot_remains = sp_polynomial_div(p, q)
+            quot_remains = sp_polynomial_div(p, q, self.functions)
 
         return quot_remains
 
     def is_polynomial(self, e, constants=set()): 
         """Return True if the given expression is a polynomial, and False otherwise."""
-        if self.wolfram_engine:
-            result = wl_is_polynomial(e, constants)
+        if found_wolfram:
+            result = wl_is_polynomial(e, self.functions, constants)
         else:
-            result = sp_is_polynomial(e, constants)
+            result = sp_is_polynomial(e, self.functions, constants)
 
         return result
 
     def compute_variable_set(self, pos=tuple()):
-        """Compute variable name set for hcsp program, in which names can be changed by Assign, RandomAssign and ODE"""
+        """Compute variable name set for hcsp program, in which variable values can be changed by Assign, RandomAssign and ODE"""
         cur_hp = get_pos(self.hp, pos)
 
         if isinstance(cur_hp, hcsp.Skip):
@@ -450,50 +517,69 @@ class CmdVerifier:
                 sub_pos = pos + (i,)
                 self.compute_variable_set(sub_pos)
 
-    def compute_branch_label(self, type, cur_branch=None, sub_blabel=None, post_blabel=None):
+    def compute_branch_label(self, cur_branch=None, old_blabel=None, blabel_depth=None):
         """Compute the branch label for the weakest precondition.
         {P} c {Q}, P is the wp computed by c and Q.
 
         type: the type of the hcsp program, i.e. c.
-        cur_branch: the branch index of the hcsp program, acquired in IChoice, ITE, ODE.
+        cur_branch: the branch index of current branch point, acquired in IChoice, ITE, ODE.
             Example, {P1, P2} c1 ++ c2 {Q}, P1 is computed from c1, P2 is computed from c2,
             then the cur_branch for P1 is 1, the cur_branch for P2 is 2.
-        sub_blabel: the branch label of the weakest precondition of sub-hcsp program, acquired in   
-            IChoice, ITE, Sequence.
-        post_blabel: the branch label of Q. 
-                     Note that if P has nothing to do with Q, post_blabel is None by default, for example, the wp, D -> I for ODE.
+        old_blabel: the branch label of the weakest precondition of sub-hcsp program below
+            the current point, acquired in IChoice, ITE, Sequence.
+        blabel_depth: The depth that the labels are currently extended at
         """
-        if type == 'skip' or type == 'assign' or type == 'randomassign':
-            blabel = post_blabel
-        
-        elif type == 'ichoice' or type == 'ite':
-            assert isinstance(cur_branch, int)
 
-            # Case when sub-hp is Skip, Assign or RandomAssign
-            if sub_blabel == post_blabel:
-                blabel = label.SequenceLabel(label.AtomLabel(cur_branch), post_blabel)
-
-            # Case when sub-hp is IChioce, ITE or ODE
-            else:
-                assert isinstance(sub_blabel, label.SequenceLabel)
-                assert len(sub_blabel.labels) == 2 and sub_blabel.labels[-1] == post_blabel \
-                or len(sub_blabel.labels) == 1 # True because all branch labels are built by SequenceLabel(label1, post_blabel), post_blabel could be None
-                blabel = label.SequenceLabel(label.NestLabel(cur_branch, sub_blabel.labels[0]), post_blabel)
-
-        elif type == 'ode':
-            assert isinstance(cur_branch, str)
-            blabel = label.SequenceLabel(label.AtomLabel(cur_branch), post_blabel)
-
-        elif type == 'sequence':
-            # The branch label for wp of sequence is equal to 
-            # the branch label for wp of the first sub-hp
-            blabel = sub_blabel
-        
-        # Loop is not included because the wp of loop is the invariant, without branch label.
+        if blabel_depth == 0:
+            assert isinstance(old_blabel, label.SequenceLabel) or old_blabel is None
+            return label.SequenceLabel(label.AtomLabel(cur_branch), old_blabel)
         else:
-            raise NotImplementedError
+            assert isinstance(old_blabel, label.SequenceLabel)
+            first_label = old_blabel.labels[0]
+            rest_labels = old_blabel.labels[1:]
+            if isinstance(first_label, label.NestLabel):
+                sublabel = first_label.sub_label
+            else:
+                sublabel = None
+            extended_first_label = self.compute_branch_label(cur_branch, sublabel, blabel_depth - 1)
+            return label.SequenceLabel(label.NestLabel(first_label.value, extended_first_label), *rest_labels)
 
-        return blabel
+
+    def add_vc_assume(self, pos):
+        # Add assume into the hypothesis of every verification condition.
+        if self.infos[pos].assume:
+            assume = expr.list_conj(*[sub_assume.expr for sub_assume in self.infos[pos].assume])
+            asm_inv_origins = []
+            for sub_assume in self.infos[pos].assume:
+                asm_inv_origins.extend(sub_assume.origins)
+            
+            for i in range(len(self.infos[pos].vcs)):
+                vc = self.infos[pos].vcs[i]
+                self.infos[pos].vcs[i] = Condition(
+                    expr=expr.imp(assume, vc.expr), 
+                    path=vc.path,
+                    blabel=vc.blabel,
+                    origins=vc.origins + asm_inv_origins,
+                    bottom_loc=vc.bottom_loc, 
+                    categ=vc.categ,
+                    isVC=True
+                    )
+
+    def add_vc_constants(self, pos):
+        # Add constant predicates into the hypothesis of every verification condition.
+        if self.constant_preds:
+            constant_preds = expr.list_conj(*self.constant_preds)
+            for i in range(len(self.infos[pos].vcs)):
+                    vc = self.infos[pos].vcs[i]
+                    self.infos[pos].vcs[i] = Condition(
+                        expr=expr.imp(constant_preds, vc.expr), 
+                        path=vc.path,
+                        blabel=vc.blabel,
+                        origins=vc.origins,
+                        bottom_loc=vc.bottom_loc, 
+                        categ=vc.categ,
+                        isVC=True
+                        )  
 
     def compute_wp(self, *, pos=((),())):
         """Compute weakest-preconditions using the given information."""
@@ -511,12 +597,13 @@ class CmdVerifier:
             # Skip: {P} skip {P}
             pre = [Condition(
                 expr=subpost.expr, 
-                pos=subpost.pos + [pos],
-                post_blabel=subpost.blabel,
-                blabel=self.compute_branch_label(type=type, post_blabel=subpost.blabel),
-                annot_pos=subpost.annot_pos, 
-                categ=subpost.categ,
-                pc=subpost.pc) for subpost in post]
+                path=subpost.path + [pos],
+                origins=subpost.origins,
+                blabel_depth=subpost.blabel_depth,
+                blabel=subpost.blabel,
+                bottom_loc=subpost.bottom_loc, 
+                categ=subpost.categ
+                ) for subpost in post]
         
         elif isinstance(cur_hp, hcsp.Assign):
             # Assign: {P[e/v]} v := e {P}
@@ -530,17 +617,18 @@ class CmdVerifier:
             var = cur_hp.var_name.name
             pre = [Condition(
                 expr=subpost.expr.subst({var: cur_hp.expr}), 
-                pos=subpost.pos + [pos],
-                post_blabel=subpost.blabel,
-                blabel=self.compute_branch_label(type=type, post_blabel=subpost.blabel),
-                annot_pos=subpost.annot_pos,
-                categ=subpost.categ,
-                pc=subpost.pc) for subpost in post]
+                path=subpost.path + [pos],
+                origins=subpost.origins,
+                blabel_depth=subpost.blabel_depth,
+                blabel=subpost.blabel,
+                bottom_loc=subpost.bottom_loc,
+                categ=subpost.categ
+                ) for subpost in post]
         
         elif isinstance(cur_hp, hcsp.RandomAssign):
             # RandomAssign: replace var_name by var_name_new in post and in cur_hp.expr
             #               pre: cur_hp.expr(newvar/var_name) -> post(newvar/var_name)
-            # {(v >= e)[v0/v] -> P[v0/v]} v := {v >= e} {P}
+            # {(v >= e)[v0/v] -> Q[v0/v]} v := {v >= e} {Q}
             if not isinstance(cur_hp.var_name, expr.AVar):
                 raise NotImplementedError
             if cur_hp.var_name.name in self.constant_names:
@@ -555,12 +643,13 @@ class CmdVerifier:
             #Compute the pre: hp.expr(newvar|var) -> post(newvar|var)
             pre = [Condition(
                 expr=expr.imp(cur_hp.expr.subst({var_str: newvar}), subpost.expr.subst({var_str: newvar})), 
-                pos=subpost.pos + [pos],
-                post_blabel=subpost.blabel,
-                blabel=self.compute_branch_label(type=type, post_blabel=subpost.blabel),
-                annot_pos=subpost.annot_pos,
-                categ=subpost.categ,
-                pc=subpost.pc) for subpost in post]
+                path=subpost.path + [pos],
+                origins=subpost.origins,
+                blabel_depth=subpost.blabel_depth,
+                blabel=subpost.blabel,
+                bottom_loc=subpost.bottom_loc,
+                categ=subpost.categ
+                ) for subpost in post]
 
         elif isinstance(cur_hp, hcsp.IChoice):
             # IChoice: 
@@ -576,7 +665,17 @@ class CmdVerifier:
                 if sub_pos not in self.infos:
                     self.infos[sub_pos] = CmdInfo()
                 sub_info = self.infos[sub_pos]
-                sub_info.post = post
+                sub_info.post = [Condition(
+                    expr=subpost.expr,
+                    path=subpost.path,
+                    origins=subpost.origins,
+                    blabel=self.compute_branch_label(cur_branch=i+1, 
+                                                     old_blabel=subpost.blabel,
+                                                     blabel_depth=subpost.blabel_depth),
+                    blabel_depth=subpost.blabel_depth+1,
+                    bottom_loc=subpost.bottom_loc,
+                    categ=subpost.categ
+                    ) for subpost in post]
                 sub_info.assume += self.infos[pos].assume
                 sub_info.parent_type = cur_hp.type
 
@@ -584,14 +683,13 @@ class CmdVerifier:
 
                 pre += [Condition(
                     expr=subpre.expr, 
-                    pos=subpre.pos,
-                    post_blabel=subpre.post_blabel,
-                    blabel=self.compute_branch_label(type=type, cur_branch=i+1, 
-                                                     sub_blabel=subpre.blabel,
-                                                     post_blabel=subpre.post_blabel),
-                    annot_pos=subpre.annot_pos, 
-                    categ=subpre.categ,
-                    pc=subpre.pc) 
+                    path=subpre.path,
+                    origins=subpre.origins,
+                    blabel_depth=max(0,subpre.blabel_depth-1),
+                    blabel=subpre.blabel,
+                    bottom_loc=subpre.bottom_loc, 
+                    categ=subpre.categ
+                    ) 
                     for subpre in sub_info.pre]
 
         elif isinstance(cur_hp, hcsp.ITE):
@@ -609,12 +707,22 @@ class CmdVerifier:
                 sub_pos = (pos[0] + (i,), pos[1])
                 if sub_pos not in self.infos:
                     self.infos[sub_pos] = CmdInfo()
-                self.infos[sub_pos].post = post
+                self.infos[sub_pos].post = [Condition(
+                    expr=subpost.expr,
+                    path=subpost.path,
+                    origins=subpost.origins,
+                    blabel=self.compute_branch_label(cur_branch=i+1, 
+                                                     old_blabel=subpost.blabel,
+                                                     blabel_depth=subpost.blabel_depth),
+                    blabel_depth=subpost.blabel_depth+1,
+                    bottom_loc=subpost.bottom_loc,
+                    categ=subpost.categ
+                    ) for subpost in post]
                 self.infos[sub_pos].assume += self.infos[pos].assume
                 self.infos[sub_pos].parent_type = cur_hp.type
 
                 if i == len(if_hps) and cur_hp.else_hp is None:
-                    sub_pre = post
+                    sub_pre = self.infos[sub_pos].post
                 else:
                     # Compute the sub-pre-condition for each sub_hp, 
                     # e.g. P1, P2, P3 for c1, c2 and c3
@@ -637,21 +745,20 @@ class CmdVerifier:
                 for subpre in sub_pre:
                     sub_imp.append(
                         Condition(expr=expr.imp(sub_cond, subpre.expr), 
-                            pos=subpre.pos,
-                            post_blabel=subpre.post_blabel,
-                            blabel=self.compute_branch_label(type=type, cur_branch=i+1, 
-                                                             sub_blabel=subpre.blabel,
-                                                             post_blabel=subpre.post_blabel),
-                            annot_pos=subpre.annot_pos,
-                            categ=subpre.categ,
-                            pc=subpre.pc))
+                            path=subpre.path,
+                            origins=subpre.origins,
+                            blabel=subpre.blabel,
+                            blabel_depth=max(0,subpre.blabel_depth-1),
+                            bottom_loc=subpre.bottom_loc,
+                            categ=subpre.categ
+                            ))
 
             pre = sub_imp
 
         elif isinstance(cur_hp, hcsp.Sequence):
             # Sequence of several commands, apply compute_wp from bottom to top
             cur_post = post
-            i_num = 0 # the number of IChoice and ITE in the sub-programs of Sequence.
+            
             for i in reversed(range(len(cur_hp.hps))):
                 sub_pos = (pos[0] + (i,), pos[1])
                 if sub_pos not in self.infos:
@@ -661,111 +768,82 @@ class CmdVerifier:
                 sub_info.assume += self.infos[pos].assume
                 sub_info.parent_type = cur_hp.type
 
-                if isinstance(get_pos(self.hp, sub_pos[0]), (hcsp.IChoice, hcsp.ITE)):
-                    i_num += 1
-
                 self.compute_wp(pos=sub_pos)
                 cur_post = sub_info.pre
             pre = cur_post
-            pre = [Condition(subpre.expr, 
-                    subpre.pos + [pos],
-                    post_blabel=subpre.post_blabel,
-                    blabel=self.compute_branch_label(type=type, sub_blabel=subpre.blabel),
-                    annot_pos=subpre.annot_pos, 
-                    categ=subpre.categ,
-                    pc=subpre.pc) for subpre in pre]
+            pre = [Condition(expr=subpre.expr, 
+                    path=subpre.path,
+                    origins=subpre.origins,
+                    blabel=subpre.blabel,
+                    blabel_depth=subpre.blabel_depth,
+                    bottom_loc=subpre.bottom_loc, 
+                    categ=subpre.categ
+                    ) for subpre in pre]
 
         elif isinstance(cur_hp, hcsp.Loop):
             # Loop, currently use the invariant that users offered.
+            #       {I} c {I}       I -> Q
+            # -----------------------------------------
+            #              {I} (c)* {Q}
 
             if cur_hp.constraint != expr.true_expr:
                 raise NotImplementedError
 
-            if cur_hp.inv is None:
+            if not cur_hp.inv:
                 raise AssertionError("Loop invariant at position %s is not set." % str(pos))
 
-            for sub_inv in cur_hp.inv:
-                if isinstance(sub_inv.expr, expr.LogicExpr):
-                    raise NotImplementedError("Logic expression should be split into several relational expressions")
+            # for sub_inv in cur_hp.inv:
+            #     if isinstance(sub_inv.expr, expr.LogicExpr):
+            #         raise NotImplementedError("Logic expression should be split into several relational expressions")
 
             all_invs = [sub_inv.expr for sub_inv in cur_hp.inv]
+
+            # One verification condition is I -> Q.
+            for i, subpost in enumerate(post):
+                self.infos[pos].vcs.append(
+                    Condition(expr=expr.imp(expr.list_conj(*all_invs), subpost.expr), 
+                                        path=subpost.path,
+                                        blabel=subpost.blabel,
+                                        origins=subpost.origins + [OriginLoc(index=i, isInv=True, hp_pos=pos[0]) for i in range(len(cur_hp.inv))],
+                                        bottom_loc=subpost.bottom_loc,
+                                        categ=subpost.categ,
+                                        isVC=True
+                                        ))
+
+            # Maintain the invariant: {I} c {I}
+            body_pos = (pos[0] + (0,), pos[1])
+            if body_pos not in self.infos:
+                self.infos[body_pos] = CmdInfo()
+            body_info = self.infos[body_pos]
+            body_info.post = [Condition(expr=sub_inv.expr,
+                                        origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0])],
+                                        bottom_loc=OriginLoc(index=i, isInv=True, hp_pos=pos[0]),
+                                        categ="maintain")
+                                for i, sub_inv in enumerate(cur_hp.inv)]
+            body_info.pre = [Condition(expr=sub_inv.expr, 
+                                       origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0])],
+                                       bottom_loc=OriginLoc(index=i, isInv=True, hp_pos=pos[0]))
+                                for i, sub_inv in enumerate(cur_hp.inv)]
+            body_info.assume += self.infos[pos].assume
+
+            self.compute_wp(pos=body_pos)
+
             
-            # The first time visiting loop program.
-            # self.infos[pos].inv is empty by default.
-            if not self.infos[pos].inv:
+            # Initialize the invariant
+            pre = [Condition(expr=sub_inv.expr, 
+                             origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0])],
+                             bottom_loc=OriginLoc(index=i, isInv=True, hp_pos=pos[0]), 
+                             categ="init") \
+                    for i, sub_inv in enumerate(cur_hp.inv)]
 
-                # Create branches for each invariant.
-                # The hp of each branch is still the loop, but with different invariant and assume.
-                for i, sub_inv in enumerate(cur_hp.inv):
-                    
-                    sub_pos = (pos[0], pos[1] + (i,))
-                    if sub_pos not in self.infos:
-                        self.infos[sub_pos] = CmdInfo()
-                    sub_info = self.infos[sub_pos]
-                    sub_info.inv = [Condition(expr=sub_inv.expr, pos=[pos], annot_pos=i)]
-                    sub_info.assume += self.infos[pos].assume
-                                    #   [cur_hp.inv[index].inv for index in range(i)]
-                    
-                    self.compute_wp(pos=sub_pos)
 
-                # One verification condition is conjunction of sub_inv -> post.
-                for i, subpost in enumerate(post):
-                    self.infos[pos].vcs.append(
-                        Condition(expr=expr.imp(expr.list_conj(*all_invs), subpost.expr), 
-                                            pos=subpost.pos + [pos],
-                                            blabel=subpost.blabel,
-                                            annot_pos=subpost.annot_pos,
-                                            categ=subpost.categ,
-                                            vc=True,
-                                            pc=subpost.pc))
-
-                pre = [Condition(expr=sub_inv.expr, pos=[pos], annot_pos=i, categ="init") \
-                       for i, sub_inv in enumerate(cur_hp.inv)]
-
-            # self.infos[pos].inv is set after creating branches.
-            # For each branches, we compute wp of loop body and verify that the sub_inv is maintained.
-            elif len(self.infos[pos].inv) == 1:
-                inv = self.infos[pos].inv[0]
-
-                body_pos = (pos[0] + (0,), pos[1])
-                if body_pos not in self.infos:
-                    self.infos[body_pos] = CmdInfo()
-                body_info = self.infos[body_pos]
-                body_info.post = self.infos[pos].inv
-                body_info.assume += self.infos[pos].assume
-                body_info.parent_type = cur_hp.type
-                
-                self.compute_wp(pos=body_pos)
-                body_pre = body_info.pre
-
-                for sub_pre in body_pre:
-                    # annot_pos add one more tuple to pos to record the annotation index, i.e. invariant index for loop.
-                    # Another verification condition is that all invariants together imply the weakest precondition of sub_inv w.r.t the loop body
-                    
-                    sub_vc = Condition(expr=expr.imp(expr.list_conj(*all_invs), sub_pre.expr),
-                                                   pos=sub_pre.pos,
-                                                   blabel=sub_pre.blabel,
-                                                   annot_pos=inv.annot_pos,
-                                                   categ="maintain",
-                                                   vc=True)
-
-                    self.infos[pos].vcs.append(sub_vc)
-
-                pre = self.infos[pos].inv
-
+        # Reconstruct ODE
+        # Only Cut invariant
         elif isinstance(cur_hp, hcsp.ODE):
-            # ODE, use differential weakening rule first to prove the hoare triple, 
-            # then use other rules to prove invariant.
-
             # Currently assume out_hp is Skip.
             constraint = cur_hp.constraint
-            # The pre-condition computed for invariant and for dw rule is set None initially.
-            pre = None
-            pre_dw = None
-
-
             if cur_hp.out_hp != hcsp.Skip():
-                raise NotImplementedError
+                    raise NotImplementedError
             for name, _ in cur_hp.eqs:
                 if name in self.constant_names:
                     raise NotImplementedError("Constants cannot be changed in ODEs!")
@@ -778,154 +856,336 @@ class CmdVerifier:
                 for name, deriv in cur_hp.eqs:
                     self.infos[pos].eqs_dict[name] = deriv
 
-            # For the whole ODE program, we use dw rule first, and set the rule for each invariant.
-            # For branches generated(when self.infos[pos].dw is False), instead of using dw rule again, 
-            # we can use the corresponding rule to verify the invariant directly.
-            if self.infos[pos].dw: 
-            # TODO: also run if no invariants are specified? testVerify62 testVerify54 testVerify53 testVerify52 testVerify50 testVerify55
+            if cur_hp.rule == "dw":
 
+                # ODE, use differential weakening rule first to prove the hoare triple, 
+                # then use other rules to prove invariant.
+    
+                # The pre-condition for dw rule is set as None initially.
+                pre_dw = None
+                ghost_vars = []
+ 
+                # TODO: also run if no invariants are specified? testVerify62 testVerify54 testVerify53 testVerify52 testVerify50 testVerify55
                 if cur_hp.inv is None:
-                    cur_hp.inv = (assertion.CutInvariant(expr=expr.true_expr),)
-                # Construct partial post conditions, e.g., for `[A] ghost x [B] [C]`, 
-                # they would be `C`, `B && C`, `EX x. B && C`, and `A && EX x. B && C``
-                subposts = []
-                subpost = None
-                for inv in reversed(cur_hp.inv):
-                    if isinstance(inv, assertion.CutInvariant):
-                        if subpost is None:
-                            subpost = inv.expr
-                        else:
-                            subpost = expr.LogicExpr('&&', inv.expr, subpost)
-                    elif isinstance(inv, assertion.GhostIntro):
-                        if subpost is None:
-                            raise AssertionError("Ghost invariant cannot be last instruction.")
-                        subpost = expr.ExistsExpr(inv.var, subpost)
-                    else:
-                        raise NotImplementedError("unknown invariant instruction {}".format(type(inv)))
-                    subposts.append(subpost)
+                    cur_hp.inv = (assertion.CutInvariant(expr=expr.true_expr, proof_methods=None),)
 
+                assert all(isinstance(inv, assertion.CutInvariant) for inv in cur_hp.inv)
+                inv_exprs = [inv.expr for inv in cur_hp.inv]
+                inv_conj = expr.conj(*inv_exprs)
+
+                # Add ghosts
+                # [[bar of D]] <x_dot = e, y_dot = f(x, y)> [[I]]    I && Boundary of D -> Q
+                # ----------------------------------------------------------------------------
+                #           {(D -> \exists y I) && (!D -> Q)} <x_dot = e & D> {Q}
+                # y is a fresh variable, not occurring in <x_dot = e & D> and Q. f(x, y) satisfies
+                # Lipschitz condition.
+                if cur_hp.ghosts:
+                    for ghost in cur_hp.ghosts:
+                        # Verify the reasonablity of ghost equations.
+                        # f(x, y) should be in the form: a(x) * y + b(x), y is not in a(x) or b(x)
+                        ghost_var_degree = degree(sympify(str(ghost.diff).replace('^', '**')), gen=symbols(ghost.var))
+                        if not ghost_var_degree in {0,1}:
+                            raise AssertionError("Ghost equations should be linear in ghost variable!")
+                        self.infos[pos].eqs_dict[ghost.var] = ghost.diff
+                        ghost_vars.append(ghost.var)
+                    exists_inv = expr.ExistsExpr(ghost_vars, inv_conj)
+                    init_cond = [Condition(expr=expr.imp(constraint, exists_inv), 
+                                            origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0])
+                                                    for i in range(len(cur_hp.inv))] + 
+                                                    [OriginLoc(index=i, isGhost=True, hp_pos=pos[0])
+                                                    for i in range(len(cur_hp.ghosts))] + 
+                                                    [OriginLoc(isConstraint=True, hp_pos=pos[0])],
+                                            categ="init_all",
+                                            bottom_loc=OriginLoc(index=len(cur_hp.inv)-1, isInv=True, hp_pos=pos[0]),
+                                )]
+                    
                 # Apply differential weakening (dW)
 
-
                 # dW Rule (always applied automatically)
-                #   [[D]] <x_dot = f(x)> [[I]]      I && Boundary of D -> Q  
+                #   [[bar of D]] <x_dot = f(x)> [[I]]      I && Boundary of D -> Q  
                 #-----------------------------------------------------------------------
                 #           {(D -> I) && (!D -> Q)} <x_dot = f(x) & D> {Q}
-                # post_conj = expr.conj(*[vc.expr for vc in post])
-                # pre_dw = expr.conj(expr.imp(constraint, subposts[-1]),
-                #                    expr.imp(expr.neg_expr(constraint), post_conj)
-                #                     )
-                pre_dw = [Condition(expr=expr.imp(constraint, subposts[-1]), 
-                                    pos=[pos],
-                                    blabel=self.compute_branch_label(type=type, cur_branch='execute'),
-                                    categ="init"
-                        )] \
+                
+                # dWT: Case when no invariant is offered(I is set as true)
+                #                 Boundary of D -> Q  
+                #-----------------------------------------------------------------------
+                #           {!D -> Q} <x_dot = f(x) & D> {Q}
+                else:
+                    init_cond = [Condition(expr=expr.imp(constraint, inv.expr), 
+                                    origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0]), 
+                                                OriginLoc(isConstraint=True, hp_pos=pos[0])],
+                                    categ="init",
+                                    bottom_loc=OriginLoc(index=i, isInv=True, hp_pos=pos[0]),
+                        ) for i, inv in enumerate(cur_hp.inv) if inv.expr is not expr.true_expr]
+
+                pre_dw = init_cond \
                         + \
-                         [Condition(expr=expr.imp(expr.neg_expr(constraint), 
-                                                     subpost.expr),
-                                    pos=subpost.pos + [pos],
-                                    post_blabel=subpost.blabel,
-                                    blabel=self.compute_branch_label(type=type, cur_branch='skip', post_blabel=subpost.blabel),
-                                    annot_pos=subpost.annot_pos,
-                                    categ=subpost.categ,
-                                    pc=subpost.pc)
-                          for subpost in post]
+                            [Condition(expr=expr.imp(expr.neg_expr(constraint), 
+                                                        subpost.expr),
+                                    path=subpost.path,
+                                    blabel=self.compute_branch_label(cur_branch='skip', old_blabel=subpost.blabel, blabel_depth=subpost.blabel_depth),
+                                    blabel_depth=subpost.blabel_depth,
+                                    origins=subpost.origins + [OriginLoc(isConstraint=True, hp_pos=pos[0])],
+                                    bottom_loc=subpost.bottom_loc,
+                                    categ=subpost.categ
+                                    )
+                            for subpost in post]
                 boundary = compute_boundary(constraint)
+
                 # When I is false_expr, (I && Boundary of D -> Q) is true_expr, which can be omitted. 
-                if subposts[-1] is not expr.false_expr:
+                if inv_conj is not expr.false_expr:
                     for subpost in post:
-                        e = expr.imp(expr.conj(subposts[-1], boundary), subpost.expr)
+                        e = expr.imp(expr.conj(inv_conj, boundary), subpost.expr)
                         self.infos[pos].vcs.append(
                             Condition(
                                 expr=e, 
-                                pos=subpost.pos + [pos],
-                                blabel=subpost.blabel,
+                                path=subpost.path,
+                                blabel=self.compute_branch_label(cur_branch='exec', old_blabel=subpost.blabel, blabel_depth=subpost.blabel_depth),
                                 categ=subpost.categ,
-                                annot_pos=subpost.annot_pos,
-                                vc=True,
-                                pc=subpost.pc))
-
-                # Post below is the postcondition of the invariant triple.
-                post = [Condition(expr=subposts[-1], pos=[pos])]
-
-                # Add ghost variables and cuts to self.infos:
-                sub_pos = pos
+                                origins=subpost.origins + 
+                                [OriginLoc(index=i, isInv=True, hp_pos=pos[0]) for i in range(len(cur_hp.inv))] + [OriginLoc(isConstraint=True, hp_pos=pos[0])],
+                                bottom_loc=subpost.bottom_loc,
+                                isVC=True
+                                ))
+                invs = []
                 for i, inv in enumerate(cur_hp.inv):
-                    if isinstance(inv, assertion.CutInvariant):
-                        if i == len(cur_hp.inv) - 1:
-                            sub_pos_left = sub_pos
-                        else:
-                            subpost = subposts[-2-i]
-                            self.infos[sub_pos].diff_cuts = [inv.expr, subpost]
-                            self.infos[sub_pos].dw = False
-
-                            sub_pos_left = (sub_pos[0], sub_pos[1] + (0,))
-                            sub_pos = (sub_pos[0], sub_pos[1] + (1,))
-
-                        if sub_pos_left not in self.infos:
-                            self.infos[sub_pos_left] = CmdInfo()
-
-                        if inv.rule is None and inv.expr in (expr.true_expr, expr.false_expr):
-                            self.infos[sub_pos_left].tv = True #TODO: Use the name "tv"(trival)?
-                            self.infos[sub_pos_left].dw = False
-                            assert inv.rule_arg is None
-                        elif inv.rule == "di" or \
-                        (inv.rule is None and inv.expr not in (expr.true_expr, expr.false_expr)):
-                            self.infos[sub_pos_left].dI_rule = True
-                            self.infos[sub_pos_left].dw = False
-                            assert inv.rule_arg is None
-                        elif inv.rule == "dbx":
-                            self.infos[sub_pos_left].dbx_rule = True
-                            self.infos[sub_pos_left].dw = False
-                            if inv.rule_arg is not None:
-                                self.infos[sub_pos_left].dbx_cofactor = inv.rule_arg
-                        elif inv.rule == "bc":
-                            self.infos[sub_pos_left].barrier_rule = True
-                            self.infos[sub_pos_left].dw = False
-                            assert inv.rule_arg is None              
-                        elif inv.rule == "sln":
-                            self.infos[sub_pos_left].sln_rule = True
-                            self.infos[sub_pos_left].dw = False
-                            assert inv.rule_arg is None
-                        else:
-                            if inv.rule is not None:
-                                raise NotImplementedError("Unknown ODE method")
-                    
-                    elif isinstance(inv, assertion.GhostIntro):
-                        subpost = subposts[-2-i]
-                        self.infos[sub_pos].ghost_inv = subpost
-                        self.infos[sub_pos].ghost_var = inv.var
-                        self.infos[sub_pos].dw = False
-                        if inv.diff is not None:
-                            self.infos[sub_pos].ghost_eqs = {inv.var: inv.diff}
-                        sub_pos = (sub_pos[0], sub_pos[1] + (0,))
-                    else:
-                        raise NotImplementedError("unknown invariant instruction {}".format(type(inv)))
+                    sub_pos = (pos[0], pos[1] + (i,))
                     if sub_pos not in self.infos:
                         self.infos[sub_pos] = CmdInfo()
 
-            post_conj = expr.conj(*[vc.expr for vc in post])
+                    self.infos[sub_pos].assume = self.infos[pos].assume + invs[:i]
+                    self.infos[sub_pos].eqs_dict = self.infos[pos].eqs_dict
+                    self.infos[sub_pos].inv = Condition(expr=inv.expr, 
+                                                origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0])], 
+                                                bottom_loc=OriginLoc(index=i, isInv=True, hp_pos=pos[0]))
+                    invs.append(self.infos[sub_pos].inv)
+                    self.infos[sub_pos].post = [Condition(expr=inv.expr, 
+                                                origins=[OriginLoc(index=i, isInv=True, hp_pos=pos[0])], 
+                                                bottom_loc=OriginLoc(index=i, isInv=True, hp_pos=pos[0]))]
 
-            # Only use the boundary.
-            if self.infos[pos].tv:
 
-                assert post_conj in (expr.false_expr, expr.true_expr), \
-                    "Invariant should be true or false!"
+                    inv_origin = [OriginLoc(index=i, isInv=True, hp_pos=pos[0])]
 
-            # Use solution axiom
-            # 
-            #             P ->
-            # ForAll t >= 0  ((ForAll 0 <= s < t D(y(s)) && not D(y(t))) -> (ForAll 0 <= s <= t Q(y(s)))
-            #--------------------------------------------------------------------------------------------
-            #      {P} <x_dot = f(x) & D(x)> {Q(x)}
-            #
-            # Assume y(.) solve the symbolic initial value problem y'(t) = f(y), y(0) = x
+                    inv_vars = inv.expr.get_vars()
+                    ghost_origins = [OriginLoc(index=idx, isGhost=True, hp_pos=pos[0]) \
+                        for idx, var in enumerate(ghost_vars) if var in inv_vars]
+        
+                    origins = inv_origin + ghost_origins
+                    # Invariant triple trivally holds 
+                    if inv.rule is None and inv.expr in (expr.true_expr, expr.false_expr):
+                        assert inv.rule_arg is None
+                    
+                    # Use dI rule
+                    elif inv.rule == "di" or \
+                    (inv.rule is None and inv.expr not in (expr.true_expr, expr.false_expr)):
+                        assert inv.rule_arg is None
 
-            elif self.infos[pos].sln_rule:
+                        dI_inv = self.infos[sub_pos].inv.expr          
+                        # Compute the differential of inv.
+                        # One semi-verification condition is closure of constraint -> differential of inv.
+                        # (closure of constraint is not necessary because the differential is always a closed set.)
+                        differential = compute_diff(dI_inv, eqs_dict=self.infos[sub_pos].eqs_dict, functions=self.functions)
+                        closureD = compute_closed_set(constraint)
+                        vc = expr.imp(closureD, differential)
+            
+                        self.infos[sub_pos].vcs.append(Condition(expr=vc, 
+                                                            path=[sub_pos],
+                                                            origins=origins,
+                                                            categ="maintain", 
+                                                            bottom_loc=self.infos[sub_pos].inv.bottom_loc,
+                                                            isVC=True))
+                    # Use dbx rule
+                    # Cases when dbx_inv is "e == 0".
+                        # Use Darboux Equality Rule
+                        #    closure of D -> e_lie_deriv == g * e
+                        #--------------------------------------------    (g is the cofactor)
+                        #   {e == 0} <x_dot = f(x) & D> {e == 0}
+                    # Cases when dbx_inv is e >(>=) 0.
+                        # Use Darboux Inequality Rule.
+                        #     closure of D -> e_lie_deriv >= g * e
+                        # ---------------------------------------------
+                        #    e >(>=) 0 <x_dot = f(x) & D> e >(>=) 0
+                    elif inv.rule == "dbx":
+                        if inv.rule_arg is not None:
+                            self.infos[sub_pos].dbx_cofactor = inv.rule_arg
+
+                        dbx_inv = self.infos[sub_pos].inv.expr
+                        bottom_loc = self.infos[sub_pos].inv.bottom_loc
+
+                        # For example, simplify !(x > 1) to x <= 1
+                        if isinstance(dbx_inv, expr.LogicExpr): 
+                            dbx_inv = self.simplify_expression(dbx_inv)
+                        
+                        assert isinstance(dbx_inv, expr.RelExpr) and \
+                            dbx_inv.op in {'==', '>', '>=', '<', '<='}, \
+                            print("The wrong type of %s is %s" %(dbx_inv, type(dbx_inv)))
+
+                        # Tranlate '<' and '<=' into '>' and '>='.
+                        if dbx_inv.op == '<':
+                            dbx_inv = expr.RelExpr('>', dbx_inv.expr2, dbx_inv.expr1)
+                        elif dbx_inv.op == '<=':
+                            dbx_inv = expr.RelExpr('>=', dbx_inv.expr2, dbx_inv.expr1)
+                        # Translate into the form e == 0 or e >(>=) 0
+                        if dbx_inv.expr2 != expr.AConst(0):
+                            expr1 =  expr.OpExpr('-', dbx_inv.expr1, dbx_inv.expr2)
+                            expr1 = self.simplify_expression(expr1)
+                            dbx_inv = expr.RelExpr(dbx_inv.op, expr1, expr.AConst(0)) 
+                        
+                        e = dbx_inv.expr1
+                        assert self.is_polynomial(e, self.constant_names) is True
+                        # Compute the lie derivative of e.
+                        e_lie_deriv = compute_diff(e, eqs_dict=self.infos[sub_pos].eqs_dict, functions=self.functions)             
+
+                        # Cases when dbx_inv is "e == 0".
+                        # Use Darboux Equality Rule
+                        #          D -> e_lie_deriv == g * e
+                        #--------------------------------------------    (g is the cofactor)
+                        #   {e == 0} <x_dot = f(x) & D> {e == 0}
+                        if dbx_inv.op == "==" :
+
+                            # Case when the cofactor g is not offered.
+                            # Compute the cofactor g by auto.
+                            if self.infos[sub_pos].dbx_cofactor is None:
+                                g = expr.OpExpr('/', e_lie_deriv, e)
+                                g = self.simplify_expression(g)
+
+                                assert self.is_polynomial(g, self.constant_names) is True
+                                self.infos[sub_pos].dbx_cofactor = g
+
+                            # Case when cofactor g is offered by the user.
+                            else:
+                                g = self.infos[sub_pos].dbx_cofactor
+                                assert self.is_polynomial(g, self.constant_names) is True
+
+                                # closure of D -> e_lie_deriv == g * e
+                                # (closure of D is not necessary because "e_lie_deriv == g * e" is a closed set)
+                                closureD = compute_closed_set(constraint)
+                                vc = expr.imp(closureD, expr.RelExpr('==', e_lie_deriv, 
+                                                                            expr.OpExpr('*', g, e)))
+
+                                self.infos[sub_pos].vcs.append(Condition(
+                                                                expr=vc, 
+                                                                path=[sub_pos],
+                                                                origins=origins, 
+                                                                bottom_loc=bottom_loc,
+                                                                categ="maintain", 
+                                                                isVC=True))
+
+                        # Cases when dbx_inv is e >(>=) 0.
+                        # Use Darboux Inequality Rule.
+                        #     closure of D -> e_lie_deriv >= g * e
+                        # ---------------------------------------------
+                        #    e >(>=) 0 <x_dot = f(x) & D> e >(>=) 0
+                        elif dbx_inv.op in {'>', '>='}:
+                            # Cases when the cofactor g is not offered.
+                            # Compute the cofactor automatically.
+                            if self.infos[sub_pos].dbx_cofactor is None:
+                                quot_remains = self.polynomial_div(e_lie_deriv, e, self.constant_names)
+                                
+                                # Several quot and remain pairs may returned from the polynomial division.
+                                # If there is a remain >= 0, there exists a quot satisfying g in dbx_rule.
+                                vc_comps = []
+                                for _, remain in quot_remains.items():
+                                    # remain (e_lie_deriv - g * e) >= 0.
+                                    vc_comp = expr.RelExpr('>=', remain, expr.AConst(0))
+                                    vc_comps.append(vc_comp)
+                                closureD = compute_closed_set(constraint)
+                                vc = expr.imp(closureD, expr.list_disj(*vc_comps))
+
+                                self.infos[sub_pos].vcs.append(Condition(
+                                                                expr=vc,
+                                                                path=[sub_pos], 
+                                                                origins=origins, 
+                                                                categ="maintain",
+                                                                bottom_loc=bottom_loc, 
+                                                                isVC=True))
+
+                            # Cases when the cofactor g is offered by the user.
+                            else:
+                                g = self.infos[sub_pos].dbx_cofactor
+                                assert self.is_polynomial(g, self.constant_names) is True
+                                
+                                closureD = compute_closed_set(constraint)
+                                vc = expr.imp(closureD, expr.RelExpr('>=', e_lie_deriv, 
+                                                                            expr.OpExpr('*', self.infos[sub_pos].dbx_cofactor, e)))
+                                self.infos[sub_pos].vcs.append(Condition(
+                                                                expr=vc,
+                                                                path=[sub_pos], 
+                                                                origins=origins, 
+                                                                categ="maintain", 
+                                                                bottom_loc=bottom_loc, isVC=True))
+
+                    # Use barrier certificate
+                    #      closure of D && e == 0 -> e_lie > 0
+                    # --------------------------------------------------
+                    #      {e >=(>) 0} <x_dot = f(x) & D> {e >=(>) 0}                        
+                    elif inv.rule == "bc":
+                        assert inv.rule_arg is None
+
+                        barrier_inv = self.infos[sub_pos].inv.expr
+                        bottom_loc = self.infos[sub_pos].inv.bottom_loc
+                        origins = self.infos[sub_pos].inv.origins
+
+                        if isinstance(barrier_inv, expr.LogicExpr):
+                            barrier_inv = self.simplify_expression(barrier_inv)
+
+                        assert isinstance(barrier_inv, expr.RelExpr) and \
+                            barrier_inv.op in {'<=', '>=', '>', '<'}
+
+                        # TODO: e should be continous
+
+                        # Translate '<=' into '>='
+                        if barrier_inv.op == '<=':
+                            barrier_inv = expr.RelExpr('>=', barrier_inv.expr2, barrier_inv.expr1)
+                        elif barrier_inv.op == '<':
+                            barrier_inv = expr.RelExpr('>', barrier_inv.expr2, barrier_inv.expr1)
+
+                        # Translate 'e >= c' into 'e - c >= 0'
+                        if barrier_inv.expr2 != 0:
+                            expr1 = expr.OpExpr('-', barrier_inv.expr1, barrier_inv.expr2)
+                            # expr1 = self.simplify_expression(expr1)
+                            barrier_inv = expr.RelExpr(barrier_inv.op, expr1, expr.AConst(0))
+
+                        e = barrier_inv.expr1
+                        e_lie = compute_diff(e, eqs_dict=self.infos[sub_pos].eqs_dict, functions=self.functions)
+
+                        # vc: closure of D && e == 0 -> e_lie > 0
+                        closureD = compute_closed_set(constraint)
+                        vc = expr.imp(expr.LogicExpr('&&', closureD, 
+                                                        expr.RelExpr('==', e, expr.AConst(0))),
+                                    expr.RelExpr('>', e_lie, expr.AConst(0)))
+
+                        self.infos[sub_pos].vcs.append(Condition(
+                            expr=vc, 
+                            path=[sub_pos], 
+                            origins=origins, 
+                            categ="maintain", 
+                            bottom_loc=bottom_loc, 
+                            isVC=True))
+   
+                    else:
+                        if inv.rule is not None:
+                            raise NotImplementedError("Unknown ODE method")
+
+                    # Add the assume into the hypothesis of every verification condition at sub_pos.
+                    self.add_vc_assume(sub_pos)
+                    self.add_vc_constants(sub_pos)
+             
+                pre = pre_dw
+                
+            elif cur_hp.rule == "solution":
+                # P' = \forall t > 0. (\forall 0 <= s < t. D(u(s))) && !D(u(t)) -> Q(u(t))
+                # 
+                # -----------------------------------------------------
+                #    {(D -> P') && (!D -> Q)} <x_dot = f(x) & D(x)> {Q}
+                # f(x) is linear in x. Assume u(.) solve the symbolic initial value problem u'(t) = f(u), u(0) = x
+                for var, diff in self.infos[pos].eqs_dict.items():
+                            d = degree(sympify(str(diff).replace('^', '**')), gen=symbols(var))
+                            if not d in {0,1}:
+                                raise AssertionError("{0} should be linear in {1} when using sln rule!".format(diff, var))
 
                 # Create a new variable to represent time
                 time_var = create_newvar('t', self.names)
-                self.names.add(time_var.name)
 
                 # Solution is, e.g. {'x' : x + v*t + a*t^2/2, 'v' : v + a*t}.
                 solution_dict = solveODE(cur_hp, self.names, time_var.name)
@@ -934,368 +1194,62 @@ class CmdVerifier:
                 in_var = create_newvar('s', self.names)
                 self.names.add(in_var.name)
 
-                # Compute y_s, alias y(s)
+                # Compute u_s, alias u(s)
                 # e.g. {'x' : x + v*s + a*s^2/2, 'v' : v + a*s
-                y_s = dict()
+                u_s = dict()
                 for fun_name, sol in solution_dict.items():
                     sol_s = sol.subst({time_var.name : in_var})
-                    y_s[fun_name] = sol_s
+                    u_s[fun_name] = sol_s
 
-                D_y_t = constraint.subst(solution_dict)
-                D_y_s = constraint.subst(y_s)
-                Q_y_s = post_conj.subst(y_s)
+                D_u_s = constraint.subst(u_s)
+                D_u_t = constraint.subst(solution_dict)
 
-                # Compute the hypothesis of implication
-                # ForAll (s, 0 <= s < t -> D(y(s)) && not D(y(t))
-                sub_cond = expr.ForAllExpr(in_var.name, 
+                pre = []
+                for subpost in post:
+                    Q_u_t = subpost.expr.subst(solution_dict)
+
+                    # Compute the hypothesis of implication
+                    # \forall 0 <= s < t D(u(s)) && !D(u(t))
+                    subcond = expr.ForAllExpr(in_var.name, 
                                 expr.imp(expr.LogicExpr('&&', 
                                                         expr.RelExpr('<=', expr.AConst(0), in_var),
                                                         expr.RelExpr('<', in_var, time_var)),
-                                         D_y_s))
-                cond = expr.LogicExpr('&&', 
-                                      sub_cond,
-                                      expr.LogicExpr('!', D_y_t))
-                # Compute the conclusion of implication
-                # ForAll (s, 0 <= s <= t -> Q(y(s))
-                conclu = expr.ForAllExpr(in_var.name,
-                                expr.imp(expr.LogicExpr('&&', 
-                                                        expr.RelExpr('<=', expr.AConst(0), in_var),
-                                                        expr.RelExpr('<=', in_var, time_var)),
-                                         Q_y_s))
-
-                pre = expr.ForAllExpr(time_var.name,
-                            expr.imp(expr.RelExpr('>=', time_var, expr.AConst(0)),
-                                    expr.imp(cond, conclu)))                                           
-
-            # Use dI rules
-            # When dI_inv is set or by default
-            elif self.infos[pos].dI_inv or self.infos[pos].dI_rule: 
-
-                # By default, dI_inv is post_conj.
-                if self.infos[pos].dI_inv is None:
-                    self.infos[pos].dI_inv = post_conj
-
-                dI_inv = self.infos[pos].dI_inv           
-                # Compute the differential of inv.
-                # Compute the boundary of constraint. 
-                # One semi-verification condition is boundary of constraint -> differential of inv.
-                differential = compute_diff(dI_inv, eqs_dict=self.infos[pos].eqs_dict)
-                vc = expr.imp(constraint, differential)
-     
-                self.infos[pos].vcs.append(Condition(expr=vc, pos=[pos], categ="maintain", vc=True))
-
-                if dI_inv != post_conj:
-                    self.infos[pos].vcs.append(
-                        Condition(expr=expr.imp(dI_inv, post_conj), pos=[pos], vc=True))
-
-
-            # Use dC rule
-            #                       [[P]] c [[Q1]]       [[P && Q1]] c [[Q2]]
-            # -------------------------------------------------------------------------------
-            #                                   [[P]] c [[Q1 && Q2]]
-            #
-            #                 [[P]] c [[Q1 && Q2]]       [[P && Q1 && Q2]] c [[Q3]]
-            # -------------------------------------------------------------------------------
-            #                                   [[P]] c [[Q1 && Q2 && Q3]]
-
-            elif self.infos[pos].diff_cuts:
-                diff_cuts = self.infos[pos].diff_cuts
-                
-
-                # Compute wp for each subproof, whose post condition is diff_cut.
-                for i, diff_cut in enumerate(diff_cuts):
-                    
-                    # Create CmdInfo for every subproof.
-                    sub_pos = (pos[0], pos[1] + (i,))
-                    if sub_pos not in self.infos:
-                        self.infos[sub_pos] = CmdInfo()
-
-                    # Post condition of the each subproof is diff_cut.
-                    self.infos[sub_pos].post = [Condition(expr=diff_cut, pos=[pos])] 
-
-                    self.infos[sub_pos].eqs_dict = self.infos[pos].eqs_dict
-                    self.infos[sub_pos].assume += self.infos[pos].assume + diff_cuts[:i]
-
-                    self.compute_wp(pos=sub_pos)
-
-
-            # Use dG rules
-            # I <-> EX y. G   {G} <x_dot = f(x), y_dot = a(x) * y + b(x) &D> {G}
-            #---------------------------------------------------------------------
-            #                   {I} <x_dot = f(x) & D> {I}
-            elif self.infos[pos].ghost_inv is not None:
-                ghost_inv = self.infos[pos].ghost_inv
-
-                if not self.infos[pos].ghost_var:
-                    ghost_vars = [v for v in ghost_inv.get_vars() if v not in self.names]
-                    if len(ghost_vars) != 1:
-                        raise AssertionError("Number of ghost variables is not 1.")
-                    ghost_var = ghost_vars[0]
-                else:
-                    ghost_var = self.infos[pos].ghost_var
-                self.names.add(ghost_var)
-
-                if not self.infos[pos].eqs_dict:
-                    for name, deriv in cur_hp.eqs:
-                        self.infos[pos].eqs_dict[name] = deriv
-
-                # I <-> EX y. G
-                # I represents dG_inv, y represents ghost, G represents ghost_inv.
-                # So if dG_inv is not offered, we can compute it from ghost and ghost_inv.
-                if self.infos[pos].dG_inv is None:
-                    self.infos[pos].dG_inv = expr.ExistsExpr(ghost_var, ghost_inv)
-                dG_inv = self.infos[pos].dG_inv
-
-                # Second condition: 
-                # If the differential equation satisfied by the ghost variable is offered, verify its soundness.
-                # if not, solve for the ghost equation automatically.
-                # Then verify the reasonablity of the ghost eqaution for above two cases.
-
-                # Cases when the differential equation, alias ghost_eqs offered by the users.
-                # Assume y is the ghost variable.
-                if self.infos[pos].ghost_eqs:
-                    ghost_eqs = self.infos[pos].ghost_eqs
-
-                    assert len(ghost_eqs) == 1, 'Number of ghost variables is not 1.' 
-                    assert ghost_var in ghost_eqs, \
-                        'The ghost variable in ghost equation is different from that in ghost invariant.'
-                    
-                    # The verification of the reasonablity of the ghost equations is below if-else.
-                    dy = ghost_eqs[ghost_var]
-
-                    # Create a new CmdInfo for the ODE with ghost_eqs
-                    sub_pos = (pos[0], pos[1] + (0,))
-
-                    if sub_pos not in self.infos:
-                        self.infos[sub_pos] = CmdInfo()
-
-                    self.infos[sub_pos].post = [Condition(expr=ghost_inv, pos=[pos])]
-
-                    # The eqs_dict in sub_pos is eqs_dict in pos with ghost_eqs.
-                    if not self.infos[sub_pos].eqs_dict:
-                        self.infos[sub_pos].eqs_dict = self.infos[pos].eqs_dict.copy()
-                        self.infos[sub_pos].eqs_dict[ghost_var] = ghost_eqs[ghost_var]
-
-                    self.infos[sub_pos].assume += self.infos[pos].assume
-
-                    self.compute_wp(pos=sub_pos)
-
-                # Cases when ghost_eqs is not offered.
-                # Solve for ghost_eqs automatically.
-                # assume y is the ghost variable, and x are the other variables.
-                else:
-                    if isinstance(ghost_inv, expr.LogicExpr) and ghost_inv.op == "&&" and \
-                        len(ghost_inv.exprs) > 0 and all(i == 0 or not ghost_var in e.get_vars() for i, e in enumerate(ghost_inv.exprs)):
-                        eq = ghost_inv.exprs[0]
-                    else:
-                        eq = ghost_inv
-                    
-                    assert isinstance(eq, expr.RelExpr) and eq.op == "==" and \
-                        isinstance(eq.expr2, expr.AConst),\
-                        'Please offer the the differential equation satisfied by the ghost variable.'
-
-                    dg = eq.expr1
-
-                    # Obtain dg/dx * dx
-                    dg_x = compute_diff(dg, eqs_dict=self.infos[pos].eqs_dict)
-
-                    # Obtain dg/dy
-                    dgdy = compute_diff(dg, eqs_dict={ghost_var: expr.AConst(1)})
-
-                    # Since dg/dx * dx + dg/dy * dy == 0, so dy = -(dg/dx * dx) / dg/dy
-                    dy = expr.OpExpr("-", expr.OpExpr("/", dg_x, dgdy))
-                    # Simplify dy
-                    dy = self.simplify_expression(dy)
-
-                    self.infos[pos].ghost_eqs = {ghost_var: dy}
-
-                # Verify the reasonablity of ghost equations.
-                # dy should be in the form: a(x) * y + b(x), y is not in a(x) or b(x)
-                ghost_var_degree = degree(sympify(str(dy).replace('^', '**')), gen=symbols(ghost_var))
-                if not ghost_var_degree in {0,1}:
-                    raise AssertionError("Ghost equations should be linear in ghost variable!")
-
-                # The denominator of dy cannot be equal to 0.
-                denomi_not_zero = demoninator_not_zero(dy)
-                vc2 = denomi_not_zero
-                if not z3_prove(vc2):
-                    raise AssertionError("The denominator in the ghost equations cannot be equal be zero!")
-
-                if dG_inv != post_conj:
-                    self.infos[pos].vcs.append(
-                        Condition(expr=expr.imp(dG_inv, post_conj), pos=[pos], vc=True))
-
-
-            # Using dbx rule
-            # Cases when dbx_inv is "e == 0".
-                # Use Darboux Equality Rule
-                #          D -> e_lie_deriv == g * e
-                #--------------------------------------------    (g is the cofactor)
-                #   {e == 0} <x_dot = f(x) & D> {e == 0}
-            # Cases when dbx_inv is e >(>=) 0.
-                # Use Darboux Inequality Rule.
-                #           D -> e_lie_deriv >= g * e
-                # ---------------------------------------------
-                #    e >(>=) 0 <x_dot = f(x) & D> e >(>=) 0
-            elif self.infos[pos].dbx_rule or \
-                self.infos[pos].dbx_inv is not None or \
-                self.infos[pos].dbx_cofactor is not None:
-
-                # By default, dbx_inv is post_conj.
-                if self.infos[pos].dbx_inv is None:
-                    self.infos[pos].dbx_inv = post_conj
-                else:
-                    self.infos[pos].vcs.append(
-                        Condition(expr=expr.imp(self.infos[pos].dbx_inv, post_conj), pos=[pos], vc=True))
-                dbx_inv = self.infos[pos].dbx_inv
-
-                # For example, simplify !(x > 1) to x <= 1
-                if isinstance(dbx_inv, expr.LogicExpr): 
-                    dbx_inv = self.simplify_expression(dbx_inv)
-                
-                assert isinstance(dbx_inv, expr.RelExpr) and \
-                       dbx_inv.op in {'==', '>', '>=', '<', '<='}, \
-                    print("The wrong type of %s is %s" %(dbx_inv, type(dbx_inv)))
-
-                # Tranlate '<' and '<=' into '>' and '>='.
-                if dbx_inv.op == '<':
-                    dbx_inv = expr.RelExpr('>', dbx_inv.expr2, dbx_inv.expr1)
-                elif dbx_inv.op == '<=':
-                    dbx_inv = expr.RelExpr('>=', dbx_inv.expr2, dbx_inv.expr1)
-                # Translate into the form e == 0 or e >(>=) 0
-                if dbx_inv.expr2 != expr.AConst(0):
-                    expr1 =  expr.OpExpr('-', dbx_inv.expr1, dbx_inv.expr2)
-                    expr1 = self.simplify_expression(expr1)
-                    dbx_inv = expr.RelExpr(dbx_inv.op, expr1, expr.AConst(0)) 
-                
-                e = dbx_inv.expr1
-                # Compute the lie derivative of e.
-                e_lie_deriv = compute_diff(e, eqs_dict=self.infos[pos].eqs_dict)             
-
-                # Cases when dbx_inv is "e == 0".
-                # Use Darboux Equality Rule
-                #          D -> e_lie_deriv == g * e
-                #--------------------------------------------    (g is the cofactor)
-                #   {e == 0} <x_dot = f(x) & D> {e == 0}
-                if dbx_inv.op == "==" :
-
-                    # Case when the cofactor g is not offered.
-                    # Compute the cofactor g by auto.
-                    if self.infos[pos].dbx_cofactor is None:
-                        g = expr.OpExpr('/', e_lie_deriv, e)
-                        g = self.simplify_expression(g)
-
-                        assert self.is_polynomial(g, self.constant_names) is True
-                        self.infos[pos].dbx_cofactor = g
-
-                    # Case when cofactor g is offered by the user.
-                    else:
-                        g = self.infos[pos].dbx_cofactor
-                        assert self.is_polynomial(g, self.constant_names) is True
-
-                        # Boundary of D -> e_lie_deriv == g * e
-                        vc = expr.imp(constraint, expr.RelExpr('==', e_lie_deriv, 
-                                                                    expr.OpExpr('*', g, e)))
-
-                        self.infos[pos].vcs.append(Condition(expr=vc, pos=[pos], categ="maintain", vc=True))
-
-                # Cases when dbx_inv is e >(>=) 0.
-                # Use Darboux Inequality Rule.
-                #           D -> e_lie_deriv >= g * e
-                # ---------------------------------------------
-                #    e >(>=) 0 <x_dot = f(x) & D> e >(>=) 0
-                elif dbx_inv.op in {'>', '>='}:
-                    # Cases when the cofactor g is not offered.
-                    # Compute the cofactor automatically.
-                    if self.infos[pos].dbx_cofactor is None:
-                        quot_remains = self.polynomial_div(e_lie_deriv, e)
-                        
-                        # Several quot and remain pairs may returned from the polynomial division.
-                        # If there is a remain >= 0, there exists a quot satisfying g in dbx_rule.
-                        vc_comps = []
-                        for _, remain in quot_remains.items():
-                            # remain (e_lie_deriv - g * e) >= 0.
-                            vc_comp = expr.RelExpr('>=', remain, expr.AConst(0))
-                            vc_comps.append(vc_comp)
-                        vc = expr.imp(constraint, expr.list_disj(*vc_comps))
-
-                        self.infos[pos].vcs.append(Condition(expr=vc, pos=[pos], categ="maintain", vc=True))
-
-                    # Cases when the cofactor g is offered by the user.
-                    else:
-                        g = self.infos[pos].dbx_cofactor
-                        assert self.is_polynomial(g, self.constant_names) is True
-                        
-                        # denomi_not_zero = expr.imp(expr.list_conj(*self.infos[pos].assume),
-                        #                 demoninator_not_zero(g))
-
-                        # if not z3_prove(denomi_not_zero):
-                        #     raise AssertionError("The denominator of the cofactor cannot be equal to zero!")
-
-                        vc = expr.imp(constraint, expr.RelExpr('>=', e_lie_deriv, 
-                                                                    expr.OpExpr('*', self.infos[pos].dbx_cofactor, e)))
-                        
-                        self.infos[pos].vcs.append(Condition(expr=vc, pos=[pos], categ="maintain", vc=True))
-                
-          
-
-            # Use barrier certificate
-            #             D && e == 0 -> e_lie > 0
-            # --------------------------------------------------
-            #      {e >=(>) 0} <x_dot = f(x) & D> {e >=(>) 0}
-            elif self.infos[pos].barrier_rule or\
-                self.infos[pos].barrier_inv:
-
-                # Use post_conj as barrier invariant if it's not offered.
-                if self.infos[pos].barrier_inv is None:
-                    self.infos[pos].barrier_inv = post_conj
-                else:
-                    self.infos[pos].vcs.append(
-                        Condition(expr=expr.imp(self.infos[pos].barrier_inv, post_conj), pos=[pos], vc=True))
-
-                barrier_inv = self.infos[pos].barrier_inv
-
-
-                if isinstance(barrier_inv, expr.LogicExpr):
-                    barrier_inv = self.simplify_expression(barrier_inv)
-
-                assert isinstance(barrier_inv, expr.RelExpr) and \
-                       barrier_inv.op in {'<=', '>=', '>', '<'}
-
-                # TODO: e should be continous
-
-                # Translate '<=' into '>='
-                if barrier_inv.op == '<=':
-                    barrier_inv = expr.RelExpr('>=', barrier_inv.expr2, barrier_inv.expr1)
-                elif barrier_inv.op == '<':
-                    barrier_inv = expr.RelExpr('>', barrier_inv.expr2, barrier_inv.expr1)
-
-                # Translate 'e >= c' into 'e - c >= 0'
-                if barrier_inv.expr2 != 0:
-                    expr1 = expr.OpExpr('-', barrier_inv.expr1, barrier_inv.expr2)
-                    # expr1 = self.simplify_expression(expr1)
-                    barrier_inv = expr.RelExpr(barrier_inv.op, expr1, expr.AConst(0))
-
-                e = barrier_inv.expr1
-                e_lie = compute_diff(e, eqs_dict=self.infos[pos].eqs_dict)
-
-                # vc: D && e == 0 -> e_lie > 0
-                vc = expr.imp(expr.LogicExpr('&&', constraint, 
-                                                   expr.RelExpr('==', e, expr.AConst(0))),
-                              expr.RelExpr('>', e_lie, expr.AConst(0)))
-
-                self.infos[pos].vcs.append(Condition(expr=vc, pos=[pos], categ="maintain", vc=True))
-
+                                         D_u_s))
+                    cond = expr.LogicExpr('&&', 
+                                subcond,
+                                expr.LogicExpr('!', D_u_t))
+
+                    # Compute the conclusion of implication
+                    conclu = Q_u_t
+
+                    # Compute P'
+                    pre_expr = expr.ForAllExpr(time_var.name,
+                                               expr.imp(expr.RelExpr('>', time_var, expr.AConst(0)),
+                                                        expr.imp(cond, conclu)))
+
+                    pre_exec = Condition(expr=pre_expr,
+                                         path=subpost.path + [pos],
+                                         blabel=self.compute_branch_label(cur_branch='exec',
+                                                old_blabel=subpost.blabel, blabel_depth=subpost.blabel_depth),
+                                         blabel_depth=subpost.blabel_depth,
+                                         origins=subpost.origins,
+                                         bottom_loc=subpost.bottom_loc,
+                                         categ=subpost.categ)
+                    pre_skip = Condition(expr=expr.imp(expr.neg_expr(constraint), 
+                                                        subpost.expr),
+                                        path=subpost.path,
+                                        blabel=self.compute_branch_label(cur_branch='skip', 
+                                            old_blabel=subpost.blabel, blabel_depth=subpost.blabel_depth),
+                                        blabel_depth=subpost.blabel_depth,
+                                        origins=subpost.origins + [OriginLoc(isConstraint=True, hp_pos=pos[0])],
+                                        bottom_loc=subpost.bottom_loc,
+                                        categ=subpost.categ
+                                        )
+                                    
+                    pre = pre + [pre_exec, pre_skip]
 
             else:
-                raise AssertionError("No invariant set at position %s." % str(pos))
-
-            if pre is not None and pre_dw is not None:
-                pre = [Condition(expr=pre, pos=[pos])] + pre_dw
-            elif pre_dw is not None:
-                pre = pre_dw
-            # If pre is None and pre_dw is None, no pre is computed, so pre is still None.
-
+                raise NotImplementedError
 
         else:
             raise NotImplementedError
@@ -1305,30 +1259,26 @@ class CmdVerifier:
         if self.infos[pos].pre is None:
             self.infos[pos].pre = pre
         else:
+            # self.infos[pos].pre is the pre-condition of the whole hp.
+            pre_conj = expr.conj(*[subpre.expr for subpre in self.infos[pos].pre])
+            subpre_origins = []
+            for subpre in self.infos[pos].pre:
+                subpre_origins.extend(subpre.origins)
             for i, vc in enumerate(pre):
                 self.infos[pos].vcs.append(
-                    Condition(expr=expr.imp(self.infos[pos].pre, vc.expr), 
-                              pos=vc.pos,
+                    Condition(expr=expr.imp(pre_conj, vc.expr), 
+                              path=vc.path,
                               blabel=vc.blabel, 
-                              annot_pos=vc.annot_pos, 
+                              origins=vc.origins + subpre_origins,
+                              bottom_loc=vc.bottom_loc, 
                               categ=vc.categ,
-                              vc=True,
-                              pc=vc.pc))
+                              isVC=True
+                              ))
 
-        # Add assume into the hypothesis of every verification condition.
-        if self.infos[pos].assume:
-            assume = expr.list_conj(*self.infos[pos].assume)
-            for i in range(len(self.infos[pos].vcs)):
-                vc = self.infos[pos].vcs[i]
-                self.infos[pos].vcs[i] = Condition(
-                    expr=expr.imp(assume, vc.expr), 
-                    pos=vc.pos,
-                    blabel=vc.blabel,
-                    annot_pos=vc.annot_pos, 
-                    categ=vc.categ,
-                    vc=True,
-                    pc=vc.pc)
-        
+        # Add assume into the hypothesis of every verification condition at pos.
+        self.add_vc_assume(pos)
+        self.add_vc_constants(pos)
+
     def convert_imp(self, e):
         """Convert implication from (p -> q -> u) to (p && q) -> u,
         in which the right expression won't be an implication """
@@ -1343,32 +1293,36 @@ class CmdVerifier:
         else:
             return e
  
+    def set_solver(self, vc):
+        """Set the solver of verification condition, which is z3 by default, as the one indicated in  proof method"""
+        assert isinstance(vc, Condition) and vc.isVC is True
+        assert vc.bottom_loc is not None
+
+        isPost = vc.bottom_loc.isPost
+
+        # Proof method of each vc is stored in the bottom-most assertion related.
+
+        if isPost:
+            assertion = self.post[vc.bottom_loc.index]
+        
+        else:
+            assert vc.bottom_loc.hp_pos is not None
+            bottom_hp = get_pos(self.hp, vc.bottom_loc.hp_pos)
+
+            assert isinstance(bottom_hp, (hcsp.Loop, hcsp.ODE))
+            assertion = bottom_hp.inv[vc.bottom_loc.index]
+
+        # Match the computed label of vc and the one in proof method.
+        for pms in assertion.proof_methods.pms:
+            if str(vc.comp_label) == str(pms.label):
+                vc.solver = pms.method
+
+        return vc
+
     def get_all_vcs(self):
         all_vcs = dict()
-        for pos, info in self.infos.items():
-            if info.andR:
-                vcs = copy.copy(info.vcs)
-                for vc in vcs:
-                    # Translate, for example, [x == 0 -> x > -1 && x < 1], into 
-                    # [x == 0 -> x > -1, x == 0 -> x < 1]
-                    if isinstance(vc.expr, expr.LogicExpr) and vc.expr.op == '->':
-                        vc_vart = self.convert_imp(vc.expr)
-                        expr0 = vc_vart.exprs[0]
-                        expr1 = vc_vart.exprs[1]
-                        if isinstance(expr1, expr.LogicExpr) and expr1.op == '&&':
-                            right_exprs = expr.split_conj(expr1)
-                            for r_expr in right_exprs:
-                                info.vcs.append(Condition(
-                                    expr=expr.imp(expr0, r_expr), 
-                                    pos=vc.pos,
-                                    blabel=vc.label,
-                                    annot_pos=vc.annot_pos,
-                                    categ=vc.categ,
-                                    vc=True,
-                                    pc=vc.pc))
-                            info.vcs.remove(vc)
-
-            if info.vcs:
+        for pos, info in self.infos.items():   
+            if info.vcs:    
                 all_vcs[pos] = info.vcs
         return all_vcs
 
@@ -1378,7 +1332,8 @@ class CmdVerifier:
         
         for pos, vcs in all_vcs.items():
             for vc in vcs:
-                if not self.verify_vc(vc.expr):
+                vc = self.set_solver(vc)
+                if not self.verify_vc(vc):
                     print("The failed verification condition is :\n", pos, ':', str(vc))
                     return False
         return True
@@ -1386,26 +1341,22 @@ class CmdVerifier:
 
 
     def verify_vc(self, vc):
-        """Verify one verfication condition"""
-        if self.wolfram_engine:
-            if wl_prove(vc):
+        """Verify one verfication condition with its solver"""
+        solver = vc.solver
+        if solver == 'wolfram':
+            if wl_prove(vc.expr, self.functions):
                 return True
             else:
                 return False
 
-        elif self.z3:
-            if z3_prove(vc, self.functions):
+        elif solver == 'z3':
+            if z3_prove(vc.expr, self.functions):
                 return True
             else:
                 return False
 
         else:
             raise AssertionError("Please choose an arithmetic solver.")
-
-
-    def f(self, hp):
-        assert isinstance(hp, hcsp.Loop)
-        self.get_i_pos(hp.hp)
 
 
 

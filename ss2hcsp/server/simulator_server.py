@@ -55,7 +55,10 @@ def parse_hcsp():
                 'parallel': [sub_hp.name for sub_hp in hp.hps]
             })
         else:
-            sim_infos.append(simulator.SimInfo(name, hp, outputs=info.outputs, procedures=info.procedures))
+            procs = dict()
+            for proc in info.procedures:
+                procs[proc.name] = proc
+            sim_infos.append(simulator.SimInfo(name, hp, outputs=info.outputs, procedures=procs))
             lines, mapping = pprint.pprint_lines(hp, record_pos=True)
             json_procs = []
             for proc in info.procedures:

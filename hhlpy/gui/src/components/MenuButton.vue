@@ -6,13 +6,6 @@
       {{ odeRule }}
     </option>
   </select>
-  <!-- <select v-model="ruleSelected" class="annotation-button" @change="selectRule">
-    <option disabled value="" class="annotation-button">Select Verification Rule</option>
-    <option class="annotation-button">Differential Invariant Rule(di)</option>
-    <option class="annotation-button">Darboux Rule(dbx)</option>
-    <option class="annotation-button">Barrier Certificate Rule(bc)</option>
-    <option class="annotation-button">Solution Rule(sln)</option>
-  </select> -->
 </span>
 </template>
 
@@ -23,7 +16,7 @@ export default {
   data() {
     return {
       odeRules: ["Differential Invariant Rule(di)", "Darboux Rule(dbx)", 
-                 "Barrier Certificate Rule(bc)", "Solution Rule(sln)"],
+                 "Barrier Certificate Rule(bc)"],
       ruleSelected: ''
     }
   },

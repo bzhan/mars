@@ -9,12 +9,14 @@ from hhlpy.z3wrapper import z3_prove, convert
 class Z3WrapperTest(unittest.TestCase):
     def testZ3Prove(self):
         test_case = [
-            "x >= 0 --> x + 1 >= 1",
-            "x >= 1 --> x + 1 >= 1",
-            "x >= 1 --> x + 1 >= 1 && x >= 1",
-            "x >= 0 --> x + 1 >= 1 || x >= 1",
-            "ForAll x. x^2 >= 0",
-            "ForAll {x, y}. x^2 + y^2 >= 0"
+            "x >= 0 -> x + 1 >= 1",
+            "x >= 1 -> x + 1 >= 1",
+            "x >= 1 -> x + 1 >= 1 && x >= 1",
+            "x >= 0 -> x + 1 >= 1 || x >= 1",
+            "\\forall x. x^2 >= 0",
+            "\\forall {x, y}. x^2 + y^2 >= 0",
+            "(\\exists y. x * y * y == 1) -> x > 0",
+            "x >= 0 -> 0 < 1 -> (\\exists {y, z}. y * z^2 == 1 && x * y >= 0)"
         ]
 
         for e in test_case:
@@ -23,8 +25,8 @@ class Z3WrapperTest(unittest.TestCase):
     
     def testZ3ProveFail(self):
         test_case = [
-            "x >= 0 --> x >= 1",
-            "x >= 0 --> x + 1 >= 1 && x >= 1",
+            "x >= 0 -> x >= 1",
+            "x >= 0 -> x + 1 >= 1 && x >= 1",
         ]
 
         for e in test_case:

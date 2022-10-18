@@ -106,6 +106,7 @@ grammar = r"""
         | "{" cmd "}" "*" maybe_loop_invariant -> repeat_cmd
         | "{" cmd "}" "*" "(" expr ")" maybe_loop_invariant -> repeat_cond_cmd
         | "{" ode_seq "&" expr "}" maybe_ode_invariant -> ode
+        | "{" ode_seq "&" expr "}" sln_rule ";" -> ode_sln
         | "{" "&" expr "}" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm_const
         | "{" ode_seq "&" expr "}" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm
         | "if" "(" expr ")" "{" cmd "}" ("else" "if" "(" expr ")" "{" cmd "}")* ("else" "{" cmd "}")? -> ite_cmd
@@ -119,12 +120,13 @@ grammar = r"""
     ?proof_method: (label ":")? method   -> proof_method 
     
     ?label_category: "init"     -> label_categ_init
-        | "maintain"         -> label_categ_maintain
+        | "maintain"            -> label_categ_maintain
+        | "init_all"            -> label_categ_init_all
 
     ?categ_label: label_category     -> categ_label
 
     ?atom_label: INT
-        | "execute"          -> atom_label_execute
+        | "exec"          -> atom_label_exec
         | "skip"             -> atom_label_skip
 
     ?branch_label: atom_label                 -> atom_label
@@ -140,15 +142,14 @@ grammar = r"""
 
     ?maybe_ode_invariant: ("invariant" ode_invariant+ ";")? -> maybe_ode_invariant
 
-    ?ode_invariant: "[" expr "]" ("{" ode_rule expr? "}")? maybe_proof_methods -> ode_invariant
-        | "ghost" CNAME -> ghost_intro
-        | "ghost" "(" CNAME "=" expr ")" -> ghost_intro_eq
+    ?ode_invariant: "[" expr "]" ("{" ode_inv_rule expr? "}")? maybe_proof_methods -> ode_invariant
+      | "ghost" CNAME "(" CNAME "=" expr ")" -> ghost_intro
 
-    ?ode_rule: "di" -> ode_rule_di
-      | "dbx" -> ode_rule_dbx
-      | "bc" -> ode_rule_bc
-      | "dw" -> ode_rule_dw
-      | "sln" -> ode_rule_sln
+    ?ode_inv_rule: "di" -> inv_rule_di
+      | "dbx" -> inv_rule_dbx
+      | "bc" -> inv_rule_bc
+
+    ?sln_rule: "solution" -> ode_rule_sln
 
     ?ichoice_cmd: atom_cmd ("++" atom_cmd)*  // Priority: 80
 
@@ -159,10 +160,11 @@ grammar = r"""
     ?cmd: select_cmd
 
     ?function_decl: "function" CNAME "(" CNAME ("," CNAME)* ")" "=" expr ";"
+    ?constants_decl: "constants" (expr ";")* "end"  -> constants_decl
 
-    ?hoare_pre : "pre" ("[" expr "]")* ";" -> hoare_pre
+    ?hoare_pre : "pre" (ord_assertion)* ";" -> hoare_pre
     ?hoare_post : "post" (ord_assertion)* ";" -> hoare_post
-    ?hoare_triple: (function_decl)* hoare_pre cmd hoare_post
+    ?hoare_triple: constants_decl? (function_decl)* hoare_pre cmd hoare_post
 
     ?procedure: "procedure" CNAME "begin" cmd "end"
 
@@ -198,7 +200,7 @@ grammar = r"""
     %import common.SIGNED_NUMBER
     %import common.ESCAPED_STRING
 
-    COMMENT: /#.*/
+    COMMENT: /#.*/ | /\/\*+([\s\S]*?)\*\//
 
     %ignore WS
     %ignore COMMENT
@@ -416,16 +418,10 @@ class HPTransformer(Transformer):
         return assertion.OrdinaryAssertion(expr=expr, proof_methods=proof_methods, meta=meta)
 
     def maybe_loop_invariant(self, meta, *args):
-        if len(args) == 0:
-            return None
-        else:
-            return args
+        return args
 
     def maybe_ode_invariant(self, meta, *args):
-        if len(args) == 0:
-            return None
-        else:
-            return args
+        return args
 
     def ode_invariant(self, meta, *args):
         if len(args) == 2:
@@ -435,26 +431,26 @@ class HPTransformer(Transformer):
         else:
             return assertion.CutInvariant(expr=args[0], rule=args[1], rule_arg=args[2], proof_methods=args[-1], meta=meta)
     
-    def ghost_intro(self, meta, var):
-        return assertion.GhostIntro(var=var, diff=None, meta=meta)
-    
-    def ghost_intro_eq(self, meta, var, diff):
-        assert var.endswith("_dot")
-        return assertion.GhostIntro(var=var[:-4], diff=diff, meta=meta)
+    def ghost_intro(self, meta, var, var_dot, diff):
+        assert var_dot.endswith("_dot")
+        assert var == var_dot[:-4]
+        return assertion.GhostIntro(var=var, diff=diff, meta=meta)
 
-    def ode_rule_di(self, meta): return "di"
-    def ode_rule_bc(self, meta): return "bc"
-    def ode_rule_dbx(self, meta): return "dbx"
+    def inv_rule_di(self, meta): return "di"
+    def inv_rule_bc(self, meta): return "bc"
+    def inv_rule_dbx(self, meta): return "dbx"
+
     def ode_rule_dw(self, meta): return "dw"
-    def ode_rule_sln(self, meta): return "sln"
+    def ode_rule_sln(self, meta): return "solution"
 
     def method_z3(self, meta): return "z3"
     def method_wolfram(self, meta): return "wolfram"
 
     def label_categ_init(self, meta): return "init"
     def label_categ_maintain(self, meta): return "maintain"
+    def label_categ_init_all(self, meta): return "init_all"
 
-    def atom_label_execute(self, meta): return "execute"
+    def atom_label_exec(self, meta): return "exec"
     def atom_label_skip(self, meta): return "skip"
 
     def atom_label(self, meta, value):
@@ -504,8 +500,20 @@ class HPTransformer(Transformer):
             res.append((args[i], args[i+1]))
         return res
 
-    def ode(self, meta, eqs, constraint, inv):
-        return hcsp.ODE(eqs, constraint, meta=meta, inv=inv)
+    def ode(self, meta, eqs, constraint, asts):
+        ghosts = []
+        inv = []
+        for ast in asts:
+            if isinstance(ast, assertion.GhostIntro):
+                ghosts.append(ast)
+            elif isinstance(ast, assertion.CutInvariant):
+                inv.append(ast)
+            else:
+                raise NotImplementedError
+        return hcsp.ODE(eqs, constraint, meta=meta, ghosts=tuple(ghosts), inv=tuple(inv))
+
+    def ode_sln(self, meta, eqs, constraint, rule):
+        return hcsp.ODE(eqs, constraint, meta=meta, rule=rule)
 
     def ode_comm_const(self, meta, constraint, io_comms, inv):
         return hcsp.ODE_Comm([], constraint, io_comms, meta=meta)
@@ -548,6 +556,13 @@ class HPTransformer(Transformer):
         else:
             return hcsp.Parallel(*args, meta=meta)
 
+    def constants_decl(self, meta, *args):
+        preds = list(args)
+        vars = set()
+        for pred in preds:
+            vars.union(pred.get_vars())
+        return hcsp.Constants(vars, preds)
+
     def function_decl(self, meta, *args):
         name = str(args[0])
         vars = list(str(var) for var in args[1:-1])
@@ -566,12 +581,17 @@ class HPTransformer(Transformer):
         hp = args[-2]
         post = args[-1]
 
-        # The other arguments are functions
+        # The other arguments are constants or functions
         functions = dict()
+        constants = hcsp.Constants()
         for item in args[:-3]:
-            assert isinstance(item, hcsp.Function);
-            functions[item.name] = item
-        return hcsp.HoareTriple(pre, hp, post, functions=functions, meta=meta)
+            if isinstance(item, hcsp.Constants):
+                constants = item
+            elif isinstance(item, hcsp.Function):
+                functions[item.name] = item
+            else:
+                raise NotImplementedError
+        return hcsp.HoareTriple(pre, hp, post, constants=constants, functions=functions, meta=meta)
 
     def module_sig(self, meta, *args):
         return tuple(str(arg) for arg in args)

@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hhlpy"
+version = "0.0.6"
+description = "Prove hybrid programs correct using Hybrid Hoare Logic"
+readme = "README.md"
+authors = [{ name = "Huanhuan Sheng" }, { name = "Bohua Zhan" }, { name = "Alexander Bentkamp" }]
+classifiers = [
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+keywords = ["hhl", "hybrid systems", "hoare logic"]
+dependencies = [
+    "flask>=2.0.2",
+    "scipy>=1.5.4",
+    "sympy>=1.9",
+    "z3-solver>=4.8.14.0",
+    "lark-parser>=0.12.0",
+    "gevent-websocket>=0.10.1",
+    "wolframclient>=1.1.7",
+    "waitress>=2.1.2",
+]
+requires-python = ">=3.9"
+
+[project.urls]
+Homepage = "https://gitee.com/bhzhan/mars"
+
+[project.scripts]
+hhlpy = "hhlpy.__main__:main"

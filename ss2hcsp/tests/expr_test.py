@@ -143,6 +143,24 @@ class ExprTest(unittest.TestCase):
             hp = hp_parser.parse(s)
             self.assertEqual(str(hp), s)
 
+    def testSubstAllFuncs(self):
+        funcs = {'f': hcsp.Function('f', ['x'], "x + 1"),
+                 'g': hcsp.Function('g', ['x'], "f(x) + 2")}
+
+        test_data = [
+            ("f(x)", "x + 1"),
+            ("f(y)", "y + 1"),
+            ("g(y)", "y + 1 + 2"),
+            ("g(y) * 5", "(y + 1 + 2) * 5"),
+            ("f(x) >= 0", "x + 1 >= 0"),
+            ("f(x) >= 0 && g(x) >= 0", "x + 1 >= 0 && x + 1 + 2 >= 0")
+        ]
+       
+        for s1, s2 in test_data:
+            e1 = expr_parser.parse(s1)
+            e1 = expr.subst_all_funcs(e1, funcs)
+            self.assertEqual(str(e1), s2)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,7 +1,7 @@
 
 // Capital letters indicate that the rule produces a node in the parse tree!
 // When changing this file, regenerate the grammar: 
-// lezer-generator ./src/grammar/hcsp.grammar > ./src/grammar/hcsp_parser.js
+// lezer-generator ./src/grammar/hcsp.grammar -o ./src/grammar/hcsp_parser.js
 
 @precedence { conj @right, disj @right, equiv @right, imp @right }
 
@@ -149,6 +149,7 @@ atom_cmd {
   | RepeatCmd { "{" cmd "}" "*" maybe_loop_invariant }
   | RepeatCondCmd { "{" cmd "}*(" expr ")" maybe_loop_invariant}
   | Ode { OdeNoInv maybe_ode_invariant }
+  | OdeSln { OdeNoInv ode_rule ";"}
   | OdeCommConst { "{" "&" expr "}" "|>" "[]" "(" interrupt ")" maybe_ode_invariant}
   | OdeComm { "{" ode_seq "&" expr "}" "|>" "[]" "(" interrupt ")" maybe_ode_invariant} 
   | RecCmd { "rec" CNAME "{" cmd "}" }
@@ -192,7 +193,7 @@ categ_label { "init"
       | "maintain" }
 
 atom_label { int
-      | "execute"
+      | "exec"
       | "skip" }
 
 branch_label {
@@ -209,24 +210,24 @@ label {
 maybe_ode_invariant{ ("invariant" Ode_invariant+ ";")?}
 
 Ode_invariant { InvariantWithRule maybe_proof_methods
-              | "ghost" CNAME
-              | "ghost" "(" CNAME "=" expr ")"
+              | "ghost" CNAME "(" CNAME "=" expr ")"
 }
 
-InvariantWithRule { Invariant ("{" ode_rule expr? "}")? }
+InvariantWithRule { Invariant ("{" inv_rule expr? "}")? }
 
 OdeNoInv { "{" ode_seq "&" expr "}" }
 
-ode_rule {
-  "di" | "dbx" | "bc" | "dw" | "sln"
+inv_rule {
+  "di" | "dbx" | "bc" 
 }
+ode_rule { "solution" }
 
-
+constants_decl { "constants" (expr ";")* "end"}
 function_decl { "function" CNAME "(" CNAME ("," CNAME)* ")" "=" expr ";" }
 
 hoare_pre { "pre" ("[" expr "]")* ";" }
 hoare_post { "post" (ord_assertion)* ";" }
-@top hoare_triple { function_decl* hoare_pre cmd hoare_post }
+@top hoare_triple { constants_decl? function_decl* hoare_pre cmd hoare_post }
 
 parallel_cmd { cmd ("||" cmd)* }  // Priority 30, outermost level only
 
@@ -296,7 +297,8 @@ Decls {
 
   CNAME { ("_"|letter) ("_"|letter|digit)* }
 
-  LineComment { "#" ![\n]* }
+  LineComment { "#" ![\n]* |  "/*" (![*]|$[\r\n]|("*"+(![*/]|$[\r\n])))* "*/" }
+  //TODO: Find a better way to match /*xxx*/
 
   ws { $[ \t\f\r\n]+ }
 
@@ -314,7 +316,11 @@ Decls {
   @precedence { 
     SIGNED_NUMBER, "-", "pre", "post",
     "true", "false", "gcd", "if", "else", "log", "max", "min", "rec", "skip", 
-    "test", "wait", "\\exists", "\\forall", "assert", "invariant", CNAME }
+    "test", "wait", "\\exists", "\\forall", "assert", "invariant", "solution", "end", CNAME }
+
+  @precedence {
+    LineComment, "/" 
+  }
 }
 
 @detectDelim

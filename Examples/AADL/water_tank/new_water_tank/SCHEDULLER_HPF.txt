@@ -1,0 +1,33 @@
+%type: module
+module SCHEDULLER_HPF(sid):
+output prior, run_prior;
+begin
+Pool := [];
+run_now := -1;
+run_prior := -1;
+{
+    reqProcessor[sid][_tid]?prior -->
+        if (run_prior > prior) { Pool := push(Pool, [[prior, _tid]]); }
+        else {
+            if (run_now != -1) { preempt[sid][run_now]!; }
+            run_now := _tid;
+            run_prior := prior;
+            run[sid][run_now]!;
+        }
+    $
+    free[sid][_tid]? -->
+        assert(_tid == run_now);
+        if (len(Pool) > 0) {
+            (run_prior, run_now) := get_max(Pool);
+            Pool := del0(Pool, run_now);
+            run[sid][run_now]!;
+        }
+        else { run_prior := -1; run_now := -1; }
+    $
+    exit[sid][_tid]? --> Pool := del_proc(Pool, _tid);
+    $
+    complete_exec[sid][_tid]? --> skip;
+}*
+
+end
+endmodule

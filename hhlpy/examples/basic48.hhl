@@ -29,8 +29,10 @@ pre [v >= 0] [A > 0] [B >= b] [b > 0] [x+v^2/(2*b) <= S] [ep > 0];
   c := 0;
   t := * (t >= 0);
   { x_dot = v, v_dot = a, c_dot = 1, t_dot = -1 &
-    t > 0 && v > 0 && c < ep }
-    invariant [x+v^2/(2*b) <= S] {sln};
+    t > 0 && v > 0 && c < ep } solution;
 }* 
-invariant [x+v^2/(2*b) <= S] [v >= 0];
+invariant [x+v^2/(2*b) <= S] {{maintain 1(1).exec: wolfram, maintain 1(2).exec: wolfram, 
+                               maintain 2(1).exec: wolfram, maintain 2(2).exec: wolfram, 
+                               maintain 3.exec: wolfram}}
+          [v >= 0];
 post [x <= S];

@@ -1,4 +1,7 @@
-function bar(x) = x + 1;
+constants
+    a == 1;
+end
+function bar(x) = x + a;
 pre [x >= 0];
 x := bar(x);
-post [x >= 1];
+post [x >= a];

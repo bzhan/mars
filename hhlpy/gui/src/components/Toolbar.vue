@@ -1,75 +1,65 @@
 <template>
   <div class="toolbar">
     <div class="group">
-      <form class="open_file">
-        <label for="open_file">Open file</label>
-        <input type="file" id="open_file" name="open_file" accept=".hhl" v-on:change="openFile">
-      </form>
-      <select v-on:change="loadExample">
-        <option disabled selected>Load example</option>
-        <option v-for="example in examples" :value="example" :key="example">
-          {{ example }}
-        </option>
-      </select>
-    </div>
-    <div class="group">
-      <button v-on:click="compute">Compute</button>
-      <button v-on:click="verify">Verify</button>
-      <button v-on:click="cancel" :class="{wait: !computationProcessReady}">Cancel computation</button>
-      
+      <button v-on:click="newFile">New</button>
+      <span v-if="savingDialog">
+        Enter file name:
+        <input type="text" v-model="savingName"/>
+      </span>
+      <button v-on:click="saveFile">Save</button>
     </div>
   </div>
 </template>
 
 <script>
-import { EditorView } from 'codemirror';
-import { serverConnection } from '../serverConnection.js'
+import { useWebsocketStore } from '../stores/websocket'
+import { useOpenFilesStore } from '../stores/openFiles'
+import { onMounted, ref } from '@vue/composition-api'
 
 export default {
-  name: 'Toolbar',
-  props: {
-    editorView: EditorView
-  },
-  data: () => { return {
-    examples: [],
-    computationProcessReady: true
-  }},
-  methods: { 
-    socketOpened: function () {
-      serverConnection.socket.send(JSON.stringify({type: "get_example_list"}))
-    },
-    openFile: function (e) {
-      e.target.files[0].text().then((doc) => {
-        this.$emit("openDocument", doc);
-      })
-    },
-    loadExample: function (e) {
-      serverConnection.socket.send(JSON.stringify({example: e.target.value, type: "load_file"}));
-    },
-    compute: function () {
-      // Send the doc in editor to server with type "compute".
-      let code = this.editorView.state.doc.toString();
-      serverConnection.socket.send(JSON.stringify({code: code, type: "compute"}));
-    },
-    verify: function () {
-      this.$emit("verifyVCs");
-    },
-    cancel: function () {
-      serverConnection.socket.send(JSON.stringify({type: "cancel_computation"}));
-      this.computationProcessReady = false;
+  setup() {
+    const websocketStore = useWebsocketStore()
+    const openFilesStore = useOpenFilesStore()
+    const savingDialog = ref(false)
+    const savingName = ref("")
+    function saveFile () {
+      if (this.savingDialog) {
+        this.savingDialog = true
+        openFilesStore.saveFile(savingName.value)
+      } else {
+        if (openFilesStore.files[openFilesStore.activeTab].new) {
+          this.savingDialog = true
+        } else {
+          openFilesStore.saveFile()
+        }
+      }
+    }
+    function newFile () {
+      openFilesStore.newFile()
+    }
+
+    onMounted(() => {
+      websocketStore.reconnect()
+    })
+ 
+    return {
+      websocketStore,
+      openFilesStore,
+      saveFile,
+      newFile,
+      savingDialog,
+      savingName
     }
   }
 }
+
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 .toolbar {
   background: rgb(67, 67, 67);
-}
-
-.toolbar form {
-  display: inline;
+  color: white;
 }
 
 .toolbar .group {
@@ -77,9 +67,7 @@ export default {
   margin-right: 20px;
 } 
 
-.toolbar button, 
-.toolbar select, 
-.toolbar .open_file label {
+.toolbar button {
   font-size: 100%;
   margin: 2px;
   padding: 2px 10px;
@@ -92,19 +80,9 @@ export default {
   cursor: pointer;
 }
 
-.toolbar button:hover, 
-.toolbar .open_file label:hover {
+.toolbar button:hover {
   color: white;
   border: solid 2px #fff;
-}
-
-button.wait, button.wait:hover {
-  color: #777;
-}
-
-.open_file input {
-  opacity: 0;
-  width: 0;
 }
 
 </style>

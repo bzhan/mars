@@ -1,9 +1,7 @@
 <template>
   <div id="app">
     <div class="toolbar">
-      <Toolbar ref="toolbar" :editorView="editorView"
-        @openDocument="openDocument"
-        @verifyVCs="verifyVCs" />
+      <Toolbar ref="toolbar" />
     </div>
 
     <div id="main">
@@ -12,15 +10,23 @@
           <FileBrowser ref="fileBrowser" :path="[]" />
         </template>
         <template v-slot:right>
-        <Resizer :initialLeftWidth="50"> 
-          <template v-slot:left>
-            <Editor ref="editor" @docChanged="docChanged" />
-          </template>
-          <template v-slot:right>
-            <VerificationCondition2 ref="vcs" :editorView="editorView" />
-            <ErrorDisplay ref="errorDisplay" />
-          </template>
-        </Resizer>
+          <div class="pages">
+            <div class="tabs">
+              <span class="tab" v-for="(file, fileName) in openFilesStore.files" :key="fileName" 
+                :class="{open: fileName == openFilesStore.activeTab}"
+                @click="openFilesStore.activeTab = fileName">
+                <v-icon name="times" scale="1" fill="#888" class="close"
+                  @click="openFilesStore.closeFile(fileName)"></v-icon>
+                {{fileName}}
+              </span>
+              
+            </div>
+            <div class="page">
+              <Page v-for="(file, fileName) in openFilesStore.files" v-bind:key="fileName" 
+                v-show="fileName == openFilesStore.activeTab" :file="file" 
+                ref="pages"/>
+            </div>
+          </div>
         </template>
       </Resizer>
     </div>
@@ -28,73 +34,31 @@
 </template>
 
 <script>
-import Editor from './components/Editor.vue'
+import 'vue-awesome/icons'
+import Icon from 'vue-awesome/components/Icon'
 import Resizer from './components/Resizer.vue'
-import Toolbar from './components/Toolbar.vue'
-import VerificationCondition2 from "./components/VerificationCondition2.vue"
-import ErrorDisplay from './components/ErrorDisplay.vue'
 import FileBrowser from './components/FileBrowser.vue'
-import { serverConnection } from './serverConnection.js'
+import Page from './components/Page.vue'
+import Toolbar from './components/Toolbar.vue'
+import { mapStores } from 'pinia'
+import { useOpenFilesStore } from './stores/openFiles'
 
 export default {
   name: 'App',
   components: {
-    Resizer, Toolbar, Editor, VerificationCondition2, ErrorDisplay, FileBrowser
+    Resizer, Page, FileBrowser, Toolbar,
+    'v-icon': Icon
   },
   data: () => { return {
-    editorView : null,
   }},
+  computed: {
+    ...mapStores(useOpenFilesStore)
+  },
   mounted: function () {
 
-    this.editorView = this.$refs.editor.initEditor();
-
-    serverConnection.socket.addEventListener("open", () => {
-      this.$refs.toolbar.socketOpened()
-    });
-
-    serverConnection.socket.addEventListener("message", (event) => {
-      let eventData = JSON.parse(event.data)
-      console.log(event)
-      
-      if (eventData.type === "computed"){
-        this.$refs.vcs.computed(eventData)
-      }
-      else if(eventData.type === 'verified'){
-        this.$refs.vcs.verified(eventData)
-      }
-      else if(eventData.type === 'example_list'){
-        this.$refs.toolbar.examples = eventData.examples;
-      }
-      else if (eventData.type ===  'computation_process_ready'){
-        this.$refs.toolbar.computationProcessReady = true;
-      }
-      else if(eventData.type === 'load_file'){
-        this.openDocument(eventData.code);
-      }
-      else if(eventData.type === 'error'){
-        this.$refs.errorDisplay.addError(eventData.error);
-        console.error("Server error:", eventData.error);
-      } else if(eventData.type !== 'file_list'){
-        this.$refs.errorDisplay.addError(`Unknown message type: ${eventData.type}`);
-        console.error("Unknown message type:", eventData.type);
-      }
-    })
   },
   methods: {
-    openDocument(doc) {
-      this.$refs.vcs.outdated = true;
-      this.editorView = this.$refs.editor.initEditor(doc);
-      serverConnection.socket.send(JSON.stringify({code: doc, type: "compute"}));
-    },
-    verifyVCs() {
-      this.$refs.vcs.verifyVCs();
-    },
-    docChanged() {
-      this.$refs.vcs.outdated = true;
-      // Compute VCSs
-      let code = this.editorView.state.doc.toString();
-      serverConnection.socket.send(JSON.stringify({code: code, type: "compute"}));
-    }
+
   }
 }
 </script>
@@ -113,8 +77,36 @@ body,
   display: flex;
   flex-flow: column;
   height: 100%;
-  font-size: 120%;
+  font-size: 80%;
   overflow:hidden;
+}
+
+.pages {
+  display: flex;
+  flex-flow: column;
+  height: 100%;
+  overflow:hidden;
+}
+
+.tab {
+  display: inline-block;
+  background: #ccc;
+  margin: 0 1px;
+  padding: 5px;
+  width: 200px;
+  text-align: center;
+  cursor: default;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.close {
+  float:right;
+}
+
+.tab.open {
+  background: white;
 }
 
 #main {
@@ -122,7 +114,16 @@ body,
   overflow:hidden;
 }
 
+.page {
+  flex: 1 1 auto;
+  overflow:hidden;
+}
+
 .toolbar {
+  flex: 0 1 auto;
+}
+
+.tabs {
   flex: 0 1 auto;
 }
 </style>

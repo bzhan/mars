@@ -16,17 +16,19 @@ found_wolfram = False
 path = None
 session = None
 
-dirname = os.path.dirname(__file__)
-filename = os.path.join(dirname, './wolframpath.txt')
+default_locations = [
+    "C:\\Program Files\\Wolfram Research\\Wolfram Engine\\13.1\\WolframKernel.exe",
+    "/Applications/Wolfram Engine.app/Contents/MacOS/WolframKernel",
+    "/usr/local/Wolfram/WolframEngine/13.1/Executables/WolframKernel"
+]
 
-if platform.system() == "Darwin":
-    path = "/Applications/Wolfram Engine.app/Contents/Resources/Wolfram Player.app/Contents/MacOS/WolframKernel"
-else:
-    try:
-        with open(filename, 'r') as f:
-            path = f.readline().strip()
-    except FileNotFoundError as e:
-        print("Please add a file wolframpath.txt under hhlpy and place path to Wolfram Engine there.")
+for loc in default_locations:
+    if os.path.exists(loc):
+        path = loc
+        break
+
+if path is None:
+    path = os.getenv("WolframKernel")
 
 if path:
     try:
@@ -34,8 +36,10 @@ if path:
         found_wolfram = True
     except WolframKernelException:
         print("Failed to start Wolfram Kernel")
+else:
+    print("Please install Wolfram Kernel in a default location or specify its location in the environment variable \"WolframKernel\".")
 
-def toWLexpr(e, functions):
+def toWLexpr(e, functions=dict()):
     """Convert a hcsp expression to WolframLanguage expression"""
     def rec(e):
         if isinstance(e, expr.AVar):
@@ -105,12 +109,12 @@ def toWLexpr(e, functions):
                 raise AssertionError
         elif isinstance(e, expr.ForAllExpr):
             if isinstance(e.vars, tuple):
-                return wl.Forall(wl.List(rec(var) for var in e.vars), rec(e.expr))
+                return wl.ForAll({rec(var) for var in e.vars}, rec(e.expr))
             else:
                 return wl.ForAll(rec(e.vars), rec(e.expr))
         elif isinstance(e, expr.ExistsExpr):
             if isinstance(e.vars, tuple):
-                return wl.Exists(wl.List(rec(var) for var in e.vars), rec(e.expr))
+                return wl.Exists({rec(var) for var in e.vars}, rec(e.expr))
             else:
                 return wl.Exists(rec(e.vars), rec(e.expr))
         else:
@@ -195,7 +199,10 @@ def toHcsp(e):
             return expr.LogicExpr('<->', toHcsp(e.args[0]), toHcsp(e.args[1]))
 
         else:
-            return expr.FunExpr(str(e.head), [toHcsp(arg) for arg in e.args])
+            # Apply toHCSP to e.head because e.head may include "Global`"
+            # For example, the solution is Global`x1[t] := t, 
+            # then we need to delete "Global`" to match x1 with the variable in ODE.
+            return expr.FunExpr(str(toHcsp(e.head)), [toHcsp(arg) for arg in e.args])
 
     elif isinstance(e, WLSymbol):
         str_e = str(e)
@@ -243,7 +250,6 @@ def solveODE(hp, names, time_var):
     solutions = []
     for sln in slns[0]:
         solutions.append(toHcsp(sln))
-
     # Tranlate solution into a dictionary form and 
     # change the inital value symbol to function name symbol, for the sake of ODE solution axiom.
     # e.g. from [v(t) := v0 + a * t] to {'v' : v + a * t}
@@ -322,7 +328,10 @@ def wl_prove(e, functions=dict()):
 
     # wl_vars cannot be empty when using FindInstance function.
     if wl_vars:
-        result = session.evaluate(wl.FindInstance(wl.Not(wl_expr), wl_vars))
+        # We use FindInstance instead of Reduce here 
+        # because that Reduce cannot reduce the VCs in basic 46, 47 into true，
+        # even though the VCs should be valid.
+        result = session.evaluate(wl.FindInstance(wl.Not(wl_expr), wl_vars, wl.Reals))
         # result is an empty tuple, i.e. no instance found for the not expression.
         if not result:
             return True
@@ -337,7 +346,7 @@ def wl_prove(e, functions=dict()):
         else:
             return False
 
-def wl_simplify(e, functions):
+def wl_simplify(e, functions=dict()):
     """Simplify the given hcsp expression"""
     wl_expr = toWLexpr(e, functions)
     # Use the Simplify function in wolfram.
@@ -346,27 +355,35 @@ def wl_simplify(e, functions):
 
     return hcsp_expr
 
-def wl_polynomial_div(p, q, functions):
+def wl_polynomial_div(p, q, constants, functions=dict()):
     """Compute the quotient and remainder of polynomial p and q"""
-    vars = q.get_vars()
-    vars = {toWLexpr(expr.AVar(var), functions) for var in vars}
+    vars = q.get_vars().difference(constants)
+    # Sort the vars to get the same results everytime,
+    # because result of PolynomialReduce depends on the sort of vars but set has no sort.
+    vars_list = [var for var in vars]
+    vars_list.sort()
+    vars = wl.List(*[toWLexpr(expr.AVar(var), functions) for var in vars_list])
+    
     p = toWLexpr(p, functions)
     q = toWLexpr(q, functions)
 
     # result is in the form, for example, (x, 1), 
     # in which x is the quotient, 1 is the remainder.
     quot_remains = dict()
-    for var in vars:
-        result = session.evaluate(wl.PolynomialQuotientRemainder(p, q, var))
+    # Use PolynomialReduce instead of PolynomialQuotientRemainder,
+    # because PolynomialQuotientRemainder only allows one var, 
+    # which may lead to a fractional expression as quotient.
+    # For example, quot is x/y, since x is the only var
+    result = session.evaluate(wl.PolynomialReduce(p, q, vars))
 
-        quot = toHcsp(result[0])
-        remain = toHcsp(result[1])
+    quot = toHcsp(result[0][0])
+    remain = toHcsp(result[1])
 
-        quot_remains[quot] = remain
+    quot_remains[quot] = remain
 
     return quot_remains
 
-def wl_is_polynomial(e, functions, constants=set()):
+def wl_is_polynomial(e, constants=set(), functions=dict()):
     """Verify whether the given expression is a polynomial"""
     vars = e.get_vars().difference(constants)
     vars = {toWLexpr(expr.AVar(var), functions) for var in vars}

@@ -954,6 +954,11 @@ class SFConvertTest(unittest.TestCase):
             ['delay 1.01', 'delay 0.909', 'delay 0.909'],
             output_to_file="./hhlpy/examples/simulink/sf_bouncing.txt")
 
+    def testSFSawtooth3(self):
+        run_test(self, "./hhlpy/examples/simulink/sf_sawtooth3.xml", 3,
+            ['delay 1.0', 'delay 1.0', 'delay 1.0'],
+            output_to_file="./hhlpy/examples/simulink/sf_sawtooth3.txt")
+
 
 if __name__ == "__main__":
     unittest.main()

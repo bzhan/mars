@@ -291,6 +291,36 @@ def replace_function(e: FunExpr, funcs=dict()):
 
     return fun_obj_expr
 
+def subst_all_funcs(e: Expr, funcs=dict()):
+    """Substitue all defined FunExprs of e. Return an expression without defined FunExprs.
+    For Example, 
+        funcs = {'f': hcsp.Function('f', ['x'], "x + 1"),
+                 'g': hcsp.Function('g', ['x'], "f(x) + 2")},
+        For expression g(y) * 2,
+        return (y + 1 + 2) * 2
+    """
+    def rec(e):
+        if isinstance(e, (AConst, BConst, AVar)):
+            return e
+        elif isinstance(e, FunExpr):
+            if e.fun_name in funcs:
+                return rec(replace_function(e, funcs))
+            else:
+                return e
+        elif isinstance(e, OpExpr):
+            return OpExpr(e.op, *[rec(expr) for expr in e.exprs])
+        elif isinstance(e, RelExpr):
+            return RelExpr(e.op, rec(e.expr1), rec(e.expr2))
+        elif isinstance(e, LogicExpr):
+            return LogicExpr(e.op, *[rec(expr) for expr in e.exprs])
+        elif isinstance(e, ExistsExpr):
+            return ExistsExpr(e.vars, rec(e.expr))
+        elif isinstance(e, ForAllExpr):
+            return ForAllExpr(e.vars, rec(e.expr))
+        else:
+            raise NotImplementedError
+
+    return rec(e)
 
 class IfExpr(Expr):
     def __init__(self, cond, expr1, expr2, meta=None):
@@ -717,26 +747,26 @@ class ExistsExpr(Expr):
     def __init__(self, vars, expr, meta=None):
         assert isinstance(expr, Expr)
         if isinstance(vars, str):
-            vars = AVar(vars)
+            vars = (AVar(vars), )
         elif isinstance(vars, list):
             assert all(isinstance(var, str) for var in vars)
             vars = tuple(AVar(var) for var in vars)
-        assert isinstance(vars, (AVar, tuple))
+        assert isinstance(vars, tuple)
         self.vars = vars
         self.expr = expr
         self.meta = meta
 
     def __repr__(self):
-        if isinstance(self.vars, AVar):
-            return "ExistsExpr(%s, %s)" % (repr(self.vars), repr(self.expr))
+        if len(self.vars) == 1:
+            return "ExistsExpr(%s, %s)" % (repr(self.vars[0]), repr(self.expr))
         else:
             return "ExistsExpr({%s}, %s)" % ((', '.join(repr(var) for var in self.vars)), repr(self.expr))
 
     def __str__(self):
-        if isinstance(self.vars, AVar):
-            return "\\exists %s. %s" % (str(self.vars), str(self.expr))
+        if len(self.vars) == 1:
+            return "\exists %s. %s" % (str(self.vars[0]), str(self.expr))
         else:
-            return "\\exists {%s}. %s" % ((', '.join(str(var) for var in self.vars)), str(self.expr))
+            return "\exists {%s}. %s" % ((', '.join(str(var) for var in self.vars)), str(self.expr))
 
     def __eq__(self, other):
         # Currently does not consider alpha equivalence.
@@ -760,7 +790,8 @@ class ExistsExpr(Expr):
 
     def subst(self, inst):
         # Currently assume the bound variable cannot be substituded.
-        assert self.vars not in inst
+        for var in self.vars:
+            assert str(var) not in inst
         return ExistsExpr(self.vars, self.expr.subst(inst))
 
 class ForAllExpr(Expr):
@@ -768,26 +799,26 @@ class ForAllExpr(Expr):
     def __init__(self, vars, expr, meta=None):
         assert isinstance(expr, Expr)
         if isinstance(vars, str):
-            vars = AVar(vars)
+            vars = (AVar(vars), )
         elif isinstance(vars, list):
             assert all(isinstance(var, str) for var in vars)
             vars = tuple(AVar(var) for var in vars)
-        assert isinstance(vars, (AVar, tuple))
+        assert isinstance(vars, tuple)
         self.vars = vars
         self.expr = expr
         self.meta = meta
 
     def __repr__(self):
-        if isinstance(self.vars, AVar):
-            return "ForAllExpr(%s, %s)" % (repr(self.vars), repr(self.expr))
+        if len(self.vars) == 1:
+            return "ForAllExpr(%s, %s)" % (repr(self.vars[0]), repr(self.expr))
         else:
             return "ForAllExpr({%s}, %s)" % ((', '.join(repr(var) for var in self.vars)), repr(self.expr))
 
     def __str__(self):
-        if isinstance(self.vars, AVar):
-            return "ForAll %s. %s" % (str(self.vars), str(self.expr))
+        if len(self.vars) == 1:
+            return "\\forall %s. %s" % (str(self.vars[0]), str(self.expr))
         else:
-            return "ForAll {%s}. %s" % ((', '.join(str(var) for var in self.vars)), str(self.expr))
+            return "\\forall {%s}. %s" % ((', '.join(str(var) for var in self.vars)), str(self.expr))
 
     def __eq__(self, other):
         # Currently does not consider alpha equivalence.
@@ -811,7 +842,8 @@ class ForAllExpr(Expr):
     
     def subst(self, inst):
         # Currently assume the bound variable cannot be substituded.
-        assert self.vars not in inst
+        for var in self.vars:
+            assert str(var) not in inst
         return ForAllExpr(self.vars, self.expr.subst(inst))
 
 def neg_expr(e):
@@ -838,6 +870,11 @@ def neg_expr(e):
             raise NotImplementedError
     elif isinstance(e, RelExpr):
         return e.neg()
+
+    elif isinstance(e, ForAllExpr):
+        return ExistsExpr(e.vars, neg_expr(e.expr))
+    elif isinstance(e, ExistsExpr):
+        return ForAllExpr(e.vars, neg_expr(e.expr))
     else:
         raise NotImplementedError
 

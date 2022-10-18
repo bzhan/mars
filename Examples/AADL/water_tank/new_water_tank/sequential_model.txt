@@ -1,0 +1,8 @@
+P ::= Qmax := 2; r := 0.18; h := 4.5; lb := 4; ub := 6; g := 9.8; pi := 3.14; u:= 1; cmd := 1;
+UB := 6; LB := 4;
+{
+t := 0; {h_dot = cmd*Qmax-pi*r*r*sqrt(2*g*h)*u, t_dot = 1 & t < 0.05 && h > 0}
+h1 := h;
+t := 0; {h_dot = cmd*Qmax-pi*r*r*sqrt(2*g*h)*u, t_dot = 1 & t < 0.05 && h > 0}
+if (h1 <= lb) { cmd := 1; } else if (h1 >= ub) { cmd := 0; }
+}*

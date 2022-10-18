@@ -1,0 +1,47 @@
+# ArchiveEntry "Benchmarks/Advanced/ETCS: Essentials"
+
+# Description "Essentials of European Train Control System (ETCS)".
+# Citation "Andre Platzer. Differential dynamic logic for hybrid systems. Journal of Automated Reasoning, 41(2), pages 143-189, 2008.".
+# Link "http://symbolaris.com/pub/freedL.pdf#page=14".
+
+function stopDist(v) = v^2/(2*b);                     /* Train stopping distance from speed (.) with braking force b */
+function accCompensation(v) = ((A/b) + 1)*((A/2)*ep^2 + ep*v);     /* Distance to compensate speed increase. */
+function SB(v) = stopDist(v) + accCompensation(v);      /* Distance needed to stop safely when accelerating once */
+
+/** Initial states */
+function initial(m, z, v) = 
+v >= 0 &&
+m-z >= stopDist(v) &&         /* train has sufficient distance to the end of the movement authority to stop safely */
+b>0 &&                        /* brakes are working */
+A>=0 &&                       /* engine is working */
+ep>=0
+;
+
+function safeInv(m, z, v) = m-z >= stopDist(v);
+
+
+/* Safety specification of the form: initial -> [{ctrl;plant}*]safe
+* Starting in any state where initial is true,
+* any number of repetitions of running a controller 'ctrl' and then driving according to 'plant'
+* keeps the system safe (end up only in states where 'safe' is true).
+*/
+
+pre [initial(m, z, v)]; 
+{
+    if (m - z < SB(v)){
+        a := -b;                /* train protection: emergency brake 
+                                   when close to end of movement authority */
+    }
+    else if (m - z > SB(v)) {
+        a := A;                /* free driving: accelerate when sufficient distance */
+    }
+    else {
+        a := -b; ++ a := A;
+    }         
+            
+    t := 0;                                                  /* reset control cycle timer */
+    {z_dot=v, v_dot=a, t_dot=1  & v > 0 && t < ep} solution;                /* drive (not backwards v>=0)
+                                                              for at most ep time (t<=ep) until next controller run */
+}* invariant [v >= 0][safeInv(m, z, v)];                   /* repeat, loop invariant documents system design property */
+    
+post [z <= m];                          /* safety property: train 'z' never drives past end of movement authority 'm' */

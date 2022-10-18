@@ -1,0 +1,2 @@
+recursive-include src/hhlpy/examples *
+recursive-include src/hhlpy/gui/dist *

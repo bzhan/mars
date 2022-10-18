@@ -10,7 +10,9 @@ from multiprocessing import Process, Queue
 from queue import Empty
 import signal
 import sys
-
+import webbrowser
+from threading import Timer
+from flask import Flask, send_from_directory, redirect
 
 
 from operator import pos
@@ -18,7 +20,7 @@ from operator import pos
 from ss2hcsp.hcsp import expr, hcsp
 from ss2hcsp.hcsp.parser import parse_hoare_triple_with_meta, parse_expr_with_meta
 from ss2hcsp.hcsp.simulator import get_pos
-from hhlpy.hhlpy_without_dG import CmdVerifier
+from hhlpy.hhlpy import CmdVerifier
 from hhlpy.wolframengine_wrapper import wl_prove
 from hhlpy.z3wrapper import z3_prove
 from hhlpy.wolframengine_wrapper import session, found_wolfram
@@ -33,9 +35,10 @@ def runCompute(code):
 
     # Initialize the verifier
     verifier = CmdVerifier(
-        pre=expr.list_conj(*hoare_triple.pre), 
+        pre=hoare_triple.pre, 
         hp=hoare_triple.hp,
         post=hoare_triple.post,
+        constants=hoare_triple.constants,
         functions=hoare_triple.functions)
 
     # Compute wp and verify
@@ -44,54 +47,49 @@ def runCompute(code):
     # Return verification condition informations
     vc_infos = []
 
-    for pos, vcs in verifier.get_all_vcs().items():
+    for _, vcs in verifier.get_all_vcs().items():
 
         for vc in vcs:
-            # Use the bottom-most position `vc.pos[0]` to attach the VC to
-            hp = get_pos(hoare_triple.hp, vc.pos[0][0])
-            meta = get_pos(hoare_triple.hp, vc.pos[0][0]).meta
-            if meta.empty:
-                # LARK can't determine position of empty elements
-                meta.column = 0
-                meta.start_pos = 0
-                meta.end_line = 1
-                meta.end_pos = 0
-            
-            # Map origin positions in syntax tree to positions on the character level
-            origin = []
-            for originPos in vc.pos:
-                if originPos[0] != ():
-                    originMeta = get_pos(hoare_triple.hp, originPos[0]).meta
-                    if not originMeta.empty:
-                        origin.append({"from": originMeta.start_pos, "to": originMeta.end_pos})
 
-            assume = split_imp(vc.expr)[:-1]
-            show = split_imp(vc.expr)[-1]
+            show = split_imp(vc.expr)[-1] 
+            if hoare_triple.constants.preds:
+                constants = split_imp(vc.expr)[0]
+                assume = split_imp(vc.expr)[1:-1]
+            else:
+                constants = None
+                assume = split_imp(vc.expr)[:-1]            
 
+            # Get the proof method
             label_computed = vc.comp_label
             method_stored = None
             
             pms_start_pos = -1
             pms_end_pos = -1
+
+            # Use the bottom-most assertion to attach the VC to
+            assert vc.bottom_loc is not None
+            bottom_loc = vc.bottom_loc
+ 
+            # Case when the bottom-most assertion of vc is a post condition.
+            if bottom_loc.isPost:
+                bottom_ast = hoare_triple.post[vc.bottom_loc.index]
+
+            # Case when the bottom-most assertion of vc is a loop or an ode invariant.
+            elif bottom_loc.isInv:
+                assert bottom_loc.hp_pos is not None
+                hp = get_pos(hoare_triple.hp, vc.bottom_loc.hp_pos)
+
+                assert isinstance(hp, (hcsp.Loop, hcsp.ODE))
+                bottom_ast = hp.inv[vc.bottom_loc.index]
             
-
-            # Case when the bottom most assertion of vc is a post condition.
-            if vc.pc and vc.annot_pos is not None:
-                assertion = hoare_triple.post[vc.annot_pos]
-
-            # Case when the bottom most assertion of vc is a loop or an ode invariant.
-            elif isinstance(hp, (hcsp.Loop, hcsp.ODE)) and vc.annot_pos is not None:
-                assert hp.inv is not None
-                assertion = hp.inv[vc.annot_pos]
-
             else:
                 raise NotImplementedError
-                
-            proof_methods = assertion.proof_methods
+
+            proof_methods = bottom_ast.proof_methods
             pms_meta = proof_methods.meta
             if pms_meta.empty:
-                pms_meta.start_pos = assertion.meta.end_pos
-                pms_meta.end_pos = assertion.meta.end_pos
+                pms_meta.start_pos = bottom_ast.meta.end_pos
+                pms_meta.end_pos = bottom_ast.meta.end_pos
             pms_start_pos = proof_methods.meta.start_pos
             pms_end_pos = proof_methods.meta.end_pos
             # If the method of this vc is stored in proof_methods,
@@ -100,17 +98,73 @@ def runCompute(code):
                 if str(label_computed) == str(proof_method.label):
                     method_stored = proof_method.method
 
+
+            # Map origin positions in syntax tree to positions on the character level
+            originRanges = []
+            # Append the hcsp program ranges.
+            for originPos in vc.path:
+                hp = get_pos(hoare_triple.hp, originPos[0])
+
+                if isinstance(hp, hcsp.ODE):
+                    from_pos = hp.meta.start_pos + 1
+                    to_pos = hp.constraint.meta.end_pos
+                else:
+                    from_pos = hp.meta.start_pos
+                    to_pos = hp.meta.end_pos
+                
+                originRanges.append({"from": from_pos, "to": to_pos})
+
+            # Append the expression ranges.
+            for origin in vc.origins:
+                print("origin:", origin)
+                if origin.isPre:
+                    originMeta = hoare_triple.pre[origin.index].meta
+                    to = originMeta.end_pos
+               
+                elif origin.isConstraint:
+                    assert origin.hp_pos is not None
+                    hp = get_pos(hoare_triple.hp, origin.hp_pos)
+                    assert isinstance(hp, hcsp.ODE)
+                    originMeta = hp.constraint.meta
+                    to = originMeta.end_pos
+
+                elif origin.isGhost:
+                    assert origin.hp_pos is not None
+                    hp = get_pos(hoare_triple.hp, origin.hp_pos)
+                    assert isinstance(hp, hcsp.ODE)
+                    originMeta = hp.ghosts[origin.index].meta
+                    to = originMeta.end_pos
+
+                elif origin.isInv or origin.isPost:
+                    if origin.isInv:
+                        assert origin.hp_pos is not None
+                        hp = get_pos(hoare_triple.hp, origin.hp_pos)
+                        assert isinstance(hp, (hcsp.Loop, hcsp.ODE))
+                        assertion = hp.inv[origin.index]
+                    else:
+                        assertion = hoare_triple.post[origin.index]
+
+                    originMeta = assertion.meta
+                    proof_methods = assertion.proof_methods
+                    pms_meta = proof_methods.meta
+                    if pms_meta.empty:
+                        pms_meta.start_pos = assertion.meta.end_pos
+                        pms_meta.end_pos = assertion.meta.end_pos
+                    
+                    to = pms_meta.start_pos
+                else:
+                    raise NotImplementedError
+                originRanges.append({"from": originMeta.start_pos, "to": to})
+
+
             vc_infos.append({
-                "line": meta.end_line,
-                "column": meta.column,
-                "start_pos": meta.start_pos,
-                "end_pos": meta.end_pos,
                 "formula": str(vc.expr),
+                "constants": str(constants),
                 "assume": [str(asm) for asm in assume],
                 "show": str(show),
                 "label": str(vc.comp_label),
                 "method": method_stored,
-                "origin": origin,
+                "origin": originRanges,
                 "pms_start_pos": pms_start_pos,
                 "pms_end_pos": pms_end_pos
             })
@@ -123,6 +177,8 @@ def runVerify(formula, code, solver):
 
     if solver == "z3":
         return z3_prove(formulaExpr, functions=hoare_triple.functions)
+    elif solver == "wolfram" and not found_wolfram:
+        raise Exception("Wolfram Engine not found.")
     elif solver == "wolfram":
         return wl_prove(formulaExpr)
     else:
@@ -152,17 +208,23 @@ def runComputationProcess(inputQueue, outputQueue):
         if msg["type"] == "compute":
             try:
                 vcs = runCompute(code=msg["code"])
-                outputQueue.put({"vcs": vcs, "type": "computed"})
+                outputQueue.put({"vcs": vcs, "type": "computed", "file": msg["file"]})
             except Exception as e:
-                outputQueue.put({"error": str(e), "type": "computed"})
+                traceback.print_exc()
+                outputQueue.put({"error": str(e), "type": "computed", "file": msg["file"]})
 
         elif msg["type"] == "verify":
-            result = runVerify(
-                formula=msg["formula"],
-                code=msg["code"],
-                solver=msg["solver"])
+            try:
+                result = runVerify(
+                    formula=msg["formula"],
+                    code=msg["code"],
+                    solver=msg["solver"])
+            except Exception as e:
+                traceback.print_exc()
+                outputQueue.put({"error": str(e), "type": "error", "file": msg["file"]})
         
             outputQueue.put({
+                "file": msg["file"],
                 "index": msg["index"], 
                 "formula": msg["formula"], 
                 "result": result, 
@@ -191,9 +253,9 @@ def getFileList(path):
     dirnames = natural_sort(dirnames)
     return (dirnames, filenames)
 
-def getExampleCode(example):
+def getFileCode(example):
     file = join(dirname(__file__), "../examples", example)
-    file = open(file,mode='r', encoding='utf-8')
+    file = open(file, mode='r', encoding='utf-8')
     code = file.read()
     file.close()
     return code
@@ -207,6 +269,7 @@ def split_imp(e):
         return [e]
 
 computationProcess = None
+ws = None
 
 class HHLPyApplication(WebSocketApplication):
     def on_open(self):
@@ -217,8 +280,8 @@ class HHLPyApplication(WebSocketApplication):
     def on_message(self, message):
         try:
             if message != None:
+                print(message, flush=True)
                 msg = json.loads(message)
-                print(msg, flush=True)
                 # If the type of message received is "compute", 
                 # the message has a code field, which is the document in editor,
                 # then call runCompute function.
@@ -241,8 +304,8 @@ class HHLPyApplication(WebSocketApplication):
                     self.ws.send(json.dumps(result)) 
 
                 elif msg["type"] == "load_file":
-                    code = getExampleCode(msg["example"])
-                    result = {"code": code, "type": "load_file"}
+                    code = getFileCode(msg["file"])
+                    result = {"file": msg["file"], "code": code, "type": "load_file"}
                     self.ws.send(json.dumps(result)) 
 
                 elif msg["type"] == "cancel_computation":
@@ -250,6 +313,12 @@ class HHLPyApplication(WebSocketApplication):
                     computationProcess.terminate()
                     computationProcess.join()
                     computationProcess = startComputationProcess()
+
+                elif msg["type"] == "save_file":
+                    file = join(dirname(__file__), "../examples", msg["file"])
+                    file = open(file, mode='w', encoding='utf-8')
+                    file.write(msg["code"])
+                    file.close()
 
                 else:
                     raise NotImplementedError    
@@ -266,12 +335,13 @@ class HHLPyApplication(WebSocketApplication):
         print("Server Error")
 
 def checkComputationProcess():
-    try:
-        result = computationOutputQueue.get(False)
-        print("out!", flush=True)
-        ws.send(json.dumps(result))
-    except Empty:
-        pass
+    if ws is not None:
+        try:
+            result = computationOutputQueue.get(False)
+            print("out!", flush=True)
+            ws.send(json.dumps(result))
+        except Empty:
+            pass
 
 def startComputationProcess():
     computationProcess = Process(daemon=True, target=runComputationProcess, 
@@ -279,20 +349,46 @@ def startComputationProcess():
     computationProcess.start()
     return computationProcess
 
-if __name__ == "__main__":
-    port = 8000
-    server = WebSocketServer(
+def startHttpServer(port):
+    print(dirname(__file__))
+    app = Flask('hhlpy', root_path=dirname(__file__))
+
+    @app.route('/')
+    def index():
+        return redirect('/index.html')
+
+    @app.route('/<path:path>')
+    def send_static(path):
+        return send_from_directory('dist', path)
+
+    app.run(port=port)
+
+def startHttpProcess(port):
+    httpProcess = Process(daemon=True, target=startHttpServer, args=[port])
+    httpProcess.start()
+
+def start(port, openBrowser, http):
+    websocketServer = WebSocketServer(
         ('', port),
         Resource(OrderedDict([('/', HHLPyApplication)]))
     )
     try:
         computationProcess = startComputationProcess()
-        print("Running python websocket server on ws://localhost:{0}".format(port), flush=True)
-        server.start()
+        if http:
+            startHttpProcess(port)
+        if openBrowser:
+            def open_browser():
+                webbrowser.open_new('http://127.0.0.1:{0}/'.format(port))
+            Timer(3, open_browser).start();
+        print("Running websocket server on ws://localhost:{0}".format(port), flush=True)
+        websocketServer.start()
         while True:
             checkComputationProcess() # Check whether there are new computation results
             gevent.sleep(0) # Pause to allow the server to handle new requests from the client
     except KeyboardInterrupt:
         print("KeyboardInterrupt")
         print("Closing python websocket server")
-        server.stop()
+        websocketServer.stop()
+
+if __name__ == "__main__":
+    start(8000, False, False)

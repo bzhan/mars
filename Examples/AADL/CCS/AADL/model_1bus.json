@@ -14,7 +14,7 @@
             "veh_v_w": "v"
         },
         "impl": "Simulink",
-        "code": "./Examples/AADL/CCS/Simulink/vehicle_imp.xml"
+        "discrete_computation": "./Examples/AADL/CCS/Simulink/vehicle_imp.xml"
     },
     "img_acq_imp": {
         "category": "thread",
@@ -177,7 +177,7 @@
             "img": "img"
         },
         "impl": "HCSP",
-        "computation": "(outputs[\"camera\"][\"img\"]!-1; wait(0.2))**"
+        "computation": "{ outputs[\"camera\"][\"img\"]!-1; wait(0.2); }*"
     },
     "radar": {
         "category": "device",
@@ -186,7 +186,7 @@
             "obs_pos_radar": "obs_pos_radar"
         },
         "impl": "HCSP",
-        "computation": "t := 0; data := 0.0; (if t < 10 then data := 0.0 elif t < 20 then slope := (55 - 35) / (20 - 10); data := 35 + slope * (t - 10) else data := 0.0 endif; outputs[\"radar\"][\"obs_pos_radar\"]!data; wait(0.01); t := t + 0.01)**"
+        "computation": "t := 0; data := 0.0; { if (t < 10) { data := 0.0; } else if (t < 20) { slope := (55 - 35) / (20 - 10); data := 35 + slope * (t - 10); } else { data := 0.0; } outputs[\"radar\"][\"obs_pos_radar\"]!data; wait(0.01); t := t + 0.01; }*"
     },
     "actuator": {
         "category": "device",
@@ -202,7 +202,7 @@
         },
         "period": "2ms",
         "impl": "HCSP",
-        "computation": "(inputs[\"actuator\"][\"cmd\"]?cmd;\n  outputs[\"PHY_vehicle_imp\"][\"veh_a\"]!cmd;\n  wait(0.002))**"
+        "computation": "{ inputs[\"actuator\"][\"cmd\"]?cmd;\n  outputs[\"PHY_vehicle_imp\"][\"veh_a\"]!cmd;\n  wait(0.002); }*"
     },
     "gps": {
         "category": "device",
@@ -218,7 +218,7 @@
         },
         "period": "6ms",
         "impl": "HCSP",
-        "computation": "(inputs[\"PHY_vehicle_imp\"][\"veh_s\"]?data;\n  outputs[\"gps\"][\"veh_pos\"]!data;\n  wait(0.006))**"
+        "computation": "{ inputs[\"PHY_vehicle_imp\"][\"veh_s\"]?data;\n  outputs[\"gps\"][\"veh_pos\"]!data;\n  wait(0.006); }*"
     },
     "laser": {
         "category": "device",
@@ -235,7 +235,7 @@
         },
         "period": "10ms",
         "impl": "HCSP",
-        "computation": "(inputs[\"PHY_vehicle_imp\"][\"veh_v_l\"]?data; t := 0; <t_dot = 1 & t < 0.01> |> [] (outputs[\"laser\"][\"laser_valid\"]!1.0 --> (error := 0; x := data + error; outputs[\"laser\"][\"laser_v\"]!(data+error))); <t_dot = 1 & t < 0.01>)**"
+        "computation": "{ inputs[\"PHY_vehicle_imp\"][\"veh_v_l\"]?data; t := 0; {t_dot = 1 & t < 0.01} |> [] (outputs[\"laser\"][\"laser_valid\"]!1.0 --> error := 0; x := data + error; outputs[\"laser\"][\"laser_v\"]!data+error;) {t_dot = 1 & t < 0.01} }*"
     },
     "wheel": {
         "category": "device",
@@ -252,7 +252,7 @@
         },
         "period": "10ms",
         "impl": "HCSP",
-        "computation": "(inputs[\"PHY_vehicle_imp\"][\"veh_v_w\"]?data; t := 0; <t_dot = 1 & t < 0.01> |> [] (outputs[\"wheel\"][\"wheel_valid\"]!1.0 --> (error := 0; x := data + error; outputs[\"wheel\"][\"wheel_v\"]!(data+error))); <t_dot = 1 & t < 0.01>)**"
+        "computation": "{ inputs[\"PHY_vehicle_imp\"][\"veh_v_w\"]?data; t := 0; {t_dot = 1 & t < 0.01} |> [] (outputs[\"wheel\"][\"wheel_valid\"]!1.0 --> error := 0; x := data + error; outputs[\"wheel\"][\"wheel_v\"]!data+error;) {t_dot = 1 & t < 0.01} }*"
     },
     "user_panel": {
         "category": "device",
@@ -262,7 +262,7 @@
             "event": "event"
         },
         "impl": "HCSP",
-        "computation": "outputs[\"user_panel\"][\"event\"]!\"inc\"; wait(0.5); outputs[\"user_panel\"][\"event\"]!\"inc\"; wait(0.5); outputs[\"user_panel\"][\"event\"]!\"inc\"; wait(29); outputs[\"user_panel\"][\"event\"]!\"dec\"; outputs[\"user_panel\"][\"event\"]!\"dec\""
+        "computation": "outputs[\"user_panel\"][\"event\"]!\"inc\"; wait(0.5); outputs[\"user_panel\"][\"event\"]!\"inc\"; wait(0.5); outputs[\"user_panel\"][\"event\"]!\"inc\"; wait(29); outputs[\"user_panel\"][\"event\"]!\"dec\"; outputs[\"user_panel\"][\"event\"]!\"dec\";"
     },
     "conn0": {
         "category": "connection",

@@ -146,7 +146,13 @@ class ParserTest(unittest.TestCase):
         exprs = [expr_parser.parse("!(x >= 0)")]
 
         for expr in exprs:
-            print(expr)      
+            print(expr)   
+
+    def testODE(self):
+        odes = ["{x_dot = 1 & true} solution;"]
+
+        for ode in odes:
+            print(hp_parser.parse(ode)) 
 
 
 if __name__ == "__main__":

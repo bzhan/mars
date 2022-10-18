@@ -1,0 +1,19 @@
+# ArchiveEntry "Benchmarks/Basic/LICS: Example 4c relative safety of tim()e-triggered car"
+
+pre [x + v^2 / (2 * b()) <= m()][v >= 0][A >= 0][b() > 0];
+    {
+      {  
+        if (2*b()*(m()-x) >= v^2 + (A + b())*(A*ep^2 + 2*ep*v)) {
+            a := A;
+        } else {
+            a := -b();
+        }
+      }
+      ++ 
+      { a := -b(); }
+      t := 0;
+      s := * (s >= 0);
+      {x_dot = v, v_dot = a, t_dot = 1 & v > 0 && t < ep && s > 0}
+        solution;
+    }* invariant [v^2 <= 2*b()*(m()-x)];
+post [x <= m()];

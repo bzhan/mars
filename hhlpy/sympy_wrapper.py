@@ -45,6 +45,8 @@ def toSpexpr(e, functions):
                                 sympy.Pow(rec(e.exprs[1]), sympy.S.NegativeOne))
             elif e.op == '^':
                 return sympy.Pow(rec(e.exprs[0]), rec(e.exprs[1]))
+            else:
+                raise NotImplementedError
         elif isinstance(e, expr.RelExpr):
             if e.op == '<':
                 return sympy.Rel(rec(e.expr1), rec(e.expr2), '<')
@@ -58,10 +60,12 @@ def toSpexpr(e, functions):
                 return sympy.Rel(rec(e.expr1), rec(e.expr2), '==')
             elif e.op == '!=':
                 return sympy.Rel(rec(e.expr1), rec(e.expr2), '!=')
+            else:
+                raise NotImplementedError
         elif isinstance(e, expr.LogicExpr):
             if e.op == '&&':
                 return sympy.And(rec(e.exprs[0]), rec(e.exprs[1]))
-            elif e.op == '|':
+            elif e.op == '||':
                 return sympy.Or(rec(e.exprs[0]), rec(e.exprs[1]))
             elif e.op == '!':
                 return sympy.Not(rec(e.exprs[0]))
@@ -69,6 +73,8 @@ def toSpexpr(e, functions):
                 return sympy.Implies(rec(e.exprs[0]), rec(e.exprs[1]))
             elif e.op == '<->':
                 return sympy.Equivalent(rec(e.exprs[0]), rec(e.exprs[1]))
+            else:
+                raise NotImplementedError
         else:
             raise NotImplementedError
 
@@ -133,7 +139,7 @@ def toHcsp(e):
         else:
             raise NotImplementedError
 
-def sp_simplify(e, functions):
+def sp_simplify(e, functions=dict()):
     """Simplify the given expression by sympy"""
     sp_expr = toSpexpr(e, functions)
     sp_expr = sympy.simplify(sp_expr)
@@ -141,7 +147,7 @@ def sp_simplify(e, functions):
 
     return hcsp_expr
 
-def sp_polynomial_div(p, q, functions):
+def sp_polynomial_div(p, q, functions=dict()):
     """Compute the quotient and remainder of polynomial p and q"""
     p = toSpexpr(p, functions)
     q = toSpexpr(q, functions)
@@ -154,7 +160,7 @@ def sp_polynomial_div(p, q, functions):
 
     return quot_remains
 
-def sp_is_polynomial(e, functions, constants=set()):
+def sp_is_polynomial(e, constants=set(), functions=dict()):
     """Return True if the given expression is a polynomial and False otherwise"""
     vars = e.get_vars().difference(constants)
     vars = {sympy.Symbol(var) for var in vars}

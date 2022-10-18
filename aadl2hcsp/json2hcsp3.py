@@ -260,7 +260,7 @@ def translate_device(name, info):
 def translate_abstract(name, info):
     """Translate to HCSP module for abstract components (plants)"""
     if info['impl'] == 'Simulink':
-        diagram = SL_Diagram(location=info['code'])
+        diagram = SL_Diagram(location=info['discrete_computation'])
         _ = diagram.parse_xml()
         diagram.add_line_name()
 

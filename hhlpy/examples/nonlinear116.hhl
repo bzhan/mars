@@ -12,5 +12,5 @@ t := * (t >= 0);
  x6_dot=x1-x2+x3-x4-x6,
  t_dot = -1 
   & t > 0 && x5 < 0}
- invariant [x1+x2+x5 >= 0] {sln};
+ invariant [x1+x2+x5 >= 0] {dbx};
 post [!(x2 < 0 && x1 < x2 && x5 < x2)];

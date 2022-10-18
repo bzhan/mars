@@ -5,8 +5,9 @@ import unittest
 import json
 from aadl2hcsp.aadl2json import convert_AADL 
 
-path = "Examples\AADL\CCS\AADL\joint_model.aadl"
-infos = convert_AADL(path)
+path1 = "Examples\AADL\CCS\AADL\joint_model.aadl"
+path2 = "Examples\AADL\CCS\AADL\config.json"
+infos = convert_AADL(path1,path2)
 
 path = "output.json"
 f = open(path, "w")

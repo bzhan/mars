@@ -7,13 +7,13 @@ from hhlpy.sympy_wrapper import sp_simplify, sp_polynomial_div, sp_is_polynomial
 class SympyWrapperTest(unittest.TestCase):
     def testSimplifyBexpr(self):
         test_case_bexpr = {
-            "~(x > 1)"          :"x <= 1",
-            "~(~(x > 1))"       :"x > 1",
+            "!(x > 1)"          :"x <= 1",
+            "!(!(x > 1))"       :"x > 1",
             "x > 1 || x > 0"    :"x > 0",
             "x > 1 && x > 2"    :"x > 2",
             "x > 1 && x > 2 && x > 3"   :"x > 3",
-            "x > 2 --> 2 < x"   :"true",
-            "x > 2 <--> 2 < x"  :"true"
+            "x > 2 -> 2 < x"   :"true",
+            "x > 2 <-> 2 < x"  :"true"
         }
         for k, e in test_case_bexpr.items():
             k = expr_parser.parse(k)

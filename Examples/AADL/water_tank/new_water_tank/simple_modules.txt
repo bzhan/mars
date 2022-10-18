@@ -1,0 +1,36 @@
+%type: module
+
+system
+
+System = water_tank() || controller()
+
+endsystem
+
+module water_tank():
+output h, v, lb, ub;
+begin
+# Qmax := 0.007;r := 0.0254; h := 31; lb := 30; ub := 60;
+Qmax := 2; r := 0.18; h := 4.5; lb := 4; ub := 6;
+g := 9.8; pi := 3.14;
+u:= 1; v := 1;
+{{h_dot = v*Qmax-pi*r*r*sqrt(2*g*h)*u & true} |> [] (wl!h --> skip; , vc?v --> skip;)}*
+end
+endmodule
+
+module controller():
+begin
+lb := 4.6; ub := 5.4;
+buf_h := [4.5, 4.5];
+buf_v := [1, 1];
+{
+wl?h;
+buf_h := push(buf_h, h); h := bottom(buf_h); buf_h := get(buf_h);
+wait(0.025);
+if (h >= ub) { v:= 0; } else if (h <= lb) { v := 1;}
+buf_v := push(buf_v, v); v := bottom(buf_v); buf_v := get(buf_v);
+wait(0.025);
+vc!v;
+wait(0.05);
+}*
+end
+endmodule
