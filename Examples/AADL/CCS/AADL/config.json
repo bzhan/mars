@@ -222,10 +222,6 @@
         "type": "data",
         "init_value": 0.0
     },
-    "tran_veh_v1": {
-        "type": "data",
-        "init_value": 0.0
-    },
     "tran_des_a": {
         "type": "data",
         "init_value": 0.0

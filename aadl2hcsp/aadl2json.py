@@ -209,22 +209,21 @@ def simplify_conn_in_AADL(info):
             break
         else:
             connmap = connmap_new
-    count = 0
     for k,v in connmap.items():
-        rank = 0
+        conn_name = info['source_conn_map'][k][0]
+        sourcename = k
+        [source, source_port] = sourcename.split('.')
+        if conn_name not in info.keys():
+            info[conn_name] = {}
+        info[conn_name]['source'] = source
+        info[conn_name]['source_port'] = source_port
+        info[conn_name]['target'] = []
+        info[conn_name]['target_port'] = []
+        info[conn_name]['category'] = "connection"
         for targetname in v:
-            conn_name = info['source_conn_map'][k][rank]
-            if conn_name not in info.keys():
-                info[conn_name]={}
-            sourcename = k
-            [source,source_port] = sourcename.split('.')
             [target,target_port] = targetname.split('.')
-            info[conn_name]['source'] = source
-            info[conn_name]['source_port'] = source_port
-            info[conn_name]['target'] = [target]
-            info[conn_name]['target_port'] = [target_port]
-            info[conn_name]['category'] = "connection"
-            rank =rank+1
+            info[conn_name]['target'].append(target)
+            info[conn_name]['target_port'].append(target_port)
     info.pop('source_conn_map')
     return info
 

@@ -287,17 +287,8 @@
         "init_value": 0.0,
         "source": "velo_voter",
         "source_port": "veh_v",
-        "target": ["emerg"],
-        "target_port": ["veh_v"],
-        "category": "connection"
-    },
-    "tran_veh_v1": {
-        "type": "data",
-        "init_value": 0.0,
-        "source": "velo_voter",
-        "source_port": "veh_v",
-        "target": ["PI_ctr"],
-        "target_port": ["veh_v"],
+        "target": ["emerg", "PI_ctr"],
+        "target_port": ["veh_v", "veh_v"],
         "category": "connection"
     },
     "tran_des_a": {
