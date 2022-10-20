@@ -1149,6 +1149,8 @@ class SimInfo:
                 
                 y0 = []
                 for var_name, _ in cur_hp.eqs:
+                    if not isinstance(self.state[var_name], (int, float)):
+                        raise SimulatorException('When executing %s, initial value is not a number' % cur_hp)
                     y0.append(self.state[var_name])
 
                 t_eval = [x for x in get_range(0, delay)]

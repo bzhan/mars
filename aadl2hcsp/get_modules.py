@@ -131,7 +131,8 @@ def get_bus_module(name, thread_ports, device_ports, latency):
 
 
 def get_databuffer_module(recv_num=1):
-    init_hp = hp.Assign(var_name="data", expr=AVar("init_value"))
+    init_x = hp.Assign(var_name="x", expr=AConst(0))
+    init_data = hp.Assign(var_name="data", expr=AVar("init_value"))
     paras = ["send", "out_port"]
     io_comms = [(hp.ParaInputChannel(ch_name="outputs", paras=paras[-2:], var_name="data"), hp.Skip())]
     for i in range(recv_num):
@@ -139,9 +140,11 @@ def get_databuffer_module(recv_num=1):
         paras.append("in_port"+str(i))
         io_comms.append((hp.ParaOutputChannel(ch_name="inputs", paras=paras[-2:], expr=AVar("data")), hp.Skip()))
     paras.append("init_value")
-    transfer = hp.Loop(hp.ODE_Comm(eqs=[("data", AConst(0))], io_comms=io_comms, constraint=true_expr))
+    transfer = hp.Loop(hp.ODE_Comm(eqs=[("x", AConst(0))], io_comms=io_comms, constraint=true_expr))
 
-    return HCSPModule(name="DataBuffer"+str(recv_num), params=paras, code=hp.Sequence(init_hp, transfer))
+    return HCSPModule(name="DataBuffer" + str(recv_num),
+                      params=paras,
+                      code=hp.Sequence(init_x, init_data, transfer))
 
 
 def get_continuous_module(name, ports, continuous_diagram, outputs):
