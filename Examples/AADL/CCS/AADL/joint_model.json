@@ -1,16 +1,7 @@
 {
     "vehicle_imp": {
-        "display": [
-            "v",
-            "s",
-            "a"
-        ],
-        "input": {
-            "veh_a": {
-                "var": "a",
-                "val": 0.0
-            }
-        },
+        "display": ["v", "s", "a"],
+        "input": {"veh_a": {"var": "a", "val": 0.0}},
         "output": {
             "veh_s": "s",
             "veh_v_l": "v",
@@ -24,9 +15,7 @@
     },
     "camera": {
         "display": ["img"],
-        "output": {
-            "img": "img"
-        },
+        "output": {"img": "img"},
         "period": "200ms",
         "compute_execution_time": "20ms..50ms",
         "category": "device",
@@ -35,9 +24,7 @@
     },
     "radar": {
         "display": ["obs_pos_radar"],
-        "output": {
-            "obs_pos_radar": "obs_pos_radar"
-        },
+        "output": {"obs_pos_radar": "obs_pos_radar"},
         "period": "10ms",
         "compute_execution_time": "6ms..8ms",
         "category": "device",
@@ -46,15 +33,8 @@
     },
     "actuator": {
         "display": ["cmd"],
-        "input": {
-            "cmd": {
-                "var": "cmd",
-                "val": 0.0
-            }
-        },
-        "output": {
-            "veh_a": "veh_a"
-        },
+        "input": {"cmd": {"var": "cmd", "val": 0.0}},
+        "output": {"veh_a": "veh_a"},
         "period": "2ms",
         "category": "device",
         "impl": "HCSP",
@@ -62,15 +42,8 @@
     },
     "GPS": {
         "display": ["data"],
-        "input": {
-            "veh_s": {
-                "var": "data",
-                "val": 0.0
-            }
-        },
-        "output": {
-            "veh_pos": "data"
-        },
+        "input": {"veh_s": {"var": "data", "val": 0.0}},
+        "output": {"veh_pos": "data"},
         "period": "6ms",
         "category": "device",
         "impl": "HCSP",
@@ -78,16 +51,8 @@
     },
     "laser": {
         "display": [],
-        "input": {
-            "veh_l_v": {
-                "var": "veh_l_v",
-                "val": 0.0
-            }
-        },
-        "output": {
-            "laser_valid": "laser_valid",
-            "laser_v": "laser_v"
-        },
+        "input": {"veh_l_v": {"var": "veh_l_v", "val": 0.0}},
+        "output": {"laser_valid": "laser_valid", "laser_v": "laser_v"},
         "period": "10ms",
         "compute_execution_time": "6ms..9ms",
         "category": "device",
@@ -97,16 +62,10 @@
     "wheel": {
         "display": [],
         "input": {
-            "veh_v_w": {
-                "var": "veh_v_w",
-                "val": 0.0
-            },
+            "veh_v_w": {"var": "veh_v_w", "val": 0.0},
             "veh_w_v": "veh_w_v"
         },
-        "output": {
-            "wheel_valid": "wheel_valid",
-            "wheel_v": "wheel_v"
-        },
+        "output": {"wheel_valid": "wheel_valid", "wheel_v": "wheel_v"},
         "period": "10ms",
         "compute_execution_time": "6ms..9ms",
         "category": "device",
@@ -115,27 +74,16 @@
     },
     "user_panel": {
         "display": [],
-        "input": {
-
-        },
-        "output": {
-            "event": "event"
-        },
+        "input": {},
+        "output": {"event": "event"},
         "category": "device",
         "impl": "HCSP",
         "discrete_computation": "outputs[\"user_panel\"][\"event\"]!\"inc\"; wait(0.5); outputs[\"user_panel\"][\"event\"]!\"inc\"; wait(0.5); outputs[\"user_panel\"][\"event\"]!\"inc\"; wait(29); outputs[\"user_panel\"][\"event\"]!\"dec\"; outputs[\"user_panel\"][\"event\"]!\"dec\";"
     },
     "img_acq": {
         "display": ["image", "new_image"],
-        "input": {
-            "img": {
-                "var": "image",
-                "val": 0.0
-            }
-        },
-        "output": {
-            "proc_img": "new_image"
-        },
+        "input": {"img": {"var": "image", "val": 0.0}},
+        "output": {"proc_img": "new_image"},
         "initialization": "",
         "dispatch_protocol": "periodic",
         "period": "45ms",
@@ -147,25 +95,13 @@
         "discrete_computation": "./Examples/AADL/CCS/Simulink/img_acq_imp.xml"
     },
     "comp_obs_pos": {
-        "display": [
-            "obs_pos_radar",
-            "proc_img",
-            "obs_pos"
-        ],
+        "display": ["obs_pos_radar", "proc_img", "obs_pos"],
         "input": {
-            "obs_pos_radar": {
-                "var": "obs_pos_radar",
-                "val": 0.0
-            },
-            "proc_img": {
-                "var": "proc_img",
-                "val": 0.0
-            }
+            "obs_pos_radar": {"var": "obs_pos_radar", "val": 0.0},
+            "proc_img": {"var": "proc_img", "val": 0.0}
         },
         "initialization": "",
-        "output": {
-            "obs_pos": "obs_pos"
-        },
+        "output": {"obs_pos": "obs_pos"},
         "dispatch_protocol": "periodic",
         "period": "97ms",
         "deadline": "97ms",
@@ -184,26 +120,12 @@
             "cmd"
         ],
         "input": {
-            "des_v": {
-                "var": "des_v",
-                "val": 0.0
-            },
-            "veh_v": {
-                "var": "veh_v",
-                "val": 0.0
-            },
-            "obs_pos": {
-                "var": "obs_pos",
-                "val": 0.0
-            },
-            "veh_pos": {
-                "var": "veh_pos",
-                "val": 0.0
-            }
+            "des_v": {"var": "des_v", "val": 0.0},
+            "veh_v": {"var": "veh_v", "val": 0.0},
+            "obs_pos": {"var": "obs_pos", "val": 0.0},
+            "veh_pos": {"var": "veh_pos", "val": 0.0}
         },
-        "output": {
-            "cmd": "cmd"
-        },
+        "output": {"cmd": "cmd"},
         "dispatch_protocol": "periodic",
         "period": "5ms",
         "deadline": "5ms",
@@ -214,32 +136,14 @@
         "discrete_computation": "./Examples/AADL/CCS/Simulink/emerg_imp.xml"
     },
     "velo_voter": {
-        "display": [
-            "wheel_v",
-            "laser_v",
-            "veh_v"
-        ],
+        "display": ["wheel_v", "laser_v", "veh_v"],
         "input": {
-            "wheel_v": {
-                "var": "wheel_v",
-                "val": 0.0
-            },
-            "wheel_valid": {
-                "var": "wheel_valid",
-                "val": -1.0
-            },
-            "laser_v": {
-                "var": "laser_v",
-                "val": 0.0
-            },
-            "laser_valid": {
-                "var": "laser_valid",
-                "val": -1.0
-            }
+            "wheel_v": {"var": "wheel_v", "val": 0.0},
+            "wheel_valid": {"var": "wheel_valid", "val": -1.0},
+            "laser_v": {"var": "laser_v", "val": 0.0},
+            "laser_valid": {"var": "laser_valid", "val": -1.0}
         },
-        "output": {
-            "veh_v": "veh_v"
-        },
+        "output": {"veh_v": "veh_v"},
         "dispatch_protocol": "periodic",
         "period": "8ms",
         "deadline": "8ms",
@@ -251,17 +155,11 @@
     },
     "pan_ctr_th": {
         "display": ["des_v"],
-        "event_input": {
-            "event": "event"
-        },
+        "event_input": {"event": "event"},
         "initialization": "",
         "priority": 0,
-        "input": {
-            "event": "event"
-        },
-        "output": {
-            "des_v": "des_v"
-        },
+        "input": {"event": "event"},
+        "output": {"des_v": "des_v"},
         "dispatch_protocol": "aperiodic",
         "compute_execution_time": "10ms",
         "deadline": "100ms",
@@ -396,24 +294,12 @@
         "category": "connection"
     },
     "PI_ctr": {
-        "display": [
-            "des_v",
-            "veh_v",
-            "des_a"
-        ],
+        "display": ["des_v", "veh_v", "des_a"],
         "input": {
-            "des_v": {
-                "var": "des_v",
-                "val": 0.0
-            },
-            "veh_v": {
-                "var": "veh_v",
-                "val": 0.0
-            }
+            "des_v": {"var": "des_v", "val": 0.0},
+            "veh_v": {"var": "veh_v", "val": 0.0}
         },
-        "output": {
-            "des_a": "des_a"
-        },
+        "output": {"des_a": "des_a"},
         "dispatch_protocol": "periodic",
         "period": "7ms",
         "deadline": "7ms",
@@ -428,8 +314,5 @@
         "scheduling_protocol": "rms",
         "category": "processor"
     },
-    "bus0": {
-        "latency": "3ms",
-        "category": "bus"
-    }
+    "bus0": {"latency": "3ms", "category": "bus"}
 }

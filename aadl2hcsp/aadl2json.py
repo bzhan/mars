@@ -244,7 +244,6 @@ class AADLTransformer(Transformer):
             print('Warning: file %s not found' % filename)
 
         try:
-            text = text.replace("\t", "")
             text = aadl_parser(self.directory).parse(text)
             text["category"] = "package"
             return [name, text]
@@ -489,17 +488,26 @@ class CompactJSONEncoder(json.JSONEncoder):
                 return "[\n" + ",\n".join(output) + "\n" + self.indent_str + "]"
 
         elif isinstance(o, dict):
-            self.indentation_level += 1
-            output = [self.indent_str +
-                      f"{json.dumps(k)}: {self.encode(v)}" for k, v in o.items()]
-            self.indentation_level -= 1
-            return "{\n" + ",\n".join(output) + "\n" + self.indent_str + "}"
+            if self._is_single_line_dict(o):
+                return "{" + ", ".join(f"{json.dumps(k)}: {self.encode(v)}" for k, v in o.items()) + "}"
+            else:
+                self.indentation_level += 1
+                output = [self.indent_str +
+                        f"{json.dumps(k)}: {self.encode(v)}" for k, v in o.items()]
+                self.indentation_level -= 1
+                return "{\n" + ",\n".join(output) + "\n" + self.indent_str + "}"
 
         else:
             return json.dumps(o)
 
     def _is_single_line_list(self, o):
         if isinstance(o, (list, tuple)):
+            return not any(isinstance(el, (list, tuple, dict)) for el in o) \
+                and len(o) <= 3 \
+                and len(str(o)) - 2 <= 60
+
+    def _is_single_line_dict(self, o):
+        if isinstance(o, dict):
             return not any(isinstance(el, (list, tuple, dict)) for el in o) \
                 and len(o) <= 2 \
                 and len(str(o)) - 2 <= 60
@@ -542,11 +550,6 @@ def convert_AADL(directory: str, startfile: str, configfile: str):
     file1.close()
 
     info = dict()
-
-    # First, read lines from file, each line containing ::= means the
-    # start of a new program.
-    text = text.replace("\t", "")
-
     try:
         info = aadl_parser(directory).parse(text)
     except (exceptions.UnexpectedToken, exceptions.UnexpectedCharacters) as e:
