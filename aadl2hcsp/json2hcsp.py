@@ -7,7 +7,7 @@ from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import pprint
 from ss2hcsp.sl.sl_diagram import SL_Diagram
 from ss2hcsp.sl.get_hcsp import new_translate_discrete
-from ss2hcsp.aadl.get_modules import get_continuous_module, get_bus_module
+from aadl2hcsp.get_modules import get_continuous_module, get_bus_module
 from ss2hcsp.sf import sf_convert
 
 

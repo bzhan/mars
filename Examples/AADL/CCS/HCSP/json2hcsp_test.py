@@ -4,7 +4,7 @@ import unittest
 import json
 
 from aadl2hcsp import json2hcsp3
-from ss2hcsp.aadl.get_modules import get_databuffer_module
+from aadl2hcsp.get_modules import get_databuffer_module
 from ss2hcsp.hcsp import module
 
 

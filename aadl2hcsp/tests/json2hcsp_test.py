@@ -1,16 +1,15 @@
-# Unit test for json2hcsp3
+# Unit test for json2hcsp
 
 import unittest
 import json
 
-from aadl2hcsp import json2hcsp3
-from ss2hcsp.aadl.get_modules import get_databuffer_module
+from aadl2hcsp import json2hcsp
+from aadl2hcsp.get_modules import get_databuffer_module
 from ss2hcsp.hcsp import module
 
-class Json2HCSP3Test(unittest.TestCase):
+class Json2HCSPTest(unittest.TestCase):
     def testJson2HCSP3(self):
-        json_file = "./output.json"
-        # json_file = "./Examples/AADL/CCS/TCS/model_1bus.json"
+        json_file = "./Examples/AADL/CCS/AADL/joint_model.json"
         with open(json_file, 'r') as f:
             dic = json.load(f)
 
@@ -19,17 +18,17 @@ class Json2HCSP3Test(unittest.TestCase):
         buses = list()
         for name, content in dic.items():
             if content['category'] == 'thread':
-                mod = json2hcsp3.translate_thread(name, content)
+                mod = json2hcsp.translate_thread(name, content)
                 for _content in dic.values():
                     if _content['category'] == "connection" and _content['source'] == name and ('bus' in _content.keys()):
-                        mod = json2hcsp3.translate_thread(name, content, _content['bus'])
+                        mod = json2hcsp.translate_thread(name, content, _content['bus'])
                         break
                 mods.append(mod)
             elif content['category'] == 'device':
-                mod = json2hcsp3.translate_device(name, content)
+                mod = json2hcsp.translate_device(name, content)
                 mods.append(mod)
             elif content['category'] == 'abstract':
-                mod = json2hcsp3.translate_abstract(name, content)
+                mod = json2hcsp.translate_abstract(name, content)
                 mods.append(mod)
             elif content['category'] == "connection":
                 if content['type'] == 'data':
@@ -37,7 +36,7 @@ class Json2HCSP3Test(unittest.TestCase):
                     if recv_num not in dataBuffers:
                         dataBuffers[recv_num] = get_databuffer_module(recv_num)
             elif content['category'] == "bus":
-                bus = json2hcsp3.translate_bus(name, content, dic)
+                bus = json2hcsp.translate_bus(name, content, dic)
                 buses.append(bus)
             elif content['category'] == "processor":
                 # processor use for change protocal, remain tobe done
@@ -74,7 +73,7 @@ class Json2HCSP3Test(unittest.TestCase):
             f.write("import Bus\n")
             f.write("import BusEventBuffer\n\n")
             f.write("system\n\n")
-            f.write(str(module.HCSPSystem(json2hcsp3.translate_model(dic))))
+            f.write(str(module.HCSPSystem(json2hcsp.translate_model(dic))))
             f.write("\n\nendsystem")
 
 
