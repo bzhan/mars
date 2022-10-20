@@ -7,22 +7,16 @@ begin
   s := 0;
   PHY_vehicle_imp_veh_a := 0;
   PHY_vehicle_imp_veh_s := 0;
-  PHY_vehicle_imp_veh_v_l := 0;
-  PHY_vehicle_imp_veh_v_w := 0;
   PHY_vehicle_imp_veh_l_v := 0;
   PHY_vehicle_imp_veh_w_v := 0;
   {
     inputs["PHY_vehicle_imp"]["veh_s"]!s -->
       PHY_vehicle_imp_veh_s := 1; $
-    inputs["PHY_vehicle_imp"]["veh_v_l"]!v -->
-      PHY_vehicle_imp_veh_v_l := 1; $
-    inputs["PHY_vehicle_imp"]["veh_v_w"]!v -->
-      PHY_vehicle_imp_veh_v_w := 1; $
-    inputs["PHY_vehicle_imp"]["veh_l_v"]!veh_l_v -->
+    inputs["PHY_vehicle_imp"]["veh_l_v"]!v -->
       PHY_vehicle_imp_veh_l_v := 1; $
-    inputs["PHY_vehicle_imp"]["veh_w_v"]!veh_w_v -->
+    inputs["PHY_vehicle_imp"]["veh_w_v"]!v -->
       PHY_vehicle_imp_veh_w_v := 1;
-  }*(PHY_vehicle_imp_veh_s == 0 || PHY_vehicle_imp_veh_v_l == 0 || PHY_vehicle_imp_veh_v_w == 0 || PHY_vehicle_imp_veh_l_v == 0 || PHY_vehicle_imp_veh_w_v == 0)
+  }*(PHY_vehicle_imp_veh_s == 0 || PHY_vehicle_imp_veh_l_v == 0 || PHY_vehicle_imp_veh_w_v == 0)
   outputs["PHY_vehicle_imp"]["veh_a"]?a;
   {
     {v_dot = a, s_dot = v & true} |> [] (
@@ -30,13 +24,9 @@ begin
         skip;,
       inputs["PHY_vehicle_imp"]["veh_s"]!s -->
         skip;,
-      inputs["PHY_vehicle_imp"]["veh_v_l"]!v -->
+      inputs["PHY_vehicle_imp"]["veh_l_v"]!v -->
         skip;,
-      inputs["PHY_vehicle_imp"]["veh_v_w"]!v -->
-        skip;,
-      inputs["PHY_vehicle_imp"]["veh_l_v"]!veh_l_v -->
-        skip;,
-      inputs["PHY_vehicle_imp"]["veh_w_v"]!veh_w_v -->
+      inputs["PHY_vehicle_imp"]["veh_w_v"]!v -->
         skip;
     )
   }*
@@ -704,9 +694,9 @@ begin
     } else {
       if (entered == 0) {
         c := 0;
-        EL := push(EL,event);
+        pan_ctr_th_impEL := push(pan_ctr_th_impEL,event);
         @exec_pan_ctr_th_imp;
-        EL := pop(EL);
+        pan_ctr_th_impEL := pop(pan_ctr_th_impEL);
         entered := 1;
       }
       if (entered == 1) {

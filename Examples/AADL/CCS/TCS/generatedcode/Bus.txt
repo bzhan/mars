@@ -40,7 +40,7 @@ begin
       @BLOCK;
       outputs["bus0"]["wheel_valid"]!wheel_valid;
       outputs["bus0"]["wheel_v"]!wheel_v; $
-    outputs["user_panel"]["event"]?event -->
+    inputs["bus0"]["event"]?event -->
       @BLOCK;
       outputs["bus0"]["event"]!event; $
     unblock["emerg"]! -->

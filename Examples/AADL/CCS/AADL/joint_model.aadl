@@ -39,16 +39,14 @@ public
 			tran_img: port camera.img -> obs_det.img;
 			tran_obs_pos_radar: port radar.obs_pos_radar -> obs_det.obs_pos_radar;
 			tran_cmd: port velo_ctr.cmd -> actuator.cmd;
-			tran_veh_a: port actuator.veh_a -> vehicle_imp.veh_a;
-			tran_veh_s: port vehicle_imp.veh_s -> GPS.veh_s;
 			tran_veh_pos: port GPS.veh_pos -> velo_ctr.veh_pos;
-			tran_veh_l_v: port vehicle_imp.veh_l_v -> laser.veh_l_v;
 			tran_laser_valid: port laser.laser_valid -> velo_ctr.laser_valid;
 			tran_laser_v: port laser.laser_v -> velo_ctr.laser_v;
 			tran_wheel_valid: port wheel.wheel_valid -> velo_ctr.wheel_valid;
 			tran_wheel_v: port wheel.wheel_v -> velo_ctr.wheel_v;
 			tran_event: port user_panel.event -> pan_ctr.event;
 			tran_des_v: port pan_ctr.des_v -> velo_ctr.des_v;
+			tran_obs_pos: port obs_det.obs_pos-> velo_ctr.obs_pos;
 		properties
 			actual_processor_binding => (reference (cpu)) applies to obs_det, velo_ctr, pan_ctr;
 			actual_connection_binding => (reference (bus00)) applies to tran_img;

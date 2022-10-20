@@ -13,8 +13,8 @@
         },
         "output": {
             "veh_s": "s",
-            "veh_v_l": "v",
-            "veh_v_w": "v"
+            "veh_l_v": "v",
+            "veh_w_v": "v"
         }
     },
     "camera": {
@@ -182,19 +182,7 @@
         "type": "data",
         "init_value": 0.0
     },
-    "tran_veh_a": {
-        "type": "data",
-        "init_value": 0.0
-    },
-    "tran_veh_s": {
-        "type": "data",
-        "init_value": 0.0
-    },
     "tran_veh_pos": {
-        "type": "data",
-        "init_value": 0.0
-    },
-    "tran_veh_l_v": {
         "type": "data",
         "init_value": 0.0
     },
@@ -215,10 +203,30 @@
         "init_value": 0.0
     },
     "tran_event": {
-        "type": "data",
+        "type": "event",
         "init_value": 0.0
     },
     "tran_des_v": {
+        "type": "data",
+        "init_value": 0.0
+    },
+    "tran_proc_img": {
+        "type": "data",
+        "init_value": 0.0
+    },
+    "tran_obs_pos": {
+        "type": "data",
+        "init_value": 0.0
+    },
+    "tran_veh_v": {
+        "type": "data",
+        "init_value": 0.0
+    },
+    "tran_veh_v1": {
+        "type": "data",
+        "init_value": 0.0
+    },
+    "tran_des_a": {
         "type": "data",
         "init_value": 0.0
     },

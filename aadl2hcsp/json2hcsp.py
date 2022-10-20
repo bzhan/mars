@@ -222,9 +222,9 @@ def translate_thread(name, info, bus=None):
     inst = {
         "INIT": hcsp.Sequence(*initializations) if initializations else hcsp.Skip(),
         "INPUT": input_hp,
-        "DISCRETE_COMPUTATION": hcsp.Sequence(parser.hp_parser.parse("EL := push(EL, event);"),
+        "DISCRETE_COMPUTATION": hcsp.Sequence(parser.hp_parser.parse("%s_impEL := push(%s_impEL, event);"%(name,name),),
                                               dis_comp,
-                                              parser.hp_parser.parse("EL := pop(EL);"))
+                                              parser.hp_parser.parse("%s_impEL := pop(%s_impEL);"%(name,name)))
         if "event_input" in info else dis_comp,
         "OUTPUT": hcsp.Sequence(*outputs)
     }
