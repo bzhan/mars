@@ -1,5 +1,5 @@
 %type: module
-module SCHEDULLER_HPF(sid):
+module SchedulerHPF(sid):
 output prior, run_prior;
 begin
 Pool := [];
@@ -20,13 +20,13 @@ free[sid][_tid]? -->
     assert(_tid == run_now);
     if len(Pool) > 0 then
         (run_prior, run_now) := get_max(Pool);
-        Pool := del_proc(Pool, run_now);
+        Pool := del0(Pool, run_now);
         run[sid][run_now]!
     else
         run_prior := -1; run_now := -1
     endif
 $
-exit[sid][_tid]? --> Pool := del_proc(Pool, _tid)
+exit[sid][_tid]? --> Pool := del0(Pool, _tid)
 )**
 
 end

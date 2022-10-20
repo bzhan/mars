@@ -1,5 +1,5 @@
 %type: module
-module SCHEDULLER_HPF(sid):
+module SchedulerHPF(sid):
 output prior, run_prior;
 begin
 Pool := [];

@@ -1,6 +1,6 @@
 %type: module
 import other_modules
-import SCHEDULLER_HPF
+import SchedulerHPF
 import ACT_periodic
 import ACT_aperiodic
 import DataBuffer
@@ -10,7 +10,7 @@ import BusEventBuffer
 
 system
 
-scheduler = SCHEDULLER_HPF($0) ||
+scheduler = SchedulerHPF($0) ||
 vehicle_imp = PHY_vehicle_imp() ||
 camera = DEVICE_camera() ||
 radar = DEVICE_radar() ||

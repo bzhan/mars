@@ -1,5 +1,7 @@
 # New version of translator from JSON to HCSP
 
+import os
+
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import module
@@ -7,7 +9,7 @@ from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import pprint
 from ss2hcsp.sl.sl_diagram import SL_Diagram
 from ss2hcsp.sl.get_hcsp import new_translate_discrete
-from aadl2hcsp.get_modules import get_continuous_module, get_bus_module
+from aadl2hcsp.get_modules import get_continuous_module, get_databuffer_module, get_bus_module
 from ss2hcsp.sf import sf_convert
 
 
@@ -155,11 +157,12 @@ def translate_thread(name, info, bus=None):
 
     # Output procedure
     def get_output(port, var_name):
-        return hcsp.OutputChannel(hcsp.Channel("outputs", (expr.AConst(name), expr.AConst(port))), hcsp.AVar(var_name))
+        return hcsp.OutputChannel(hcsp.Channel("outputs", (expr.AConst(name), expr.AConst(port))),
+                                  hcsp.AVar(var_name))
     outputs = [get_output(port, var_name)
                for port, var_name in info['output'].items()]
 
-    # Discrete Computation
+    # Discrete Computation: convert from Simulink diagram to HCSP
     def get_discrete_computation(location):
         diagram = SL_Diagram(location=location)
         _ = diagram.parse_xml()
@@ -183,6 +186,7 @@ def translate_thread(name, info, bus=None):
             _hps = hcsp.Skip()
         return _init_hps, _procedures, _hps
 
+    # Convert from Stateflow diagram to HCSP
     def get_stateflow_computation(location):
         diagram = SL_Diagram(location=location)
         _ = diagram.parse_xml()
@@ -200,23 +204,23 @@ def translate_thread(name, info, bus=None):
 
         return _init_hp, procs, _dis_comp
 
-    initlizations = list()
+    initializations = list()
     if 'initialization' in info.keys():
-        initlizations.append(parser.hp_parser.parse(info['initialization']))
+        initializations.append(parser.hp_parser.parse(info['initialization']))
     if info['impl'] == "Simulink":
-        init_hp, procesures, dis_comp = get_discrete_computation(
-            location=info['discrete_computation'])
+        init_hp, procedures, dis_comp = \
+            get_discrete_computation(location=info['discrete_computation'])
         if init_hp:
-            initlizations.append(init_hp)
+            initializations.append(init_hp)
     elif info['impl'] == "Stateflow":
-        init_hp, procesures, dis_comp = get_stateflow_computation(
-            location=info['discrete_computation'])
-        initlizations.append(init_hp)
+        init_hp, procedures, dis_comp = \
+            get_stateflow_computation(location=info['discrete_computation'])
+        initializations.append(init_hp)
     else:
         raise NotImplementedError
 
     inst = {
-        "INIT": hcsp.Sequence(*initlizations) if initlizations else hcsp.Skip(),
+        "INIT": hcsp.Sequence(*initializations) if initializations else hcsp.Skip(),
         "INPUT": input_hp,
         "DISCRETE_COMPUTATION": hcsp.Sequence(parser.hp_parser.parse("EL := push(EL, event);"),
                                               dis_comp,
@@ -225,10 +229,8 @@ def translate_thread(name, info, bus=None):
         "OUTPUT": hcsp.Sequence(*outputs)
     }
     hp = hcsp.HCSP_subst(hp_info.hp, inst)
-    # new_mod = module.HCSPModule("EXE_" + name, [], [], hp)
-    new_mod = module.HCSPModule(
-        name="EXE_"+name, code=hp, procedures=procesures, outputs=info["display"])
-    return new_mod
+    return module.HCSPModule(name="EXE_" + name, code=hp, procedures=procedures,
+                             outputs=info["display"])
 
 
 def translate_device(name, info):
@@ -258,10 +260,7 @@ def translate_device(name, info):
         wait_hp = hcsp.Wait(expr.AConst(delay))
 
         hp = hcsp.Loop(hcsp.Sequence(*(inputs + outputs + [wait_hp])))
-        # new_mod = module.HCSPModule("DEVICE_" + name, [], [], hp)
-        new_mod = module.HCSPModule(
-            name="DEVICE_" + name, code=hp, outputs=info['display'])
-        return new_mod
+        return module.HCSPModule(name="DEVICE_" + name, code=hp, outputs=info['display'])
 
     else:
         raise NotImplementedError
@@ -284,8 +283,7 @@ def translate_abstract(name, info):
             ports[port_name] = (var_name, "out data")
         return get_continuous_module(name="PHY_"+name,
                                      ports=ports,
-                                     continuous_diagram=list(
-                                         diagram.blocks_dict.values()),
+                                     continuous_diagram=list(diagram.blocks_dict.values()),
                                      outputs=info['display'])
 
     else:
@@ -317,11 +315,11 @@ def translate_bus(name, info, json_info):
     return get_bus_module(name, thread_ports, device_ports, latency)
 
 
-def translate_model(json_info):
-    """Overall translation"""
+def translate_system(json_info):
+    """Construct description of the system"""
     # Construct the components
     component_mod_insts = [module.HCSPModuleInst(
-        "scheduler", "SCHEDULLER_HPF", [expr.AConst(0)])]
+        "scheduler", "SchedulerHPF", [expr.AConst(0)])]
     for name, info in json_info.items():
         if info['category'] == 'thread':
             if info['dispatch_protocol'] == 'periodic':
@@ -390,5 +388,80 @@ def translate_model(json_info):
 
     return component_mod_insts
 
-    # for mod_inst in component_mod_insts:
-    #     print(mod_inst.export())
+
+def translate_aadl_from_json(jsoninfo, output):
+    mods = list()
+    dataBuffers = dict()  # {recv_num: databuffer}
+    buses = list()
+    for name, content in jsoninfo.items():
+        if content['category'] == 'thread':
+            mod = translate_thread(name, content)
+            for _content in jsoninfo.values():
+                if _content['category'] == "connection" and _content['source'] == name and ('bus' in _content.keys()):
+                    mod = translate_thread(name, content, _content['bus'])
+                    break
+            mods.append(mod)
+        elif content['category'] == 'device':
+            mod = translate_device(name, content)
+            mods.append(mod)
+        elif content['category'] == 'abstract':
+            mod = translate_abstract(name, content)
+            mods.append(mod)
+        elif content['category'] == "connection":
+            if content['type'] == 'data':
+                recv_num = len(content['target'])
+                if recv_num not in dataBuffers:
+                    dataBuffers[recv_num] = get_databuffer_module(recv_num)
+        elif content['category'] == "bus":
+            bus = translate_bus(name, content, jsoninfo)
+            buses.append(bus)
+        elif content['category'] == "processor":
+            # processor use for change protocal, remain to be done
+            continue
+        else:
+            raise NotImplementedError
+
+    # Copy files that are the same for each system
+    def copy_file(filename):
+        with open(os.path.join("./aadl2hcsp/hcsp", filename), 'r') as f1:
+            with open(os.path.join(output, filename), 'w') as f2:
+                f2.write(f1.read())
+
+    copy_file("ACT_aperiodic.txt")
+    copy_file("ACT_periodic.txt")
+    copy_file("BusEventBuffer.txt")
+    copy_file("EventBuffer.txt")
+    copy_file("SchedulerHPF.txt")
+
+    # Generate files that are different for each system
+    with open(os.path.join(output, 'other_modules.txt'), 'w') as f:
+        f.write("%type: module\n\n")
+        for mod in mods:
+            f.write(mod.export())
+            f.write('\n\n')
+
+    with open(os.path.join(output, 'DataBuffer.txt'), 'w') as f:
+        f.write("%type: module\n\n")
+        for dataBuffer in dataBuffers.values():
+            f.write(dataBuffer.export())
+            f.write('\n\n')
+
+    with open(os.path.join(output, 'Bus.txt'), 'w') as f:
+        f.write("%type: module\n\n")
+        for bus in buses:
+            f.write(bus.export())
+            f.write('\n\n')
+
+    with open(os.path.join(output, 'system.txt'), 'w') as f:
+        f.write("%type: module\n")
+        f.write("import other_modules\n")
+        f.write("import SchedulerHPF\n")
+        f.write("import ACT_periodic\n")
+        f.write("import ACT_aperiodic\n")
+        f.write("import DataBuffer\n")
+        f.write("import EventBuffer\n")
+        f.write("import Bus\n")
+        f.write("import BusEventBuffer\n\n")
+        f.write("system\n\n")
+        f.write(str(module.HCSPSystem(translate_system(jsoninfo))))
+        f.write("\n\nendsystem")
