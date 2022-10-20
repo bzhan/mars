@@ -2,15 +2,15 @@
 module ACT_aperiodic(tid, in_port):
 begin
 queue := [];
-(
-if len(queue) == 0 then
+{
+if (len(queue) == 0) {
     outputs[tid][in_port]?event;
-    queue := push(queue, event)
-else
-    outputs[tid][in_port]?event --> queue := push(queue, event)
+    queue := push(queue, event);
+} else {
+    outputs[tid][in_port]?event --> queue := push(queue, event);
     $
-    dis[tid][in_port]!bottom(queue) --> queue := get(queue)
-endif
-)**
+    dis[tid][in_port]!bottom(queue) --> queue := get(queue);
+}
+}*
 end
 endmodule

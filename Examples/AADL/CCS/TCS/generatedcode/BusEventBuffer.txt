@@ -3,14 +3,14 @@
 module BusEventBuffer(send, out_port, recv, in_port):
 begin
 queue := [];
-(
-if len(queue) == 0 then
-    outputs[send][out_port]?event; queue := push(queue, event)
-else
-    outputs[send][out_port]?event --> queue := push(queue, event)
+{
+if (len(queue) == 0) {
+    outputs[send][out_port]?event; queue := push(queue, event);
+} else {
+    outputs[send][out_port]?event --> queue := push(queue, event);
     $
-    inputs[recv][in_port]!bottom(queue) --> queue := get(queue)
-endif
-)**
+    inputs[recv][in_port]!bottom(queue) --> queue := get(queue);
+}
+}*
 end
 endmodule
