@@ -299,5 +299,10 @@ class SimTest(unittest.TestCase):
 
         }, output_to_file="./Examples/Simulink/CanonicalMax.txt")
 
+    def testCanonicalMax2(self):
+        run_test(self, "./Examples/Simulink/CanonicalMax2.xml", 80, {
+
+        }, output_to_file="./Examples/Simulink/CanonicalMax2.txt")
+
 if __name__ == "__main__":
     unittest.main()
