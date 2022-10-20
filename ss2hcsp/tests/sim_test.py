@@ -294,6 +294,10 @@ class SimTest(unittest.TestCase):
 
         }, output_to_file="./hhlpy/examples/simulink/PIcontrol.txt")
 
+    def testCanonicalMax(self):
+        run_test(self, "./Examples/Simulink/CanonicalMax.xml", 80, {
+
+        }, output_to_file="./Examples/Simulink/CanonicalMax.txt")
 
 if __name__ == "__main__":
     unittest.main()
