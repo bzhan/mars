@@ -64,8 +64,8 @@ public
 		features
 			veh_a: in data port;
 			veh_s: out data port;
-			veh_l_v: out data port;
-			veh_w_v: out data port;
+			veh_v_l: out data port;
+			veh_v_w: out data port;
 	end vehicle;
 	
 	abstract implementation vehicle.imp

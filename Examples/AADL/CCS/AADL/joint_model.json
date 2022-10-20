@@ -4,8 +4,8 @@
         "input": {"veh_a": {"var": "a", "val": 0.0}},
         "output": {
             "veh_s": "s",
-            "veh_l_v": "v",
-            "veh_w_v": "v"
+            "veh_v_l": "v",
+            "veh_v_w": "v"
         },
         "category": "abstract",
         "impl": "Simulink",

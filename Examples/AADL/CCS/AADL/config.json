@@ -13,8 +13,8 @@
         },
         "output": {
             "veh_s": "s",
-            "veh_l_v": "v",
-            "veh_w_v": "v"
+            "veh_v_l": "v",
+            "veh_v_w": "v"
         }
     },
     "camera": {
