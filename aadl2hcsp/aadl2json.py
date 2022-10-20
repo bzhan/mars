@@ -92,11 +92,12 @@ grammar = r"""
 """
 
 
-def _vargs_meta_inline(f, _data, children, meta):
-    return f(meta, *children)
+def simplifyAADL(info):
+    """
+    Simplify the internal representation of AADL file, mainly to
+    handle issues with connections.
 
-
-def simplize(info):
+    """
     vars = {}
     for key, value in info.items():
         if value["category"] == "process":
@@ -202,62 +203,49 @@ def simplize(info):
             if "actual_connection_binding" in value.keys():
                 for k, v in value["actual_connection_binding"].items():
                     for conn in v:
-                        output[conn][vars[k]['category']
-                                     ] = vars[k]['refered_name']
+                        output[conn][vars[k]['category']] = vars[k]['refered_name']
             info = output
 
     return info
 
 
-@v_args(wrapper=_vargs_meta_inline)
-class HPTransformer(Transformer):
-    def __init__(self):
-        pass
+@v_args(inline=True)
+class AADLTransformer(Transformer):
+    def __init__(self, directory):
+        self.directory = directory
 
-    def varname_expr(self, meta, name):
+    def varname_expr(self, name):
         return str(name)
 
-    def refer_expr(self, meta, package_name, fun_name):
+    def refer_expr(self, package_name, fun_name):
         return [str(package_name), str(fun_name)]
 
-    def field_expr(self, meta, name, field_name):
+    def field_expr(self, name, field_name):
         return[str(name), str(field_name)]
 
-    def imp_expr(self, meta, name):
+    def imp_expr(self, name):
         return str(name)
 
-    def namedimp_expr(self, meta, name, imp_name):
+    def namedimp_expr(self, name, imp_name):
         return str(name)
 
-    def refer_imp_expr(self, meta, package_name, fun_name):
+    def refer_imp_expr(self, package_name, fun_name):
         return [str(package_name), str(fun_name)]
 
-    def refer_namedimp_expr(self, meta, package_name, fun_name, imp_name):
+    def refer_namedimp_expr(self, package_name, fun_name, imp_name):
         return [str(package_name), str(fun_name)]
 
-    def with_cmd(self, meta, name):
-        hcsp_import_path = [
-            './ss2hcsp/common',
-        ]
-        # Read additional import path from import_path.txt
+    def with_cmd(self, name):
+        filename = os.path.join(self.directory, name + '.aadl')
         try:
-            hcsp_import_path = [os.path.abspath(
-                path) for path in hcsp_import_path]
-            with open('./ss2hcsp/import_path.txt') as f:
-                for line in f.readlines():
-                    hcsp_import_path.append(os.path.abspath(line.strip()))
+            with open(filename, encoding='utf-8') as f:
+                text = f.read()
         except FileNotFoundError:
-            pass
-            # print('Warning: import_path.txt not found.')
-        for path in reversed(hcsp_import_path):
-            try:
-                with open(os.path.join(path, name+'.aadl'), encoding='utf-8') as f:
-                    text = f.read()
-            except FileNotFoundError:
-                pass
+            print('Warning: file %s not found' % filename)
+
         try:
             text = text.replace("\t", "")
-            text = aadl_parser.parse(text)
+            text = aadl_parser(self.directory).parse(text)
             text["category"] = "package"
             return [name, text]
         except (exceptions.UnexpectedToken, exceptions.UnexpectedCharacters) as e:
@@ -268,28 +256,28 @@ class HPTransformer(Transformer):
                     error_str += " " * (e.column-1) + "^" + '\n'
             raise ParseFileException(error_str)
 
-    def port_feature_cmd(self, meta, name, direction, type):
+    def port_feature_cmd(self, name, direction, type):
         return ['feat', {name: name}, direction]
 
     def prop_value(self, *args):
-        return args[1]+".."+args[2]
+        return args[0]+".."+args[1]
 
-    def model_prop_cmd(self, meta, name, val):
+    def model_prop_cmd(self, name, val):
         if(str(val).isdigit()):
             return ['prop', {name: int(val)}]
         else:
             val = str(val)
-            val = val.replace("(","")
-            val = val.replace(")","")
+            val = val.replace("(", "")
+            val = val.replace(")", "")
             return ['prop', {name: val}]
 
-    def system_prop_cmd(self, meta, name, ref_name, *args):
+    def system_prop_cmd(self, name, ref_name, *args):
         text = []
         for arg in args:
             text.append(arg)
         return ['sysprop', name, ref_name, text]
 
-    def feat_prop_cmd(self, meta, *args):
+    def feat_prop_cmd(self, *args):
         text = {}
         for arg in args:
             if arg[0] == 'feat':
@@ -305,7 +293,7 @@ class HPTransformer(Transformer):
                 text.update(arg[1])
         return text
 
-    def feat_only_cmd(self, meta, *args):
+    def feat_only_cmd(self, *args):
         text = {}
         for arg in args:
             if arg[0] == 'feat':
@@ -319,18 +307,18 @@ class HPTransformer(Transformer):
                     text["input"].update(arg[1])
         return text
 
-    def handle_device(self, meta, name, text, nm):
+    def handle_device(self, name, text, nm):
         text["category"] = "device"
         new_text = [name, text]
         return new_text
 
-    def path_string(self, meta, string):
+    def path_string(self, string):
         return ['path', string]
 
-    def language_string(self, meta, string):
+    def language_string(self, string):
         return ['language', string]
 
-    def annex_cmd(self, meta, name, annex_string):
+    def annex_cmd(self, name, annex_string):
         text = {"impl": name}
         if annex_string[0] == 'path':
             true_string = str(annex_string[1])
@@ -344,45 +332,45 @@ class HPTransformer(Transformer):
             text.update({"computation": true_string})
         return text
 
-    def handle_deviceimp(self, meta, name, text, nm):
+    def handle_deviceimp(self, name, text, nm):
         text["category"] = "device"
         return [name, text]
 
-    def prop_only_cmd(self, meta, *args):
+    def prop_only_cmd(self, *args):
         text = {}
         for arg in args:
             if arg[0] == 'prop':
                 text.update(arg[1])
         return text
 
-    def handle_bus(self, meta, name, text, nm):
+    def handle_bus(self, name, text, nm):
         text["category"] = "bus"
         return [name, text]
 
-    def handle_busimp(self, meta, name, nm):
+    def handle_busimp(self, name, nm):
         pass
 
-    def access_feature_cmd(self, meta, port_name, type, bus_name):
+    def access_feature_cmd(self, port_name, type, bus_name):
         return ['feat', {port_name: bus_name}]
 
-    def processor_cmd(self, meta, *args):
+    def processor_cmd(self, *args):
         text = {}
         for arg in args:
             text.update(arg[1])
         return text
 
-    def handle_processor(self, meta, name, text, nm):
+    def handle_processor(self, name, text, nm):
         text["category"] = "processor"
         return [name, text]
 
-    def handle_process(self, meta, name, text, nm):
+    def handle_process(self, name, text, nm):
         text["category"] = "process"
         return[name, text]
 
-    def comp_cmd(self, meta, name, cl, comp_name):
+    def comp_cmd(self, name, cl, comp_name):
         return ['comp', {name: comp_name}]
 
-    def conn_cmd(self, meta, name, from_port, target_port):
+    def conn_cmd(self, name, from_port, target_port):
         text = {}
         if type(from_port) == str:
             text.update({"source": []})
@@ -398,7 +386,7 @@ class HPTransformer(Transformer):
             text.update({"target_port": target_port[1]})
         return ['conn', {name: text}]
 
-    def processimp_cmd(self, meta, *args):
+    def processimp_cmd(self, *args):
         text = {"components": {}, "connections": {}}
         for arg in args:
             if arg[0] == 'comp':
@@ -407,7 +395,7 @@ class HPTransformer(Transformer):
                 text["connections"].update(arg[1])
         return text
 
-    def handle_processimp(self, meta, name, text, nm):
+    def handle_processimp(self, name, text, nm):
         text["category"] = "process"
         for key in text['connections'].keys():
             if text['connections'][key]['source'] == []:
@@ -416,11 +404,11 @@ class HPTransformer(Transformer):
                 text['connections'][key]['target'] = name
         return [name, text]
 
-    def handle_thread(self, meta, name, text, nm):
+    def handle_thread(self, name, text, nm):
         text["category"] = "thread"
         return[name, text]
 
-    def threadimp_cmd(self, meta, name, annex_string):
+    def threadimp_cmd(self, name, annex_string):
         text = {"impl": name}
         if annex_string[0] == 'path':
             text.update({"discrete_computation": annex_string[1]})
@@ -428,14 +416,14 @@ class HPTransformer(Transformer):
             text.update({"computation": annex_string[1]})
         return text
 
-    def handle_threadimp(self, meta, name, text, nm):
+    def handle_threadimp(self, name, text, nm):
         text["category"] = "thread"
         return[name, text]
 
-    def handle_system(self, meta, name, nm):
+    def handle_system(self, name, nm):
         pass
 
-    def systemimp_cmd(self, meta, *args):
+    def systemimp_cmd(self, *args):
         text = {"components": {}, "connections": {}}
         for arg in args:
             if arg[0] == 'comp':
@@ -448,19 +436,19 @@ class HPTransformer(Transformer):
                 text[arg[1]].update({arg[2]: arg[3]})
         return text
 
-    def handle_systemimp(self, meta, name, text, nm):
+    def handle_systemimp(self, name, text, nm):
         text["category"] = "system"
         return[name, text]
 
-    def handle_abstract(self, meta, name, text, nm):
+    def handle_abstract(self, name, text, nm):
         text["category"] = "abstract"
         return[name, text]
 
-    def handle_abstractimp(self, meta, name, text, nm):
+    def handle_abstractimp(self, name, text, nm):
         text["category"] = "abstract"
         return[name, text]
 
-    def package_cmd(self, meta, *args):
+    def package_cmd(self, *args):
         text = {}
         for i in range(1, len(args)-1):
             if args[i] != None:
@@ -468,31 +456,14 @@ class HPTransformer(Transformer):
                     text[args[i][0]].update(args[i][1])
                 else:
                     text[args[i][0]] = args[i][1]
-        text = simplize(text)
+        text = simplifyAADL(text)
         return text
 
 
-aadl_transformer = HPTransformer()
-
-
-aadl_parser = Lark(grammar, start="package_cmd",
-                   parser="lalr", transformer=aadl_transformer)
-
-
-# Variants of the parsers without internal transformer, returning a Lark Tree instead of a HCSP expression.
-# They allow us to get meta information about line and character numbers of the parsed code.
-
-aadl_tree_parser = Lark(grammar, start="atom_cmd",
-                        parser="lalr", propagate_positions=True)
-
-
-def parse_aadl_with_meta(text): return aadl_transformer.transform(
-    aadl_tree_parser.parse(text))
-
-
-class ParseFileException(Exception):
-    def __init__(self, error_msg):
-        self.error_msg = error_msg
+def aadl_parser(directory):
+    """Obtain AADL parser for the given directory."""
+    aadl_transformer = AADLTransformer(directory)
+    return Lark(grammar, start="package_cmd", parser="lalr", transformer=aadl_transformer)
 
 
 class ParseFileException(Exception):
@@ -502,14 +473,12 @@ class ParseFileException(Exception):
 
 class CompactJSONEncoder(json.JSONEncoder):
     """A JSON Encoder that puts small lists on single lines."""
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.indentation_level = 0
 
     def encode(self, o):
         """Encode JSON object *o* with respect to single line lists."""
-
         if isinstance(o, (list, tuple)):
             if self._is_single_line_list(o):
                 return "[" + ", ".join(json.dumps(el) for el in o) + "]"
@@ -531,8 +500,8 @@ class CompactJSONEncoder(json.JSONEncoder):
 
     def _is_single_line_list(self, o):
         if isinstance(o, (list, tuple)):
-            return not any(isinstance(el, (list, tuple, dict)) for el in o)\
-                and len(o) <= 2\
+            return not any(isinstance(el, (list, tuple, dict)) for el in o) \
+                and len(o) <= 2 \
                 and len(str(o)) - 2 <= 60
 
     @property
@@ -543,8 +512,8 @@ class CompactJSONEncoder(json.JSONEncoder):
         """Required to also work with `json.dump`."""
         return self.encode(o)
 
-def mergedict(dict1,dict2):
-    dict3 =deepcopy(dict2)
+def mergedict(dict1, dict2):
+    dict3 = deepcopy(dict2)
     for key, value in dict1.items():
         if key in dict2:
             if type(dict1[key]) == dict and type(dict2[key]) == dict:
@@ -559,18 +528,27 @@ def mergedict(dict1,dict2):
             dict3[key] = value
     return dict3
 
-def convert_AADL(path1,path2):
+def convert_AADL(directory: str, startfile: str, configfile: str):
+    """
+    Convert AADL files in the given directory to JSON files.
 
-    file1 = open(path1, "r", encoding='utf-8')
+    directory: str - directory containing input AADL and JSON files.
+    startfile: str - starting AADL file.
+    configfile: str - starting JSON configuration file.
+
+    """
+    file1 = open(os.path.join(directory, startfile), "r", encoding='utf-8')
     text = file1.read()
     file1.close()
 
     info = dict()
+
     # First, read lines from file, each line containing ::= means the
     # start of a new program.
     text = text.replace("\t", "")
+
     try:
-        info = aadl_parser.parse(text)
+        info = aadl_parser(directory).parse(text)
     except (exceptions.UnexpectedToken, exceptions.UnexpectedCharacters) as e:
         error_str = "Unable to parse\n"
         for i, line in enumerate(text.split('\n')):
@@ -579,12 +557,8 @@ def convert_AADL(path1,path2):
                 error_str += " " * (e.column-1) + "^" + '\n'
         raise ParseFileException(error_str)
 
-    with open(path2, 'r') as f:
-            config = json.load(f)
+    with open(directory + '\\' + configfile, 'r') as f:
+        config = json.load(f)
 
-    info = mergedict(info,config)
-        
-    output = json.dumps(info, separators=(',', ': '),
-                        indent=4, cls=CompactJSONEncoder)
-
-    return output
+    info = mergedict(info, config)
+    return info

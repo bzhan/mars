@@ -23,9 +23,7 @@
         "discrete_computation": "./Examples/AADL/CCS/Simulink/vehicle_imp.xml"
     },
     "camera": {
-        "display": [
-            "img"
-        ],
+        "display": ["img"],
         "output": {
             "img": "img"
         },
@@ -36,9 +34,7 @@
         "discrete_computation": "{ outputs[\"camera\"][\"img\"]!-1; wait(0.2); }*"
     },
     "radar": {
-        "display": [
-            "obs_pos_radar"
-        ],
+        "display": ["obs_pos_radar"],
         "output": {
             "obs_pos_radar": "obs_pos_radar"
         },
@@ -49,9 +45,7 @@
         "discrete_computation": "t := 0; data := 0.0; { if (t < 10) { data := 0.0; } else if (t < 20) { slope := (55 - 35) / (20 - 10); data := 35 + slope * (t - 10); } else { data := 0.0; } outputs[\"radar\"][\"obs_pos_radar\"]!data; wait(0.01); t := t + 0.01; }*"
     },
     "actuator": {
-        "display": [
-            "cmd"
-        ],
+        "display": ["cmd"],
         "input": {
             "cmd": {
                 "var": "cmd",
@@ -67,9 +61,7 @@
         "discrete_computation": "{ inputs[\"actuator\"][\"cmd\"]?cmd; outputs[\"PHY_vehicle_imp\"][\"veh_a\"]!cmd; wait(0.002); }*"
     },
     "GPS": {
-        "display": [
-            "data"
-        ],
+        "display": ["data"],
         "input": {
             "veh_s": {
                 "var": "data",
@@ -123,7 +115,9 @@
     },
     "user_panel": {
         "display": [],
-        "input": {},
+        "input": {
+
+        },
         "output": {
             "event": "event"
         },
@@ -132,10 +126,7 @@
         "discrete_computation": "outputs[\"user_panel\"][\"event\"]!\"inc\"; wait(0.5); outputs[\"user_panel\"][\"event\"]!\"inc\"; wait(0.5); outputs[\"user_panel\"][\"event\"]!\"inc\"; wait(29); outputs[\"user_panel\"][\"event\"]!\"dec\"; outputs[\"user_panel\"][\"event\"]!\"dec\";"
     },
     "img_acq": {
-        "display": [
-            "image",
-            "new_image"
-        ],
+        "display": ["image", "new_image"],
         "input": {
             "img": {
                 "var": "image",
@@ -259,9 +250,7 @@
         "discrete_computation": "./Examples/AADL/CCS/Simulink/velo_voter_imp.xml"
     },
     "pan_ctr_th": {
-        "display": [
-            "des_v"
-        ],
+        "display": ["des_v"],
         "event_input": {
             "event": "event"
         },
@@ -285,12 +274,8 @@
         "init_value": 0.0,
         "source": "camera",
         "source_port": "img",
-        "target": [
-            "img_acq"
-        ],
-        "target_port": [
-            "img"
-        ],
+        "target": ["img_acq"],
+        "target_port": ["img"],
         "category": "connection",
         "bus": "bus0"
     },
@@ -299,12 +284,8 @@
         "init_value": 0.0,
         "source": "radar",
         "source_port": "obs_pos_radar",
-        "target": [
-            "comp_obs_pos"
-        ],
-        "target_port": [
-            "obs_pos_radar"
-        ],
+        "target": ["comp_obs_pos"],
+        "target_port": ["obs_pos_radar"],
         "category": "connection",
         "bus": "bus0"
     },
@@ -313,12 +294,8 @@
         "init_value": 0.0,
         "source": "emerg",
         "source_port": "cmd",
-        "target": [
-            "actuator"
-        ],
-        "target_port": [
-            "cmd"
-        ],
+        "target": ["actuator"],
+        "target_port": ["cmd"],
         "category": "connection",
         "bus": "bus0"
     },
@@ -327,12 +304,8 @@
         "init_value": 0.0,
         "source": "actuator",
         "source_port": "veh_a",
-        "target": [
-            "vehicle_imp"
-        ],
-        "target_port": [
-            "veh_a"
-        ],
+        "target": ["vehicle_imp"],
+        "target_port": ["veh_a"],
         "category": "connection"
     },
     "tran_veh_s": {
@@ -340,12 +313,8 @@
         "init_value": 0.0,
         "source": "vehicle_imp",
         "source_port": "veh_s",
-        "target": [
-            "GPS"
-        ],
-        "target_port": [
-            "veh_s"
-        ],
+        "target": ["GPS"],
+        "target_port": ["veh_s"],
         "category": "connection"
     },
     "tran_veh_pos": {
@@ -353,12 +322,8 @@
         "init_value": 0.0,
         "source": "GPS",
         "source_port": "veh_pos",
-        "target": [
-            "emerg"
-        ],
-        "target_port": [
-            "veh_pos"
-        ],
+        "target": ["emerg"],
+        "target_port": ["veh_pos"],
         "category": "connection",
         "bus": "bus0"
     },
@@ -367,12 +332,8 @@
         "init_value": 0.0,
         "source": "vehicle_imp",
         "source_port": "veh_l_v",
-        "target": [
-            "laser"
-        ],
-        "target_port": [
-            "veh_l_v"
-        ],
+        "target": ["laser"],
+        "target_port": ["veh_l_v"],
         "category": "connection"
     },
     "tran_laser_valid": {
@@ -380,12 +341,8 @@
         "init_value": 0.0,
         "source": "laser",
         "source_port": "laser_valid",
-        "target": [
-            "velo_voter"
-        ],
-        "target_port": [
-            "laser_valid"
-        ],
+        "target": ["velo_voter"],
+        "target_port": ["laser_valid"],
         "category": "connection",
         "bus": "bus0"
     },
@@ -394,12 +351,8 @@
         "init_value": 0.0,
         "source": "laser",
         "source_port": "laser_v",
-        "target": [
-            "velo_voter"
-        ],
-        "target_port": [
-            "laser_v"
-        ],
+        "target": ["velo_voter"],
+        "target_port": ["laser_v"],
         "category": "connection",
         "bus": "bus0"
     },
@@ -408,12 +361,8 @@
         "init_value": 0.0,
         "source": "wheel",
         "source_port": "wheel_valid",
-        "target": [
-            "velo_voter"
-        ],
-        "target_port": [
-            "wheel_valid"
-        ],
+        "target": ["velo_voter"],
+        "target_port": ["wheel_valid"],
         "category": "connection",
         "bus": "bus0"
     },
@@ -422,12 +371,8 @@
         "init_value": 0.0,
         "source": "wheel",
         "source_port": "wheel_v",
-        "target": [
-            "velo_voter"
-        ],
-        "target_port": [
-            "wheel_v"
-        ],
+        "target": ["velo_voter"],
+        "target_port": ["wheel_v"],
         "category": "connection",
         "bus": "bus0"
     },
@@ -436,12 +381,8 @@
         "init_value": 0.0,
         "source": "user_panel",
         "source_port": "event",
-        "target": [
-            "pan_ctr_th"
-        ],
-        "target_port": [
-            "event"
-        ],
+        "target": ["pan_ctr_th"],
+        "target_port": ["event"],
         "category": "connection",
         "bus": "bus0"
     },
@@ -450,12 +391,8 @@
         "init_value": 0.0,
         "source": "pan_ctr_th",
         "source_port": "des_v",
-        "target": [
-            "PI_ctr"
-        ],
-        "target_port": [
-            "des_v"
-        ],
+        "target": ["PI_ctr"],
+        "target_port": ["des_v"],
         "category": "connection"
     },
     "PI_ctr": {
