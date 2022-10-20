@@ -255,7 +255,7 @@ end
 endmodule
 
 module EXE_emerg():
-output des_v, veh_v, obs_pos, veh_pos, cmd;
+output des_a, veh_v, obs_pos, veh_pos, cmd;
 procedure en_emerg_imp_state begin
   skip;
 end
@@ -426,7 +426,7 @@ begin
   {
     if (state == "wait") {
       dis["emerg"]?;
-      inputs["emerg"]["des_v"]?des_v;
+      inputs["emerg"]["des_a"]?des_a;
       inputs["emerg"]["veh_v"]?veh_v;
       inputs["emerg"]["obs_pos"]?obs_pos;
       inputs["emerg"]["veh_pos"]?veh_pos;

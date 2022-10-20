@@ -110,15 +110,15 @@
     },
     "emerg": {
         "display": [
-            "des_v",
+            "des_a",
             "veh_v",
             "obs_pos",
             "veh_pos",
             "cmd"
         ],
         "input": {
-            "des_v": {
-                "var": "des_v",
+            "des_a": {
+                "var": "des_a",
                 "val": 0.0
             },
             "veh_v": {
