@@ -45,7 +45,7 @@
         "period": "6ms",
         "category": "device",
         "impl": "HCSP",
-        "discrete_computation": "{ inputs[\"PHY_vehicle_imp\"][\"veh_s\"]?data; outputs[\"gps\"][\"veh_pos\"]!data; wait(0.006); }*"
+        "discrete_computation": "{ inputs[\"PHY_vehicle_imp\"][\"veh_s\"]?data; outputs[\"GPS\"][\"veh_pos\"]!data; wait(0.006); }*"
     },
     "laser": {
         "display": [],

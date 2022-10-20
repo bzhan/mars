@@ -45,7 +45,7 @@ public
 	end GPS;
 	
 	device implementation GPS.imp
-	    annex HCSP{** { inputs["PHY_vehicle_imp"]["veh_s"]?data; outputs["gps"]["veh_pos"]!data; wait(0.006); }* **};
+	    annex HCSP{** { inputs["PHY_vehicle_imp"]["veh_s"]?data; outputs["GPS"]["veh_pos"]!data; wait(0.006); }* **};
 	end GPS.imp;
 	
 	device laser
