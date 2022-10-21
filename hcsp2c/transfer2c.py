@@ -126,12 +126,12 @@ def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_parti
         expr = transferToCExpr(expr)
         if isinstance(var_name, Expr):
             var_str = str(var_name)
-            c_str = "%s = %s; " % (var_str, expr)
+            c_str = "%s = %s;\n" % (var_str, expr)
         else:
             return_str = ""
             for n in var_name:
                 var_str = str(n)
-                return_str = return_str + "%s = %s; " % (var_str, expr)
+                return_str = return_str + "%s = %s;\n" % (var_str, expr)
             c_str = return_str
     elif isinstance(hp, hcsp.RandomAssign):
         var_name = hp.var_name
@@ -142,7 +142,7 @@ def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_parti
         if isinstance(var_name, Expr):
             var_name = var_name
         elif isinstance(var_name,function.DirectName):
-            var_name=var_name
+            var_name = var_name
         else:
             var_name = tuple(var_name)
             assert len(var_name) >= 2 and all(isinstance(name, (str, Expr)) for name in var_name)
@@ -150,20 +150,20 @@ def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_parti
 
         if isinstance(var_name, Expr):
             var_str = str(var_name)
-            c_str = "%s = randomDouble(); while(!(%s)) {%s = randomDouble();}" % (var_str, expr, var_str)
+            c_str = "%s = randomDouble();\nwhile(!(%s)) {\n%s = randomDouble();\n}\n" % (var_str, expr, var_str)
         elif isinstance(var_name,function.DirectName):
             var_str=str(var_name)
-            c_str = "%s = randomDouble(); while(!(%s)) {%s = randomDouble();}" % (var_str, expr, var_str)
+            c_str = "%s = randomDouble();\nwhile(!(%s)) {\n%s = randomDouble();\n}\n" % (var_str, expr, var_str)
         else:
             return_str = ""
             for var_str in var_name:
-                return_str = return_str + "%s = randomDouble(); while(!(%s)) {%s = randomDouble();}" % (var_str, expr, var_str)
+                return_str = return_str + "%s = randomDouble();\nwhile(!(%s)) {\n%s = randomDouble();\n}\n" % (var_str, expr, var_str)
             c_str = return_str
     elif isinstance(hp, hcsp.Loop):
         if hp.constraint == true_expr:
-            c_str = "while(1){\n%s\n}" % transferToC(hp.hp, step_size, total_time)
+            c_str = "while (1) {\n%s\n}" % transferToC(hp.hp, step_size, total_time)
         else:
-            c_str = "while(%s){\n%s\n}" % (str(hp.constraint), transferToC(hp.hp, step_size, total_time))
+            c_str = "while (%s) {\n%s\n}" % (str(hp.constraint), transferToC(hp.hp, step_size, total_time))
     elif isinstance(hp, hcsp.ITE):
         if_hps = hp.if_hps
         else_hp = hp.else_hp
@@ -243,7 +243,19 @@ def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_parti
             loop_cp += "double %s_dot4 = %s;\n" % (var_name, expr)
         for var_name, expr in eqs:
             loop_cp += "%s = %s_ori + (%s_dot1 + 2 * %s_dot2 + 2 * %s_dot3 + %s_dot4) * h / 6;\n" % (var_name, var_name, var_name, var_name, var_name, var_name)
-        loop_cp += "if (%s) {delay(h);} else if (h > min_step_size){%s h = h / 2;} else {%s delay(h); break;}" % (str(constraint), trace_back, transferToC(out_hp, step_size, total_time))
+        loop_cp += \
+        """
+        if (%s) {
+            delay(h);
+        } else if (h > min_step_size) {
+            %s
+            h = h / 2;
+        } else {
+            %s
+            delay(h);
+            break;
+        }
+        """ % (str(constraint), trace_back, transferToC(out_hp, step_size, total_time))
         res += "while(1){\n%s\n}" % loop_cp
         c_str = res
     elif isinstance(hp, hcsp.ODE_Comm):
@@ -303,7 +315,7 @@ def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_parti
             } else {
                 is_comm = 1;
                 %s
-                h = (double)(clock() - start) / (double)CLOCKS_PER_SEC;
+                h = (double)(clock() - start) / (double) CLOCKS_PER_SEC;
             }
         } else if (h > min_step_size){
             %s

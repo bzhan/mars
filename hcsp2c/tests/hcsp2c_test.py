@@ -62,7 +62,7 @@ class HCSP2CTest(unittest.TestCase):
         res += main_header % (len(threads), count)
         count = 0
         for thread in threads:
-            res += "\tthreadFuns[%d] = &%s;\n" %(count, thread)
+            res += "\tthreadFuns[%d] = &%s;\n" % (count, thread)
             count += 1
 
         res += main_footer

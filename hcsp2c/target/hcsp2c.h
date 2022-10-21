@@ -34,6 +34,11 @@ void delay(double seconds) {
   while ((double)(clock() - start) < CLOCKS_PER_SEC * seconds);
 }
 
+double current_time;
+void delayVirtual(double seconds) {
+    currentTime += seconds;
+}
+
 // type: 0 -> input, 1 -> output
 typedef struct {
     int type; 
@@ -60,29 +65,42 @@ typedef struct {
 }
 List;
 
-
-// #define channelNumber 2
-// #define threadNumbers 2
-
+// Global lock on the thread and channel states.
 pthread_mutex_t mutex;
+
+// Array of conditions, one of each thread.
 pthread_cond_t* cond;
 
+// Array of thread state (one for each thread).
 // -2 -> unavailable, -1 -> available, i -> comm in channel i
-
 int* threadState;
+
+// Index of each thread.
 int* threadNums;
 
+// Array of input tokens, one for each channel.
+// For each channel, if a thread is waiting to input on that channel, this is
+// index of that thread. Otherwise -1.
 int* channelInput;
+
+// Array of output tokens, one for each channel.
+// For each channel, if a thread is waiting to output on that channel, this is
+// index of that thread. Otherwise -1.
 int* channelOutput;
+
+// Array of addresses of channel values, one for each channel.
 int* channelContent;
 
 void init(int threadNumber, int channelNumber, void*(**threadFuns)(void*) ) {
+    // Allocate thread and channel states.
     threadState = (int*)malloc(threadNumber * sizeof(int));
     threadNums = (int*)malloc(threadNumber * sizeof(int));
     cond = (pthread_cond_t*)malloc(threadNumber * sizeof(pthread_cond_t));
     channelInput = (int*)malloc(channelNumber * sizeof(int));
     channelOutput = (int*)malloc(channelNumber * sizeof(int));
     channelContent = (int*)malloc(channelNumber * sizeof(int));
+
+    // Initialize thread and channel states.
     pthread_mutex_init(&mutex, NULL);
     for (int i = 0; i < threadNumber; i++) {
         threadState[i] = -2;
@@ -94,19 +112,22 @@ void init(int threadNumber, int channelNumber, void*(**threadFuns)(void*) ) {
         channelOutput[i] = -1;
     }
 
+    // Create each thread
     pthread_t threads[threadNumber];
     for (int i = 0; i < threadNumber; i++) {
         assert(pthread_create(&threads[i], NULL, threadFuns[i], &threadNums[i]) == 0);
     }
+
+    // Wait for each thread to finish
     void *status;
     for (int i = 0; i < threadNumber; i++) {
         pthread_join(threads[i], &status);
     }
-
 }
 
 
 void destroy(int threadNumber, int channelNumber) {
+    // Release thread and channel states.
     pthread_mutex_destroy(&mutex);
     for (int i = 0; i < threadNumber; i++) {
         pthread_cond_destroy(&cond[i]);
@@ -119,35 +140,45 @@ void destroy(int threadNumber, int channelNumber) {
     free(channelContent);
 }
 
-// ch?x
+// ch?x:
+// ch must be an input channel
 void input(int thread, Channel ch) {
+    // Take the global lock, and set the channelInput state.
     pthread_mutex_lock(&mutex);
     channelInput[ch.channelNo] = thread;
 
     if (channelOutput[ch.channelNo] != -1 && threadState[channelOutput[ch.channelNo]] == -1) {
+        // If output is available, signal the output side
         threadState[channelOutput[ch.channelNo]] = ch.channelNo;
         pthread_cond_signal(&cond[channelOutput[ch.channelNo]]);
     } else {
+        // Otherwise, wait for the output
         threadState[thread] = -1;
         pthread_cond_wait(&cond[thread], &mutex);
     }
     
+    // Copy data from channelContent
     *(ch.pos) = channelContent[ch.channelNo];
+    printf("IO on channel %d of value %f\n", ch.channelNo, *(ch.pos));
     threadState[thread] = -2;
     channelInput[ch.channelNo] = -1;
     pthread_mutex_unlock(&mutex);
 }
 
 // ch!e
+// ch must be an output channel
 void output(int thread, Channel ch) {
+    // Take the global lock, set the channelOutput state and channel content.
     pthread_mutex_lock(&mutex);
     channelOutput[ch.channelNo] = thread;
     channelContent[ch.channelNo] = *(ch.pos);
 
     if (channelInput[ch.channelNo] != -1 && threadState[channelInput[ch.channelNo]] == -1) {
+        // If input is available, signal the input side
         threadState[channelInput[ch.channelNo]] = ch.channelNo;
         pthread_cond_signal(&cond[channelInput[ch.channelNo]]);
     } else {
+        // Otherwise, wait for the input
         threadState[thread] = -1;
         pthread_cond_wait(&cond[thread], &mutex);
     }
@@ -157,12 +188,15 @@ void output(int thread, Channel ch) {
     pthread_mutex_unlock(&mutex);
 }
 
-// external choice
+// External choice
+// chs is an array of input/output channels.
 int externalChoice(int thread, int nums, Channel* chs) {
+    // Take the global lock
     pthread_mutex_lock(&mutex);
     int match_index = -1;
     for (int i = 0; i < nums; i++) {
         if (chs[i].type == 0) {
+            // If channel is for input
             channelInput[chs[i].channelNo] = thread;
             if (match_index == -1 && channelOutput[chs[i].channelNo] != -1 && threadState[channelOutput[chs[i].channelNo]] == -1) {
                 threadState[channelOutput[chs[i].channelNo]] = chs[i].channelNo;
@@ -171,6 +205,7 @@ int externalChoice(int thread, int nums, Channel* chs) {
                 break;
             }
         } else {
+            // If channel is for output
             channelOutput[chs[i].channelNo] = thread;
             channelContent[chs[i].channelNo] = *(chs[i].pos);
             if (match_index == -1 && channelInput[chs[i].channelNo] != -1 && threadState[channelInput[chs[i].channelNo]] == -1) {
@@ -181,14 +216,15 @@ int externalChoice(int thread, int nums, Channel* chs) {
             }
         }
     }
+
+    // If no matching channel is found, wait for matches.
     if (match_index == -1) {
         threadState[thread] = -1;
         pthread_cond_wait(&cond[thread], &mutex);
         match_index = threadState[thread];
-        // printf("match_index: %d \n", match_index); 
-        // printf("thread: %d \n", thread); 
-        // fflush(stdout);
     }
+
+    // Recover values of channelInput and channelOutput.
     assert (match_index >= 0);
     int ans = -1;
     for (int i = 0; i < nums; i++) {
@@ -210,12 +246,14 @@ int externalChoice(int thread, int nums, Channel* chs) {
     return ans;  
 }
 
-// external choice in ODE
+// External choice in ODE
 int timedExternalChoice1(int thread, int nums, double waitTime, Channel* chs) {
+    // Take the global lcok
     pthread_mutex_lock(&mutex);
     int match_index = -1;
     for (int i = 0; i < nums; i++) {
         if (chs[i].type == 0) {
+            // If channel is for input
             channelInput[chs[i].channelNo] = thread;
             if (match_index == -1 && channelOutput[chs[i].channelNo] != -1 && threadState[channelOutput[chs[i].channelNo]] == -1) {
                 threadState[channelOutput[chs[i].channelNo]] = chs[i].channelNo;
@@ -224,6 +262,7 @@ int timedExternalChoice1(int thread, int nums, double waitTime, Channel* chs) {
                 break;
             }
         } else {
+            // If channel is for output
             channelOutput[chs[i].channelNo] = thread;
             if (match_index == -1 && channelInput[chs[i].channelNo] != -1 && threadState[channelInput[chs[i].channelNo]] == -1) {
                 threadState[channelInput[chs[i].channelNo]] = chs[i].channelNo;
@@ -233,24 +272,27 @@ int timedExternalChoice1(int thread, int nums, double waitTime, Channel* chs) {
             }
         }
     }
+
+    // If no matching channel is found, wait for matches.
     if (match_index == -1) {
         threadState[thread] = -1;
         struct timespec start_tm;
         struct timespec end_tm;
         double timeout = waitTime * 1000000000;
+
+        // Wait for one clock cycle
         clock_gettime(CLOCK_REALTIME, &start_tm);
         end_tm = ns_to_tm(tm_to_ns(start_tm) + (long long)timeout);
         pthread_cond_timedwait(&cond[thread], &mutex, &end_tm);
         match_index = threadState[thread];
-
-        // printf("match_index: %d \n", match_index); 
-        // printf("thread: %d \n", thread); 
-        // fflush(stdout);
     }
     return match_index;
 }
 
+// If ODE ends without finding a communication, then match_index = -1,
+// otherwise, match_index gives the index of channel communication.
 int timedExternalChoice2(int thread, int nums, int match_index, Channel* chs) {
+    // Recover values of channelInput and channelOutput.
     assert (match_index >= -1);
     int ans = -1;
     for (int i = 0; i < nums; i++) {
