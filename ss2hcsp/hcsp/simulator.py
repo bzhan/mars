@@ -1495,8 +1495,15 @@ def check_comms(infos):
             continue
 
         for ch_name, direction in hcsp.get_comm_chs(info.hp):
-            if len(ch_name.args) > 0:  # do not check parameterized channels
+            
+            # do not check channels with vars and number in args
+            hasvar = False
+            for arg in ch_name.args:
+                if isinstance(arg,AVar):
+                    hasvar =True
+            if hasvar:
                 continue
+
             if direction == '?':
                 if ch_name not in comm_in_map:
                     comm_in_map[ch_name] = []

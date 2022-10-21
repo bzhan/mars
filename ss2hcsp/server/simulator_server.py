@@ -1,3 +1,5 @@
+
+
 from flask import Flask
 from flask import request
 import lark
@@ -196,4 +198,4 @@ def get_AADL_port():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
