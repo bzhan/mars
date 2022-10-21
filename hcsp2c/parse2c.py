@@ -1,8 +1,3 @@
-from collections import OrderedDict
-import sys
-from tkinter import N
-# sys.path.append(r"/Users/jizekun/Desktop/形式语言/hcsp-c/mars-master")
-
 from ss2hcsp.hcsp import hcsp, parser
 from hcsp2c import c
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, false_expr, RelExpr, LogicExpr

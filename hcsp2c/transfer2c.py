@@ -1,10 +1,6 @@
 """transfer HCSP to C programs, return str"""
 
 from collections import OrderedDict
-# from fcntl import ioctl
-import sys
-from tkinter import N
-# sys.path.append(r"/Users/jizekun/Desktop/形式语言/hcsp-c/mars-master")
 
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp.expr import *
