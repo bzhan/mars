@@ -10,9 +10,12 @@
 #include <pthread.h>
 #include <assert.h>
 #include <stdarg.h>
+#include <string.h>
 
 #define PI 3.14
 #define G 9.8
+#define true 1
+#define false 0
 #define abs fabs
 
 static long long tm_to_ns(struct timespec tm) {
@@ -38,6 +41,25 @@ typedef struct {
     double* pos;
 }
 Channel;
+
+typedef struct {
+    int length;
+    char* str;
+}
+String;
+
+typedef struct {
+    int length;
+    double* addr;
+}
+ListNum;
+
+typedef struct {
+    int length;
+    intptr_t* addr;
+}
+List;
+
 
 // #define channelNumber 2
 // #define threadNumbers 2
@@ -131,7 +153,7 @@ void output(int thread, Channel ch) {
     }
 
     threadState[thread] = -2;
-    channelOutput[ch.channelNo] = thread;
+    channelOutput[ch.channelNo] = -1;
     pthread_mutex_unlock(&mutex);
 }
 
@@ -306,5 +328,71 @@ double max(int n, ...) {
     va_end(vap);
     return s;
 }
+
+String* strInit(char* input) {
+    String* new_str = (String*)malloc(sizeof(String));
+    new_str->length = strlen(input) + 1;
+    new_str->str = (char*)malloc(sizeof(char) * new_str->length);
+    new_str->str = strcpy(new_str->str, input);
+    return new_str;
+}
+
+int strEqual(String a, String b) {
+    if (a.length != b.length) {
+        return 0;
+    }
+    if (strcmp((char*)a.str, (char*)b.str) != 0) {
+        return 0;
+    }
+    return 1;
+}
+
+void strDestroy(String** input) {
+    free((*input)->str);
+    free(*input);
+    return;
+}
+
+List* listInit() {
+    List* list = (List*)malloc(sizeof(List));
+    list->length = 0;
+    list->addr = NULL;
+    return list;
+}
+
+void listPush(List* list, intptr_t input) {
+    intptr_t* new_list = (intptr_t*)malloc(sizeof(intptr_t) * (list->length + 1));
+    if (list->length > 0) {
+        memcpy(new_list, list->addr, (list->length) * sizeof(intptr_t));
+    }
+    memcpy(new_list + list->length, &input, sizeof(intptr_t));
+    free(list->addr);
+    list->addr = new_list;
+    list->length += 1;
+}
+
+void listPop(List* list) {
+    if (list->length > 0) {
+        intptr_t* new_list = (intptr_t*)malloc(sizeof(intptr_t) * (list->length - 1));
+        memcpy(new_list, list->addr + 1, (list->length - 1) * sizeof(intptr_t));
+        free(list->addr);
+        list->addr = new_list;
+        list->length -= 1;
+    }    
+}
+
+intptr_t listBottom(List* list) {
+    return *(intptr_t*)(list->addr + list->length - 1);
+}
+
+intptr_t listTop(List* list) {
+    return *(intptr_t*)(list->addr);
+}
+
+intptr_t listGet(List* list, int num) {
+    return *(intptr_t*)(list->addr + num);
+}
+
+
 
 #endif /* hcsp2c_h */
