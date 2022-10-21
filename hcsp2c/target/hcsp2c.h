@@ -29,15 +29,6 @@ static struct timespec ns_to_tm(long long ns) {
     return tm;
 }
 
-void delay(double seconds) {
-  clock_t start = clock();
-  while ((double)(clock() - start) < CLOCKS_PER_SEC * seconds);
-}
-
-double current_time;
-void delayVirtual(double seconds) {
-    currentTime += seconds;
-}
 
 // type: 0 -> input, 1 -> output
 typedef struct {
@@ -138,6 +129,24 @@ void destroy(int threadNumber, int channelNumber) {
     free(channelInput);
     free(channelOutput);
     free(channelContent);
+}
+
+void delay(double seconds) {
+    struct timespec start_tm;
+    struct timespec end_tm;
+    double timeout = seconds * 1000000000;
+
+    // Wait for one clock cycle
+    clock_gettime(CLOCK_REALTIME, &start_tm);
+    end_tm = ns_to_tm(tm_to_ns(start_tm) + (long long)timeout);
+    while (tm_to_ns(start_tm) < tm_to_ns(end_tm)) {
+        clock_gettime(CLOCK_REALTIME, &start_tm);
+    }
+}
+
+double current_time;
+void delayVirtual(double seconds) {
+    current_time += seconds;
 }
 
 // ch?x:
