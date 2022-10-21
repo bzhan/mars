@@ -141,8 +141,6 @@ def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_parti
             var_name = AVar(str(var_name))
         if isinstance(var_name, Expr):
             var_name = var_name
-        elif isinstance(var_name,function.DirectName):
-            var_name = var_name
         else:
             var_name = tuple(var_name)
             assert len(var_name) >= 2 and all(isinstance(name, (str, Expr)) for name in var_name)
@@ -150,9 +148,6 @@ def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_parti
 
         if isinstance(var_name, Expr):
             var_str = str(var_name)
-            c_str = "%s = randomDouble();\nwhile(!(%s)) {\n%s = randomDouble();\n}\n" % (var_str, expr, var_str)
-        elif isinstance(var_name,function.DirectName):
-            var_str=str(var_name)
             c_str = "%s = randomDouble();\nwhile(!(%s)) {\n%s = randomDouble();\n}\n" % (var_str, expr, var_str)
         else:
             return_str = ""
@@ -346,3 +341,60 @@ def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_parti
     
     return c_str
 
+
+header = \
+"""
+#include "hcsp2c.h"
+
+double step_size = 1e7;
+double min_step_size = 1e10;
+"""
+
+main_header = \
+"""
+int main() {
+    printf("The program starts.\\n");
+    fflush(stdout);
+    const int threadNumber = %d;
+    const int channelNumber = %d;
+    void* (*threadFuns[threadNumber])(void*);
+"""
+
+main_footer = \
+"""
+    init(threadNumber, channelNumber, threadFuns);
+    printf(\"The program is completed.\\n\");
+    fflush(stdout);
+    destroy(threadNumber, channelNumber);
+    return 0;
+}
+"""
+
+def convertHps(hps) -> str:
+    """Main function for HCSP to C conversion."""
+    channels = set()
+    threads = []
+    for hp in hps:
+        channels.update(hp.get_chs())
+
+    res = ""
+    res += header
+    count = 0
+    for channel in channels:
+        res += "const int %s = %d;\n" % (channel, count)
+        count += 1
+
+    for i, hp in enumerate(hps):
+        name = "P" + str(i+1)
+        threads.append(name)
+        code = transferToCProcess(name, hp)
+        res += code
+
+    res += main_header % (len(threads), count)
+    count = 0
+    for thread in threads:
+        res += "\tthreadFuns[%d] = &%s;\n" % (count, thread)
+        count += 1
+
+    res += main_footer
+    return res
