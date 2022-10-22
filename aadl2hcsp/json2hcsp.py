@@ -106,7 +106,7 @@ state := "wait"; prior := priority;
             }
         }
     }else{
-        {t_dot = 1 & t < 0.005} |> [] (unblock["emerg_imp"]? --> state := "ready";)
+        {t_dot = 1 & t < 0.005} |> [] (unblock["emerg"]? --> state := "ready";)
         if(t == 0.005) {state := "wait";}
     }
 }*

@@ -482,7 +482,7 @@ begin
       }
     } else {
       {t_dot = 1 & t < 0.005} |> [] (
-        unblock["emerg_imp"]? -->
+        unblock["emerg"]? -->
           state := "ready";
       )
       if (t == 0.005) {
