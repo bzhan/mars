@@ -1,22 +1,72 @@
 import unittest
+import subprocess
 
 from ss2hcsp.hcsp import parser
 from hcsp2c import transfer2c
 
 
 class HCSP2CTest(unittest.TestCase):
+    def run_file(self, progs, filename, expected_output):
+        hps = []
+        for i, prog in enumerate(progs):
+            hps.append(("P" + str(i+1), parser.hp_parser.parse(prog)))
+        res = transfer2c.convertHps(hps)
+
+        with open('hcsp2c/target/%s.c' % filename, 'w') as f:
+            f.write(res)
+
+        res = subprocess.run(
+            "sudo gcc hcsp2c/target/%s.c -lpthread -o hcsp2c/output/%s.out" % (filename, filename),
+            stderr=subprocess.PIPE,
+            text=True,
+            shell=True
+        )
+
+        # Handle exception resulting from conversion step
+        if res.stderr != '':
+            err = res.stderr
+            raise Exception(err)
+
+        res = subprocess.run(
+            "./hcsp2c/output/%s.out" % filename,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            shell=True
+        )
+
+        self.assertEqual(res.stdout, '\n'.join(expected_output) + '\n')
+
+
+    def testa(self):
+        progs = [
+            "x := 0; { p2c!x; c2p?x; }*",
+            "y := 0; { wait(2); p2c?x; y := x - 1; c2p!y; }*"
+        ]
+
+        expected_output = [
+            "IO p2c 0.000",
+            "IO c2p -1.000",
+            "IO p2c -1.000",
+            "IO c2p -2.000"
+        ]
+
+        self.run_file(progs, "testa", expected_output)
+
     def test1(self):
         progs = [
             "x := 0; { {x_dot = 1 & true} |> [](p2c!x --> skip;) c2p?x; }*",
             "{ wait(2); p2c?x; c2p!x-1; }*"
         ]
 
-        hps = []
-        for i, prog in enumerate(progs):
-            hps.append(("P" + str(i+1), parser.hp_parser.parse(prog)))
-        res = transfer2c.convertHps(hps)
-        with open('hcsp2c/target/test1.c', 'w') as f:
-            f.write(res)
+        expected_output = [
+            "IO p2c 2.000",
+            "IO c2p 1.000",
+            "IO p2c 3.000",
+            "IO c2p 2.000"
+        ]
+
+        self.run_file(progs, "test1", expected_output)
 
 
 if __name__ == "__main__":

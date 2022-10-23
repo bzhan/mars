@@ -355,15 +355,13 @@ header = \
 """
 #include "hcsp2c.h"
 
-double step_size = 1e7;
-double min_step_size = 1e10;
+double step_size = 1e-7;
+double min_step_size = 1e-10;
 """
 
 main_header = \
 """
 int main() {
-    printf("The program starts.\\n");
-    fflush(stdout);
     const int threadNumber = %d;
     const int channelNumber = %d;
     void* (*threadFuns[threadNumber])(void*);
@@ -371,9 +369,13 @@ int main() {
 
 main_footer = \
 """
-    init(threadNumber, channelNumber, threadFuns);
-    printf(\"The program is completed.\\n\");
-    fflush(stdout);
+    init(threadNumber, channelNumber);
+    maxTime = 5.0;
+
+    channelNames[0] = "p2c";
+    channelNames[1] = "c2p";
+    run(threadNumber, threadFuns);
+
     destroy(threadNumber, channelNumber);
     return 0;
 }
