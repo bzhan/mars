@@ -1,5 +1,8 @@
 """transfer HCSP to C programs, return str"""
 
+from decimal import Decimal
+from fractions import Fraction
+
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import expr
 
@@ -17,11 +20,11 @@ def transferToCExpr(e: expr.Expr) -> str:
     c_str = str(e)
     if isinstance(e, expr.RelExpr):
         if e.op == "==":
-            if isinstance(e.expr1, e.AConst):
+            if isinstance(e.expr1, expr.AConst):
                 mid = e.expr1
                 e.expr1 = e.expr2
                 e.expr2 = mid
-            if isinstance(e.expr2, e.AConst):
+            if isinstance(e.expr2, expr.AConst):
                 if isinstance(e.expr2.value, str):
                     c_str = "strEqual(%s, &strInit(%s))" % (e.expr1, e.expr2.value)
                 elif isinstance(e.expr2, expr.AVar) and e.expr2.name in gl_var_type and gl_var_type[e.expr2.name] == 2:
@@ -376,31 +379,167 @@ main_footer = \
 }
 """
 
+class TypeContext:
+    def __init__(self):
+        # Mapping from channel names to types
+        self.channelTypes = dict()
+
+        # Mapping from process name to mapping of variable to types
+        self.varTypes = dict()
+
+    def __str__(self):
+        res = ""
+        for ch_name, typ in self.channelTypes.items():
+            res += "%s -> %s\n" % (ch_name, typ)
+        for hp_name, varctx in self.varTypes.items():
+            res += hp_name + ":\n"
+            for var_name, typ in varctx.items():
+                res += "  %s -> %s\n" % (var_name, typ)
+        return res
+
+
+class CType:
+    pass
+
+class UndefType(CType):
+    def __str__(self):
+        return "undef"
+
+class NullType(CType):
+    def __str__(self):
+        return "null"
+
+class RealType(CType):
+    def __str__(self):
+        return "double"
+
+class StringType(CType):
+    def __str__(self):
+        return "string"
+
+class ListType(CType):
+    def __str__(self):
+        return "list"
+
+
+def inferExprType(e: expr.Expr, hp_name: str, ctx: TypeContext):
+    """Infer type of expression under the given context."""
+    if isinstance(e, expr.AVar):
+        if e.name in ctx.varTypes[hp_name]:
+            return ctx.varTypes[hp_name][e.name]
+        else:
+            return UndefType()
+    elif isinstance(e, expr.AConst):
+        if isinstance(e.value, (int, float, Decimal, Fraction)):
+            return RealType()
+        elif isinstance(e.value, str):
+            return StringType()
+        else:
+            raise NotImplementedError
+    elif isinstance(e, expr.ListExpr):
+        return ListType()
+    else:
+        raise NotImplementedError
+
+def inferTypes(hps):
+    """Infer type of channel and variables.
+    
+    Input is a list of (name, hp) pairs.
+
+    """
+    ctx = TypeContext()
+    for name, hp in hps:
+        ctx.varTypes[name] = dict()
+
+    def infer(hp_name, hp):
+        if isinstance(hp, hcsp.Assign):
+            v = hp.var_name
+            if isinstance(v, expr.AVar):
+                if v.name in ctx.varTypes[hp_name]:
+                    pass   # Already know type of v, skip type checking
+                else:
+                    typ = inferExprType(hp.expr, hp_name, ctx)
+                    if isinstance(typ, UndefType):
+                        raise AssertionError("inferTypes: unknown type for right side of assignment")
+                    else:
+                        ctx.varTypes[hp_name][v.name] = typ
+            else:
+                pass  # skip type inference for arrays and fields
+
+        elif isinstance(hp, hcsp.InputChannel):
+            ch = hp.ch_name
+            if ch.name in ctx.channelTypes:
+                pass  # Already know type of ch, skip type checking
+            elif hp.var_name is None:
+                ctx.channelTypes[ch.name] = NullType()
+            else:
+                v = hp.var_name
+                if isinstance(v, expr.AVar):
+                    if v.name in ctx.varTypes[hp_name]:
+                        ctx.channelTypes[ch.name] = ctx.varTypes[hp_name][v.name]
+                    else:
+                        raise AssertionError("inferTypes: unknown type for input variable")
+                else:
+                    raise NotImplementedError
+        
+        elif isinstance(hp, hcsp.OutputChannel):
+            ch = hp.ch_name
+            if ch.name in ctx.channelTypes:
+                pass  # Already know type of ch, skip type checking
+            elif hp.expr is None:
+                ctx.channelTypes[ch.name] = NullType()
+            else:
+                e = hp.expr
+                typ = inferExprType(e, hp_name, ctx)
+                if isinstance(typ, UndefType):
+                    raise AssertionError("inferTypes: unknown type for output expression")
+                else:
+                    ctx.channelTypes[ch.name] = typ
+        
+        elif isinstance(hp, (hcsp.ODE_Comm, hcsp.SelectComm)):
+            for io_comm, _ in hp.io_comms:
+                infer(hp_name, io_comm)
+
+        elif isinstance(hp, hcsp.Sequence):
+            for sub_hp in hp.hps:
+                infer(hp_name, sub_hp)
+
+        elif isinstance(hp, hcsp.ITE):
+            for _, if_hp in hp.if_hps:
+                infer(hp_name, if_hp)
+            if hp.else_hp is not None:
+                infer(hp_name, hp.else_hp)
+
+        elif isinstance(hp, hcsp.Loop):
+            infer(hp_name, hp.hp)
+
+        else:
+            pass  # No need for type inference on other commands
+
+    for name, hp in hps:
+        infer(name, hp)
+
+    return ctx
+
+
 def convertHps(hps) -> str:
     """Main function for HCSP to C conversion."""
-    channels = set()
-    threads = []
-    for hp in hps:
-        channels.update(hp.get_chs())
+    ctx = inferTypes(hps)
 
     res = ""
     res += header
     count = 0
-    for channel in channels:
+    for channel in ctx.channelTypes.keys():
         res += "const int %s = %d;\n" % (channel, count)
         count += 1
 
-    for i, hp in enumerate(hps):
-        name = "P" + str(i+1)
-        threads.append(name)
+    for name, hp in hps:
         code = transferToCProcess(name, hp)
         res += code
 
-    res += main_header % (len(threads), count)
-    count = 0
-    for thread in threads:
-        res += "\tthreadFuns[%d] = &%s;\n" % (count, thread)
-        count += 1
+    res += main_header % (len(hps), count)
+    for i, (name, _) in enumerate(hps):
+        res += "\tthreadFuns[%d] = &%s;\n" % (i, name)
 
     res += main_footer
     return res

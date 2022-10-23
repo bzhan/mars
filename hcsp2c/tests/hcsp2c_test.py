@@ -11,7 +11,9 @@ class HCSP2CTest(unittest.TestCase):
             "{ wait(2); p2c?x; c2p!x-1; }*"
         ]
 
-        hps = [parser.hp_parser.parse(prog) for prog in progs]
+        hps = []
+        for i, prog in enumerate(progs):
+            hps.append(("P" + str(i+1), parser.hp_parser.parse(prog)))
         res = transfer2c.convertHps(hps)
         with open('hcsp2c/target/test1.c', 'w') as f:
             f.write(res)

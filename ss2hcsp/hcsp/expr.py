@@ -113,7 +113,7 @@ class AVar(Expr):
 class AConst(Expr):
     def __init__(self, value, meta=None):
         super(AConst, self).__init__()
-        assert isinstance(value, (int, float, Decimal, Fraction, list, str, tuple, dict))
+        assert isinstance(value, (int, float, Decimal, Fraction, str))
         # if isinstance(value, Decimal):
         #     value = float(value)
         self.value = value
