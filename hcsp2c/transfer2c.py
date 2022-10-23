@@ -14,6 +14,149 @@ def indent(s: str) -> str:
     lines = ['    ' + line for line in lines]
     return '\n'.join(lines)
 
+class TypeContext:
+    def __init__(self):
+        # Mapping from channel names to types
+        self.channelTypes = dict()
+
+        # Mapping from process name to mapping of variable to types
+        self.varTypes = dict()
+
+    def __str__(self):
+        res = ""
+        for ch_name, typ in self.channelTypes.items():
+            res += "%s -> %s\n" % (ch_name, typ)
+        for hp_name, varctx in self.varTypes.items():
+            res += hp_name + ":\n"
+            for var_name, typ in varctx.items():
+                res += "  %s -> %s\n" % (var_name, typ)
+        return res
+
+
+class CType:
+    pass
+
+class UndefType(CType):
+    def __str__(self):
+        return "undef"
+
+class NullType(CType):
+    def __str__(self):
+        return "null"
+
+class RealType(CType):
+    def __str__(self):
+        return "double"
+
+class StringType(CType):
+    def __str__(self):
+        return "string"
+
+class ListType(CType):
+    def __str__(self):
+        return "list"
+
+
+def inferExprType(e: expr.Expr, hp_name: str, ctx: TypeContext):
+    """Infer type of expression under the given context."""
+    if isinstance(e, expr.AVar):
+        if e.name in ctx.varTypes[hp_name]:
+            return ctx.varTypes[hp_name][e.name]
+        else:
+            return UndefType()
+    elif isinstance(e, expr.AConst):
+        if isinstance(e.value, (int, float, Decimal, Fraction)):
+            return RealType()
+        elif isinstance(e.value, str):
+            return StringType()
+        else:
+            raise NotImplementedError
+    elif isinstance(e, expr.ListExpr):
+        return ListType()
+    else:
+        raise NotImplementedError
+
+def inferTypes(hps):
+    """Infer type of channel and variables.
+    
+    Input is a list of (name, hp) pairs.
+
+    """
+    ctx = TypeContext()
+    for name, hp in hps:
+        ctx.varTypes[name] = dict()
+
+    def infer(hp_name, hp):
+        if isinstance(hp, hcsp.Assign):
+            v = hp.var_name
+            if isinstance(v, expr.AVar):
+                if v.name in ctx.varTypes[hp_name]:
+                    pass   # Already know type of v, skip type checking
+                else:
+                    typ = inferExprType(hp.expr, hp_name, ctx)
+                    if isinstance(typ, UndefType):
+                        raise AssertionError("inferTypes: unknown type for right side of assignment")
+                    else:
+                        ctx.varTypes[hp_name][v.name] = typ
+            else:
+                pass  # skip type inference for arrays and fields
+
+        elif isinstance(hp, hcsp.InputChannel):
+            ch = hp.ch_name
+            if ch.name in ctx.channelTypes:
+                pass  # Already know type of ch, skip type checking
+            elif hp.var_name is None:
+                ctx.channelTypes[ch.name] = NullType()
+            else:
+                v = hp.var_name
+                if isinstance(v, expr.AVar):
+                    if v.name in ctx.varTypes[hp_name]:
+                        ctx.channelTypes[ch.name] = ctx.varTypes[hp_name][v.name]
+                    else:
+                        raise AssertionError("inferTypes: unknown type for input variable")
+                else:
+                    raise NotImplementedError
+        
+        elif isinstance(hp, hcsp.OutputChannel):
+            ch = hp.ch_name
+            if ch.name in ctx.channelTypes:
+                pass  # Already know type of ch, skip type checking
+            elif hp.expr is None:
+                ctx.channelTypes[ch.name] = NullType()
+            else:
+                e = hp.expr
+                typ = inferExprType(e, hp_name, ctx)
+                if isinstance(typ, UndefType):
+                    raise AssertionError("inferTypes: unknown type for output expression")
+                else:
+                    ctx.channelTypes[ch.name] = typ
+        
+        elif isinstance(hp, (hcsp.ODE_Comm, hcsp.SelectComm)):
+            for io_comm, _ in hp.io_comms:
+                infer(hp_name, io_comm)
+
+        elif isinstance(hp, hcsp.Sequence):
+            for sub_hp in hp.hps:
+                infer(hp_name, sub_hp)
+
+        elif isinstance(hp, hcsp.ITE):
+            for _, if_hp in hp.if_hps:
+                infer(hp_name, if_hp)
+            if hp.else_hp is not None:
+                infer(hp_name, hp.else_hp)
+
+        elif isinstance(hp, hcsp.Loop):
+            infer(hp_name, hp.hp)
+
+        else:
+            pass  # No need for type inference on other commands
+
+    for name, hp in hps:
+        infer(name, hp)
+
+    return ctx
+
+
 def transferToCExpr(e: expr.Expr) -> str:
     """Convert HCSP expression into C expression."""
     assert isinstance(e, expr.Expr)
@@ -31,7 +174,7 @@ def transferToCExpr(e: expr.Expr) -> str:
                     c_str = "strEqual(%s, %s)" % (e.expr1, e.expr2)
     elif isinstance(e, expr.AConst):
         if isinstance(e.value, str):
-            c_str = "strInit(%s)" % e.value
+            c_str = "*strInit(\"%s\")" % e.value
     elif isinstance(e, expr.ListExpr):
         c_str = str(e)
 
@@ -82,7 +225,7 @@ if (is_comm == 1) {{
 }}
 """
 
-def transferToCProcess(name: str, hp: hcsp.HCSP, step_size = 1e-7, total_time = 0, is_partial = -1):
+def transferToCProcess(name: str, hp: hcsp.HCSP, context: TypeContext, step_size = 1e-7, total_time = 0, is_partial = -1):
     """Convert HCSP process with given name to a C function"""
     c_process_str = ""
     global gl_var_type
@@ -92,10 +235,16 @@ def transferToCProcess(name: str, hp: hcsp.HCSP, step_size = 1e-7, total_time = 
     for procedure in procedures:
         body += str(procedure) + '\n'
     vars = hp.get_vars()
-
     body += body_template % len(hp.get_chs())
     for var in vars:
-        body += "\tdouble %s = 0.0;\n" % var
+        if isinstance(context.varTypes[name][var], RealType):
+            body += "\tdouble %s = 0.0;\n" % var
+        elif isinstance(context.varTypes[name][var], StringType):
+            body += "\tString %s;\n" % var
+        elif isinstance(context.varTypes[name][var], ListType):
+            body += "\tList %s;\n" % var
+        else:
+            raise AssertionError("init: unknown type for variable %s" % var)
 
     body += indent(transferToC(hp, step_size, total_time, is_partial))
 
@@ -367,161 +516,23 @@ int main() {
     void* (*threadFuns[threadNumber])(void*);
 """
 
-main_footer = \
+main_init = \
 """
     init(threadNumber, channelNumber);
     maxTime = 5.0;
+"""
 
-    channelNames[0] = "p2c";
-    channelNames[1] = "c2p";
-    run(threadNumber, threadFuns);
+
+
+main_footer = \
+"""
+    run(threadNumber, channelNumber, threadFuns);
 
     destroy(threadNumber, channelNumber);
     return 0;
 }
 """
 
-class TypeContext:
-    def __init__(self):
-        # Mapping from channel names to types
-        self.channelTypes = dict()
-
-        # Mapping from process name to mapping of variable to types
-        self.varTypes = dict()
-
-    def __str__(self):
-        res = ""
-        for ch_name, typ in self.channelTypes.items():
-            res += "%s -> %s\n" % (ch_name, typ)
-        for hp_name, varctx in self.varTypes.items():
-            res += hp_name + ":\n"
-            for var_name, typ in varctx.items():
-                res += "  %s -> %s\n" % (var_name, typ)
-        return res
-
-
-class CType:
-    pass
-
-class UndefType(CType):
-    def __str__(self):
-        return "undef"
-
-class NullType(CType):
-    def __str__(self):
-        return "null"
-
-class RealType(CType):
-    def __str__(self):
-        return "double"
-
-class StringType(CType):
-    def __str__(self):
-        return "string"
-
-class ListType(CType):
-    def __str__(self):
-        return "list"
-
-
-def inferExprType(e: expr.Expr, hp_name: str, ctx: TypeContext):
-    """Infer type of expression under the given context."""
-    if isinstance(e, expr.AVar):
-        if e.name in ctx.varTypes[hp_name]:
-            return ctx.varTypes[hp_name][e.name]
-        else:
-            return UndefType()
-    elif isinstance(e, expr.AConst):
-        if isinstance(e.value, (int, float, Decimal, Fraction)):
-            return RealType()
-        elif isinstance(e.value, str):
-            return StringType()
-        else:
-            raise NotImplementedError
-    elif isinstance(e, expr.ListExpr):
-        return ListType()
-    else:
-        raise NotImplementedError
-
-def inferTypes(hps):
-    """Infer type of channel and variables.
-    
-    Input is a list of (name, hp) pairs.
-
-    """
-    ctx = TypeContext()
-    for name, hp in hps:
-        ctx.varTypes[name] = dict()
-
-    def infer(hp_name, hp):
-        if isinstance(hp, hcsp.Assign):
-            v = hp.var_name
-            if isinstance(v, expr.AVar):
-                if v.name in ctx.varTypes[hp_name]:
-                    pass   # Already know type of v, skip type checking
-                else:
-                    typ = inferExprType(hp.expr, hp_name, ctx)
-                    if isinstance(typ, UndefType):
-                        raise AssertionError("inferTypes: unknown type for right side of assignment")
-                    else:
-                        ctx.varTypes[hp_name][v.name] = typ
-            else:
-                pass  # skip type inference for arrays and fields
-
-        elif isinstance(hp, hcsp.InputChannel):
-            ch = hp.ch_name
-            if ch.name in ctx.channelTypes:
-                pass  # Already know type of ch, skip type checking
-            elif hp.var_name is None:
-                ctx.channelTypes[ch.name] = NullType()
-            else:
-                v = hp.var_name
-                if isinstance(v, expr.AVar):
-                    if v.name in ctx.varTypes[hp_name]:
-                        ctx.channelTypes[ch.name] = ctx.varTypes[hp_name][v.name]
-                    else:
-                        raise AssertionError("inferTypes: unknown type for input variable")
-                else:
-                    raise NotImplementedError
-        
-        elif isinstance(hp, hcsp.OutputChannel):
-            ch = hp.ch_name
-            if ch.name in ctx.channelTypes:
-                pass  # Already know type of ch, skip type checking
-            elif hp.expr is None:
-                ctx.channelTypes[ch.name] = NullType()
-            else:
-                e = hp.expr
-                typ = inferExprType(e, hp_name, ctx)
-                if isinstance(typ, UndefType):
-                    raise AssertionError("inferTypes: unknown type for output expression")
-                else:
-                    ctx.channelTypes[ch.name] = typ
-        
-        elif isinstance(hp, (hcsp.ODE_Comm, hcsp.SelectComm)):
-            for io_comm, _ in hp.io_comms:
-                infer(hp_name, io_comm)
-
-        elif isinstance(hp, hcsp.Sequence):
-            for sub_hp in hp.hps:
-                infer(hp_name, sub_hp)
-
-        elif isinstance(hp, hcsp.ITE):
-            for _, if_hp in hp.if_hps:
-                infer(hp_name, if_hp)
-            if hp.else_hp is not None:
-                infer(hp_name, hp.else_hp)
-
-        elif isinstance(hp, hcsp.Loop):
-            infer(hp_name, hp.hp)
-
-        else:
-            pass  # No need for type inference on other commands
-
-    for name, hp in hps:
-        infer(name, hp)
-
-    return ctx
 
 
 def convertHps(hps) -> str:
@@ -536,12 +547,24 @@ def convertHps(hps) -> str:
         count += 1
 
     for name, hp in hps:
-        code = transferToCProcess(name, hp)
+        code = transferToCProcess(name, hp, ctx)
         res += code
 
     res += main_header % (len(hps), count)
     for i, (name, _) in enumerate(hps):
         res += "\tthreadFuns[%d] = &%s;\n" % (i, name)
 
+    res += main_init
+
+    for i, (name, type) in enumerate(ctx.channelTypes.items()):
+        res += "\tchannelNames[%d] = \"%s\";\n" % (i, name)
+        if isinstance(type, RealType):
+            res += "\tchannelTypes[%d] = 1;\n" % i
+        elif isinstance(type, StringType):
+            res += "\tchannelTypes[%d] = 2;\n" % i
+        elif isinstance(type, ListType):
+            res += "\tchannelTypes[%d] = 3;\n" % i
+    
     res += main_footer
+
     return res

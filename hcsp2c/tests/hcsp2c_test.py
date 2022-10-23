@@ -41,22 +41,41 @@ class HCSP2CTest(unittest.TestCase):
     def testa(self):
         progs = [
             "x := 0; { p2c!x; c2p?x; }*",
-            "y := 0; { wait(2); p2c?x; y := x - 1; c2p!y; }*"
+            "x := 0; y := 0; { wait(2); p2c?x; y := x - 1; c2p!y; }*"
         ]
 
         expected_output = [
             "IO p2c 0.000",
             "IO c2p -1.000",
             "IO p2c -1.000",
-            "IO c2p -2.000"
+            "IO c2p -2.000",
+            "IO p2c -2.000",
+            "IO c2p -3.000"
         ]
 
         self.run_file(progs, "testa", expected_output)
 
+    def testb(self):
+        progs = [
+            "x := \"old_str_x\"; { x := \"str_x\"; p2c!x;  c2p?x; }*",
+            "x := \"\"; y := \"old_str_y\"; { wait(2); p2c?x; y := \"str_y\"; c2p!y; }*"
+        ]
+
+        expected_output = [
+            "IO p2c str_x",
+            "IO c2p str_y",
+            "IO p2c str_x",
+            "IO c2p str_y",
+            "IO p2c str_x",
+            "IO c2p str_y"
+        ]
+
+        self.run_file(progs, "testb", expected_output)
+
     def test1(self):
         progs = [
             "x := 0; { {x_dot = 1 & true} |> [](p2c!x --> skip;) c2p?x; }*",
-            "{ wait(2); p2c?x; c2p!x-1; }*"
+            "x := 0; { wait(2); p2c?x; c2p!x-1; }*"
         ]
 
         expected_output = [

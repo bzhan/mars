@@ -58,6 +58,86 @@ typedef struct {
 }
 List;
 
+String* strInit(char* input) {
+    String* new_str = (String*)malloc(sizeof(String));
+    new_str->length = strlen(input) + 1;
+    new_str->str = (char*)malloc(sizeof(char) * new_str->length);
+    new_str->str = strcpy(new_str->str, input);
+    return new_str;
+}
+
+void strCopy(String* dst, String* src) {
+    dst->length = src->length;
+    dst->str = (char*)malloc(sizeof(char) * dst->length);
+    dst->str = strcpy(dst->str, src->str);
+}
+
+int strEqual(String a, String b) {
+    if (a.length != b.length) {
+        return 0;
+    }
+    if (strcmp((char*)a.str, (char*)b.str) != 0) {
+        return 0;
+    }
+    return 1;
+}
+
+void strDestroy(String** input) {
+    free((*input)->str);
+    free(*input);
+    return;
+}
+
+List* listInit() {
+    List* list = (List*)malloc(sizeof(List));
+    list->length = 0;
+    list->addr = NULL;
+    return list;
+}
+
+void listCopy(List* dst, List* src) {
+    assert(dst->length >= src->length);
+    dst->length = src->length;
+    intptr_t* new_list = (intptr_t*)malloc(sizeof(intptr_t) * src->length);
+    if (src->length > 0) {
+        memcpy(new_list, src->addr, (src->length) * sizeof(intptr_t));
+    }
+    dst->addr = new_list;
+}
+
+void listPush(List* list, intptr_t input) {
+    intptr_t* new_list = (intptr_t*)malloc(sizeof(intptr_t) * (list->length + 1));
+    if (list->length > 0) {
+        memcpy(new_list, list->addr, (list->length) * sizeof(intptr_t));
+    }
+    memcpy(new_list + list->length, &input, sizeof(intptr_t));
+    free(list->addr);
+    list->addr = new_list;
+    list->length += 1;
+}
+
+void listPop(List* list) {
+    if (list->length > 0) {
+        intptr_t* new_list = (intptr_t*)malloc(sizeof(intptr_t) * (list->length - 1));
+        memcpy(new_list, list->addr + 1, (list->length - 1) * sizeof(intptr_t));
+        free(list->addr);
+        list->addr = new_list;
+        list->length -= 1;
+    }    
+}
+
+intptr_t listBottom(List* list) {
+    return *(intptr_t*)(list->addr + list->length - 1);
+}
+
+intptr_t listTop(List* list) {
+    return *(intptr_t*)(list->addr);
+}
+
+intptr_t listGet(List* list, int num) {
+    return *(intptr_t*)(list->addr + num);
+}
+
 // Global lock on the thread and channel states.
 pthread_mutex_t mutex;
 
@@ -93,6 +173,9 @@ void** channelContent;
 
 // Channel names
 char** channelNames;
+
+// Channel types, 0 -> undef, 1 -> double, 2 -> string, 3 -> list
+int* channelTypes;
 
 // Maximum time of simulation
 double maxTime;
@@ -155,6 +238,7 @@ void init(int threadNumber, int channelNumber) {
     channelOutput = (int*) malloc(channelNumber * sizeof(int));
     channelContent = (void**) malloc(channelNumber * sizeof(void*));
     channelNames = (char**) malloc(channelNumber * sizeof(char*));
+    channelTypes = (int*) malloc(channelNumber * sizeof(int));
 
     // Initialize thread and channel states.
     pthread_mutex_init(&mutex, NULL);
@@ -162,7 +246,7 @@ void init(int threadNumber, int channelNumber) {
         threadState[i] = STATE_UNAVAILABLE;
         threadNums[i] = i;
         pthread_cond_init(&cond[i], NULL);
-        channelContent[i] = (void*) malloc(1 * sizeof(double));
+
     }
     for (int i = 0; i < channelNumber; i++) {
         channelInput[i] = -1;
@@ -176,7 +260,20 @@ void init(int threadNumber, int channelNumber) {
     }
 }
 
-void run(int threadNumber, void*(**threadFuns)(void*)) {
+void run(int threadNumber, int channelNumber, void*(**threadFuns)(void*)) {
+    // Allocate each channel content
+    for (int i = 0; i < channelNumber; i++) {
+        if (channelTypes[i] == 1) {
+            channelContent[i] = (void*) malloc(1 * sizeof(double));
+        } else if (channelTypes[i] == 2) {
+            channelContent[i] = (void*) malloc(1 * sizeof(String));
+        } else if (channelTypes[i] == 3) {
+            channelContent[i] = (void*) malloc(1 * sizeof(List));
+        } else {
+            printf("Failed init for error channel type: %s %d", channelNames[i], channelTypes[i]);
+        }
+    }
+
     // Create each thread
     pthread_t threads[threadNumber];
     for (int i = 0; i < threadNumber; i++) {
@@ -217,8 +314,22 @@ void input(int thread, Channel ch) {
         threadState[channelOutput[ch.channelNo]] = ch.channelNo;
 
         // Copy data from channelContent
-        *((double*) ch.pos) = *((double*) channelContent[ch.channelNo]);
-        printf("IO %s %.3f\n", channelNames[ch.channelNo], *((double*) ch.pos));
+        if (channelTypes[ch.channelNo] == 1) {
+            *((double*) ch.pos) = *((double*) channelContent[ch.channelNo]);
+            printf("IO %s %.3f\n", channelNames[ch.channelNo], *((double*) ch.pos));
+        } else if (channelTypes[ch.channelNo] == 2) {
+            strCopy(((String*) ch.pos), ((String*) channelContent[ch.channelNo]));
+            printf("IO %s %s\n", channelNames[ch.channelNo], ((String*) ch.pos) -> str);
+        } else if (channelTypes[ch.channelNo] == 3) {
+            listCopy(((List*) ch.pos), ((List*) channelContent[ch.channelNo]));
+            printf("IO %s", channelNames[ch.channelNo]);
+            for (int i = 0; i < ((List*) ch.pos) -> length; i++) {
+                printf(" %3f", *((double *)(((List*) ch.pos) -> addr + i)));
+            }
+            printf("\n");
+        } else {
+            ;
+        }
 
         // Update local time
         if (localTime[thread] < localTime[channelOutput[ch.channelNo]]) {
@@ -235,8 +346,22 @@ void input(int thread, Channel ch) {
         pthread_cond_wait(&cond[thread], &mutex);
 
         // Copy data from channelContent
-        *((double*) ch.pos) = *((double*) channelContent[ch.channelNo]);
-        printf("IO %s %.3f\n", channelNames[ch.channelNo], *((double*) ch.pos));
+        if (channelTypes[ch.channelNo] == 1) {
+            *((double*) ch.pos) = *((double*) channelContent[ch.channelNo]);
+            printf("IO %s %.3f\n", channelNames[ch.channelNo], *((double*) ch.pos));
+        } else if (channelTypes[ch.channelNo] == 2) {
+            strCopy(((String*) ch.pos), ((String*) channelContent[ch.channelNo]));
+            printf("IO %s %s\n", channelNames[ch.channelNo], ((String*) ch.pos) -> str);
+        } else if (channelTypes[ch.channelNo] == 3) {
+            listCopy(((List*) ch.pos), ((List*) channelContent[ch.channelNo]));
+            printf("IO %s", channelNames[ch.channelNo]);
+            for (int i = 0; i < ((List*) ch.pos) -> length; i++) {
+                printf(" %3f", *((double*)(((List*) ch.pos) -> addr + i)));
+            }
+            printf("\n");
+        } else {
+            printf("Error channel type: %d", channelTypes[ch.channelNo]);
+        }
 
         // Update local time
         if (localTime[thread] < localTime[channelOutput[ch.channelNo]]) {
@@ -257,6 +382,16 @@ void output(int thread, Channel ch) {
     pthread_mutex_lock(&mutex);
     channelOutput[ch.channelNo] = thread;
     *((double*) channelContent[ch.channelNo]) = *((double*) ch.pos);  // Need different copy for strings
+
+    if (channelTypes[ch.channelNo] == 1) {
+        *((double*) channelContent[ch.channelNo]) = *((double*) ch.pos);
+    } else if (channelTypes[ch.channelNo] == 2) {
+        strCopy(((String*) channelContent[ch.channelNo]), ((String*) ch.pos));
+    } else if (channelTypes[ch.channelNo] == 3) {
+        listCopy(((List*) channelContent[ch.channelNo]), ((List*) ch.pos));
+    } else {
+        ;
+    }
 
     if (channelInput[ch.channelNo] != -1 && threadState[channelInput[ch.channelNo]] == -1) {
         // If input is available, signal the input side
@@ -475,71 +610,6 @@ double max(int n, ...) {
     va_end(vap);
     return s;
 }
-
-String* strInit(char* input) {
-    String* new_str = (String*)malloc(sizeof(String));
-    new_str->length = strlen(input) + 1;
-    new_str->str = (char*)malloc(sizeof(char) * new_str->length);
-    new_str->str = strcpy(new_str->str, input);
-    return new_str;
-}
-
-int strEqual(String a, String b) {
-    if (a.length != b.length) {
-        return 0;
-    }
-    if (strcmp((char*)a.str, (char*)b.str) != 0) {
-        return 0;
-    }
-    return 1;
-}
-
-void strDestroy(String** input) {
-    free((*input)->str);
-    free(*input);
-    return;
-}
-
-List* listInit() {
-    List* list = (List*)malloc(sizeof(List));
-    list->length = 0;
-    list->addr = NULL;
-    return list;
-}
-
-void listPush(List* list, intptr_t input) {
-    intptr_t* new_list = (intptr_t*)malloc(sizeof(intptr_t) * (list->length + 1));
-    if (list->length > 0) {
-        memcpy(new_list, list->addr, (list->length) * sizeof(intptr_t));
-    }
-    memcpy(new_list + list->length, &input, sizeof(intptr_t));
-    free(list->addr);
-    list->addr = new_list;
-    list->length += 1;
-}
-
-void listPop(List* list) {
-    if (list->length > 0) {
-        intptr_t* new_list = (intptr_t*)malloc(sizeof(intptr_t) * (list->length - 1));
-        memcpy(new_list, list->addr + 1, (list->length - 1) * sizeof(intptr_t));
-        free(list->addr);
-        list->addr = new_list;
-        list->length -= 1;
-    }    
-}
-
-intptr_t listBottom(List* list) {
-    return *(intptr_t*)(list->addr + list->length - 1);
-}
-
-intptr_t listTop(List* list) {
-    return *(intptr_t*)(list->addr);
-}
-
-intptr_t listGet(List* list, int num) {
-    return *(intptr_t*)(list->addr + num);
-}
-
 
 
 #endif /* hcsp2c_h */
