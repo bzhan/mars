@@ -112,7 +112,7 @@ def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_parti
     elif isinstance(hp, hcsp.Skip):
         c_str = ";"
     elif isinstance(hp, hcsp.Wait):
-        c_str = "delay(%s);" % str(hp.delay)
+        c_str = "delay(threadNumber, %s);" % str(hp.delay)
     elif isinstance(hp, hcsp.Assign):       # type checking
         var_name = hp.var_name
         e = hp.expr
