@@ -1,31 +1,36 @@
 """transfer HCSP to C programs, return str"""
 
 from ss2hcsp.hcsp import hcsp
-from ss2hcsp.hcsp.expr import *
-from ss2hcsp.matlab import function
+from ss2hcsp.hcsp import expr
 
 
 gl_var_type = {} # key: var_name, value:type,  0 -> undef, 1 -> double, 2 -> string, 3 -> list
 
-def transferToCExpr(expr):
-    assert isinstance(expr, Expr)
-    c_str = str(expr)
-    if isinstance(expr, RelExpr):
-        if expr.op == "==":
-            if isinstance(expr.expr1, AConst):
-                mid = expr.expr1
-                expr.expr1 = expr.expr2
-                expr.expr2 = mid
-            if isinstance(expr.expr2, AConst):
-                if isinstance(expr.expr2.value, str):
-                    c_str = "strEqual(%s, &strInit(%s))" % (expr.expr1, expr.expr2.value)
-                elif isinstance(expr.expr2, AVar) and expr.expr2.name in gl_var_type and gl_var_type[expr.expr2.name] == 2:
-                    c_str = "strEqual(%s, %s)" % (expr.expr1, expr.expr2)
-    elif isinstance(expr, AConst):
-        if isinstance(expr.value, str):
-            c_str = "strInit(%s)" % expr.value
-    elif isinstance(expr, ListExpr):
-        c_str = str(expr)
+def indent(s: str) -> str:
+    lines = s.split('\n')
+    lines = ['    ' + line for line in lines]
+    return '\n'.join(lines)
+
+def transferToCExpr(e: expr.Expr) -> str:
+    """Convert HCSP expression into C expression."""
+    assert isinstance(e, expr.Expr)
+    c_str = str(e)
+    if isinstance(e, expr.RelExpr):
+        if e.op == "==":
+            if isinstance(e.expr1, e.AConst):
+                mid = e.expr1
+                e.expr1 = e.expr2
+                e.expr2 = mid
+            if isinstance(e.expr2, e.AConst):
+                if isinstance(e.expr2.value, str):
+                    c_str = "strEqual(%s, &strInit(%s))" % (e.expr1, e.expr2.value)
+                elif isinstance(e.expr2, expr.AVar) and e.expr2.name in gl_var_type and gl_var_type[e.expr2.name] == 2:
+                    c_str = "strEqual(%s, %s)" % (e.expr1, e.expr2)
+    elif isinstance(e, expr.AConst):
+        if isinstance(e.value, str):
+            c_str = "strInit(%s)" % e.value
+    elif isinstance(e, expr.ListExpr):
+        c_str = str(e)
 
     return c_str
 
@@ -50,7 +55,32 @@ body_template = \
     double nullVar = 0.0;
 """
 
+interrupt_template = \
+"""
+if (is_comm == 1) {{
+    midInt = timedExternalChoice2(threadNumber, {numChannel}, midInt, channels);
+    break;
+}} else if ({constraint}) {{
+    clock_t start = clock();
+    midInt = timedExternalChoice1(threadNumber, {numChannel}, h, channels);
+    if (midInt == -1) {{
+        midInt = timedExternalChoice2(threadNumber, {numChannel}, midInt, channels);
+    }} else {{
+        is_comm = 1;
+        {traceBack}
+        h = (double)(clock() - start) / (double) CLOCKS_PER_SEC;
+    }}
+}} else if (h > min_step_size) {{
+    {traceBack}
+    h = h / 2;
+}} else {{
+    delay(h);
+    break;
+}}
+"""
+
 def transferToCProcess(name: str, hp: hcsp.HCSP, step_size = 1e-7, total_time = 0, is_partial = -1):
+    """Convert HCSP process with given name to a C function"""
     c_process_str = ""
     global gl_var_type
     gl_var_type = {}
@@ -64,7 +94,7 @@ def transferToCProcess(name: str, hp: hcsp.HCSP, step_size = 1e-7, total_time = 
     for var in vars:
         body += "\tdouble %s = 0.0;\n" % var
 
-    body += transferToC(hp, step_size, total_time, is_partial)
+    body += indent(transferToC(hp, step_size, total_time, is_partial))
 
     c_process_str = c_process_template % (name, body)
     return c_process_str
@@ -82,7 +112,7 @@ def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_parti
         c_str = "delay(%s);" % str(hp.delay)
     elif isinstance(hp, hcsp.Assign):       # type checking
         var_name = hp.var_name
-        expr = hp.expr
+        e = hp.expr
         vars = hp.get_vars()
         type = 0
         global gl_var_type
@@ -93,12 +123,12 @@ def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_parti
                 break
 
         if type == 0:
-            if isinstance(expr, AConst) and isinstance(expr.value, str):
+            if isinstance(e, expr.AConst) and isinstance(e.value, str):
                 type = 2
-            elif isinstance(expr, ListExpr):
+            elif isinstance(e, expr.ListExpr):
                 type = 3
-            elif isinstance(expr, AVar) and gl_var_type[expr.name] != 0:
-                type = gl_var_type[expr.name]
+            elif isinstance(e, expr.AVar) and gl_var_type[e.name] != 0:
+                type = gl_var_type[e.name]
             else:
                 type = 1
 
@@ -112,53 +142,51 @@ def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_parti
                 gl_var_type[var] = type
 
         if isinstance(var_name, str):
-            var_name = AVar(str(var_name))
+            var_name = expr.AVar(str(var_name))
 
-        if isinstance(var_name, Expr):
-            var_name = var_name
-        elif isinstance(var_name,function.DirectName):
+        if isinstance(var_name, expr.Expr):
             var_name = var_name
         else:
             var_name = tuple(var_name)
-            assert len(var_name) >= 2 and all(isinstance(name, (str, Expr)) for name in var_name)
-            var_name = [AVar(n) if isinstance(n, str) else n for n in var_name]
+            assert len(var_name) >= 2 and all(isinstance(name, (str, expr.Expr)) for name in var_name)
+            var_name = [expr.AVar(n) if isinstance(n, str) else n for n in var_name]
 
-        expr = transferToCExpr(expr)
-        if isinstance(var_name, Expr):
+        ce = transferToCExpr(e)
+        if isinstance(var_name, expr.Expr):
             var_str = str(var_name)
-            c_str = "%s = %s;\n" % (var_str, expr)
+            c_str = "%s = %s;" % (var_str, ce)
         else:
             return_str = ""
             for n in var_name:
                 var_str = str(n)
-                return_str = return_str + "%s = %s;\n" % (var_str, expr)
+                return_str = return_str + "%s = %s;" % (var_str, ce)
             c_str = return_str
     elif isinstance(hp, hcsp.RandomAssign):
         var_name = hp.var_name
-        expr = hp.expr
+        e = hp.expr
 
         if isinstance(var_name, str):
-            var_name = AVar(str(var_name))
-        if isinstance(var_name, Expr):
+            var_name = expr.AVar(str(var_name))
+        if isinstance(var_name, expr.Expr):
             var_name = var_name
         else:
             var_name = tuple(var_name)
-            assert len(var_name) >= 2 and all(isinstance(name, (str, Expr)) for name in var_name)
-            var_name = [AVar(n) if isinstance(n, str) else n for n in var_name]
+            assert len(var_name) >= 2 and all(isinstance(name, (str, expr.Expr)) for name in var_name)
+            var_name = [expr.AVar(n) if isinstance(n, str) else n for n in var_name]
 
-        if isinstance(var_name, Expr):
+        if isinstance(var_name, expr.Expr):
             var_str = str(var_name)
-            c_str = "%s = randomDouble();\nwhile(!(%s)) {\n%s = randomDouble();\n}\n" % (var_str, expr, var_str)
+            c_str = "%s = randomDouble();\nwhile(!(%s)) {\n%s = randomDouble();\n}" % (var_str, e, var_str)
         else:
             return_str = ""
             for var_str in var_name:
-                return_str = return_str + "%s = randomDouble();\nwhile(!(%s)) {\n%s = randomDouble();\n}\n" % (var_str, expr, var_str)
+                return_str = return_str + "%s = randomDouble();\nwhile(!(%s)) {\n%s = randomDouble();\n}" % (var_str, e, var_str)
             c_str = return_str
     elif isinstance(hp, hcsp.Loop):
-        if hp.constraint == true_expr:
-            c_str = "while (1) {\n%s\n}" % transferToC(hp.hp, step_size, total_time)
+        if hp.constraint == expr.true_expr:
+            c_str = "while (1) {\n%s\n}" % indent(transferToC(hp.hp, step_size, total_time))
         else:
-            c_str = "while (%s) {\n%s\n}" % (str(hp.constraint), transferToC(hp.hp, step_size, total_time))
+            c_str = "while (%s) {\n%s\n}" % (hp.constraint, indent(transferToC(hp.hp, step_size, total_time)))
     elif isinstance(hp, hcsp.ITE):
         if_hps = hp.if_hps
         else_hp = hp.else_hp
@@ -173,38 +201,35 @@ def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_parti
 
         c_str = res
     elif isinstance(hp, hcsp.Sequence):
-        seqs = hp.hps
-        c_str = "\n".join(
-            transferToC(seq, step_size, total_time) if seq.priority() > hp.priority() else "{" + transferToC(seq, step_size, total_time) + "}"
-            for seq in seqs)
+        c_str = "\n".join(transferToC(seq, step_size, total_time) for seq in hp.hps)
     elif isinstance(hp, hcsp.InputChannel):
         ch_name = hp.ch_name
         var_name = hp.var_name
 
         if is_partial >= 0:
             if var_name:
-                c_str = "channels[%d].channelNo = %s;\nchannels[%d].type = 0;\nchannels[%d].pos = &%s;\n" % (is_partial, str(ch_name), is_partial, is_partial, str(var_name))
+                c_str = "channels[%d].channelNo = %s;\nchannels[%d].type = 0;\nchannels[%d].pos = &%s;" % (is_partial, str(ch_name), is_partial, is_partial, str(var_name))
             else:
-                c_str = "channels[%d].channelNo = %s;\nchannels[%d].type = 0;\nchannels[%d].pos = &nullVar;\n" % (is_partial, str(ch_name), is_partial, is_partial)
+                c_str = "channels[%d].channelNo = %s;\nchannels[%d].type = 0;\nchannels[%d].pos = &nullVar;" % (is_partial, str(ch_name), is_partial, is_partial)
         else :
             if var_name:
-                c_str = "channel.channelNo = %s;\nchannel.type = 0;\nchannel.pos = &%s;\ninput(threadNumber, channel);\n" % (str(ch_name), str(var_name))
+                c_str = "channel.channelNo = %s;\nchannel.type = 0;\nchannel.pos = &%s;\ninput(threadNumber, channel);" % (str(ch_name), str(var_name))
             else:
-                c_str = "channel.channelNo = %s;\nchannel.type = 0;\nchannel.pos = &nullVar;\ninput(threadNumber, channel);\n" % (str(ch_name))
+                c_str = "channel.channelNo = %s;\nchannel.type = 0;\nchannel.pos = &nullVar;\ninput(threadNumber, channel);" % (str(ch_name))
     elif isinstance(hp, hcsp.OutputChannel):
         ch_name = hp.ch_name
-        expr = hp.expr
+        e = hp.expr
 
         if is_partial >= 0:
-            if expr:
-                return "channels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = &%s;\n" % (is_partial, str(ch_name), is_partial, is_partial, str(expr))
+            if e is not None:
+                return "channels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = &%s;" % (is_partial, str(ch_name), is_partial, is_partial, str(e))
             else:
-                return "channels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = &nullVar;\n" % (is_partial, str(ch_name), is_partial, is_partial)
-        else :
-            if expr:
-                return "channel.channelNo = %s;\nchannel.type = 1;\nchannel.pos = &%s;\noutput(threadNumber, channel);\n" % (str(ch_name), str(expr))
+                return "channels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = &nullVar;" % (is_partial, str(ch_name), is_partial, is_partial)
+        else:
+            if e is not None:
+                return "channel.channelNo = %s;\nchannel.type = 1;\nchannel.pos = &%s;\noutput(threadNumber, channel);" % (str(ch_name), str(e))
             else:
-                return "channel.channelNo = %s;\nchannel.type = 1;\nchannel.pos = &nullVar;\noutput(threadNumber, channel);\n" % (str(ch_name))
+                return "channel.channelNo = %s;\nchannel.type = 1;\nchannel.pos = &nullVar;\noutput(threadNumber, channel);" % (str(ch_name))
     elif isinstance(hp, hcsp.IChoice):
         c_str = "if (getIchoice()) {%s} else {%s}" % (str(hp.hp1), str(hp.hp2))
     elif isinstance(hp, hcsp.ODE):
@@ -217,26 +242,26 @@ def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_parti
         trace_back = ""
         var_names = []
         exprs = []
-        for var_name, expr in eqs:
+        for var_name, e in eqs:
             var_names.append(var_name)
-            exprs.append(expr)
+            exprs.append(e)
             loop_cp += "double %s_ori = %s;\n" % (var_name, var_name)
             trace_back += "double %s = %s_ori;\n" % (var_name, var_name)
-        for var_name, expr in eqs:
-            loop_cp += "double %s_dot1 = %s;\n" % (var_name, expr)
-        for var_name, expr in eqs:
+        for var_name, e in eqs:
+            loop_cp += "double %s_dot1 = %s;\n" % (var_name, e)
+        for var_name, e in eqs:
             loop_cp += "%s = %s_ori + %s_dot1 * h / 2;\n" % (var_name, var_name, var_name)
-        for var_name, expr in eqs:
-            loop_cp += "double %s_dot2 = %s;\n" % (var_name, expr)
-        for var_name, expr in eqs:
+        for var_name, e in eqs:
+            loop_cp += "double %s_dot2 = %s;\n" % (var_name, e)
+        for var_name, e in eqs:
             loop_cp += "%s = %s_ori + %s_dot2 * h / 2;\n" % (var_name, var_name, var_name)
-        for var_name, expr in eqs:
-            loop_cp += "double %s_dot3 = %s;\n" % (var_name, expr)
-        for var_name, expr in eqs:
+        for var_name, e in eqs:
+            loop_cp += "double %s_dot3 = %s;\n" % (var_name, e)
+        for var_name, e in eqs:
             loop_cp += "%s = %s_ori + %s_dot3 * h;\n" % (var_name, var_name, var_name)
-        for var_name, expr in eqs:
-            loop_cp += "double %s_dot4 = %s;\n" % (var_name, expr)
-        for var_name, expr in eqs:
+        for var_name, e in eqs:
+            loop_cp += "double %s_dot4 = %s;\n" % (var_name, e)
+        for var_name, e in eqs:
             loop_cp += "%s = %s_ori + (%s_dot1 + 2 * %s_dot2 + 2 * %s_dot3 + %s_dot4) * h / 6;\n" % (var_name, var_name, var_name, var_name, var_name, var_name)
         loop_cp += \
         """
@@ -276,50 +301,31 @@ def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_parti
         trace_back = ""
         var_names = []
         exprs = []
-        for var_name, expr in eqs:
+        for var_name, e in eqs:
             var_names.append(var_name)
-            exprs.append(expr)
+            exprs.append(e)
             loop_cp += "double %s_ori = %s;\n" % (var_name, var_name)
             trace_back += "double %s = %s_ori;\n" % (var_name, var_name)
-        for var_name, expr in eqs:
-            loop_cp += "double %s_dot1 = %s;\n" % (var_name, expr)
-        for var_name, expr in eqs:
+        for var_name, e in eqs:
+            loop_cp += "double %s_dot1 = %s;\n" % (var_name, e)
+        for var_name, e in eqs:
             loop_cp += "%s = %s_ori + %s_dot1 * h / 2;\n" % (var_name, var_name, var_name)
-        for var_name, expr in eqs:
-            loop_cp += "double %s_dot2 = %s;\n" % (var_name, expr)
-        for var_name, expr in eqs:
+        for var_name, e in eqs:
+            loop_cp += "double %s_dot2 = %s;\n" % (var_name, e)
+        for var_name, e in eqs:
             loop_cp += "%s = %s_ori + %s_dot2 * h / 2;\n" % (var_name, var_name, var_name)
-        for var_name, expr in eqs:
-            loop_cp += "double %s_dot3 = %s;\n" % (var_name, expr)
-        for var_name, expr in eqs:
+        for var_name, e in eqs:
+            loop_cp += "double %s_dot3 = %s;\n" % (var_name, e)
+        for var_name, e in eqs:
             loop_cp += "%s = %s_ori + %s_dot3 * h;\n" % (var_name, var_name, var_name)
-        for var_name, expr in eqs:
-            loop_cp += "double %s_dot4 = %s;\n" % (var_name, expr)
-        for var_name, expr in eqs:
+        for var_name, e in eqs:
+            loop_cp += "double %s_dot4 = %s;\n" % (var_name, e)
+        for var_name, e in eqs:
             update = "%s = %s_ori + (%s_dot1 + 2 * %s_dot2 + 2 * %s_dot3 + %s_dot4) * h / 6;\n" % (var_name, var_name, var_name, var_name, var_name, var_name)
             loop_cp += update
-        loop_cp += """
-        if (is_comm == 1) {
-            midInt = timedExternalChoice2(threadNumber, %d, midInt, channels);
-            break;
-        } else if (%s) {
-            clock_t start = clock();
-            midInt = timedExternalChoice1(threadNumber, %d, h, channels);
-            if (midInt == -1) {
-                midInt = timedExternalChoice2(threadNumber, %d, midInt, channels);
-            } else {
-                is_comm = 1;
-                %s
-                h = (double)(clock() - start) / (double) CLOCKS_PER_SEC;
-            }
-        } else if (h > min_step_size){
-            %s
-            h = h / 2;
-        } else {
-            delay(h);
-            break;
-        }""" % (len(comm_hps), str(constraint), len(comm_hps), len(comm_hps), trace_back, trace_back)
-        res += "while(1){\n%s\n}\n" % loop_cp
+        loop_cp += interrupt_template.format(numChannel=len(comm_hps), constraint=str(constraint),
+                                             traceBack=trace_back)
+        res += "while (1) {\n%s\n}\n" % loop_cp
         res += choice_str
         c_str = res
     elif isinstance(hp, hcsp.SelectComm):
