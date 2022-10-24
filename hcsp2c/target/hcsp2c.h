@@ -521,6 +521,7 @@ int externalChoice(int thread, int nums, Channel* chs) {
 
     // If no matching channel is found, wait for matches.
     threadState[thread] = STATE_AVAILABLE;
+    updateCurrentTime(thread);
     pthread_cond_wait(&cond[thread], &mutex);
 
     // At this point, already found a match.
