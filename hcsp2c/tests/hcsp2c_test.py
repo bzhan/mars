@@ -72,6 +72,40 @@ class HCSP2CTest(unittest.TestCase):
 
         self.run_file(progs, "testb", expected_output)
 
+    def testc(self):
+        progs = [
+            "x := 0; { p2c!x --> skip; $ c2p?x --> skip; }*",
+            "x := 0; y := 0; { wait(2); p2c?x; y := x - 1; c2p!y; }*"
+        ]
+
+        expected_output = [
+            "IO p2c 0.000",
+            "IO c2p -1.000",
+            "IO p2c -1.000",
+            "IO c2p -2.000",
+            "IO p2c -2.000",
+            "IO c2p -3.000"
+        ]
+
+        self.run_file(progs, "testc", expected_output)
+
+    def testd(self):
+        progs = [
+            "x := 0; y := 1; { p2c1!x --> skip; $ p2c2!y --> skip; }*",
+            "x := 0; y := 0; { wait(2); p2c1?x; p2c2?y; }*"
+        ]
+
+        expected_output = [
+            "IO p2c1 0.000",
+            "IO p2c2 1.000",
+            "IO p2c1 0.000",
+            "IO p2c2 1.000",
+            "IO p2c1 0.000",
+            "IO p2c2 1.000"
+        ]
+
+        self.run_file(progs, "testd", expected_output)
+
     def test1(self):
         progs = [
             "x := 0; { {x_dot = 1 & true} |> [](p2c!x --> skip;) c2p?x; }*",

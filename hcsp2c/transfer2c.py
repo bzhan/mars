@@ -485,16 +485,16 @@ def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_parti
         out_hps = []
         for i in range(0, len(hp.io_comms)):
             io_comm = hp.io_comms[i]
-            comm_hps.append(transferToC(io_comm[0], step_size, total_time, i))
+            comm_hps.append(transferToC(io_comm[0], step_size, total_time, i) + '\n')
             out_hps.append(transferToC(io_comm[1], step_size, total_time))
         res = ""
         for comm_hp in comm_hps:
             res += "%s" % comm_hp 
-        res += "midInt = externalChoice(threadNumber, %d, channels);" % len(comm_hps)
+        res += "midInt = externalChoice(threadNumber, %d, channels);\n" % len(comm_hps)
         for i in range(0, len(out_hps)):
             if i > 0:
-                res += "else "
-            res += "if (midInt == %d) {\n%s\n}" % (i, out_hps[i])
+                res += " else "
+            res += "if (midInt == %d) {\n%s\n}" % (i, indent(out_hps[i]))
         c_str = res
     
     return c_str

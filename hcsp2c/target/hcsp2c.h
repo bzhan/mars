@@ -381,7 +381,6 @@ void output(int thread, Channel ch) {
     // Take the global lock, set the channelOutput state and channel content.
     pthread_mutex_lock(&mutex);
     channelOutput[ch.channelNo] = thread;
-    *((double*) channelContent[ch.channelNo]) = *((double*) ch.pos);  // Need different copy for strings
 
     if (channelTypes[ch.channelNo] == 1) {
         *((double*) channelContent[ch.channelNo]) = *((double*) ch.pos);
@@ -423,65 +422,126 @@ void output(int thread, Channel ch) {
     pthread_mutex_unlock(&mutex);
 }
 
-// External choice
-// chs is an array of input/output channels.
+/*
+ * External choice
+ *
+ * thread: current thread
+ * nums: number of channels to wait for
+ * chs: array of input/output channels.
+ */
 int externalChoice(int thread, int nums, Channel* chs) {
     // Take the global lock
     pthread_mutex_lock(&mutex);
-    int match_index = -1;
+
+    int curChannel;
+
     for (int i = 0; i < nums; i++) {
+        curChannel = chs[i].channelNo;
         if (chs[i].type == 0) {
             // If channel is for input
-            channelInput[chs[i].channelNo] = thread;
-            if (match_index == -1 && channelOutput[chs[i].channelNo] != -1 &&
-                threadState[channelOutput[chs[i].channelNo]] == STATE_AVAILABLE) {
-                threadState[channelOutput[chs[i].channelNo]] = chs[i].channelNo;
-                match_index = chs[i].channelNo;
-                pthread_cond_signal(&cond[channelOutput[chs[i].channelNo]]);
-                break;
+            channelInput[curChannel] = thread;
+            if (channelOutput[curChannel] != -1 && threadState[channelOutput[curChannel]] == STATE_AVAILABLE) {
+                // If output is available, signal to the output side
+                threadState[channelOutput[curChannel]] = curChannel;
+
+                // Copy data from channelContent
+                *((double*) chs[i].pos) = *((double*) channelContent[curChannel]);
+                printf("IO %s %.3f\n", channelNames[curChannel], *((double*) chs[i].pos));
+
+                // Update local time
+                if (localTime[thread] < localTime[channelOutput[curChannel]]) {
+                    localTime[thread] = localTime[channelOutput[curChannel]];
+                }
+
+                pthread_cond_signal(&cond[channelOutput[curChannel]]);
+                pthread_cond_wait(&cond[thread], &mutex);
+                threadState[thread] = STATE_UNAVAILABLE;
+                for (int j = 0; j <= i; j++) {
+                    if (chs[j].type == 0) {
+                        channelInput[chs[j].channelNo] = -1;
+                    } else {
+                        channelOutput[chs[j].channelNo] = -1;
+                    }
+                }
+                pthread_mutex_unlock(&mutex);  
+                return i;
             }
         } else {
             // If channel is for output
-            channelOutput[chs[i].channelNo] = thread;
-            *((double*) channelContent[chs[i].channelNo]) = *((double*) chs[i].pos);
-            if (match_index == -1 && channelInput[chs[i].channelNo] != -1 &&
-                threadState[channelInput[chs[i].channelNo]] == STATE_AVAILABLE) {
-                threadState[channelInput[chs[i].channelNo]] = chs[i].channelNo;
-                match_index = chs[i].channelNo;
-                pthread_cond_signal(&cond[channelInput[chs[i].channelNo]]);
-                break;
+            channelOutput[curChannel] = thread;
+            *((double*) channelContent[curChannel]) = *((double*) chs[i].pos);
+            if (channelInput[curChannel] != -1 && threadState[channelInput[curChannel]] == STATE_AVAILABLE) {
+                // If input is available, signal to the input side
+                threadState[channelInput[curChannel]] = curChannel;
+
+                // Update local time
+                if (localTime[thread] < localTime[channelInput[curChannel]]) {
+                    localTime[thread] = localTime[channelInput[curChannel]];
+                }
+
+                pthread_cond_signal(&cond[channelInput[curChannel]]);
+                pthread_cond_wait(&cond[thread], &mutex);
+                threadState[thread] = STATE_UNAVAILABLE;
+                for (int j = 0; j <= i; j++) {
+                    if (chs[j].type == 0) {
+                        channelInput[chs[j].channelNo] = -1;
+                    } else {
+                        channelOutput[chs[j].channelNo] = -1;
+                    }
+                }
+                pthread_mutex_unlock(&mutex);  
+                return i;
             }
         }
     }
 
     // If no matching channel is found, wait for matches.
-    if (match_index == -1) {
-        threadState[thread] = STATE_AVAILABLE;
-        pthread_cond_wait(&cond[thread], &mutex);
-        match_index = threadState[thread];
-    }
+    threadState[thread] = STATE_AVAILABLE;
+    pthread_cond_wait(&cond[thread], &mutex);
 
-    // Recover values of channelInput and channelOutput.
+    // At this point, already found a match.
+    int match_index = threadState[thread];
     assert (match_index >= 0);
-    int ans = -1;
-    for (int i = 0; i < nums; i++) {
-        if (chs[i].type == 0) {
-            channelInput[chs[i].channelNo] = -1;
-            if (chs[i].channelNo == match_index) {
-                *((double*) chs[i].pos) = *((double*) channelContent[chs[i].channelNo]);
-                ans = i;
-            }
-        } else {
-            channelOutput[chs[i].channelNo] = -1;
-            if (chs[i].channelNo == match_index) {
-                ans = i;
+    curChannel = chs[match_index].channelNo;
+
+    if (chs[match_index].type == 0) {
+        // Waiting results in input
+        *((double*) chs[match_index].pos) = *((double*) channelContent[curChannel]);
+        printf("IO %s %.3f\n", channelNames[curChannel], *((double*) chs[match_index].pos));
+
+        // Update local time
+        if (localTime[thread] < localTime[channelOutput[curChannel]]) {
+            localTime[thread] = localTime[channelOutput[curChannel]];
+        }
+        threadState[thread] = STATE_UNAVAILABLE;
+        for (int j = 0; j < nums; j++) {
+            if (chs[j].type == 0) {
+                channelInput[chs[j].channelNo] = -1;
+            } else {
+                channelOutput[chs[j].channelNo] = -1;
             }
         }
+        pthread_cond_signal(&cond[channelOutput[curChannel]]);
+    } else {
+        // Waiting results in output
+
+        // Update local time
+        if (localTime[thread] < localTime[channelInput[curChannel]]) {
+            localTime[thread] = localTime[channelInput[curChannel]];
+        }
+        threadState[thread] = STATE_UNAVAILABLE;
+        for (int j = 0; j < nums; j++) {
+            if (chs[j].type == 0) {
+                channelInput[chs[j].channelNo] = -1;
+            } else {
+                channelOutput[chs[j].channelNo] = -1;
+            }
+        }
+        pthread_cond_signal(&cond[channelInput[curChannel]]);
     }
 
-    threadState[thread] = STATE_UNAVAILABLE;
     pthread_mutex_unlock(&mutex);  
-    return ans;  
+    return match_index;
 }
 
 // External choice in ODE
