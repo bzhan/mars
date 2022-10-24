@@ -18,17 +18,6 @@
 #define false 0
 #define abs fabs
 
-static long long tm_to_ns(struct timespec tm) {
-    return tm.tv_sec * 1000000000 + tm.tv_nsec;
-}
-
-static struct timespec ns_to_tm(long long ns) {
-    struct timespec tm;
-    tm.tv_sec = ns / 1000000000 ;
-    tm.tv_nsec = ns - (tm.tv_sec * 1000000000);
-    return tm;
-}
-
 
 // type: 0 -> input, 1 -> output
 typedef struct {
@@ -149,10 +138,14 @@ int numThread;
 int* threadState;
 
 // Thread states. Nonnegative integers mean communicating on channel i.
+int STATE_STOPPED = -5;
 int STATE_WAITING = -4;
 int STATE_WAITING_AVAILABLE = -3;
 int STATE_UNAVAILABLE = -2;
 int STATE_AVAILABLE = -1;
+
+// Whether thread is permanently waiting for some communication.
+int* threadPermWait;
 
 // Index of each thread.
 int* threadNums;
@@ -193,7 +186,7 @@ void updateCurrentTime(int thread) {
     // Update global clock to be minimum of all local clocks
     double minLocal = DBL_MAX;
     for (int i = 0; i < numThread; i++) {
-        if (threadState[i] != STATE_AVAILABLE && localTime[i] < minLocal) {
+        if (threadPermWait[i] == 0 && threadState[i] != STATE_STOPPED && localTime[i] < minLocal) {
             minLocal = localTime[i];
         }
     }
@@ -247,6 +240,7 @@ void init(int threadNumber, int channelNumber) {
     numThread = threadNumber;
     threadState = (int*) malloc(threadNumber * sizeof(int));
     threadNums = (int*) malloc(threadNumber * sizeof(int));
+    threadPermWait = (int*) malloc(threadNumber * sizeof(int));
     cond = (pthread_cond_t*) malloc(threadNumber * sizeof(pthread_cond_t));
     channelInput = (int*) malloc(channelNumber * sizeof(int));
     channelOutput = (int*) malloc(channelNumber * sizeof(int));
@@ -259,6 +253,7 @@ void init(int threadNumber, int channelNumber) {
     for (int i = 0; i < threadNumber; i++) {
         threadState[i] = STATE_UNAVAILABLE;
         threadNums[i] = i;
+        threadPermWait[i] = 0;
         pthread_cond_init(&cond[i], NULL);
 
     }
@@ -359,6 +354,7 @@ void input(int thread, Channel ch) {
     } else {
         // Otherwise, wait for the output
         threadState[thread] = STATE_AVAILABLE;
+        threadPermWait[thread] = 1;
         updateCurrentTime(thread);
         pthread_cond_wait(&cond[thread], &mutex);
 
@@ -385,6 +381,7 @@ void input(int thread, Channel ch) {
             localTime[thread] = localTime[channelOutput[ch.channelNo]];
         }
         threadState[thread] = STATE_UNAVAILABLE;
+        threadPermWait[thread] = 0;
         channelInput[ch.channelNo] = -1;
         pthread_cond_signal(&cond[channelOutput[ch.channelNo]]);
     }
@@ -427,6 +424,7 @@ void output(int thread, Channel ch) {
     } else {
         // Otherwise, wait for the input
         threadState[thread] = STATE_AVAILABLE;
+        threadPermWait[thread] = 1;
         updateCurrentTime(thread);
         pthread_cond_wait(&cond[thread], &mutex);
 
@@ -435,6 +433,7 @@ void output(int thread, Channel ch) {
             localTime[thread] = localTime[channelInput[ch.channelNo]];
         }
         threadState[thread] = STATE_UNAVAILABLE;
+        threadPermWait[thread] = 0;
         channelOutput[ch.channelNo] = -1;
         pthread_cond_signal(&cond[channelInput[ch.channelNo]]);
     }
@@ -521,6 +520,7 @@ int externalChoice(int thread, int nums, Channel* chs) {
 
     // If no matching channel is found, wait for matches.
     threadState[thread] = STATE_AVAILABLE;
+    threadPermWait[thread] = 1;
     updateCurrentTime(thread);
     pthread_cond_wait(&cond[thread], &mutex);
 
@@ -539,6 +539,7 @@ int externalChoice(int thread, int nums, Channel* chs) {
             localTime[thread] = localTime[channelOutput[curChannel]];
         }
         threadState[thread] = STATE_UNAVAILABLE;
+        threadPermWait[thread] = 0;
         for (int j = 0; j < nums; j++) {
             if (chs[j].type == 0) {
                 channelInput[chs[j].channelNo] = -1;
@@ -555,6 +556,7 @@ int externalChoice(int thread, int nums, Channel* chs) {
             localTime[thread] = localTime[channelInput[curChannel]];
         }
         threadState[thread] = STATE_UNAVAILABLE;
+        threadPermWait[thread] = 0;
         for (int j = 0; j < nums; j++) {
             if (chs[j].type == 0) {
                 channelInput[chs[j].channelNo] = -1;
@@ -629,9 +631,6 @@ int interruptPoll(int thread, double seconds, int nums, Channel* chs) {
 
     // Increment local clock
     localTime[thread] += seconds;
-    if (localTime[thread] > 10.0) {
-        exit(0);
-    }
 
     updateCurrentTime(thread);
 

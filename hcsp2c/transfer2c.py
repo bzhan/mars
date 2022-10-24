@@ -187,6 +187,8 @@ void* %s (void* arg) {
     int threadNumber = 0;
     threadNumber = (int)(*((int*)arg));
     %s
+    threadState[threadNumber] = STATE_STOPPED;
+    updateCurrentTime(threadNumber);
     return NULL;
 }"""
 
