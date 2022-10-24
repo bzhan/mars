@@ -108,7 +108,7 @@ class HCSP2CTest(unittest.TestCase):
 
     def teste(self):
         progs = [
-            "t := 0; x := 1; y := 0; {x_dot = -y, y_dot = x, t_dot = 1 & x > 0}; p2c!x; p2c!y; p2c!t;",
+            "t := 0; x := 1; y := 0; {x_dot = -y, y_dot = x, t_dot = 1 & x > 0} p2c!x; p2c!y; p2c!t;",
             "x := 0; y := 0; t := 0; p2c?x; p2c?y; p2c?t;"
         ]
 
