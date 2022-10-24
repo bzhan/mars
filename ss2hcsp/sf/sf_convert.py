@@ -917,7 +917,7 @@ class SFConvert:
         for name, info in self.messages.items():
             if info.scope in ("LOCAL_DATA", "OUTPUT_DATA"):
                 mqueue_name = self.get_message_queue_name(name)
-                procs.append(hcsp.Assign(expr.AVar(name), expr.AConst({"data": info.data})))
+                procs.append(hcsp.Assign(expr.AVar(name), expr.DictExpr(("data", expr.AConst(info.data)))))
                 procs.append(hcsp.Assign(expr.AVar(mqueue_name), expr.ListExpr()))
             elif info.scope in ("INPUT_DATA"):
                 mqueue_name = self.get_message_queue_name_input(name)
@@ -1180,13 +1180,14 @@ def get_data_proc(comm_data):
     return hcsp.seq(procs)
 
 def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_final=False,
-                    debug_name=True):
+                    debug_name=False):
     """Full conversion function for Stateflow.
 
     diagram : SL_Diagram - input diagram.
     print_chart : bool - print parsed chart.
     print_before_simp : bool - print HCSP program before simplification.
     print_final : bool - print HCSP program after optimization.
+    debug_name : bool - print size of HCSP program before and after optimization.
 
     """
     # Initial stages

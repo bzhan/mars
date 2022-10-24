@@ -1,5 +1,5 @@
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp.expr import ArrayIdxExpr, RelExpr, AVar, AConst, true_expr, LogicExpr, conj, OpExpr, FunExpr
+from ss2hcsp.hcsp.expr import ArrayIdxExpr, RelExpr, AVar, AConst, true_expr, LogicExpr, conj, FunExpr, ListExpr
 import ss2hcsp.hcsp.hcsp as hp
 
 
@@ -118,7 +118,7 @@ class Triggered_Subsystem(Subsystem):
                 if len(trigger_events) == 1:
                     init_hps.append(hp.Assign(pre_sig_all, AConst(0)))
                 else:
-                    init_hps.append(hp.Assign(pre_sig_all, AConst([0] * len(trigger_events))))
+                    init_hps.append(hp.Assign(pre_sig_all, ListExpr(*([AConst(0)] * len(trigger_events)))))
         elif self.type == "triggered_subsystem":
             pre_sig, _ = self.get_pre_cur_trig_signals()
             init_hps.append(hp.Assign(pre_sig, AConst(0)))

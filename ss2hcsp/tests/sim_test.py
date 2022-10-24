@@ -23,7 +23,7 @@ def print_module(path, m):
 
 def run_test(self, location, num_steps, expected_series, *,
              print_diagrams=False, print_hcsp_raw=False, print_hcsp=False,
-             print_time_series=False, output_to_file=None, debug_name=True):
+             print_time_series=False, output_to_file=None, debug_name=False):
     # First, parse and process diagram
     diagram = SL_Diagram(location=location)
     diagram.parse_xml()

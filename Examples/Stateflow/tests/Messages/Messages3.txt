@@ -99,7 +99,7 @@ begin
   MessageSender_st := "MessageSender_A";
   s := "en_A";
   log("en_A" + "\n");
-  ch_x0_0_out!{data:0};
+  ch_x0_0_out!M;
   end_MessageSender?;
   {
     start_MessageSender?;
