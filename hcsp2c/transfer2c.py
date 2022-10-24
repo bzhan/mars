@@ -508,7 +508,7 @@ main_footer = \
 
 
 
-def convertHps(hps, step_size:float = 1e-7) -> str:
+def convertHps(hps, step_size:float = 1e-7, real_time:bool = False) -> str:
     """Main function for HCSP to C conversion."""
     ctx = inferTypes(hps)
 
@@ -524,6 +524,11 @@ def convertHps(hps, step_size:float = 1e-7) -> str:
         res += code
 
     res += main_header % (len(hps), count)
+
+    # Simulate in real-time
+    if real_time:
+        res += "\tSIMULATE_REAL_TIME = 1;\n"
+
     for i, (name, _) in enumerate(hps):
         res += "\tthreadFuns[%d] = &%s;\n" % (i, name)
 

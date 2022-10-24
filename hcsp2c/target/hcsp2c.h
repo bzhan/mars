@@ -12,12 +12,18 @@
 #include <stdarg.h>
 #include <string.h>
 
+// 1 for real-time simulation, 0 for as-fast-as-possible.
+int SIMULATE_REAL_TIME = 0;
+
 #define PI 3.14
 #define G 9.8
 #define true 1
 #define false 0
 #define abs fabs
 
+static long long tm_to_ns(struct timespec tm) {
+    return tm.tv_sec * 1000000000 + tm.tv_nsec;
+}
 
 // type: 0 -> input, 1 -> output
 typedef struct {
@@ -178,6 +184,10 @@ double currentTime;
 // Previous global clock when output
 double prevTime;
 
+// Starting system time in nanoseconds
+struct timespec start_tm;
+struct timespec current_tm;
+
 // Local clocks for each thread
 double* localTime;
 
@@ -199,7 +209,17 @@ void updateCurrentTime(int thread) {
         exit(0);
     }
 
-    currentTime = minLocal;
+    if (currentTime < minLocal) {
+        currentTime = minLocal;
+        if (SIMULATE_REAL_TIME) {
+            clock_gettime(CLOCK_REALTIME, &current_tm);
+            long long systemDiff = tm_to_ns(current_tm) - tm_to_ns(start_tm);
+            long long logicalDiff = (long long) (currentTime * 1000000000.0);
+            if (logicalDiff - systemDiff > 1000000) {
+                usleep(logicalDiff - systemDiff);
+            }
+        }
+    }
 
     // If new global clock exceeds maximum simulation time, stop the program
     if (currentTime > maxTime) {
@@ -267,6 +287,7 @@ void init(int threadNumber, int channelNumber) {
 
     currentTime = 0.0;
     prevTime = 0.0;
+    clock_gettime(CLOCK_REALTIME, &start_tm);
     localTime = (double*) malloc(threadNumber * sizeof(double*));
     for (int i = 0; i < threadNumber; i++) {
         localTime[i] = 0.0;
