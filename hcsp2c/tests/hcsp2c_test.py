@@ -48,8 +48,10 @@ class HCSP2CTest(unittest.TestCase):
         ]
 
         expected_output = [
+            "delay 2.000",
             "IO p2c 0.000",
             "IO c2p -1.000",
+            "delay 2.000",
             "IO p2c -1.000",
             "IO c2p -2.000"
         ]
@@ -63,8 +65,10 @@ class HCSP2CTest(unittest.TestCase):
         ]
 
         expected_output = [
+            "delay 2.000",
             "IO p2c str_x",
             "IO c2p str_y",
+            "delay 2.000",
             "IO p2c str_x",
             "IO c2p str_y"
         ]
@@ -78,8 +82,10 @@ class HCSP2CTest(unittest.TestCase):
         ]
 
         expected_output = [
+            "delay 2.000",
             "IO p2c 0.000",
             "IO c2p -1.000",
+            "delay 2.000",
             "IO p2c -1.000",
             "IO c2p -2.000"
         ]
@@ -93,8 +99,10 @@ class HCSP2CTest(unittest.TestCase):
         ]
 
         expected_output = [
+            "delay 2.000",
             "IO p2c1 0.000",
             "IO p2c2 1.000",
+            "delay 2.000",
             "IO p2c1 0.000",
             "IO p2c2 1.000"
         ]
@@ -108,6 +116,7 @@ class HCSP2CTest(unittest.TestCase):
         ]
 
         expected_output = [
+            "delay 1.571",
             "IO p2c -0.000",
             "IO p2c 1.000",
             "IO p2c 1.571",
@@ -124,8 +133,10 @@ class HCSP2CTest(unittest.TestCase):
         ]
 
         expected_output = [
+            "delay 2.000",
             "IO p2c 2.000",
             "IO c2p 1.000",
+            "delay 2.000",
             "IO p2c 3.000",
             "IO c2p 2.000"
         ]
@@ -139,6 +150,7 @@ class HCSP2CTest(unittest.TestCase):
         ]
 
         expected_output = [
+            "delay 2.000",
             "IO p2c 2.000",
             "IO c2p 1.000"
         ]
@@ -232,6 +244,7 @@ class HCSP2CTest(unittest.TestCase):
         ]
 
         expected_output = [
+            "delay 3.000",
             "IO c 4.500",
             "deadlock"
         ]
@@ -245,6 +258,7 @@ class HCSP2CTest(unittest.TestCase):
         ]
 
         expected_output = [
+            "delay 2.449",
             "IO c 3.000",
             "deadlock"
         ]

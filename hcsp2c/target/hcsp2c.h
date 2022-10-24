@@ -175,6 +175,9 @@ double maxTime;
 // Current global clock
 double currentTime;
 
+// Previous global clock when output
+double prevTime;
+
 // Local clocks for each thread
 double* localTime;
 
@@ -263,6 +266,7 @@ void init(int threadNumber, int channelNumber) {
     }
 
     currentTime = 0.0;
+    prevTime = 0.0;
     localTime = (double*) malloc(threadNumber * sizeof(double*));
     for (int i = 0; i < threadNumber; i++) {
         localTime[i] = 0.0;
@@ -311,6 +315,43 @@ void destroy(int threadNumber, int channelNumber) {
     free(channelContent);
 }
 
+void copyFromChannel(Channel ch) {
+    if (currentTime - prevTime > 1e-3) {
+        printf("delay %.3f\n", currentTime - prevTime);
+        prevTime = currentTime;
+    }
+
+    // Copy data from channelContent
+    if (channelTypes[ch.channelNo] == 1) {
+        *((double*) ch.pos) = *((double*) channelContent[ch.channelNo]);
+        printf("IO %s %.3f\n", channelNames[ch.channelNo], *((double*) ch.pos));
+    } else if (channelTypes[ch.channelNo] == 2) {
+        strCopy(((String*) ch.pos), ((String*) channelContent[ch.channelNo]));
+        printf("IO %s %s\n", channelNames[ch.channelNo], ((String*) ch.pos) -> str);
+    } else if (channelTypes[ch.channelNo] == 3) {
+        listCopy(((List*) ch.pos), ((List*) channelContent[ch.channelNo]));
+        printf("IO %s", channelNames[ch.channelNo]);
+        for (int i = 0; i < ((List*) ch.pos) -> length; i++) {
+            printf(" %3f", *((double *)(((List*) ch.pos) -> addr + i)));
+        }
+        printf("\n");
+    } else {
+        ;
+    }
+}
+
+void copyToChannel(Channel ch) {
+    if (channelTypes[ch.channelNo] == 1) {
+        *((double*) channelContent[ch.channelNo]) = *((double*) ch.pos);
+    } else if (channelTypes[ch.channelNo] == 2) {
+        strCopy(((String*) channelContent[ch.channelNo]), ((String*) ch.pos));
+    } else if (channelTypes[ch.channelNo] == 3) {
+        listCopy(((List*) channelContent[ch.channelNo]), ((List*) ch.pos));
+    } else {
+        ;
+    }
+}
+
 // ch?x:
 // ch must be an input channel
 void input(int thread, Channel ch) {
@@ -325,22 +366,7 @@ void input(int thread, Channel ch) {
         threadState[channelOutput[ch.channelNo]] = ch.channelNo;
 
         // Copy data from channelContent
-        if (channelTypes[ch.channelNo] == 1) {
-            *((double*) ch.pos) = *((double*) channelContent[ch.channelNo]);
-            printf("IO %s %.3f\n", channelNames[ch.channelNo], *((double*) ch.pos));
-        } else if (channelTypes[ch.channelNo] == 2) {
-            strCopy(((String*) ch.pos), ((String*) channelContent[ch.channelNo]));
-            printf("IO %s %s\n", channelNames[ch.channelNo], ((String*) ch.pos) -> str);
-        } else if (channelTypes[ch.channelNo] == 3) {
-            listCopy(((List*) ch.pos), ((List*) channelContent[ch.channelNo]));
-            printf("IO %s", channelNames[ch.channelNo]);
-            for (int i = 0; i < ((List*) ch.pos) -> length; i++) {
-                printf(" %3f", *((double *)(((List*) ch.pos) -> addr + i)));
-            }
-            printf("\n");
-        } else {
-            ;
-        }
+        copyFromChannel(ch);
 
         // Update local time
         if (localTime[thread] < localTime[channelOutput[ch.channelNo]]) {
@@ -359,22 +385,7 @@ void input(int thread, Channel ch) {
         pthread_cond_wait(&cond[thread], &mutex);
 
         // Copy data from channelContent
-        if (channelTypes[ch.channelNo] == 1) {
-            *((double*) ch.pos) = *((double*) channelContent[ch.channelNo]);
-            printf("IO %s %.3f\n", channelNames[ch.channelNo], *((double*) ch.pos));
-        } else if (channelTypes[ch.channelNo] == 2) {
-            strCopy(((String*) ch.pos), ((String*) channelContent[ch.channelNo]));
-            printf("IO %s %s\n", channelNames[ch.channelNo], ((String*) ch.pos) -> str);
-        } else if (channelTypes[ch.channelNo] == 3) {
-            listCopy(((List*) ch.pos), ((List*) channelContent[ch.channelNo]));
-            printf("IO %s", channelNames[ch.channelNo]);
-            for (int i = 0; i < ((List*) ch.pos) -> length; i++) {
-                printf(" %3f", *((double*)(((List*) ch.pos) -> addr + i)));
-            }
-            printf("\n");
-        } else {
-            printf("Error channel type: %d", channelTypes[ch.channelNo]);
-        }
+        copyFromChannel(ch);
 
         // Update local time
         if (localTime[thread] < localTime[channelOutput[ch.channelNo]]) {
@@ -396,15 +407,8 @@ void output(int thread, Channel ch) {
     pthread_mutex_lock(&mutex);
     channelOutput[ch.channelNo] = thread;
 
-    if (channelTypes[ch.channelNo] == 1) {
-        *((double*) channelContent[ch.channelNo]) = *((double*) ch.pos);
-    } else if (channelTypes[ch.channelNo] == 2) {
-        strCopy(((String*) channelContent[ch.channelNo]), ((String*) ch.pos));
-    } else if (channelTypes[ch.channelNo] == 3) {
-        listCopy(((List*) channelContent[ch.channelNo]), ((List*) ch.pos));
-    } else {
-        ;
-    }
+    // Copy data to channel
+    copyToChannel(ch);
 
     if (channelInput[ch.channelNo] != -1 &&
             (threadState[channelInput[ch.channelNo]] == STATE_AVAILABLE ||
@@ -466,8 +470,7 @@ int externalChoice(int thread, int nums, Channel* chs) {
                 threadState[channelOutput[curChannel]] = curChannel;
 
                 // Copy data from channelContent
-                *((double*) chs[i].pos) = *((double*) channelContent[curChannel]);
-                printf("IO %s %.3f\n", channelNames[curChannel], *((double*) chs[i].pos));
+                copyFromChannel(chs[i]);
 
                 // Update local time
                 if (localTime[thread] < localTime[channelOutput[curChannel]]) {
@@ -490,7 +493,10 @@ int externalChoice(int thread, int nums, Channel* chs) {
         } else {
             // If channel is for output
             channelOutput[curChannel] = thread;
-            *((double*) channelContent[curChannel]) = *((double*) chs[i].pos);
+
+            // Copy data to channel
+            copyToChannel(chs[i]);
+
             if (channelInput[curChannel] != -1 &&
                     (threadState[channelInput[curChannel]] == STATE_AVAILABLE ||
                      threadState[channelInput[curChannel]] == STATE_WAITING_AVAILABLE)) {
@@ -531,8 +537,7 @@ int externalChoice(int thread, int nums, Channel* chs) {
 
     if (chs[match_index].type == 0) {
         // Waiting results in input
-        *((double*) chs[match_index].pos) = *((double*) channelContent[curChannel]);
-        printf("IO %s %.3f\n", channelNames[curChannel], *((double*) chs[match_index].pos));
+        copyFromChannel(chs[match_index]);
 
         // Update local time
         if (localTime[thread] < localTime[channelOutput[curChannel]]) {
@@ -593,7 +598,7 @@ void interruptInit(int thread, int nums, Channel* chs) {
             channelInput[curChannel] = thread;
         } else {
             channelOutput[curChannel] = thread;
-            *((double*) channelContent[curChannel]) = *((double*) chs[i].pos);
+            copyToChannel(chs[i]);
         }
     }
 
@@ -625,7 +630,7 @@ int interruptPoll(int thread, double seconds, int nums, Channel* chs) {
         if (chs[i].type == 0) {
             ;
         } else {
-            *((double*) channelContent[curChannel]) = *((double*) chs[i].pos);
+            copyToChannel(chs[i]);
         }
     }
 
@@ -656,8 +661,7 @@ int interruptPoll(int thread, double seconds, int nums, Channel* chs) {
 
     if (chs[match_index].type == 0) {
         // Waiting results in input
-        *((double*) chs[match_index].pos) = *((double*) channelContent[curChannel]);
-        printf("IO %s %.3f\n", channelNames[curChannel], *((double*) chs[match_index].pos));
+        copyFromChannel(chs[match_index]);
 
         // Update local time
         if (localTime[thread] < localTime[channelOutput[curChannel]]) {
