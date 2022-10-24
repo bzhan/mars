@@ -201,30 +201,6 @@ body_template = \
     double nullVar = 0.0;
 """
 
-interrupt_template = \
-"""
-if (is_comm == 1) {{
-    midInt = timedExternalChoice2(threadNumber, {numChannel}, midInt, channels);
-    break;
-}} else if ({constraint}) {{
-    clock_t start = clock();
-    midInt = timedExternalChoice1(threadNumber, {numChannel}, h, channels);
-    if (midInt == -1) {{
-        midInt = timedExternalChoice2(threadNumber, {numChannel}, midInt, channels);
-    }} else {{
-        is_comm = 1;
-        {traceBack}
-        h = (double)(clock() - start) / (double) CLOCKS_PER_SEC;
-    }}
-}} else if (h > min_step_size) {{
-    {traceBack}
-    h = h / 2;
-}} else {{
-    delay(h);
-    break;
-}}
-"""
-
 def transferToCProcess(name: str, hp: hcsp.HCSP, context: TypeContext, total_time = 0, is_partial = -1):
     """Convert HCSP process with given name to a C function"""
     c_process_str = ""
@@ -414,7 +390,8 @@ def transferToC(hp: hcsp.HCSP, total_time = 0, is_partial = -1):
             loop_cp += "double %s_dot4 = %s;\n" % (var_name, e)
         for var_name, e in eqs:
             loop_cp += "%s = %s_ori + (%s_dot1 + 2 * %s_dot2 + 2 * %s_dot3 + %s_dot4) * h / 6;\n" % (var_name, var_name, var_name, var_name, var_name, var_name)
-        loop_cp += "delay(threadNumber, h);\nif (!(%s)) {\n\tbreak;\n}" % constraint
+        loop_cp += "delay(threadNumber, h);\n"
+        loop_cp += "if (!(%s)) {\n\tbreak;\n}" % constraint
         res += "while (1) {\n%s\n}" % indent(loop_cp)
         c_str = res
     elif isinstance(hp, hcsp.ODE_Comm):
@@ -429,12 +406,13 @@ def transferToC(hp: hcsp.HCSP, total_time = 0, is_partial = -1):
 
         res = ""
         for comm_hp in comm_hps:
-            res += "%s" % comm_hp
+            res += "%s\n" % comm_hp
+        res += "interruptInit(threadNumber, %d, channels);\n" % len(comm_hps)
         choice_str = ""
         for i in range(0, len(out_hps)):
             if i > 0:
                 choice_str += "else "
-            choice_str += "if (midInt == %d) {\n%s\n}" % (i, out_hps[i])
+            choice_str += "if (midInt == %d) {\n%s\n}" % (i, indent(out_hps[i]))
         res += "h = step_size;\nis_comm = 0;\n"
         loop_cp = ""
         trace_back = ""
@@ -462,9 +440,15 @@ def transferToC(hp: hcsp.HCSP, total_time = 0, is_partial = -1):
         for var_name, e in eqs:
             update = "%s = %s_ori + (%s_dot1 + 2 * %s_dot2 + 2 * %s_dot3 + %s_dot4) * h / 6;\n" % (var_name, var_name, var_name, var_name, var_name, var_name)
             loop_cp += update
-        loop_cp += interrupt_template.format(numChannel=len(comm_hps), constraint=str(constraint),
-                                             traceBack=trace_back)
-        res += "while (1) {\n%s\n}\n" % loop_cp
+        loop_cp += "if (!(%s)) {\n" % constraint
+        loop_cp += "    interruptClear(threadNumber, %d, channels);\n" % len(comm_hps)
+        loop_cp += "    break;\n"
+        loop_cp += "}\n"
+        loop_cp += "midInt = interruptPoll(threadNumber, h, %d, channels);\n" % len(comm_hps)
+        loop_cp += "if (midInt >= 0) {\n"
+        loop_cp += "    break;\n"
+        loop_cp += "}"
+        res += "while (1) {\n%s\n}\n" % indent(loop_cp)
         res += choice_str
         c_str = res
     elif isinstance(hp, hcsp.SelectComm):

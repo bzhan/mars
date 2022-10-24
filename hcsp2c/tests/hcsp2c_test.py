@@ -48,9 +48,7 @@ class HCSP2CTest(unittest.TestCase):
             "IO p2c 0.000",
             "IO c2p -1.000",
             "IO p2c -1.000",
-            "IO c2p -2.000",
-            "IO p2c -2.000",
-            "IO c2p -3.000"
+            "IO c2p -2.000"
         ]
 
         self.run_file(progs, "testa", expected_output)
@@ -62,8 +60,6 @@ class HCSP2CTest(unittest.TestCase):
         ]
 
         expected_output = [
-            "IO p2c str_x",
-            "IO c2p str_y",
             "IO p2c str_x",
             "IO c2p str_y",
             "IO p2c str_x",
@@ -82,9 +78,7 @@ class HCSP2CTest(unittest.TestCase):
             "IO p2c 0.000",
             "IO c2p -1.000",
             "IO p2c -1.000",
-            "IO c2p -2.000",
-            "IO p2c -2.000",
-            "IO c2p -3.000"
+            "IO c2p -2.000"
         ]
 
         self.run_file(progs, "testc", expected_output)
@@ -96,8 +90,6 @@ class HCSP2CTest(unittest.TestCase):
         ]
 
         expected_output = [
-            "IO p2c1 0.000",
-            "IO p2c2 1.000",
             "IO p2c1 0.000",
             "IO p2c2 1.000",
             "IO p2c1 0.000",
@@ -123,7 +115,7 @@ class HCSP2CTest(unittest.TestCase):
     def test1(self):
         progs = [
             "x := 0; { {x_dot = 1 & true} |> [](p2c!x --> skip;) c2p?x; }*",
-            "x := 0; { wait(2); p2c?x; c2p!x-1; }*"
+            "x := 0; y := 0; { wait(2); p2c?x; y := x-1; c2p!y; }*"
         ]
 
         expected_output = [
@@ -133,7 +125,7 @@ class HCSP2CTest(unittest.TestCase):
             "IO c2p 2.000"
         ]
 
-        self.run_file(progs, "test1", expected_output)
+        self.run_file(progs, "test1", expected_output, step_size=1e-1)
 
 
 if __name__ == "__main__":

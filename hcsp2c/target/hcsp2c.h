@@ -18,8 +18,6 @@
 #define false 0
 #define abs fabs
 
-int DEBUG_LEVEL = 0;
-
 static long long tm_to_ns(struct timespec tm) {
     return tm.tv_sec * 1000000000 + tm.tv_nsec;
 }
@@ -151,7 +149,8 @@ int numThread;
 int* threadState;
 
 // Thread states. Nonnegative integers mean communicating on channel i.
-int STATE_WAITING = -3;
+int STATE_WAITING = -4;
+int STATE_WAITING_AVAILABLE = -3;
 int STATE_UNAVAILABLE = -2;
 int STATE_AVAILABLE = -1;
 
@@ -189,18 +188,19 @@ double* localTime;
 // Return value for exit
 int retVal;
 
-void delay(int thread, double seconds) {
-    pthread_mutex_lock(&mutex);
 
-    // Increment local clock
-    localTime[thread] += seconds;
-
+void updateCurrentTime(int thread) {
     // Update global clock to be minimum of all local clocks
-    double minLocal = localTime[0];
-    for (int i = 1; i < numThread; i++) {
-        if (localTime[i] < minLocal) {
+    double minLocal = DBL_MAX;
+    for (int i = 0; i < numThread; i++) {
+        if (threadState[i] != STATE_AVAILABLE && localTime[i] < minLocal) {
             minLocal = localTime[i];
         }
+    }
+
+    if (minLocal == DBL_MAX) {
+        printf("deadlock\n");
+        exit(0);
     }
 
     currentTime = minLocal;
@@ -217,10 +217,24 @@ void delay(int thread, double seconds) {
             threadState[i] = STATE_UNAVAILABLE;
             pthread_cond_signal(&cond[i]);
         }
+        if (i != thread && localTime[i] == currentTime && threadState[i] == STATE_WAITING_AVAILABLE) {
+            threadState[i] = STATE_AVAILABLE;
+            pthread_cond_signal(&cond[i]);
+        }
     }
+}
+
+void delay(int thread, double seconds) {
+    // Take the global lock
+    pthread_mutex_lock(&mutex);
+
+    // Increment local clock
+    localTime[thread] += seconds;
+
+    updateCurrentTime(thread);
 
     // If local clock is greater than global clock, go into wait mode
-    if (localTime[thread] < currentTime) {
+    if (localTime[thread] > currentTime) {
         threadState[thread] = STATE_WAITING;
         pthread_cond_wait(&cond[thread], &mutex);
     }
@@ -309,7 +323,9 @@ void input(int thread, Channel ch) {
     pthread_mutex_lock(&mutex);
     channelInput[ch.channelNo] = thread;
 
-    if (channelOutput[ch.channelNo] != -1 && threadState[channelOutput[ch.channelNo]] == STATE_AVAILABLE) {
+    if (channelOutput[ch.channelNo] != -1 &&
+            (threadState[channelOutput[ch.channelNo]] == STATE_AVAILABLE ||
+             threadState[channelOutput[ch.channelNo]] == STATE_WAITING_AVAILABLE)) {
         // If output is available, signal the output side
         threadState[channelOutput[ch.channelNo]] = ch.channelNo;
 
@@ -343,6 +359,7 @@ void input(int thread, Channel ch) {
     } else {
         // Otherwise, wait for the output
         threadState[thread] = STATE_AVAILABLE;
+        updateCurrentTime(thread);
         pthread_cond_wait(&cond[thread], &mutex);
 
         // Copy data from channelContent
@@ -392,7 +409,9 @@ void output(int thread, Channel ch) {
         ;
     }
 
-    if (channelInput[ch.channelNo] != -1 && threadState[channelInput[ch.channelNo]] == -1) {
+    if (channelInput[ch.channelNo] != -1 &&
+            (threadState[channelInput[ch.channelNo]] == STATE_AVAILABLE ||
+             threadState[channelInput[ch.channelNo]] == STATE_WAITING_AVAILABLE)) {
         // If input is available, signal the input side
         threadState[channelInput[ch.channelNo]] = ch.channelNo;
 
@@ -408,6 +427,7 @@ void output(int thread, Channel ch) {
     } else {
         // Otherwise, wait for the input
         threadState[thread] = STATE_AVAILABLE;
+        updateCurrentTime(thread);
         pthread_cond_wait(&cond[thread], &mutex);
 
         // Update local time
@@ -440,7 +460,9 @@ int externalChoice(int thread, int nums, Channel* chs) {
         if (chs[i].type == 0) {
             // If channel is for input
             channelInput[curChannel] = thread;
-            if (channelOutput[curChannel] != -1 && threadState[channelOutput[curChannel]] == STATE_AVAILABLE) {
+            if (channelOutput[curChannel] != -1 &&
+                    (threadState[channelOutput[curChannel]] == STATE_AVAILABLE ||
+                     threadState[channelOutput[curChannel]] == STATE_WAITING_AVAILABLE)) {
                 // If output is available, signal to the output side
                 threadState[channelOutput[curChannel]] = curChannel;
 
@@ -470,7 +492,9 @@ int externalChoice(int thread, int nums, Channel* chs) {
             // If channel is for output
             channelOutput[curChannel] = thread;
             *((double*) channelContent[curChannel]) = *((double*) chs[i].pos);
-            if (channelInput[curChannel] != -1 && threadState[channelInput[curChannel]] == STATE_AVAILABLE) {
+            if (channelInput[curChannel] != -1 &&
+                    (threadState[channelInput[curChannel]] == STATE_AVAILABLE ||
+                     threadState[channelInput[curChannel]] == STATE_WAITING_AVAILABLE)) {
                 // If input is available, signal to the input side
                 threadState[channelInput[curChannel]] = curChannel;
 
@@ -544,75 +568,154 @@ int externalChoice(int thread, int nums, Channel* chs) {
     return match_index;
 }
 
-// External choice in ODE
-int timedExternalChoice1(int thread, int nums, double waitTime, Channel* chs) {
-    // Take the global lcok
+/*
+ * Interrupt: initialization
+ *
+ * This function initializes channelInput and channelOutput, to indicate
+ * that the current thread is ready.
+ *
+ * thread: current thread
+ * nums: number of channels to wait for
+ * chs: array of input/output channels
+ */
+void interruptInit(int thread, int nums, Channel* chs) {
+    // Take the global lock
     pthread_mutex_lock(&mutex);
-    int match_index = -1;
+
+    int curChannel;
+
     for (int i = 0; i < nums; i++) {
+        curChannel = chs[i].channelNo;
         if (chs[i].type == 0) {
-            // If channel is for input
-            channelInput[chs[i].channelNo] = thread;
-            if (match_index == -1 && channelOutput[chs[i].channelNo] != -1 &&
-                threadState[channelOutput[chs[i].channelNo]] == STATE_AVAILABLE) {
-                threadState[channelOutput[chs[i].channelNo]] = chs[i].channelNo;
-                match_index = chs[i].channelNo;
-                pthread_cond_signal(&cond[channelOutput[chs[i].channelNo]]);
-                break;
-            }
+            channelInput[curChannel] = thread;
         } else {
-            // If channel is for output
-            channelOutput[chs[i].channelNo] = thread;
-            if (match_index == -1 && channelInput[chs[i].channelNo] != -1 &&
-                threadState[channelInput[chs[i].channelNo]] == STATE_AVAILABLE) {
-                threadState[channelInput[chs[i].channelNo]] = chs[i].channelNo;
-                match_index = chs[i].channelNo;
-                pthread_cond_signal(&cond[channelInput[chs[i].channelNo]]);
-                break;
-            }
+            channelOutput[curChannel] = thread;
+            *((double*) channelContent[curChannel]) = *((double*) chs[i].pos);
         }
     }
 
-    // If no matching channel is found, wait for matches.
-    if (match_index == -1) {
-        threadState[thread] = STATE_AVAILABLE;
-        struct timespec start_tm;
-        struct timespec end_tm;
-        double timeout = waitTime * 1000000000;
+    threadState[thread] = STATE_AVAILABLE;
+    pthread_mutex_unlock(&mutex);
+    return;
+}
 
-        // Wait for one clock cycle
-        clock_gettime(CLOCK_REALTIME, &start_tm);
-        end_tm = ns_to_tm(tm_to_ns(start_tm) + (long long)timeout);
-        pthread_cond_timedwait(&cond[thread], &mutex, &end_tm);
-        match_index = threadState[thread];
+/*
+ * Interrupt: delay and wait for the given communications
+ *
+ * thread: current thread
+ * seconds: number of seconds to wait
+ * nums: number of channels to wait for
+ * chs: array of input/output channels
+ *
+ * Return -1 if waiting finished without a communication, and index of
+ * communication otherwise.
+ */
+int interruptPoll(int thread, double seconds, int nums, Channel* chs) {
+    // Take the global lock
+    pthread_mutex_lock(&mutex);
+
+    // Update output values
+    int curChannel;
+
+    for (int i = 0; i < nums; i++) {
+        curChannel = chs[i].channelNo;
+        if (chs[i].type == 0) {
+            ;
+        } else {
+            *((double*) channelContent[curChannel]) = *((double*) chs[i].pos);
+        }
     }
+
+    // Increment local clock
+    localTime[thread] += seconds;
+    if (localTime[thread] > 10.0) {
+        exit(0);
+    }
+
+    updateCurrentTime(thread);
+
+    // If local clock is greater than global clock, go into wait mode
+    if (localTime[thread] > currentTime) {
+        threadState[thread] = STATE_WAITING_AVAILABLE;
+        pthread_cond_wait(&cond[thread], &mutex);
+    }
+
+    // Wake up from waiting is due to one of two reasons: the waiting time
+    // is over, or there is a communication ready. This is distinguished by
+    // threadState.
+
+    if (threadState[thread] == STATE_AVAILABLE) {
+        pthread_mutex_unlock(&mutex);
+        return -1;
+    }
+
+    // At this point, already found a match.
+    int match_index = threadState[thread];
+    assert (match_index >= 0);
+    curChannel = chs[match_index].channelNo;
+
+    if (chs[match_index].type == 0) {
+        // Waiting results in input
+        *((double*) chs[match_index].pos) = *((double*) channelContent[curChannel]);
+        printf("IO %s %.3f\n", channelNames[curChannel], *((double*) chs[match_index].pos));
+
+        // Update local time
+        if (localTime[thread] < localTime[channelOutput[curChannel]]) {
+            localTime[thread] = localTime[channelOutput[curChannel]];
+        }
+        threadState[thread] = STATE_UNAVAILABLE;
+        for (int j = 0; j < nums; j++) {
+            if (chs[j].type == 0) {
+                channelInput[chs[j].channelNo] = -1;
+            } else {
+                channelOutput[chs[j].channelNo] = -1;
+            }
+        }
+        pthread_cond_signal(&cond[channelOutput[curChannel]]);
+    } else {
+        // Waiting results in output
+
+        // Update local time
+        if (localTime[thread] < localTime[channelInput[curChannel]]) {
+            localTime[thread] = localTime[channelInput[curChannel]];
+        }
+        threadState[thread] = STATE_UNAVAILABLE;
+        for (int j = 0; j < nums; j++) {
+            if (chs[j].type == 0) {
+                channelInput[chs[j].channelNo] = -1;
+            } else {
+                channelOutput[chs[j].channelNo] = -1;
+            }
+        }
+        pthread_cond_signal(&cond[channelInput[curChannel]]);
+    }
+
+    pthread_mutex_unlock(&mutex);  
     return match_index;
 }
 
-// If ODE ends without finding a communication, then match_index = -1,
-// otherwise, match_index gives the index of channel communication.
-int timedExternalChoice2(int thread, int nums, int match_index, Channel* chs) {
-    // Recover values of channelInput and channelOutput.
-    assert (match_index >= -1);
-    int ans = -1;
-    for (int i = 0; i < nums; i++) {
-        if (chs[i].type == 0) {
-            channelInput[chs[i].channelNo] = -1;
-            if (chs[i].channelNo == match_index) {
-                *((double*) chs[i].pos) = *((double*) channelContent[chs[i].channelNo]);
-                ans = i;
-            }
+/*
+ * Interrupt: stop waiting for communications
+ * 
+ * thread: current thread
+ * nums: number of channels to wait for
+ * chs: array of input/output channels
+ */
+void interruptClear(int thread, int nums, Channel* chs) {
+    // Take the global lock
+    pthread_mutex_lock(&mutex);
+
+    threadState[thread] = STATE_UNAVAILABLE;
+    for (int j = 0; j < nums; j++) {
+        if (chs[j].type == 0) {
+            channelInput[chs[j].channelNo] = -1;
         } else {
-            channelOutput[chs[i].channelNo] = -1;
-            if (chs[i].channelNo == match_index) {
-                *((double*) channelContent[chs[i].channelNo]) = *((double*) chs[i].pos);
-                ans = i;
-            }
+            channelOutput[chs[j].channelNo] = -1;
         }
     }
-    threadState[thread] = STATE_UNAVAILABLE;
+
     pthread_mutex_unlock(&mutex);
-    return ans;
+    return;
 }
 
 double randomDouble01 () {
