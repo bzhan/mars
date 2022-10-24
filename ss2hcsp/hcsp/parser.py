@@ -227,10 +227,7 @@ class HPTransformer(Transformer):
         return expr.ListExpr(meta=meta)
 
     def literal_list(self, meta, *args):
-        if all(isinstance(arg, expr.AConst) for arg in args):
-            return expr.AConst(list(arg.value for arg in args), meta=meta)
-        else:
-            return expr.ListExpr(*args, meta=meta)
+        return expr.ListExpr(*args, meta=meta)
 
     def empty_dict(self, meta):
         return expr.DictExpr(meta=meta)
