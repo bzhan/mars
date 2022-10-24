@@ -105,7 +105,7 @@ grammar = r"""
         | comm_cmd ";"
         | "{" cmd "}" "*" maybe_loop_invariant -> repeat_cmd
         | "{" cmd "}" "*" "(" expr ")" maybe_loop_invariant -> repeat_cond_cmd
-        | "{" ode_seq "&" expr "}" maybe_ode_invariant -> ode
+        | "{" ode_seq "&" expr "}" maybe_ode_invariant ";" -> ode
         | "{" ode_seq "&" expr "}" sln_rule ";" -> ode_sln
         | "{" "&" expr "}" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm_const
         | "{" ode_seq "&" expr "}" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm

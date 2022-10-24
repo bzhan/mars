@@ -6,11 +6,11 @@ from hcsp2c import transfer2c
 
 
 class HCSP2CTest(unittest.TestCase):
-    def run_file(self, progs, filename, expected_output):
+    def run_file(self, progs, filename, expected_output, *, step_size: float = 1e-7):
         hps = []
         for i, prog in enumerate(progs):
             hps.append(("P" + str(i+1), parser.hp_parser.parse(prog)))
-        res = transfer2c.convertHps(hps)
+        res = transfer2c.convertHps(hps, step_size=step_size)
 
         with open('hcsp2c/target/%s.c' % filename, 'w') as f:
             f.write(res)
@@ -105,6 +105,20 @@ class HCSP2CTest(unittest.TestCase):
         ]
 
         self.run_file(progs, "testd", expected_output)
+
+    def teste(self):
+        progs = [
+            "t := 0; x := 1; y := 0; {x_dot = -y, y_dot = x, t_dot = 1 & x > 0}; p2c!x; p2c!y; p2c!t;",
+            "x := 0; y := 0; t := 0; p2c?x; p2c?y; p2c?t;"
+        ]
+
+        expected_output = [
+            "IO p2c -0.000",
+            "IO p2c 1.000",
+            "IO p2c 1.571"
+        ]
+
+        self.run_file(progs, "teste", expected_output, step_size=1e-5)
 
     def test1(self):
         progs = [

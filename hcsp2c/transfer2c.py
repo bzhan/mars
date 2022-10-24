@@ -225,7 +225,7 @@ if (is_comm == 1) {{
 }}
 """
 
-def transferToCProcess(name: str, hp: hcsp.HCSP, context: TypeContext, step_size = 1e-7, total_time = 0, is_partial = -1):
+def transferToCProcess(name: str, hp: hcsp.HCSP, context: TypeContext, total_time = 0, is_partial = -1):
     """Convert HCSP process with given name to a C function"""
     c_process_str = ""
     global gl_var_type
@@ -246,13 +246,13 @@ def transferToCProcess(name: str, hp: hcsp.HCSP, context: TypeContext, step_size
         else:
             raise AssertionError("init: unknown type for variable %s" % var)
 
-    body += indent(transferToC(hp, step_size, total_time, is_partial))
+    body += indent(transferToC(hp, total_time, is_partial))
 
     c_process_str = c_process_template % (name, body)
     return c_process_str
 
 
-def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_partial = -1):
+def transferToC(hp: hcsp.HCSP, total_time = 0, is_partial = -1):
     assert isinstance(hp, hcsp.HCSP)
 
     c_str = ""
@@ -336,24 +336,24 @@ def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_parti
             c_str = return_str
     elif isinstance(hp, hcsp.Loop):
         if hp.constraint == expr.true_expr:
-            c_str = "while (1) {\n%s\n}" % indent(transferToC(hp.hp, step_size, total_time))
+            c_str = "while (1) {\n%s\n}" % indent(transferToC(hp.hp, total_time))
         else:
-            c_str = "while (%s) {\n%s\n}" % (hp.constraint, indent(transferToC(hp.hp, step_size, total_time)))
+            c_str = "while (%s) {\n%s\n}" % (hp.constraint, indent(transferToC(hp.hp, total_time)))
     elif isinstance(hp, hcsp.ITE):
         if_hps = hp.if_hps
         else_hp = hp.else_hp
 
-        res = "if (%s) { %s " % (if_hps[0][0], transferToC(if_hps[0][1], step_size, total_time))
+        res = "if (%s) { %s " % (if_hps[0][0], transferToC(if_hps[0][1], total_time))
         for cond, hp in if_hps[1:]:
-            res += "} else if (%s) { %s " % (cond, transferToC(hp, step_size, total_time))
+            res += "} else if (%s) { %s " % (cond, transferToC(hp, total_time))
         if else_hp is None:
             res += "}"
         else:
-            res += "} else { %s }" % transferToC(else_hp, step_size, total_time)
+            res += "} else { %s }" % transferToC(else_hp, total_time)
 
         c_str = res
     elif isinstance(hp, hcsp.Sequence):
-        c_str = "\n".join(transferToC(seq, step_size, total_time) for seq in hp.hps)
+        c_str = "\n".join(transferToC(seq, total_time) for seq in hp.hps)
     elif isinstance(hp, hcsp.InputChannel):
         ch_name = hp.ch_name
         var_name = hp.var_name
@@ -387,9 +387,8 @@ def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_parti
     elif isinstance(hp, hcsp.ODE):
         eqs = hp.eqs
         constraint = hp.constraint
-        out_hp = hp.out_hp
 
-        res = "h = %f;" % step_size
+        res = "h = step_size;\n"
         loop_cp = ""
         trace_back = ""
         var_names = []
@@ -415,20 +414,8 @@ def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_parti
             loop_cp += "double %s_dot4 = %s;\n" % (var_name, e)
         for var_name, e in eqs:
             loop_cp += "%s = %s_ori + (%s_dot1 + 2 * %s_dot2 + 2 * %s_dot3 + %s_dot4) * h / 6;\n" % (var_name, var_name, var_name, var_name, var_name, var_name)
-        loop_cp += \
-        """
-        if (%s) {
-            delay(h);
-        } else if (h > min_step_size) {
-            %s
-            h = h / 2;
-        } else {
-            %s
-            delay(h);
-            break;
-        }
-        """ % (str(constraint), trace_back, transferToC(out_hp, step_size, total_time))
-        res += "while(1){\n%s\n}" % loop_cp
+        loop_cp += "delay(threadNumber, h);\nif (!(%s)) {\n\tbreak;\n}" % constraint
+        res += "while (1) {\n%s\n}" % indent(loop_cp)
         c_str = res
     elif isinstance(hp, hcsp.ODE_Comm):
         eqs = hp.eqs
@@ -437,8 +424,8 @@ def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_parti
         out_hps = []
         for i in range(0, len(hp.io_comms)):
             io_comm = hp.io_comms[i]
-            comm_hps.append(transferToC(io_comm[0], step_size, total_time, i))
-            out_hps.append(transferToC(io_comm[1], step_size, total_time))
+            comm_hps.append(transferToC(io_comm[0], total_time, i))
+            out_hps.append(transferToC(io_comm[1], total_time))
 
         res = ""
         for comm_hp in comm_hps:
@@ -485,8 +472,8 @@ def transferToC(hp: hcsp.HCSP, step_size: float = 1e-7, total_time = 0, is_parti
         out_hps = []
         for i in range(0, len(hp.io_comms)):
             io_comm = hp.io_comms[i]
-            comm_hps.append(transferToC(io_comm[0], step_size, total_time, i) + '\n')
-            out_hps.append(transferToC(io_comm[1], step_size, total_time))
+            comm_hps.append(transferToC(io_comm[0], total_time, i) + '\n')
+            out_hps.append(transferToC(io_comm[1], total_time))
         res = ""
         for comm_hp in comm_hps:
             res += "%s" % comm_hp 
@@ -504,7 +491,7 @@ header = \
 """
 #include "hcsp2c.h"
 
-double step_size = 1e-7;
+double step_size = %s;
 double min_step_size = 1e-10;
 """
 
@@ -535,12 +522,12 @@ main_footer = \
 
 
 
-def convertHps(hps) -> str:
+def convertHps(hps, step_size:float = 1e-7) -> str:
     """Main function for HCSP to C conversion."""
     ctx = inferTypes(hps)
 
     res = ""
-    res += header
+    res += header % step_size
     count = 0
     for channel in ctx.channelTypes.keys():
         res += "const int %s = %d;\n" % (channel, count)
