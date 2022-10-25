@@ -3,7 +3,7 @@
 import unittest
 
 from ss2hcsp.sl.sl_diagram import SL_Diagram
-from ss2hcsp.sl.get_hcsp import new_get_hcsp
+from ss2hcsp.sl.get_hcsp import get_hcsp
 from ss2hcsp.hcsp.simulator import SimInfo, exec_parallel
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import optimize
@@ -45,7 +45,7 @@ def run_test(self, location, num_steps, expected_series, *,
         print(diagram.outputs)
 
     # Convert to HCSP
-    result_hp = new_get_hcsp(
+    result_hp = get_hcsp(
         diagram.discrete_blocks, diagram.continuous_blocks,
         diagram.chart_parameters, diagram.outputs)
 

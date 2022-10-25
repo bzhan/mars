@@ -8,7 +8,7 @@ from ss2hcsp.hcsp import module
 from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import pprint
 from ss2hcsp.sl.sl_diagram import SL_Diagram
-from ss2hcsp.sl.get_hcsp import new_translate_discrete
+from ss2hcsp.sl.get_hcsp import translate_discrete
 from aadl2hcsp.get_modules import get_continuous_module, get_databuffer_module, get_bus_module
 from ss2hcsp.sf import sf_convert
 
@@ -168,7 +168,7 @@ def translate_thread(name, info, bus=None):
         _ = diagram.parse_xml()
         diagram.add_line_name()
         _init_hps, _procedures, _output_hps, _update_hps, _ =\
-            new_translate_discrete(list(diagram.blocks_dict.values()), None)
+            translate_discrete(list(diagram.blocks_dict.values()), None)
         if len(_init_hps) >= 2:
             _init_hps = hcsp.Sequence(*_init_hps)
         elif len(_init_hps) == 1:

@@ -12,7 +12,7 @@ from ss2hcsp.hcsp.optimize import full_optimize_module
 from ss2hcsp.sl.sl_diagram import SL_Diagram
 
 
-def new_translate_discrete(diagram, chart_parameters):
+def translate_discrete(diagram, chart_parameters):
     """Obtain procedures for the discrete part of the diagram."""
     assert isinstance(diagram, list)  # diagram is a list of blocks
     sample_time = get_gcd([block.st for block in diagram
@@ -121,7 +121,7 @@ def new_translate_discrete(diagram, chart_parameters):
     return init_hps, procedures, output_hps, update_hps, sample_time
 
 
-def new_translate_continuous(diagram):
+def translate_continuous(diagram):
     """Translate continuous diagram.
 
     diagram : SL_Diagram
@@ -175,11 +175,11 @@ def new_translate_continuous(diagram):
     return init_hps, equations, var_subst, constraints, trig_procs, procedures
 
 
-def new_get_hcsp(discrete_diagram, continuous_diagram, chart_parameters, outputs=()):
+def get_hcsp(discrete_diagram, continuous_diagram, chart_parameters, outputs=()):
     dis_init_hps, dis_procedures, output_hps, update_hps, sample_time = \
-        new_translate_discrete(discrete_diagram, chart_parameters)
+        translate_discrete(discrete_diagram, chart_parameters)
     con_init_hps, equations, var_subst, constraints, trig_procs, con_procedures = \
-        new_translate_continuous(continuous_diagram)
+        translate_continuous(continuous_diagram)
 
     # Initialization
     init_hps = [hp.Assign("t", AConst(0)), hp.Assign("_tick", AConst(0))] + dis_init_hps + con_init_hps
@@ -264,7 +264,7 @@ if __name__ == "__main__":
         diagram.separate_diagram()
 
         # Convert to HCSP
-        result_hp = new_get_hcsp(
+        result_hp = get_hcsp(
             diagram.discrete_blocks, diagram.continuous_blocks,
             diagram.chart_parameters, diagram.outputs)
 
