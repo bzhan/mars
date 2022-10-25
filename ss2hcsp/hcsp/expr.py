@@ -242,7 +242,10 @@ class FunExpr(Expr):
         return "Fun(%s, %s)" % (self.fun_name, ", ".join(repr(expr) for expr in self.exprs))
 
     def __str__(self):
-        return "%s(%s)" % (self.fun_name, ",".join(str(expr) for expr in self.exprs))
+        if self.exprs:
+            return "%s(%s)" % (self.fun_name, ",".join(str(expr) for expr in self.exprs))
+        else:
+            return self.fun_name
 
     def __eq__(self, other):
         return isinstance(other, FunExpr) and self.fun_name == other.fun_name and \

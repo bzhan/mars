@@ -304,5 +304,11 @@ class SimTest(unittest.TestCase):
 
         }, output_to_file="./Examples/Simulink/CanonicalMax2.txt")
 
+    def testAbstractFuelControlM2(self):
+        run_test(self, "./Examples/Simulink/AbstractFuelControl_M2.xml", 80, {
+
+        }, output_to_file="./Examples/Simulink/AbstractFuelControl_M2.txt")
+
+
 if __name__ == "__main__":
     unittest.main()
