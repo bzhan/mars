@@ -30,7 +30,7 @@ velo_voter = EXE_velo_voter() ||
 pan_ctr_th = EXE_pan_ctr_th() ||
 tran_img = DataBuffer1($"bus0", $"img", $"img_acq", $"img", $0.0) ||
 tran_obs_pos_radar = DataBuffer1($"bus0", $"obs_pos_radar", $"comp_obs_pos", $"obs_pos_radar", $0.0) ||
-tran_cmd = DataBuffer1($"bus0", $"cmd", $"actuator", $"cmd", $0.0) ||
+tran_cmd = DataBuffer1($"bus1", $"cmd", $"actuator", $"cmd", $0.0) ||
 tran_veh_pos = DataBuffer1($"bus0", $"veh_pos", $"emerg", $"veh_pos", $0.0) ||
 tran_laser_valid = DataBuffer1($"bus0", $"laser_valid", $"velo_voter", $"laser_valid", $0.0) ||
 tran_laser_v = DataBuffer1($"bus0", $"laser_v", $"velo_voter", $"laser_v", $0.0) ||
@@ -45,6 +45,7 @@ tran_veh_v = DataBuffer2($"velo_voter", $"veh_v", $"emerg", $"veh_v", $"PI_ctr",
 tran_des_a = DataBuffer1($"PI_ctr", $"des_a", $"emerg", $"des_a", $0.0) ||
 ACT_PI_ctr = ACT_periodic($"PI_ctr", $0.007) ||
 PI_ctr = EXE_PI_ctr() ||
-bus0 = Bus_bus0()
+bus0 = Bus_bus0() ||
+bus1 = Bus_bus1()
 
 endsystem

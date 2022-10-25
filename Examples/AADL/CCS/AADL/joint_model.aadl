@@ -34,7 +34,7 @@ public
 			bus05: bus platform::bus0.imp5;
 			bus06: bus platform::bus0.imp6;
 			bus07: bus platform::bus0.imp7;
-			bus08: bus platform::bus0.imp8;
+			bus08: bus platform::bus1.imp0;
 		connections
 			tran_img: port camera.img -> obs_det.img;
 			tran_obs_pos_radar: port radar.obs_pos_radar -> obs_det.obs_pos_radar;
@@ -51,13 +51,13 @@ public
 			actual_processor_binding => (reference (cpu)) applies to obs_det, velo_ctr, pan_ctr;
 			actual_connection_binding => (reference (bus00)) applies to tran_img;
 			actual_connection_binding => (reference (bus01)) applies to tran_obs_pos_radar;
-			actual_connection_binding => (reference (bus02)) applies to tran_cmd;
-			actual_connection_binding => (reference (bus03)) applies to tran_veh_pos;
-			actual_connection_binding => (reference (bus04)) applies to tran_laser_valid;
-			actual_connection_binding => (reference (bus05)) applies to tran_laser_v;
-			actual_connection_binding => (reference (bus06)) applies to tran_wheel_valid;
-			actual_connection_binding => (reference (bus07)) applies to tran_wheel_v;
-			actual_connection_binding => (reference (bus08)) applies to tran_event;
+			actual_connection_binding => (reference (bus02)) applies to tran_veh_pos;
+			actual_connection_binding => (reference (bus03)) applies to tran_laser_valid;
+			actual_connection_binding => (reference (bus04)) applies to tran_laser_v;
+			actual_connection_binding => (reference (bus05)) applies to tran_wheel_valid;
+			actual_connection_binding => (reference (bus06)) applies to tran_wheel_v;
+			actual_connection_binding => (reference (bus07)) applies to tran_event;
+			actual_connection_binding => (reference (bus08)) applies to tran_cmd;
 	end cruise_control_system.imp;
 	
 	abstract vehicle

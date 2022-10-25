@@ -188,7 +188,7 @@
     "tran_cmd": {
         "type": "data",
         "init_value": 0.0,
-        "bus": "bus0",
+        "bus": "bus1",
         "source": "emerg",
         "source_port": "cmd",
         "target": ["actuator"],
@@ -321,5 +321,6 @@
         "scheduling_protocol": "rms",
         "category": "processor"
     },
-    "bus0": {"latency": "3ms", "category": "bus"}
+    "bus0": {"latency": "3ms", "category": "bus"},
+    "bus1": {"latency": "3ms", "category": "bus"}
 }

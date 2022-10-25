@@ -2,25 +2,11 @@
 
 module Bus_bus0():
 procedure BLOCK begin
-  t := 0;
-  {
-    {t_dot = 1 & t < 0.003} |> [] (
-      block["emerg"]! -->
-        skip;
-    )
-  }*(t < 0.003)
-end
-
-procedure BLOCK_by_emerg begin
   wait(0.003);
 end
 
 begin
   {
-    reqBus["emerg"]? -->
-      outputs["emerg"]["cmd"]?cmd;
-      @BLOCK_by_emerg;
-      outputs["bus0"]["cmd"]!cmd; $
     outputs["camera"]["img"]?img -->
       @BLOCK;
       outputs["bus0"]["img"]!img; $
@@ -42,7 +28,32 @@ begin
       outputs["bus0"]["wheel_v"]!wheel_v; $
     inputs["bus0"]["event"]?event -->
       @BLOCK;
-      outputs["bus0"]["event"]!event; $
+      outputs["bus0"]["event"]!event;
+  }*
+end
+endmodule
+
+module Bus_bus1():
+procedure BLOCK begin
+  t := 0;
+  {
+    {t_dot = 1 & t < 0.003} |> [] (
+      block["emerg"]! -->
+        skip;
+    )
+  }*(t < 0.003)
+end
+
+procedure BLOCK_by_emerg begin
+  wait(0.003);
+end
+
+begin
+  {
+    reqBus["emerg"]? -->
+      outputs["emerg"]["cmd"]?cmd;
+      @BLOCK_by_emerg;
+      outputs["bus1"]["cmd"]!cmd; $
     unblock["emerg"]! -->
       skip;
   }*
