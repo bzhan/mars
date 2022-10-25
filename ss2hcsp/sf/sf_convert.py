@@ -1,6 +1,7 @@
 """Converting a Stateflow chart to HCSP process."""
 
 from ss2hcsp.sl import get_hcsp
+from ss2hcsp.sl import Continuous
 from ss2hcsp.hcsp.pprint import pprint
 from ss2hcsp.sf.sf_state import OR_State, AND_State, Junction, GraphicalFunction
 from ss2hcsp.hcsp import hcsp
@@ -1247,7 +1248,11 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
 
     # Processes for continuous
     if continuous:
-        proc_map["Continuous"] = (dict(), get_hcsp.translate_continuous(continuous))
+        io_comms = []
+        for block in continuous:
+            assert isinstance(block, Continuous.constant.Constant)
+            io_comms.append((hcsp.OutputChannel("ch_" + block.src_lines[0][0].name + "_0", expr.AConst(block.value)), hcsp.Skip()))
+        proc_map["Continuous"] = (dict(), hcsp.Loop(hcsp.SelectComm(*io_comms)))
 
     # Processes for scope
     for scope in diagram.scopes:

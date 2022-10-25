@@ -2024,20 +2024,11 @@ end
 endmodule
 module Continuous():
 begin
-  num := 2;
   {
     ch_x0_0!1 -->
-      num := num - 1; $
+      skip; $
     ch_x1_0!1 -->
-      num := num - 1;
-  }*(num > 0)
-  {
-    { & true} |> [] (
-      ch_x0_0!1 -->
-        skip;,
-      ch_x1_0!1 -->
-        skip;
-    )
+      skip;
   }*
 end
 endmodule
