@@ -20,8 +20,3 @@ class Constant(SL_Block):
     def get_var_subst(self):
         out_var = self.src_lines[0][0].name
         return {out_var: AConst(self.value)}
-
-    def get_var_map(self):
-        out_var = self.src_lines[0][0].name
-        expr = AConst(self.value)
-        return {out_var: [(true_expr, expr)]}

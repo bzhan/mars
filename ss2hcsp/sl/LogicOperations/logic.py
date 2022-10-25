@@ -16,20 +16,6 @@ class Logic(SL_Block):
         assert isinstance(st, (int, float))
         self.st = st
 
-    def get_var_map(self):
-        in_vars = [AVar(line.name) for line in self.dest_lines]
-        if isinstance(self, And):
-            expr = FunExpr("min", in_vars)
-        elif isinstance(self, Or):
-            expr = FunExpr("max", in_vars)
-        elif isinstance(self, Not):
-            assert len(in_vars) == 1
-            expr = OpExpr("-", AConst(1), in_vars[0])
-        else:
-            raise RuntimeError("Error Type!")
-        out_var = self.src_lines[0][0].name
-        return {out_var: [(true_expr, expr)]}
-
 
 class And(Logic):
     def __init__(self, name, num_dest, st=-1):
