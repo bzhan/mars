@@ -12,7 +12,8 @@ class XMLParserTest(unittest.TestCase):
         path = './Examples/AADL/scheduler'
         xmlfile = 'scheduler_s_i_Instance.xml'
         aadl_file = 'scheduler.aadl'
-        sim_file = './Examples/isolette/babybox.xml'
+        # sim_file = './Examples/isolette/babybox.xml'
+        sim_file = './Examples/AADL/CCS/Simulink/emerg_imp.xml'
 
         out_file = os.path.join(path, 'out.json')
         ref_file = os.path.join(path, 'out_ref.json')
