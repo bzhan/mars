@@ -18,7 +18,7 @@ class Gain(SL_Block):
     def get_expr(self) -> expr.Expr:
         """Compute the assignment corresponding to gain block."""
         in_var = expr.AVar(self.dest_lines[0].name)
-        return expr.OpExpr("*", in_var, convert.convert_expr(self.factor))
+        return expr.OpExpr("*", in_var, convert.convert_expr(self.factor)[1])
 
     def __str__(self):
         expr = self.get_expr()

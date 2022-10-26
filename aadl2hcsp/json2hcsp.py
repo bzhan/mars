@@ -189,9 +189,9 @@ def translate_thread(name, info, bus=None):
     # Convert from Stateflow diagram to HCSP
     def get_stateflow_computation(location):
         diagram = SL_Diagram(location=location)
-        _ = diagram.parse_xml()
+        diagram.parse_xml()
         diagram.add_line_name()
-        _, _, charts, _, _, _, _, _, _ = diagram.seperate_diagram()
+        charts = [block for block in diagram.blocks_dict.values() if block.type == "stateflow"]
         assert len(charts) == 1
         converter = sf_convert.SFConvert(charts[0], chart_parameters=diagram.chart_parameters[charts[0].name],
                                          translate_io=False)

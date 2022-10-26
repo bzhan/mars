@@ -112,7 +112,7 @@ class SFConvert:
         # the corresponding functions in convert, but with extra arguments.
         def convert_expr(e):
             return convert.convert_expr(e, arrays=self.data.keys(), procedures=self.procedures,
-                                        messages=self.messages,states=self.chart.all_states)
+                                        states=self.chart.all_states)
         self.convert_expr = convert_expr
 
         def convert_cmd(cmd, *, still_there=None):

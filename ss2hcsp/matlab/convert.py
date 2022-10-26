@@ -1,5 +1,6 @@
 """Conversion from Matlab functions to HCSP."""
 
+from typing import Tuple
 from ss2hcsp.matlab import function
 from ss2hcsp.hcsp import expr, hcsp
 from ss2hcsp.sf.sf_state import GraphicalFunction
@@ -12,7 +13,7 @@ def subtract_one(e: expr.Expr) -> expr.Expr:
     else:
         return expr.OpExpr("-", e, expr.AConst(1))
 
-def convert_expr(e: function.Expr, *, procedures=None, arrays=None, states=None) -> expr.Expr:
+def convert_expr(e: function.Expr, *, procedures=None, arrays=None, states=None) -> Tuple[hcsp.HCSP, expr.Expr]:
     """Convert a Matlab expression to HCSP.
 
     Since there are possibly functions that should be evaluated,
