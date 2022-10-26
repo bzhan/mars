@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from ss2hcsp.sl.sl_line import SL_Line
 from ss2hcsp.sl.sl_block import get_gcd
-from ss2hcsp.matlab import function, convert
+from ss2hcsp.matlab import convert
 from ss2hcsp.matlab import function
 from ss2hcsp.matlab.parser import expr_parser, function_parser, \
     transition_parser, func_sig_parser, state_op_parser
@@ -558,7 +558,7 @@ class SL_Diagram:
                 self.add_block(Product(name=block_name, dest_spec=dest_spec, st=sample_time))
             elif block_type == "Gain":
                 factor = get_attribute_value(block, "Gain")
-                factor = eval(factor) if factor else 1
+                factor = expr_parser.parse(factor) if factor else function.AConst(1)
                 self.add_block(Gain(name=block_name, factor=factor, st=sample_time))
             elif block_type == "Sin":
                 amplitude = parse_value(get_attribute_value(block, "Amplitude"), default=1)
