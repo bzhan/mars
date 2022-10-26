@@ -1,5 +1,5 @@
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp.expr import AVar, AConst, LogicExpr, RelExpr, IfExpr, OpExpr
+from ss2hcsp.hcsp.expr import AVar, AConst, RelExpr, IfExpr
 from ss2hcsp.hcsp import hcsp as hp
 
 

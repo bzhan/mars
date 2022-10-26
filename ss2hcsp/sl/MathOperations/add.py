@@ -1,18 +1,18 @@
 """Addition block"""
 
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp.expr import AVar, OpExpr, true_expr, RelExpr, AConst
+from ss2hcsp.hcsp.expr import AVar, OpExpr
 from ss2hcsp.hcsp import hcsp as hp
 
 
 class Add(SL_Block):
     """Add (or subtract) a list of dest lines."""
-    def __init__(self, name, dest_spec, st=-1):
+    def __init__(self, name: str, dest_spec: str, st=-1):
         super(Add, self).__init__("add", name, 1, len(dest_spec), st)
 
         # dest_spec is a list of either '+' or '-'
         assert all(s == '+' or s == '-' for s in dest_spec)
-        self.dest_spec = dest_spec  # string
+        self.dest_spec = dest_spec
 
     def get_expr(self):
         """Compute the assignment corresponding to an add block."""

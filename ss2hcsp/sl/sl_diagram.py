@@ -1,15 +1,15 @@
 """Simulink diagrams."""
 
+from typing import Dict
 import lark
 from decimal import Decimal
 
-from ss2hcsp.sl.sl_line import SL_Line
-from ss2hcsp.sl.sl_block import get_gcd
+from ss2hcsp.sl.sl_line import SL_Line, unknownLine
+from ss2hcsp.sl.sl_block import get_gcd, SL_Block
 from ss2hcsp.matlab import convert
 from ss2hcsp.matlab import function
 from ss2hcsp.matlab.parser import expr_parser, function_parser, \
     transition_parser, func_sig_parser, state_op_parser
-from ss2hcsp.matlab import convert
 from ss2hcsp.sl.Continuous.clock import Clock
 from ss2hcsp.sl.port import Port
 from ss2hcsp.sl.Continuous.integrator import Integrator
@@ -39,11 +39,10 @@ from ss2hcsp.sf.sf_chart import SF_Chart
 from ss2hcsp.sf.sf_transition import Transition
 from ss2hcsp.sf.sf_message import SF_Message,SF_Data
 from ss2hcsp.sf.sf_event import SF_Event
-from ss2hcsp.sl.discrete_buffer import Discrete_Buffer
 from ss2hcsp.sl.mux.mux import Mux
 from ss2hcsp.sl.DataStore.DataStore import DataStoreMemory, DataStoreRead
-from xml.dom.minidom import parse, Element
-from xml.dom.minicompat import NodeList
+from xml.dom import minidom
+from xml.dom import minicompat
 import operator
 
 
@@ -84,7 +83,7 @@ class SL_Diagram:
     """Represents a Simulink diagram."""
     def __init__(self, location=""):
         # Dictionary of blocks indexed by name
-        self.blocks_dict = dict()
+        self.blocks_dict: Dict[str, SL_Block] = dict()
 
         # Dictionary of STATEFLOW parameters indexed by name
         self.chart_parameters = dict()
@@ -109,7 +108,7 @@ class SL_Diagram:
         # Parsed model of the XML file
         if location:
             with open(location) as f:
-                self.model = parse(f)
+                self.model = minidom.parse(f)
 
     def parse_stateflow_xml(self):
         """Parse stateflow charts from XML."""
@@ -133,10 +132,11 @@ class SL_Diagram:
             Returns a dictionary mapping transitions IDs to transition objects.
             
             """
-            assert isinstance(blocks, NodeList)
+            assert isinstance(blocks, minicompat.NodeList)
 
             tran_dict = dict()
             for block in blocks:
+                assert isinstance(block, minidom.Node)
                 if block.nodeName == "transition":
                     # Obtain transition ID, label, execution order
                     tran_ssid = block.getAttribute("SSID")
@@ -180,7 +180,7 @@ class SL_Diagram:
             _functions : list of Function objects.
             
             """
-            assert isinstance(block, Element)
+            assert isinstance(block, minidom.Element)
 
             children = [child for child in block.childNodes if child.nodeName == "Children"]
             if not children:
@@ -210,19 +210,10 @@ class SL_Diagram:
                         fun_script = get_attribute_value(child, "script")
                         if fun_script:
                             # Has script, directly use parser for matlab functions
-                            fun_name=function_parser.parse(fun_script).name
-                            hp= convert.convert_cmd(function_parser.parse(fun_script).cmd)
-                            ru=function_parser.parse(fun_script).return_var
-                            exprs=function.ListExpr(function_parser.parse(fun_script).params) if function_parser.parse(fun_script).params is not None else None
-                            fun_type="MATLAB_FUNCTION"
-                            if isinstance(ru,(function.Var,function.FunctionCall)):
-                                return_var=ru
-                            elif isinstance(ru,tuple):
-                                return_var=function.ListExpr(*ru)
+                            fun_name = function_parser.parse(fun_script).name
                             _functions.append(function_parser.parse(fun_script))
-                            # _functions.append(Function(fun_name,exprs,ru,hp,None,fun_type))
                         else:
-                            fun_type="GRAPHICAL_FUNCTION"
+                            # Otherwise, this is a graphical function
                             children = [c for c in child.childNodes if c.nodeName == "Children"]
                             assert len(children) == 1
                             sub_trans = get_transitions(children[0].childNodes)
@@ -239,11 +230,8 @@ class SL_Diagram:
                             for state in  sub_junctions:
                                 state.father = chart_state1
                                 chart_state1.children.append(state)
-                            # _states.append(chart_state1)
-                            hp=None
                             graph_fun = GraphicalFunction(fun_name, fun_params, fun_return, sub_trans, sub_junctions)
                             _functions.append(graph_fun)
-                            # _functions.append(Function(fun_name,fun_params,fun_return,hp,chart_state1,fun_type))
 
                     elif state_type in ("AND_STATE", "OR_STATE"):
                         # Extract AND- and OR-states
@@ -618,6 +606,10 @@ class SL_Diagram:
                             self.outputs.append(name)
                             num_dest += 1
                 self.add_block(Scope(name=block_name, num_dest=num_dest, st=sample_time))
+            elif block_type == "TriggerPort":
+                # Currently don't need to do anything
+                # TODO: figure out role of this block
+                pass
             elif block_type == "SubSystem":
                 subsystem = block.getElementsByTagName("System")[0]
 
@@ -787,6 +779,8 @@ class SL_Diagram:
                 subsystem.diagram.model = block
                 subsystem.diagram.parse_xml(default_SampleTimes)
                 self.add_block(subsystem)
+            else:
+                raise NotImplementedError("Unhandled block type: %s" % block_type)
 
         # Add lines
         lines = [child for child in system.childNodes if child.nodeName == "Line"]
@@ -823,12 +817,12 @@ class SL_Diagram:
             if block.type == "signalBuilder":
                 block.rename_src_lines()
 
-    def add_block(self, block):
+    def add_block(self, block: SL_Block) -> None:
         """Add given block to the diagram."""
         assert block.name not in self.blocks_dict
         self.blocks_dict[block.name] = block
 
-    def add_line(self, src, dest, src_port, dest_port, *, name="?", ch_name="?"):
+    def add_line(self, src: str, dest: str, src_port: int, dest_port: int, *, name="?", ch_name="?") -> None:
         """Add given line to the diagram."""
         line = SL_Line(src, dest, src_port, dest_port, name=name, ch_name=ch_name)
         src_block = self.blocks_dict[line.src]
@@ -1008,7 +1002,7 @@ class SL_Diagram:
 
                     # Delete the old line (input_line) from src_block
                     assert src_block is not None, "delete_subsystems: src_block not found."
-                    src_block.src_lines[input_line.src_port][input_line.branch] = None
+                    src_block.src_lines[input_line.src_port][input_line.branch] = unknownLine
 
                     # Get the corresponding input port in the subsystem
                     port = input_ports[port_id]
@@ -1020,9 +1014,9 @@ class SL_Diagram:
                                                  src_port=input_line.src_port, dest_port=port_line.dest_port)
                         new_input_line.name = input_line.name
                         # Delete the old line (port_line) and add a new one
-                        dest_block.add_dest(port_id=port_line.dest_port, sl_line=new_input_line)
+                        dest_block.add_dest(port_line.dest_port, new_input_line)
                         # Add a new line for src_block
-                        src_block.add_src(port_id=input_line.src_port, sl_line=new_input_line)
+                        src_block.add_src(input_line.src_port, new_input_line)
 
                 # For each output line, find what is the destination
                 # (in the current diagram or in other diagrams), and make
@@ -1035,7 +1029,7 @@ class SL_Diagram:
                     src_block = subsystem.blocks_dict[port_line.src]
 
                     # Delete the old line (port_line) from src_block
-                    src_block.src_lines[port_line.src_port][port_line.branch] = None
+                    src_block.src_lines[port_line.src_port][port_line.branch] = unknownLine
                     for output_line in block.src_lines[port_id]:
                         dest_block = None
                         if output_line.dest in self.blocks_dict:
@@ -1052,9 +1046,9 @@ class SL_Diagram:
                                                   src_port=port_line.src_port, dest_port=output_line.dest_port)
                         new_output_line.name = output_line.name
                         # Delete the old line (output_line) and add a new one
-                        dest_block.add_dest(port_id=output_line.dest_port, sl_line=new_output_line)
+                        dest_block.add_dest(output_line.dest_port, new_output_line)
                         # Add a new line for src_block
-                        src_block.add_src(port_id=port_line.src_port, sl_line=new_output_line)
+                        src_block.add_src(port_line.src_port, new_output_line)
 
         # Delete all the subsystems
         for name in subsystems:
