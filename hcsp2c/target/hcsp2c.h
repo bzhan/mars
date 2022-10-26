@@ -191,6 +191,9 @@ struct timespec current_tm;
 // Local clocks for each thread
 double* localTime;
 
+// Last recorded clocks for each thread
+double* recordTime;
+
 // Return value for exit
 int retVal;
 
@@ -258,6 +261,14 @@ void delay(int thread, double seconds) {
     pthread_mutex_unlock(&mutex);
 }
 
+// I introduced this function to test ODE without communication, 
+// but the output of this function confilicts with that of input,
+// so it is not used now.
+void recordAndPrintTime(int thread) {
+    printf("delay %.3f\n", localTime[thread] - recordTime[thread]);
+    recordTime[thread] = localTime[thread];
+}
+
 void init(int threadNumber, int channelNumber) {
     // Allocate thread and channel states.
     numThread = threadNumber;
@@ -289,8 +300,10 @@ void init(int threadNumber, int channelNumber) {
     prevTime = 0.0;
     clock_gettime(CLOCK_REALTIME, &start_tm);
     localTime = (double*) malloc(threadNumber * sizeof(double*));
+    recordTime = (double*) malloc(threadNumber * sizeof(double*));
     for (int i = 0; i < threadNumber; i++) {
         localTime[i] = 0.0;
+        recordTime[i] = 0.0;
     }
 }
 
@@ -348,7 +361,7 @@ void copyFromChannel(Channel ch) {
         printf("IO %s %.3f\n", channelNames[ch.channelNo], *((double*) ch.pos));
     } else if (channelTypes[ch.channelNo] == 2) {
         strCopy(((String*) ch.pos), ((String*) channelContent[ch.channelNo]));
-        printf("IO %s %s\n", channelNames[ch.channelNo], ((String*) ch.pos) -> str);
+        printf("IO %s \"%s\"\n", channelNames[ch.channelNo], ((String*) ch.pos) -> str);
     } else if (channelTypes[ch.channelNo] == 3) {
         listCopy(((List*) ch.pos), ((List*) channelContent[ch.channelNo]));
         printf("IO %s", channelNames[ch.channelNo]);
@@ -554,7 +567,13 @@ int externalChoice(int thread, int nums, Channel* chs) {
     // At this point, already found a match.
     int match_index = threadState[thread];
     assert (match_index >= 0);
-    curChannel = chs[match_index].channelNo;
+    curChannel = match_index;
+    for (int j = 0; j < nums; j++) {
+        if (chs[j].channelNo == match_index) {
+            match_index = j;
+            break;
+        }
+    }
 
     if (chs[match_index].type == 0) {
         // Waiting results in input
@@ -678,7 +697,13 @@ int interruptPoll(int thread, double seconds, int nums, Channel* chs) {
     // At this point, already found a match.
     int match_index = threadState[thread];
     assert (match_index >= 0);
-    curChannel = chs[match_index].channelNo;
+    curChannel = match_index;
+    for (int j = 0; j < nums; j++) {
+        if (chs[j].channelNo == match_index) {
+            match_index = j;
+            break;
+        }
+    }
 
     if (chs[match_index].type == 0) {
         // Waiting results in input

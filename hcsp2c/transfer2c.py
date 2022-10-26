@@ -492,7 +492,7 @@ int main() {
 main_init = \
 """
     init(threadNumber, channelNumber);
-    maxTime = 5.0;
+    maxTime = %f;
 """
 
 
@@ -508,7 +508,7 @@ main_footer = \
 
 
 
-def convertHps(hps, step_size:float = 1e-7, real_time:bool = False) -> str:
+def convertHps(hps, step_size:float = 1e-7, real_time:bool = False, maxTime:float = 5.0) -> str:
     """Main function for HCSP to C conversion."""
     ctx = inferTypes(hps)
 
@@ -532,7 +532,7 @@ def convertHps(hps, step_size:float = 1e-7, real_time:bool = False) -> str:
     for i, (name, _) in enumerate(hps):
         res += "\tthreadFuns[%d] = &%s;\n" % (i, name)
 
-    res += main_init
+    res += main_init % maxTime
 
     for i, (name, type) in enumerate(ctx.channelTypes.items()):
         res += "\tchannelNames[%d] = \"%s\";\n" % (i, name)
