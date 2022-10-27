@@ -4,6 +4,7 @@ import math
 from decimal import Decimal
 from fractions import Fraction
 import itertools
+from typing import Dict
 
 from ss2hcsp.util.topsort import topological_sort
 
@@ -67,7 +68,7 @@ class Expr:
         """Return set of functions with zero arity in the expression"""
         return NotImplementedError
 
-    def subst(self, inst):
+    def subst(self, inst: Dict[str, "Expr"]):
         """inst is a dictionary mapping variable names to expressions."""
         raise NotImplementedError
 

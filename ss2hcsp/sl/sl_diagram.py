@@ -636,8 +636,8 @@ class SL_Diagram:
                 tag = get_attribute_value(block, "GotoTag")
                 self.add_block(Goto(name=block_name, tag=tag))
             elif block_type == "Fcn":
-                expr = get_attribute_value(block, "Expr")
-                self.add_block(Fcn(name=block_name, expr=expr.strip()))
+                expr = expr_parser.parse(get_attribute_value(block, "Expr"))
+                self.add_block(Fcn(name=block_name, expr=expr))
             elif block_type == "Selector":
                 inputPortWidth = get_attribute_value(block, "InputPortWidth")
                 indices = get_attribute_value(block, "Indices")
