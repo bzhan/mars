@@ -22,7 +22,7 @@ def print_module(path, m):
         f.write("system\n  %s=%s()\nendsystem" % (m.name, m.name))
 
 def run_test(self, location, num_steps, expected_series, *,
-             print_diagrams=False, print_hcsp_raw=False, print_hcsp=False,
+             print_diagram=False, print_hcsp_raw=False, print_hcsp=False,
              print_time_series=False, output_to_file=None, debug_name=False):
     # First, parse and process diagram
     diagram = SL_Diagram(location=location)
@@ -34,7 +34,7 @@ def run_test(self, location, num_steps, expected_series, *,
     diagram.separate_diagram()
 
     # Optional: print diagram
-    if print_diagrams:
+    if print_diagram:
         print("Discrete blocks:")
         for block in diagram.discrete_blocks:
             print(block)
@@ -307,7 +307,7 @@ class SimTest(unittest.TestCase):
     def testAbstractFuelControlM2(self):
         run_test(self, "./Examples/Simulink/AbstractFuelControl_M2.xml", 80, {
 
-        }, output_to_file="./Examples/Simulink/AbstractFuelControl_M2.txt")
+        }, output_to_file="./Examples/Simulink/AbstractFuelControl_M2.txt", print_diagram=True)
 
 
 if __name__ == "__main__":

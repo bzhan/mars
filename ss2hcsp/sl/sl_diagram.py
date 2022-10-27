@@ -16,6 +16,8 @@ from ss2hcsp.sl.Continuous.integrator import Integrator
 from ss2hcsp.sl.Continuous.constant import Constant
 from ss2hcsp.sl.Continuous.signalBuilder import SignalBuilder
 from ss2hcsp.sl.Continuous.source import Sine
+from ss2hcsp.sl.Continuous.fcn import Fcn
+from ss2hcsp.sl.Continuous.transferfcn import TransferFcn
 from ss2hcsp.sl.MathOperations.product import Product
 from ss2hcsp.sl.MathOperations.bias import Bias
 from ss2hcsp.sl.MathOperations.gain import Gain
@@ -40,6 +42,8 @@ from ss2hcsp.sf.sf_transition import Transition
 from ss2hcsp.sf.sf_message import SF_Message,SF_Data
 from ss2hcsp.sf.sf_event import SF_Event
 from ss2hcsp.sl.mux.mux import Mux
+from ss2hcsp.sl.mux.selector import Selector
+from ss2hcsp.sl.connector import From, Goto
 from ss2hcsp.sl.DataStore.DataStore import DataStoreMemory, DataStoreRead
 from xml.dom import minidom
 from xml.dom import minicompat
@@ -610,6 +614,22 @@ class SL_Diagram:
                 # Currently don't need to do anything
                 # TODO: figure out role of this block
                 pass
+            elif block_type == "From":
+                tag = get_attribute_value(block, "GotoTag")
+                self.add_block(From(name=block_name, tag=tag))
+            elif block_type == "Goto":
+                tag = get_attribute_value(block, "GotoTag")
+                self.add_block(Goto(name=block_name, tag=tag))
+            elif block_type == "Fcn":
+                expr = get_attribute_value(block, "Expr")
+                self.add_block(Fcn(name=block_name, expr=expr.strip()))
+            elif block_type == "Selector":
+                inputPortWidth = get_attribute_value(block, "InputPortWidth")
+                indices = get_attribute_value(block, "Indices")
+                self.add_block(Selector(name=block_name, width=inputPortWidth, indices=indices))
+            elif block_type == "TransferFcn":
+                denom = get_attribute_value(block, "Denominator")
+                self.add_block(TransferFcn(name=block_name, denom=denom))
             elif block_type == "SubSystem":
                 subsystem = block.getElementsByTagName("System")[0]
 

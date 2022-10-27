@@ -1,5 +1,5 @@
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp.expr import true_expr, AConst
+from ss2hcsp.hcsp.expr import AConst
 
 
 class Constant(SL_Block):
