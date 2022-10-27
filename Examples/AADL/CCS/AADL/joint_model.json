@@ -5,9 +5,7 @@
         "output": {
             "veh_s": "s",
             "veh_v_l": "v",
-            "veh_v_w": "v",
-            "veh_l_v": "veh_l_v",
-            "veh_w_v": "veh_w_v"
+            "veh_v_w": "v"
         },
         "category": "abstract",
         "impl": "Simulink",
@@ -47,7 +45,7 @@
         "period": "6ms",
         "category": "device",
         "impl": "HCSP",
-        "discrete_computation": "{ inputs[\"PHY_vehicle_imp\"][\"veh_s\"]?data; outputs[\"gps\"][\"veh_pos\"]!data; wait(0.006); }*"
+        "discrete_computation": "{ inputs[\"PHY_vehicle_imp\"][\"veh_s\"]?data; outputs[\"GPS\"][\"veh_pos\"]!data; wait(0.006); }*"
     },
     "laser": {
         "display": [],
@@ -113,14 +111,14 @@
     },
     "emerg": {
         "display": [
-            "des_v",
+            "des_a",
             "veh_v",
             "obs_pos",
             "veh_pos",
             "cmd"
         ],
         "input": {
-            "des_v": {"var": "des_v", "val": 0.0},
+            "des_a": {"var": "des_a", "val": 0.0},
             "veh_v": {"var": "veh_v", "val": 0.0},
             "obs_pos": {"var": "obs_pos", "val": 0.0},
             "veh_pos": {"var": "veh_pos", "val": 0.0}
@@ -170,119 +168,92 @@
     "tran_img": {
         "type": "data",
         "init_value": 0.0,
+        "bus": "bus0",
         "source": "camera",
         "source_port": "img",
         "target": ["img_acq"],
         "target_port": ["img"],
-        "category": "connection",
-        "bus": "bus0"
+        "category": "connection"
     },
     "tran_obs_pos_radar": {
         "type": "data",
         "init_value": 0.0,
+        "bus": "bus0",
         "source": "radar",
         "source_port": "obs_pos_radar",
         "target": ["comp_obs_pos"],
         "target_port": ["obs_pos_radar"],
-        "category": "connection",
-        "bus": "bus0"
+        "category": "connection"
     },
     "tran_cmd": {
         "type": "data",
         "init_value": 0.0,
+        "bus": "bus1",
         "source": "emerg",
         "source_port": "cmd",
         "target": ["actuator"],
         "target_port": ["cmd"],
-        "category": "connection",
-        "bus": "bus0"
-    },
-    "tran_veh_a": {
-        "type": "data",
-        "init_value": 0.0,
-        "source": "actuator",
-        "source_port": "veh_a",
-        "target": ["vehicle_imp"],
-        "target_port": ["veh_a"],
-        "category": "connection"
-    },
-    "tran_veh_s": {
-        "type": "data",
-        "init_value": 0.0,
-        "source": "vehicle_imp",
-        "source_port": "veh_s",
-        "target": ["GPS"],
-        "target_port": ["veh_s"],
         "category": "connection"
     },
     "tran_veh_pos": {
         "type": "data",
         "init_value": 0.0,
+        "bus": "bus0",
         "source": "GPS",
         "source_port": "veh_pos",
         "target": ["emerg"],
         "target_port": ["veh_pos"],
-        "category": "connection",
-        "bus": "bus0"
-    },
-    "tran_veh_l_v": {
-        "type": "data",
-        "init_value": 0.0,
-        "source": "vehicle_imp",
-        "source_port": "veh_l_v",
-        "target": ["laser"],
-        "target_port": ["veh_l_v"],
         "category": "connection"
     },
     "tran_laser_valid": {
         "type": "data",
         "init_value": 0.0,
+        "bus": "bus0",
         "source": "laser",
         "source_port": "laser_valid",
         "target": ["velo_voter"],
         "target_port": ["laser_valid"],
-        "category": "connection",
-        "bus": "bus0"
+        "category": "connection"
     },
     "tran_laser_v": {
         "type": "data",
         "init_value": 0.0,
+        "bus": "bus0",
         "source": "laser",
         "source_port": "laser_v",
         "target": ["velo_voter"],
         "target_port": ["laser_v"],
-        "category": "connection",
-        "bus": "bus0"
+        "category": "connection"
     },
     "tran_wheel_valid": {
         "type": "data",
         "init_value": 0.0,
+        "bus": "bus0",
         "source": "wheel",
         "source_port": "wheel_valid",
         "target": ["velo_voter"],
         "target_port": ["wheel_valid"],
-        "category": "connection",
-        "bus": "bus0"
+        "category": "connection"
     },
     "tran_wheel_v": {
         "type": "data",
         "init_value": 0.0,
+        "bus": "bus0",
         "source": "wheel",
         "source_port": "wheel_v",
         "target": ["velo_voter"],
         "target_port": ["wheel_v"],
-        "category": "connection",
-        "bus": "bus0"
+        "category": "connection"
     },
     "tran_event": {
-        "type": "data",
+        "type": "event",
         "init_value": 0.0,
+        "bus": "bus0",
         "source": "user_panel",
         "source_port": "event",
         "target": ["pan_ctr_th"],
         "target_port": ["event"],
-        "category": "connection",
-        "bus": "bus0"
+        "category": "connection"
     },
     "tran_des_v": {
         "type": "data",
@@ -291,6 +262,42 @@
         "source_port": "des_v",
         "target": ["PI_ctr"],
         "target_port": ["des_v"],
+        "category": "connection"
+    },
+    "tran_proc_img": {
+        "type": "data",
+        "init_value": 0.0,
+        "source": "img_acq",
+        "source_port": "proc_img",
+        "target": ["comp_obs_pos"],
+        "target_port": ["proc_img"],
+        "category": "connection"
+    },
+    "tran_obs_pos": {
+        "type": "data",
+        "init_value": 0.0,
+        "source": "comp_obs_pos",
+        "source_port": "obs_pos",
+        "target": ["emerg"],
+        "target_port": ["obs_pos"],
+        "category": "connection"
+    },
+    "tran_veh_v": {
+        "type": "data",
+        "init_value": 0.0,
+        "source": "velo_voter",
+        "source_port": "veh_v",
+        "target": ["emerg", "PI_ctr"],
+        "target_port": ["veh_v", "veh_v"],
+        "category": "connection"
+    },
+    "tran_des_a": {
+        "type": "data",
+        "init_value": 0.0,
+        "source": "PI_ctr",
+        "source_port": "des_a",
+        "target": ["emerg"],
+        "target_port": ["des_a"],
         "category": "connection"
     },
     "PI_ctr": {
@@ -314,5 +321,6 @@
         "scheduling_protocol": "rms",
         "category": "processor"
     },
-    "bus0": {"latency": "3ms", "category": "bus"}
+    "bus0": {"latency": "3ms", "category": "bus"},
+    "bus1": {"latency": "3ms", "category": "bus"}
 }

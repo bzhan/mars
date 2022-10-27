@@ -16,7 +16,7 @@ from ss2hcsp.hcsp.pprint import pprint
 
 def run_test(self, filename, num_cycle, res, *, io_filter=None,
              print_chart=False, print_before_simp=False, print_final=False,
-             print_res=False, profile=False, output_to_file=None):
+             debug_name=False, print_res=False, profile=False, output_to_file=None):
     """Test function for Stateflow diagrams.
 
     filename : str - name of the XML file.
@@ -26,6 +26,7 @@ def run_test(self, filename, num_cycle, res, *, io_filter=None,
     print_chart : bool - print parsed chart.
     print_before_simp : bool - print HCSP program before simplification.
     print_final : bool - print HCSP program after optimization.
+    debug_name : bool - print size of HCSP program before and after optimization.
     output_to_file : str - (optional) name of file to output HCSP.
 
     """
@@ -36,7 +37,7 @@ def run_test(self, filename, num_cycle, res, *, io_filter=None,
     diagram = SL_Diagram(location=filename)
     proc_map = sf_convert.convert_diagram(
         diagram, print_chart=print_chart, print_before_simp=print_before_simp,
-        print_final=print_final)
+        print_final=print_final, debug_name=debug_name)
 
     if profile:
         p = Stats(pr)

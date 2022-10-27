@@ -33,9 +33,3 @@ class MinMax(SL_Block):
         expr = self.get_expr()
         out_var = self.src_lines[0][0].name
         return {out_var: expr}
-
-    def get_var_map(self):
-        in_vars = [AVar(line.name) for line in self.dest_lines]
-        expr = FunExpr(self.fun_name, in_vars)
-        out_var = self.src_lines[0][0].name
-        return {out_var: [(true_expr, expr)]}

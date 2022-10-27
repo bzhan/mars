@@ -8,7 +8,7 @@ from ss2hcsp.hcsp import module
 from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import pprint
 from ss2hcsp.sl.sl_diagram import SL_Diagram
-from ss2hcsp.sl.get_hcsp import new_translate_discrete
+from ss2hcsp.sl.get_hcsp import translate_discrete
 from aadl2hcsp.get_modules import get_continuous_module, get_databuffer_module, get_bus_module
 from ss2hcsp.sf import sf_convert
 
@@ -106,7 +106,7 @@ state := "wait"; prior := priority;
             }
         }
     }else{
-        {t_dot = 1 & t < 0.005} |> [] (unblock["emerg_imp"]? --> state := "ready";)
+        {t_dot = 1 & t < 0.005} |> [] (unblock["emerg"]? --> state := "ready";)
         if(t == 0.005) {state := "wait";}
     }
 }*
@@ -168,7 +168,7 @@ def translate_thread(name, info, bus=None):
         _ = diagram.parse_xml()
         diagram.add_line_name()
         _init_hps, _procedures, _output_hps, _update_hps, _ =\
-            new_translate_discrete(list(diagram.blocks_dict.values()), None)
+            translate_discrete(list(diagram.blocks_dict.values()), None)
         if len(_init_hps) >= 2:
             _init_hps = hcsp.Sequence(*_init_hps)
         elif len(_init_hps) == 1:
@@ -189,9 +189,9 @@ def translate_thread(name, info, bus=None):
     # Convert from Stateflow diagram to HCSP
     def get_stateflow_computation(location):
         diagram = SL_Diagram(location=location)
-        _ = diagram.parse_xml()
+        diagram.parse_xml()
         diagram.add_line_name()
-        _, _, charts, _, _, _, _, _, _ = diagram.seperate_diagram()
+        charts = [block for block in diagram.blocks_dict.values() if block.type == "stateflow"]
         assert len(charts) == 1
         converter = sf_convert.SFConvert(charts[0], chart_parameters=diagram.chart_parameters[charts[0].name],
                                          translate_io=False)
@@ -222,9 +222,9 @@ def translate_thread(name, info, bus=None):
     inst = {
         "INIT": hcsp.Sequence(*initializations) if initializations else hcsp.Skip(),
         "INPUT": input_hp,
-        "DISCRETE_COMPUTATION": hcsp.Sequence(parser.hp_parser.parse("EL := push(EL, event);"),
+        "DISCRETE_COMPUTATION": hcsp.Sequence(parser.hp_parser.parse("%s_impEL := push(%s_impEL, event);"%(name,name),),
                                               dis_comp,
-                                              parser.hp_parser.parse("EL := pop(EL);"))
+                                              parser.hp_parser.parse("%s_impEL := pop(%s_impEL);"%(name,name)))
         if "event_input" in info else dis_comp,
         "OUTPUT": hcsp.Sequence(*outputs)
     }

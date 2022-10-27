@@ -110,15 +110,15 @@
     },
     "emerg": {
         "display": [
-            "des_v",
+            "des_a",
             "veh_v",
             "obs_pos",
             "veh_pos",
             "cmd"
         ],
         "input": {
-            "des_v": {
-                "var": "des_v",
+            "des_a": {
+                "var": "des_a",
                 "val": 0.0
             },
             "veh_v": {
@@ -182,19 +182,7 @@
         "type": "data",
         "init_value": 0.0
     },
-    "tran_veh_a": {
-        "type": "data",
-        "init_value": 0.0
-    },
-    "tran_veh_s": {
-        "type": "data",
-        "init_value": 0.0
-    },
     "tran_veh_pos": {
-        "type": "data",
-        "init_value": 0.0
-    },
-    "tran_veh_l_v": {
         "type": "data",
         "init_value": 0.0
     },
@@ -215,10 +203,26 @@
         "init_value": 0.0
     },
     "tran_event": {
-        "type": "data",
+        "type": "event",
         "init_value": 0.0
     },
     "tran_des_v": {
+        "type": "data",
+        "init_value": 0.0
+    },
+    "tran_proc_img": {
+        "type": "data",
+        "init_value": 0.0
+    },
+    "tran_obs_pos": {
+        "type": "data",
+        "init_value": 0.0
+    },
+    "tran_veh_v": {
+        "type": "data",
+        "init_value": 0.0
+    },
+    "tran_des_a": {
         "type": "data",
         "init_value": 0.0
     },

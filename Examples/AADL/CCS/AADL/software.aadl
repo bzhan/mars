@@ -110,7 +110,7 @@ public
 			obs_pos: in data port;
 			veh_pos: in data port;
 			veh_v: in data port;
-			des_v: in data port;
+			des_a: in data port;
 			cmd: out data port;
 		properties
 			dispatch_protocol => periodic;

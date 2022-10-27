@@ -4,6 +4,11 @@ public
 		properties
 			latency => 3ms;
 	end bus0;
+
+	bus bus1
+		properties
+			latency => 3ms;
+	end bus1;
 	
 	bus implementation bus0.imp0
 	-- camera to img_acq.imp
@@ -13,33 +18,35 @@ public
 	-- radar to comp_obs_pos.imp
 	end bus0.imp1;
 	
+
 	bus implementation bus0.imp2
-	-- comp_acc.imp to actuator
+	-- GPS to comp_acc.imp
 	end bus0.imp2;
 	
 	bus implementation bus0.imp3
-	-- GPS to comp_acc.imp
+	-- laser to velo_voter.imp (valid)
 	end bus0.imp3;
 	
 	bus implementation bus0.imp4
-	-- laser to velo_voter.imp (valid)
+	-- laser to velo_voter.imp (v)
 	end bus0.imp4;
 	
 	bus implementation bus0.imp5
-	-- laser to velo_voter.imp (v)
+	-- wheel to velo_voter.imp (valid)
 	end bus0.imp5;
 	
 	bus implementation bus0.imp6
-	-- wheel to velo_voter.imp (valid)
+	-- wheel to velo_voter.imp (v)
 	end bus0.imp6;
 	
 	bus implementation bus0.imp7
-	-- wheel to velo_voter.imp (v)
-	end bus0.imp7;
-	
-	bus implementation bus0.imp8
 	-- user_panel to pan_ctr_th.imp (event)
-	end bus0.imp8;
+	end bus0.imp7;
+
+	bus implementation bus1.imp0
+	-- comp_acc.imp to actuator
+	end bus1.imp0;
+	
 
 	processor cpu
 		features

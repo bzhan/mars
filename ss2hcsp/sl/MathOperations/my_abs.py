@@ -30,9 +30,3 @@ class Abs(SL_Block):
         expr = self.get_expr()
         out_var = self.src_lines[0][0].name
         return {out_var: expr}
-
-    def get_var_map(self):
-        in_var = AVar(self.dest_lines[0].name)
-        expr = FunExpr("abs", [in_var])
-        out_var = self.src_lines[0][0].name
-        return {out_var: [(true_expr, expr)]}

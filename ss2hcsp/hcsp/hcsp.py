@@ -745,7 +745,7 @@ class ParaOutputChannel(OutputChannel):
         return result
 
 
-def is_comm_channel(hp):
+def is_comm_channel(hp: HCSP) -> bool:
     return hp.type == "input_channel" or hp.type == "output_channel"
 
 

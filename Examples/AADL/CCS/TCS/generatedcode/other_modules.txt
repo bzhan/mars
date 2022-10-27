@@ -9,20 +9,14 @@ begin
   PHY_vehicle_imp_veh_s := 0;
   PHY_vehicle_imp_veh_v_l := 0;
   PHY_vehicle_imp_veh_v_w := 0;
-  PHY_vehicle_imp_veh_l_v := 0;
-  PHY_vehicle_imp_veh_w_v := 0;
   {
     inputs["PHY_vehicle_imp"]["veh_s"]!s -->
       PHY_vehicle_imp_veh_s := 1; $
     inputs["PHY_vehicle_imp"]["veh_v_l"]!v -->
       PHY_vehicle_imp_veh_v_l := 1; $
     inputs["PHY_vehicle_imp"]["veh_v_w"]!v -->
-      PHY_vehicle_imp_veh_v_w := 1; $
-    inputs["PHY_vehicle_imp"]["veh_l_v"]!veh_l_v -->
-      PHY_vehicle_imp_veh_l_v := 1; $
-    inputs["PHY_vehicle_imp"]["veh_w_v"]!veh_w_v -->
-      PHY_vehicle_imp_veh_w_v := 1;
-  }*(PHY_vehicle_imp_veh_s == 0 || PHY_vehicle_imp_veh_v_l == 0 || PHY_vehicle_imp_veh_v_w == 0 || PHY_vehicle_imp_veh_l_v == 0 || PHY_vehicle_imp_veh_w_v == 0)
+      PHY_vehicle_imp_veh_v_w := 1;
+  }*(PHY_vehicle_imp_veh_s == 0 || PHY_vehicle_imp_veh_v_l == 0 || PHY_vehicle_imp_veh_v_w == 0)
   outputs["PHY_vehicle_imp"]["veh_a"]?a;
   {
     {v_dot = a, s_dot = v & true} |> [] (
@@ -33,10 +27,6 @@ begin
       inputs["PHY_vehicle_imp"]["veh_v_l"]!v -->
         skip;,
       inputs["PHY_vehicle_imp"]["veh_v_w"]!v -->
-        skip;,
-      inputs["PHY_vehicle_imp"]["veh_l_v"]!veh_l_v -->
-        skip;,
-      inputs["PHY_vehicle_imp"]["veh_w_v"]!veh_w_v -->
         skip;
     )
   }*
@@ -90,7 +80,7 @@ output data;
 begin
   {
     inputs["PHY_vehicle_imp"]["veh_s"]?data;
-    outputs["gps"]["veh_pos"]!data;
+    outputs["GPS"]["veh_pos"]!data;
     wait(0.006);
   }*
 end
@@ -265,7 +255,7 @@ end
 endmodule
 
 module EXE_emerg():
-output des_v, veh_v, obs_pos, veh_pos, cmd;
+output des_a, veh_v, obs_pos, veh_pos, cmd;
 procedure en_emerg_imp_state begin
   skip;
 end
@@ -436,7 +426,7 @@ begin
   {
     if (state == "wait") {
       dis["emerg"]?;
-      inputs["emerg"]["des_v"]?des_v;
+      inputs["emerg"]["des_a"]?des_a;
       inputs["emerg"]["veh_v"]?veh_v;
       inputs["emerg"]["obs_pos"]?obs_pos;
       inputs["emerg"]["veh_pos"]?veh_pos;
@@ -492,7 +482,7 @@ begin
       }
     } else {
       {t_dot = 1 & t < 0.005} |> [] (
-        unblock["emerg_imp"]? -->
+        unblock["emerg"]? -->
           state := "ready";
       )
       if (t == 0.005) {
@@ -704,9 +694,9 @@ begin
     } else {
       if (entered == 0) {
         c := 0;
-        EL := push(EL,event);
+        pan_ctr_th_impEL := push(pan_ctr_th_impEL,event);
         @exec_pan_ctr_th_imp;
-        EL := pop(EL);
+        pan_ctr_th_impEL := pop(pan_ctr_th_impEL);
         entered := 1;
       }
       if (entered == 1) {

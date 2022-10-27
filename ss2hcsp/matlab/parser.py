@@ -1,10 +1,8 @@
 """Parsing for matlab functions."""
 
-from lark import Lark, Transformer, v_args, exceptions
+from lark import Lark, Transformer, v_args
 
 from ss2hcsp.matlab import function
-from ss2hcsp.hcsp import expr
-from ss2hcsp.hcsp import hcsp
 
 
 grammar = r"""
@@ -144,6 +142,8 @@ class MatlabTransformer(Transformer):
             return function.AConst(1)
         elif s == "false":
             return function.AConst(0)
+        elif s == "pi":
+            return function.FunExpr("pi")
         else:
             return function.Var(str(s))
 

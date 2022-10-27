@@ -7,6 +7,7 @@ The state is given by a dictionary from variable names to numbers.
 import copy
 import ast
 import math
+from pickle import FALSE
 import random
 from decimal import Decimal
 from typing import Dict, Optional
@@ -1482,6 +1483,64 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=3000, num_show=None,
     res['statemap'] = statemap
     return res
 
+def get_comm_maps(comm_in_map,comm_out_map,hp,name):
+    for ch_name, direction in hcsp.get_comm_chs(hp):
+        # do not check channels with vars and number in args
+        hasvar = False
+        for arg in ch_name.args:
+            if(str(arg)[0] != '_' and str(arg) != 'run_now'):
+                if isinstance(arg, AVar):
+                    hasvar = True
+        if hasvar:
+            continue
+
+        if direction == '?':
+            if ch_name not in comm_in_map:
+                comm_in_map[ch_name] = []
+            comm_in_map[ch_name].append(name)
+        else:
+            if ch_name not in comm_out_map:
+                comm_out_map[ch_name] = []
+            comm_out_map[ch_name].append(name)
+    return comm_in_map,comm_out_map
+
+def instantation(comm_map_A,comm_map_B):
+    # instanation of comm_map_A with comm_map_B
+    new_map = {}
+    deletechs = []
+    for in_ch_name in comm_map_A.keys():
+        hasunderline = False
+        for i in range(len(in_ch_name.args)):
+            if str(in_ch_name.args[i])[0] == '_'  or str(in_ch_name.args[i]) == 'run_now':
+                hasunderline = True
+                arg_rank = i
+        if(hasunderline):
+            for out_ch_name in comm_map_B.keys():
+                samechannel = True
+                if in_ch_name.name != out_ch_name.name:
+                    continue
+                if len(in_ch_name.args) != len(out_ch_name.args):
+                    continue
+                for i in range(len(out_ch_name.args)):
+                    if i == arg_rank:
+                        continue
+                    if str(in_ch_name.args[i]) != str(out_ch_name.args[i]) \
+                            and str(in_ch_name.args[i])[0] != '_'  \
+                            and str(in_ch_name.args[i]) != 'run_now' \
+                            and str(out_ch_name.args[i])[0] != '_'\
+                            and str(out_ch_name.args[i]) != 'run_now':
+                        samechannel = False
+                if(samechannel):
+                    new_map[out_ch_name] = comm_map_B[out_ch_name]
+                    deletechs.append(in_ch_name)
+    instantedchs =[]
+    for k, v in new_map.items():
+        comm_map_A[k] = v
+        instantedchs.append(k)
+    for ch in list(set(deletechs)):
+        comm_map_A.pop(ch)
+    return comm_map_A,comm_map_B,instantedchs
+
 def check_comms(infos):
     """Given a list of HCSP infos, check for potential mismatch of
     communication channels.
@@ -1493,25 +1552,26 @@ def check_comms(infos):
     for info in infos:
         if info.hp.type == 'parallel':
             continue
-
-        for ch_name, direction in hcsp.get_comm_chs(info.hp):
-            if len(ch_name.args) > 0:  # do not check parameterized channels
-                continue
-            if direction == '?':
-                if ch_name not in comm_in_map:
-                    comm_in_map[ch_name] = []
-                comm_in_map[ch_name].append(info.name)
-            else:
-                if ch_name not in comm_out_map:
-                    comm_out_map[ch_name] = []
-                comm_out_map[ch_name].append(info.name)
+        comm_in_map,comm_out_map = get_comm_maps(comm_in_map,comm_out_map,info.hp,info.name)
+        if len(info.procedures)!=0:
+            for key,procedure in info.procedures.items():
+                comm_in_map,comm_out_map = get_comm_maps(comm_in_map,comm_out_map,procedure.hp,info.name)
+    
+    # instantation  _ +'CNAME'
+    instantedchs=[]
+    comm_in_map,comm_out_map,chs=instantation(comm_in_map,comm_out_map)
+    instantedchs.extend(chs)
+    comm_out_map,comm_in_map,chs=instantation(comm_out_map,comm_in_map)
+    instantedchs.extend(chs)
+    instantedchs = list(set(instantedchs))
 
     for ch_name, hp_names in comm_in_map.items():
         if len(hp_names) >= 2:
             warnings.append("Warning: input %s used in more than one process: %s" % (ch_name, ', '.join(hp_names)))
         if ch_name not in comm_out_map:
             warnings.append("Warning: input channel %s has no corresponding output" % ch_name)
-        elif hp_names[0] in comm_out_map[ch_name]:
+        elif (hp_names[0] in comm_out_map[ch_name]) \
+            and (ch_name not in instantedchs):
             warnings.append("Warning: input and output channel %s in the same process" % ch_name)
 
     for ch_name, hp_names in comm_out_map.items():

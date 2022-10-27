@@ -1,4 +1,6 @@
-from ss2hcsp.sl.get_hcsp import new_translate_discrete, new_translate_continuous
+"""Obtain submodules in the AADL to HCSP translation."""
+
+from ss2hcsp.sl.get_hcsp import translate_continuous
 from ss2hcsp.hcsp.expr import AConst, AVar, RelExpr, conj, disj, true_expr
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.module import HCSPModule
@@ -151,7 +153,7 @@ def get_continuous_module(name, ports, continuous_diagram, outputs):
     """
     ports: {port_name: (var_name, port_type)}
     """
-    init_hps, equations, constraints, _, _, _ = new_translate_continuous(continuous_diagram)
+    init_hps, equations, constraints, _, _, _ = translate_continuous(continuous_diagram)
     assert isinstance(init_hps[0], hp.Assign) and init_hps[0].var_name.name == "tt" and init_hps[0].expr.value == 0
     assert equations[0][0] == "tt" and equations[0][1].value == 1
     init_hps = init_hps[1:]

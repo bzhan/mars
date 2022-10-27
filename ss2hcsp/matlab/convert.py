@@ -1,18 +1,19 @@
 """Conversion from Matlab functions to HCSP."""
 
+from typing import Tuple
 from ss2hcsp.matlab import function
 from ss2hcsp.hcsp import expr, hcsp
 from ss2hcsp.sf.sf_state import GraphicalFunction
 
 
-def subtract_one(e):
+def subtract_one(e: expr.Expr) -> expr.Expr:
     assert isinstance(e, expr.Expr)
     if isinstance(e, expr.AConst):
         return expr.AConst(e.value - 1)
     else:
         return expr.OpExpr("-", e, expr.AConst(1))
 
-def convert_expr(e, *, procedures=None, arrays=None, messages=None,states=None):
+def convert_expr(e: function.Expr, *, procedures=None, arrays=None, states=None) -> Tuple[hcsp.HCSP, expr.Expr]:
     """Convert a Matlab expression to HCSP.
 
     Since there are possibly functions that should be evaluated,
@@ -165,7 +166,7 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
 
     """
     def conv_expr(e):
-        return convert_expr(e, procedures=procedures, arrays=arrays, messages=messages,states=states)
+        return convert_expr(e, procedures=procedures, arrays=arrays, states=states)
 
     def conv_exprs(es):
         # Convert a list of expressions
@@ -199,14 +200,13 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
                 return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(lname.fun_name),subtract_one(hp_e1)),subtract_one(hp_e2)),subtract_one(hp_e3))
         elif isinstance(lname, function.ListExpr):
             return [convert_lname(arg,val) for arg in lname.args]
-        elif isinstance(lname,function.DirectName):
+        elif isinstance(lname, function.DirectName):
             sname=lname.exprs[0]
             if str(sname) in messages.keys():
-                message=messages[str(sname)]
-                message.data=int(str(val))
-                messages[str(sname)]=message
-            return expr.FieldNameExpr(expr.AVar(sname),str(lname.exprs[1]))
-            # return expr.AVar(str(lname))
+                message = messages[str(sname)]
+                message.data = int(str(val))
+                messages[str(sname)] = message
+            return expr.FieldNameExpr(expr.AVar(sname), str(lname.exprs[1]))
 
         else:
             raise NotImplementedError

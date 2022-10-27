@@ -3,7 +3,7 @@
 import unittest
 
 from ss2hcsp.sl.sl_diagram import SL_Diagram
-from ss2hcsp.sl.get_hcsp import get_hcsp, new_get_hcsp
+from ss2hcsp.sl.get_hcsp import get_hcsp
 from ss2hcsp.hcsp.simulator import SimInfo, exec_parallel
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import optimize
@@ -22,8 +22,8 @@ def print_module(path, m):
         f.write("system\n  %s=%s()\nendsystem" % (m.name, m.name))
 
 def run_test(self, location, num_steps, expected_series, *,
-             print_diagrams=False, print_hcsp_raw=False, print_hcsp=False,
-             print_time_series=False, output_to_file=None, debug_name=True):
+             print_diagram=False, print_hcsp_raw=False, print_hcsp=False,
+             print_time_series=False, output_to_file=None, debug_name=False):
     # First, parse and process diagram
     diagram = SL_Diagram(location=location)
     diagram.parse_xml()
@@ -34,7 +34,11 @@ def run_test(self, location, num_steps, expected_series, *,
     diagram.separate_diagram()
 
     # Optional: print diagram
-    if print_diagrams:
+    if print_diagram:
+        if diagram.constants:
+            print("Constants:")
+            for k, v in diagram.constants.items():
+                print("%s = %s" % (k, v))
         print("Discrete blocks:")
         for block in diagram.discrete_blocks:
             print(block)
@@ -45,7 +49,7 @@ def run_test(self, location, num_steps, expected_series, *,
         print(diagram.outputs)
 
     # Convert to HCSP
-    result_hp = new_get_hcsp(
+    result_hp = get_hcsp(
         diagram.discrete_blocks, diagram.continuous_blocks,
         diagram.chart_parameters, diagram.outputs)
 
@@ -303,6 +307,12 @@ class SimTest(unittest.TestCase):
         run_test(self, "./Examples/Simulink/CanonicalMax2.xml", 80, {
 
         }, output_to_file="./Examples/Simulink/CanonicalMax2.txt")
+
+    def testAbstractFuelControlM2(self):
+        run_test(self, "./Examples/Simulink/AbstractFuelControl_M2.xml", 80, {
+
+        }, output_to_file="./Examples/Simulink/AbstractFuelControl_M2.txt", print_diagram=True)
+
 
 if __name__ == "__main__":
     unittest.main()

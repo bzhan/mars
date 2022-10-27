@@ -99,113 +99,132 @@ def simplifyAADL(info):
 
     """
     vars = {}
+    connmap = {}
+    source_conn_map = {}
     for key, value in info.items():
-        if value["category"] == "process":
-            for k, v in value["connections"].items():
-                if v['source'] in value["components"].keys():
-                    info[key]['connections'][k]['source'] = value["components"][v['source']]
-                    source = info[key]['connections'][k]['source'] + \
-                        '.'+v['source_port']
-                else:
-                    source = v['source']+'.'+v['source_port']
-                if v['target'] in value["components"].keys():
-                    info[key]['connections'][k]['target'] = value["components"][v['target']]
-                    target = info[key]['connections'][k]['target'] + \
-                        '.'+v['target_port']
-                else:
-                    target = v['target']+'.'+v['target_port']
-                connmap = {}
-                connmap_rv = {}
-                if source not in connmap.keys():
-                    connmap[source] = []
-                connmap[source].append(target)
-                if target not in connmap_rv.keys():
-                    connmap_rv[target] = []
-                connmap_rv[target].append(source)
-                if 'connmap' not in info[key].keys():
-                    info[key]['connmap'] = {}
-                info[key]['connmap'] .update(connmap)
-                if 'connmap_rv' not in info[key].keys():
-                    info[key]['connmap_rv'] = {}
-                info[key]['connmap_rv'] .update(connmap_rv)
-            pop_list = []
-            temp = deepcopy(info)
-            for k, v in value["components"].items():
-                pop_list.append(k)
-                temp[key]["components"][v] = info[v]
-            for k in pop_list:
-                temp[key]["components"].pop(k)
-            info = temp
-        if value["category"] == "system":
-            output = {}
-            if "components" in value.keys():
-                for k, v in value["components"].items():
-                    if type(v) == list:
-                        vars[k] = deepcopy(info[v[0]][v[1]])
-                        vars[k]['refered_name'] = v[1]
-                        if info[v[0]][v[1]]["category"] != "process":
-                            output[v[1]] = info[v[0]][v[1]]
-                        else:
-                            for threadk, threadv in info[v[0]][v[1]]["components"].items():
-                                output[threadk] = threadv
-                    if type(v) == str:
-                        vars[k] = deepcopy(info[v])
-                        vars[k]['refered_name'] = v
-                        if info[v]["category"] != "process":
-                            output[k] = info[v]
-                        else:
-                            for threadk, threadv in info[v]["components"].items():
-                                output[threadk] = threadv
-            if "connections" in value.keys():
+        if 'connmap' in value.keys():
+            for k, v in value['connmap'].items():
+                connmap[k] = v
+        if 'source_conn_map' in value.keys():
+            for k, v in value['source_conn_map'].items():
+                source_conn_map[k] = v
+        if(key != "connmap" and key != "connmap_rv"):
+            if value["category"] == "process":
+                # create connmap and connmap_rv
                 for k, v in value["connections"].items():
-                    output[k] = {}
-                    if vars[v['source']]['category'] == 'process':
-                        source = v['source']+"."+v['source_port']
-                        sources = vars[v['source']]['connmap_rv'][source]
-                        source = []
-                        source_port = []
-                        for sou in sources:
-                            [s, s_port] = sou.split(".")
-                            source.append(s)
-                            source_port.append(s_port)
+                    if v['source'] in value["components"].keys():
+                        info[key]['connections'][k]['source'] = value["components"][v['source']]
+                        source = info[key]['connections'][k]['source'] + \
+                            '.'+v['source_port']
                     else:
-                        source = v['source']
-                        source_port = v['source_port']
-                    if vars[v['target']]['category'] == 'process':
-                        target = v['target']+"."+v['target_port']
-                        targets = vars[v['target']]['connmap'][target]
-                        target = []
-                        target_port = []
-                        for tar in targets:
-                            [t, t_port] = tar.split(".")
-                            target.append(t)
-                            target_port.append(t_port)
+                        source = v['source']+'.'+v['source_port']
+                    if v['target'] in value["components"].keys():
+                        info[key]['connections'][k]['target'] = value["components"][v['target']]
+                        target = info[key]['connections'][k]['target'] + \
+                            '.'+v['target_port']
                     else:
-                        target = v['target']
-                        target_port = v['target_port']
-                    if isinstance(source,list):
-                        output[k]['source'] = source[0]
-                    else:
-                        output[k]['source'] = source
-                    if isinstance(source_port, list):
-                        output[k]['source_port'] = source_port[0]
-                    else:
-                        output[k]['source_port'] = source_port
-                    if isinstance(target, list):
-                        output[k]['target'] = target
-                    else:
-                        output[k]['target'] = [target]
-                    if isinstance(target_port, list):
-                        output[k]['target_port'] = target_port
-                    else:
-                        output[k]['target_port'] = [target_port]
-                    output[k]["category"] = "connection"
-            if "actual_connection_binding" in value.keys():
-                for k, v in value["actual_connection_binding"].items():
-                    for conn in v:
-                        output[conn][vars[k]['category']] = vars[k]['refered_name']
-            info = output
+                        target = v['target']+'.'+v['target_port']
 
+                    if source not in connmap.keys():
+                        connmap[source] = []
+                    connmap[source].append(target)
+                    if source not in source_conn_map.keys():
+                        source_conn_map[source] = []
+                    source_conn_map[source].append(k)
+
+                # extract components of process(thread) to info
+                pop_list = []
+                temp = deepcopy(info)
+                for k, v in value["components"].items():
+                    pop_list.append(k)
+                    temp[key]["components"][v] = info[v]
+                for k in pop_list:
+                    temp[key]["components"].pop(k)
+                info = temp
+            if value["category"] == "system":
+                output = {}
+                if "components" in value.keys():
+                    for k, v in value["components"].items():
+                        if type(v) == list:
+                            vars[k] = deepcopy(info[v[0]][v[1]])
+                            vars[k]['refered_name'] = v[1]
+                            if info[v[0]][v[1]]["category"] != "process":
+                                output[v[1]] = info[v[0]][v[1]]
+                            else:
+                                for threadk, threadv in info[v[0]][v[1]]["components"].items():
+                                    output[threadk] = threadv
+                        if type(v) == str:
+                            vars[k] = deepcopy(info[v])
+                            vars[k]['refered_name'] = v
+                            if info[v]["category"] != "process":
+                                output[k] = info[v]
+                            else:
+                                for threadk, threadv in info[v]["components"].items():
+                                    output[threadk] = threadv
+                if "connections" in value.keys():
+                    for k, v in value["connections"].items():
+                        source = v['source']+'.'+v['source_port']
+                        target = v['target']+'.'+v['target_port']
+                        if source not in connmap.keys():
+                            connmap[source] = []
+                        connmap[source].append(target)
+                        if source not in source_conn_map.keys():
+                            source_conn_map[source] = []
+                        source_conn_map[source].append(k)
+                if "actual_connection_binding" in value.keys():
+                    for k, v in value["actual_connection_binding"].items():
+                        for conn in v:
+                            output[conn] = {}
+                            output[conn][vars[k]['category']
+                                         ] = vars[k]['refered_name']
+                info = output
+
+
+    # update connmap and simplify conn
+    if 'connmap' not in info.keys():
+        info['connmap'] = {}
+    info['connmap'] .update(connmap)
+    if 'source_conn_map' not in info.keys():
+        info['source_conn_map'] = {}
+    info['source_conn_map'] .update(source_conn_map)
+    return info
+
+
+def simplify_conn_in_AADL(info):
+    connmap = deepcopy(info['connmap'])
+    info.pop('connmap')
+    while(True):
+        connmap_new = {}
+        ignorelist = []
+        for k, v in connmap.items():
+            if k not in ignorelist:
+                if v[0] in connmap.keys():
+                    connmap_new[k] = connmap[v[0]]
+                    ignorelist.append(v[0])
+                    if(v[0] in connmap_new.keys()):
+                        connmap_new.pop(v[0])
+                else:
+                    connmap_new[k] = connmap[k]
+        if connmap == connmap_new:
+            break
+        else:
+            connmap = connmap_new
+    for k,v in connmap.items():
+        conn_name = info['source_conn_map'][k][0]
+        sourcename = k
+        [source, source_port] = sourcename.split('.')
+        if conn_name not in info.keys():
+            info[conn_name] = {}
+        info[conn_name]['source'] = source
+        info[conn_name]['source_port'] = source_port
+        info[conn_name]['target'] = []
+        info[conn_name]['target_port'] = []
+        info[conn_name]['category'] = "connection"
+        for targetname in v:
+            [target,target_port] = targetname.split('.')
+            info[conn_name]['target'].append(target)
+            info[conn_name]['target_port'].append(target_port)
+    info.pop('source_conn_map')
     return info
 
 
@@ -472,6 +491,7 @@ class ParseFileException(Exception):
 
 class CompactJSONEncoder(json.JSONEncoder):
     """A JSON Encoder that puts small lists on single lines."""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.indentation_level = 0
@@ -493,7 +513,7 @@ class CompactJSONEncoder(json.JSONEncoder):
             else:
                 self.indentation_level += 1
                 output = [self.indent_str +
-                        f"{json.dumps(k)}: {self.encode(v)}" for k, v in o.items()]
+                          f"{json.dumps(k)}: {self.encode(v)}" for k, v in o.items()]
                 self.indentation_level -= 1
                 return "{\n" + ",\n".join(output) + "\n" + self.indent_str + "}"
 
@@ -520,6 +540,7 @@ class CompactJSONEncoder(json.JSONEncoder):
         """Required to also work with `json.dump`."""
         return self.encode(o)
 
+
 def mergedict(dict1, dict2):
     dict3 = deepcopy(dict2)
     for key, value in dict1.items():
@@ -535,6 +556,7 @@ def mergedict(dict1, dict2):
         else:
             dict3[key] = value
     return dict3
+
 
 def convert_AADL(directory: str, startfile: str, configfile: str):
     """
@@ -560,6 +582,7 @@ def convert_AADL(directory: str, startfile: str, configfile: str):
                 error_str += " " * (e.column-1) + "^" + '\n'
         raise ParseFileException(error_str)
 
+    info = simplify_conn_in_AADL(info)
     with open(directory + '\\' + configfile, 'r') as f:
         config = json.load(f)
 
