@@ -7,7 +7,9 @@ class Selector(SL_Block):
         self.indices = indices
 
     def __str__(self):
-        return "%s: width = %s, indices = %s" % (self.name, self.width, self.indices)
+        in_var = self.dest_lines[0].name
+        out_var = self.src_lines[0][0].name
+        return "%s: %s = %s%s" % (self.name, out_var, in_var, self.indices)
 
     def __repr__(self):
         return "Selector(%s, %s, %s)" % (self.name, self.width, self.indices)

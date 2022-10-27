@@ -35,8 +35,9 @@ class DiscretePulseGenerator(SL_Block):
         self.tick_var = self.name + "_tick"
 
     def __str__(self):
-        return "%s: DiscretePulseGenerator[amplitude = %s, period = %s, pulseWidth = %s, phaseDelay = %s]" % \
-            (self.name, str(self.amplitude), str(self.period), str(self.pulseWidth), str(self.phaseDelay))
+        out_var = self.src_lines[0][0].name
+        return "%s: %s = DiscretePulseGenerator[amplitude = %s, period = %s, pulseWidth = %s, phaseDelay = %s]" % \
+            (self.name, out_var, str(self.amplitude), str(self.period), str(self.pulseWidth), str(self.phaseDelay))
 
     def __repr__(self):
         return str(self)

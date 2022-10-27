@@ -9,7 +9,8 @@ class From(SL_Block):
         self.tag = tag
 
     def __str__(self):
-        return "From: %s" % self.tag
+        out_var = self.src_lines[0][0].name
+        return "%s: %s = %s" % (self.name, out_var, self.tag)
 
     def __repr__(self):
         return "From(%s, %s)" % (self.name, self.tag)
@@ -22,7 +23,8 @@ class Goto(SL_Block):
         self.tag = tag
 
     def __str__(self):
-        return "Goto: %s" % self.tag
+        in_var = self.dest_lines[0].name
+        return "%s: %s = %s" % (self.name, self.tag, in_var)
 
     def __repr__(self):
         return "Goto(%s, %s)" % (self.name, self.tag)

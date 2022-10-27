@@ -8,18 +8,15 @@ class Mux(SL_Block):
         super(Mux, self).__init__(name=name, num_dest=int(inputs), num_src=1, st=-1, type="mux")
         self.inputs = inputs
         self.signal_names = list()
-        self.ports=ports
+        self.ports = ports
 
     def __str__(self):
-        return "%s Mux[inputs = %s]" % (self.name, str(self.inputs))
+        in_vars = [line.name for line in self.dest_lines]
+        out_var = self.src_lines[0][0].name
+        return "%s: %s = %s" % (self.name, out_var, '[' + ', '.join(in_vars) + ']')
 
     def __repr__(self):
         return str(self)
-
-    def get_map(self):
-        out_var = self.src_lines[0][0].name
-        in_vars = [line.name for line in self.dest_lines]
-        return [out_var, in_vars]
 
     def get_expr(self):
         """Compute the assignment corresponding to a mux block."""

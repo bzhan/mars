@@ -6,7 +6,9 @@ class Fcn(SL_Block):
         self.expr = expr
 
     def __str__(self):
-        return "fcn: %s" % self.expr
+        in_var = self.dest_lines[0].name
+        out_var = self.src_lines[0][0].name
+        return "%s: %s = %s(%s)" % (self.name, out_var, self.expr, in_var)
 
     def __repr__(self):
         return "Fcn(%s, %s)" % (self.name, self.expr)
