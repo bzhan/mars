@@ -35,6 +35,10 @@ def run_test(self, location, num_steps, expected_series, *,
 
     # Optional: print diagram
     if print_diagram:
+        if diagram.constants:
+            print("Constants:")
+            for k, v in diagram.constants.items():
+                print("%s = %s" % (k, v))
         print("Discrete blocks:")
         for block in diagram.discrete_blocks:
             print(block)

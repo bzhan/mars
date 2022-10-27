@@ -82,6 +82,12 @@ def get_attribute_value(block, attribute, name=None):
                     return node.childNodes[0].data
     return None
 
+def get_field_attribute_value(block, attribute):
+    for node in block.getElementsByTagName("Field"):
+        if node.getAttribute("Name") == attribute:
+            return node.childNodes[0].data
+    return None
+
 
 class SL_Diagram:
     """Represents a Simulink diagram."""
@@ -89,8 +95,11 @@ class SL_Diagram:
         # Dictionary of blocks indexed by name
         self.blocks_dict: Dict[str, SL_Block] = dict()
 
-        # Dictionary of STATEFLOW parameters indexed by name
+        # Dictionary of Stateflow parameters indexed by name
         self.chart_parameters = dict()
+
+        # Dictionary of constants
+        self.constants = dict()
 
         # XML data structure
         self.model = None
@@ -106,8 +115,6 @@ class SL_Diagram:
         self.discrete_blocks = list()
         self.scopes = list()
         self.dsms = list()
-
-        self.others = list()
         
         # Parsed model of the XML file
         if location:
@@ -432,6 +439,14 @@ class SL_Diagram:
             self.name = models[0].getAttribute("Name")
 
         system = self.model.getElementsByTagName("System")[0]
+
+        workspace = self.model.getElementsByTagName("ModelWorkspace")
+        if workspace:
+            matstructs = workspace[0].getElementsByTagName("MATStruct")
+            for struct in matstructs:
+                name = get_field_attribute_value(struct, "Name")
+                value = float(get_field_attribute_value(struct, "Value"))
+                self.constants[name] = value
 
         # Add blocks
         blocks = [child for child in system.childNodes if child.nodeName == "Block"]
@@ -854,6 +869,7 @@ class SL_Diagram:
 
     def __str__(self):
         result = ""
+        result += "\n".join("%s = %s" % (k, v) for k, v in self.constants.items())
         result += "\n".join(str(block) for block in self.blocks_dict.values())
         return result
 
