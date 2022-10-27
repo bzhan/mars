@@ -1,0 +1,48 @@
+constants
+    a > 0;
+    c > 0;
+    del > 0;
+    2/a * del + del^2 < eps^2;
+end
+
+pre [z^2 + y^2 + x^2 < del^2];
+                  
+{   
+    t := *(t >= 0);
+    if(a/2*(x^2+y^2)>=z && -a/2*(x^2+y^2)<=z) {
+        if (z > 0) {
+            {
+                x_dot=-x + a * y,
+                y_dot=-y - a * x,
+                z_dot=x * (-y - a * x) - y * (-x + a * y) &
+                z > 0
+            }
+                invariant [x^2 + y^2 + z^2 < eps^2];
+        }
+        else if (z < 0) {
+            {
+                x_dot=-x - a * y,
+                y_dot=-y + a * x,
+                z_dot=x * (-y + a * x) - y * (-x - a * y) &
+                z < 0
+            }
+                invariant [x^2 + y^2 + z^2 < eps^2];
+        }
+        else {
+            {x_dot = -x, y_dot = -y, z_dot = x * (-y) - y * (-x), t_dot = -1 & t > 0}
+                invariant [x^2 + y^2 + z^2 < eps^2];
+        }
+    }
+    else { /* Inapplicable region, note z != 0 */
+        if((x-y)*z<=0) { 
+            {x_dot = c, y_dot = c, z_dot= x*c - y*c & a/2*(x^2+y^2) < z && -a/2*(x^2+y^2) > z}
+                solution;
+        }
+        else { 
+            {x_dot = -c, y_dot = -c, z_dot= -x*c + y*c & a/2*(x^2+y^2) < z && -a/2*(x^2+y^2) > z}
+                solution;
+        }
+    }
+}* invariant [z^2 < del^2];
+                  
+post [z^2 + y^2 + x^2 < eps^2];

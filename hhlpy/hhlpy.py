@@ -611,6 +611,8 @@ class CmdVerifier:
             # post-condition.
             if not isinstance(cur_hp.var_name, expr.AVar):
                 raise NotImplementedError
+            if isinstance(cur_hp.expr, (expr.LogicExpr, expr.RelExpr)):
+                raise NotImplementedError
             if cur_hp.var_name.name in self.constant_names:
                 raise NotImplementedError("Constants can not be assigned")
 
