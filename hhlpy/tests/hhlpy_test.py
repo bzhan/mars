@@ -1040,6 +1040,9 @@ class AdvancedHHLPyTest(unittest.TestCase):
     def testWatertank2(self):
         runFile(self, file="water_tank_new_v2.hhl")
 
+    def testNonholoSimple(self):
+        runFile(self, file="switched_systems/nonholo_simple.hhl")
+
 
 if __name__ == "__main__":
     unittest.main()
