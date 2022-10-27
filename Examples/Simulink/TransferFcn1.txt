@@ -1,0 +1,27 @@
+%type: module
+
+module P():
+output u, y;
+begin
+  t := 0;
+  _tick := 0;
+  Pulse_Generator_tick := 0;
+  tt := 0;
+  y := 0;
+  {
+    if (Pulse_Generator_tick % 2 >= 0 && Pulse_Generator_tick % 2 < 1) {
+      u := 1.0;
+    } else {
+      u := 0.0;
+    }
+    Pulse_Generator_tick := Pulse_Generator_tick + 1;
+    {tt_dot = 1, y_dot = 3.333 * u - 3.333 * y & tt < 5}
+    t := t + tt;
+    _tick := _tick + 1;
+    tt := 0;
+  }*
+end
+endmodule
+system
+  P=P()
+endsystem

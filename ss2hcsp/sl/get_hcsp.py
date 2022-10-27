@@ -156,6 +156,14 @@ def translate_continuous(diagram):
             equations.append((out_var, AVar(in_var)))
             if block.enable != true_expr:
                 constraints.append(block.enable)
+        elif block.type == "transfer_fcn":
+            in_var = block.dest_lines[0].name
+            out_var = block.src_lines[0][0].name
+            init_hps.append(hp.Assign(out_var, AConst(0)))
+            coeff = AConst(1.0 / block.get_coeff())
+            equations.append((out_var, OpExpr("-", OpExpr("*", coeff, AVar(in_var)), OpExpr("*", coeff, AVar(out_var)))))
+            if block.enable != true_expr:
+                constraints.append(block.enable)
         elif block.type == "triggered_subsystem":
             init_hps.extend(block.get_init_hps())
             init_hps.append(hp.Assign(block.triggered, AConst(0)))

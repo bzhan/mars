@@ -308,6 +308,21 @@ class SimTest(unittest.TestCase):
 
         }, output_to_file="./Examples/Simulink/CanonicalMax2.txt")
 
+    def testTransferFcn1(self):
+        run_test(self, "./Examples/Simulink/TransferFcn1.xml", 10, {
+            0.00: {'y': 0, 'u': 1.0},
+            0.10: {'y': 0.28346924831934156, 'u': 1.0},
+            0.20: {'y': 0.48658392408107254, 'u': 1.0},
+            0.30: {'y': 0.6321214212850567, 'u': 1.0},
+            0.40: {'y': 0.7364023884971252, 'u': 1.0},
+            0.50: {'y': 0.8111235425573193, 'u': 1.0},
+            0.60: {'y': 0.8646657542925558, 'u': 1.0},
+            0.70: {'y': 0.9030281701522963, 'u': 1.0},
+            0.80: {'y': 0.9305151699725418, 'u': 1.0},
+            0.90: {'y': 0.9502140562735414, 'u': 1.0},
+            1.00: {'y': 0.9643238807540565, 'u': 1.0},
+        }, output_to_file="./Examples/Simulink/TransferFcn1.txt")
+
     def testAbstractFuelControlM2(self):
         run_test(self, "./Examples/Simulink/AbstractFuelControl_M2.xml", 80, {
 

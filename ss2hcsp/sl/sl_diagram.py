@@ -643,7 +643,7 @@ class SL_Diagram:
                 indices = get_attribute_value(block, "Indices")
                 self.add_block(Selector(name=block_name, width=inputPortWidth, indices=indices))
             elif block_type == "TransferFcn":
-                denom = get_attribute_value(block, "Denominator")
+                denom = expr_parser.parse(get_attribute_value(block, "Denominator"))
                 self.add_block(TransferFcn(name=block_name, denom=denom))
             elif block_type == "SubSystem":
                 subsystem = block.getElementsByTagName("System")[0]
