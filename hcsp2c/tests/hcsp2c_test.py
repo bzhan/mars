@@ -388,7 +388,36 @@ class HCSP2CTest(unittest.TestCase):
 
         self.run_file(progs, "test15", expected_output, step_size=1e-5, maxTime=30.0)
 
-    # TODO: test16 and 17
+    def test16(self):
+        progs = [
+            "EL := []; x := \"\";EL := push(EL, \"a\"); EL := push(EL, \"b\"); EL := pop(EL); x := top(EL); ch!x;",
+            "x := \"\"; ch?x;"
+        ]
+
+        expected_output = [
+            'IO ch "a"', 
+            "deadlock"
+        ]
+
+        self.run_file(progs, "test16", expected_output, step_size=1e-5)
+
+    def test17(self):
+        progs = [
+            "EL := []; e := \"\";{ in?e --> EL := push(EL, e); $ out? --> e := top(EL); outval!e; EL := pop(EL); }*",
+            "e := \"\"; in!\"a\"; in!\"b\"; out!; outval?e; out!; outval?e;"
+        ]
+
+        expected_output = [
+            'IO in "a"', 
+            'IO in "b"', 
+            'IO out', 
+            'IO outval "b"', 
+            'IO out', 
+            'IO outval "a"', 
+            'deadlock'
+        ]
+
+        self.run_file(progs, "test17", expected_output, step_size=1e-5)    
 
     def test18(self):
         progs = [

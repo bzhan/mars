@@ -170,15 +170,29 @@ def transferToCExpr(e: expr.Expr) -> str:
             if isinstance(e.expr2, expr.AConst):
                 if isinstance(e.expr2.value, str):
                     c_str = "strEqual(%s, &strInit(%s))" % (e.expr1, e.expr2.value)
-                elif isinstance(e.expr2, expr.AVar) and e.expr2.name in gl_var_type and gl_var_type[e.expr2.name] == 2:
+                elif isinstance(e.expr2, expr.AVar) and e.expr2.name in gl_var_type and isinstance(gl_var_type[e.expr2.name], StringType):
                     c_str = "strEqual(%s, %s)" % (e.expr1, e.expr2)
     elif isinstance(e, expr.AConst):
         if isinstance(e.value, str):
             c_str = "*strInit(\"%s\")" % e.value
     elif isinstance(e, expr.ListExpr):
-        c_str = "midList = *listInit();\n"
+        c_str = "midList = listInit();\n"
         for i in range(e.count):
-            c_str += "listPush(midList, %s);\n" % transferToCExpr(e.args[i])
+            b = e.args[i]
+            if isinstance(b, expr.AVar):
+                if isinstance(gl_var_type[b.name], RealType):
+                    c_str += "midList = listPush(midList, (void*)(&%s), 1)" % b
+                elif isinstance(gl_var_type[b.name], StringType):
+                    c_str += "midList = listPush(midList, (void*)(&%s), 2)" % b
+                elif isinstance(gl_var_type[b.name], ListType):
+                    c_str += "midList = listPush(midList, (void*)(&%s), 3)" % b
+            elif isinstance(b, expr.AConst) and isinstance(b.value, str):
+                c_str += "midList = listPush(midList, (void*)strInit(%s), 2)" % b
+            elif isinstance(b, expr.ListExpr):
+                raise AssertionError("cannot push a raw list to a list")
+            else:
+                c_str += "midList = listPushNum(midList, %s)" % b
+
     elif isinstance(e, expr.FunExpr):
         args = e.exprs
         # Special functions
@@ -195,31 +209,36 @@ def transferToCExpr(e: expr.Expr) -> str:
         #     return int(a) // int(b)
         # elif e.fun_name == "sin":
         #     return math.sin(args[0])
-        # elif e.fun_name == "push":
-        #     a, b = args
+        elif e.fun_name == "push":
+            a, b = args
+            if isinstance(b, expr.AVar):
+                if isinstance(gl_var_type[b.name], RealType):
+                    return "*listPush(&%s, (void*)(&%s), 1)" % (a, b)
+                elif isinstance(gl_var_type[b.name], StringType):
+                    return "*listPush(&%s, (void*)(&%s), 2)" % (a, b)
+                elif isinstance(gl_var_type[b.name], ListType):
+                    return "*listPush(&%s, (void*)(&%s), 3)" % (a, b)
+            elif isinstance(b, expr.AConst) and isinstance(b.value, str):
+                return "*listPush(&%s, (void*)strInit(%s), 2)" % (a, b)
+            elif isinstance(b, expr.ListExpr):
+                raise AssertionError("cannot push a raw list to a list")
+            else:
+                return "*listPushNum(&%s, %s)" % (a, b)
+
         #     if not isinstance(a, list):
         #         a = [a]
         #     if not isinstance(b, list):
         #         b = [b]
         #     return a + b
-        # elif e.fun_name == "pop":
-        #     a, = args
-        #     assert isinstance(a, list)
-        #     if len(a) == 0:
-        #         raise SimulatorException('When evaluating %s: argument is empty' % expr)
-        #     return a[:-1]
-        # elif e.fun_name == "top":
-        #     a, = args
-        #     assert isinstance(a, list)
-        #     if len(a) == 0:
-        #         raise SimulatorException('When evaluating %s: argument is empty' % expr)
-        #     return a[-1]
-        # elif e.fun_name == "bottom":
-        #     a, = args
-        #     assert isinstance(a, list)
-        #     if len(a) == 0:
-        #         raise SimulatorException('When evaluating %s: argument is empty' % expr)
-        #     return a[0]
+        elif e.fun_name == "pop":
+            a, = args
+            return "*listPop(&%s)" % a
+        elif e.fun_name == "top":
+            a, = args
+            return "listTop(&%s)" % a
+        elif e.fun_name == "bottom":
+            a, = args
+            return "listBottom(&%s)" % a
         # elif e.fun_name == "get":
         #     a, = args
         #     assert isinstance(a, list)
@@ -258,7 +277,7 @@ def transferToCProcess(name: str, hp: hcsp.HCSP, context: TypeContext, total_tim
     """Convert HCSP process with given name to a C function"""
     c_process_str = ""
     global gl_var_type
-    gl_var_type = {}
+    gl_var_type = context.varTypes[name]
     body = ""
     procedures = []
     for procedure in procedures:
@@ -294,33 +313,7 @@ def transferToC(hp: hcsp.HCSP, total_time = 0, is_partial = -1):
     elif isinstance(hp, hcsp.Assign):       # type checking
         var_name = hp.var_name
         e = hp.expr
-        vars = hp.get_vars()
-        type = 0
         global gl_var_type
-
-        for var in vars:
-            if var in gl_var_type and gl_var_type[var] != 0:
-                type = gl_var_type[var]
-                break
-
-        if type == 0:
-            if isinstance(e, expr.AConst) and isinstance(e.value, str):
-                type = 2
-            elif isinstance(e, expr.ListExpr):
-                type = 3
-            elif isinstance(e, expr.AVar) and gl_var_type[e.name] != 0:
-                type = gl_var_type[e.name]
-            else:
-                type = 1
-
-        for var in vars:
-            if var in gl_var_type:
-                if gl_var_type[var] == 0:
-                    gl_var_type[var] = type
-                else:
-                    assert gl_var_type[var] == type
-            else:
-                gl_var_type[var] = type
 
         if isinstance(var_name, str):
             var_name = expr.AVar(str(var_name))
@@ -336,17 +329,37 @@ def transferToC(hp: hcsp.HCSP, total_time = 0, is_partial = -1):
         if isinstance(var_name, expr.Expr):
             var_str = str(var_name)
             if isinstance(e, expr.ListExpr):
-                c_str = "%s%s = midList;" % (ce, var_str)
+                c_str = "%s%s = *midList;" % (ce, var_str)
             else:
-                c_str = "%s = %s;" % (var_str, ce)
+                if isinstance(e, expr.FunExpr) and e.fun_name in ("top", "bottom", "get"):
+                    if isinstance(gl_var_type[var_str], RealType):
+                        c_str = "%s = *(double*)%s;" % (var_str, ce)
+                    elif isinstance(gl_var_type[var_str], StringType):
+                        c_str = "%s = *(String*)%s;" % (var_str, ce)
+                    elif isinstance(gl_var_type[var_str], ListType):
+                        c_str = "%s = *(List*)%s;" % (var_str, ce)
+                    else:
+                        raise AssertionError("Assign Error: unknown type for variable %s" % var_str)
+                else:
+                    c_str = "%s = %s;" % (var_str, ce)
         else:
             return_str = ""
             for n in var_name:
                 var_str = str(n)
                 if isinstance(e, expr.ListExpr):
-                    return_str = return_str + "%s%s = midList;" % (ce, var_str)
+                    return_str = return_str + "%s%s = *midList;" % (ce, var_str)
                 else:
-                    return_str = return_str + "%s = %s;" % (var_str, ce)
+                    if isinstance(e, expr.FunExpr) and e.fun_name in ("top", "bottom", "get"):
+                        if isinstance(gl_var_type[var_str], RealType):
+                            return_str = return_str + "%s = *(double*)%s;" % (var_str, ce)
+                        elif isinstance(gl_var_type[var_str], StringType):
+                            return_str = return_str + "%s = *(String*)%s;" % (var_str, ce)
+                        elif isinstance(gl_var_type[var_str], ListType):
+                            return_str = return_str + "%s = *(List*)%s;" % (var_str, ce)
+                        else:
+                            raise AssertionError("Assign Error: unknown type for variable %s" % var_str)
+                    else:
+                        return_str = return_str + "%s = %s;" % (var_str, ce)
             c_str = return_str
     elif isinstance(hp, hcsp.RandomAssign):
         var_name = hp.var_name
@@ -415,7 +428,7 @@ def transferToC(hp: hcsp.HCSP, total_time = 0, is_partial = -1):
             else:
                 if isinstance(e, expr.AConst):
                     if isinstance(e.value, str):
-                        return "midString = strInit(%s);\nchannels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = midString;" % (e.value, is_partial, str(ch_name), is_partial, is_partial)
+                        return "midString = strInit(\"%s\");\nchannels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = midString;" % (e.value, is_partial, str(ch_name), is_partial, is_partial)
                 elif isinstance(e, expr.ListExpr):
                     return "%schannels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = midList;" % (transferToCExpr(e),  is_partial, str(ch_name), is_partial, is_partial)
                 else:
@@ -428,7 +441,7 @@ def transferToC(hp: hcsp.HCSP, total_time = 0, is_partial = -1):
             else:
                 if isinstance(e, expr.AConst):
                     if isinstance(e.value, str):
-                        return "midString = strInit(%s);\nchannel.channelNo = %s;\nchannel.type = 1;\nchannel.pos = midString;\noutput(threadNumber, channel);" % (e.value, str(ch_name))
+                        return "midString = strInit(\"%s\");\nchannel.channelNo = %s;\nchannel.type = 1;\nchannel.pos = midString;\noutput(threadNumber, channel);" % (e.value, str(ch_name))
                 elif isinstance(e, expr.ListExpr):
                     return "%schannel.channelNo = %s;\nchannelchannel..type = 1;\nchannel.pos = midList;\noutput(threadNumber, channel);" % (transferToCExpr(e), str(ch_name))
                 else:

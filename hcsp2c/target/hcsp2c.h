@@ -25,6 +25,8 @@ static long long tm_to_ns(struct timespec tm) {
     return tm.tv_sec * 1000000000 + tm.tv_nsec;
 }
 
+void copyByType(void* dst, void* src, int type);
+
 // type: 0 -> input, 1 -> output
 typedef struct {
     int type; 
@@ -41,7 +43,7 @@ String;
 
 typedef struct {
     int length;
-    intptr_t* addr;
+    void** addr;
 }
 List;
 
@@ -49,14 +51,14 @@ String* strInit(char* input) {
     String* new_str = (String*)malloc(sizeof(String));
     new_str->length = strlen(input) + 1;
     new_str->str = (char*)malloc(sizeof(char) * new_str->length);
-    new_str->str = strcpy(new_str->str, input);
+    strcpy(new_str->str, input);
     return new_str;
 }
 
 void strCopy(String* dst, String* src) {
     dst->length = src->length;
     dst->str = (char*)malloc(sizeof(char) * dst->length);
-    dst->str = strcpy(dst->str, src->str);
+    strcpy(dst->str, src->str);
 }
 
 int strEqual(String a, String b) {
@@ -85,44 +87,81 @@ List* listInit() {
 void listCopy(List* dst, List* src) {
     assert(dst->length >= src->length);
     dst->length = src->length;
-    intptr_t* new_list = (intptr_t*)malloc(sizeof(intptr_t) * src->length);
+    void** new_list = (void**)malloc(sizeof(void*) * src->length);
     if (src->length > 0) {
-        memcpy(new_list, src->addr, (src->length) * sizeof(intptr_t));
+        memcpy(new_list, src->addr, (src->length) * sizeof(void*));
     }
     dst->addr = new_list;
 }
 
-void listPush(List* list, intptr_t input) {
-    intptr_t* new_list = (intptr_t*)malloc(sizeof(intptr_t) * (list->length + 1));
+List* listPush(List* list, void* input, int type) {
+    void** new_list = (void**)malloc(sizeof(void*) * (list->length + 1));
     if (list->length > 0) {
-        memcpy(new_list, list->addr, (list->length) * sizeof(intptr_t));
+        memcpy(new_list, list->addr, (list->length) * sizeof(void*));
+    }   
+
+    if (type == 1) {
+        new_list[(list->length)] = malloc(sizeof(double));
+    } else if (type == 2) {
+        new_list[(list->length)] = malloc(sizeof(String));
+    } else if (type == 3) {
+        new_list[(list->length)] = malloc(sizeof(List));
+    } else {
+        printf("Pop ERROR: type doesn't match.");
     }
-    memcpy(new_list + list->length, &input, sizeof(intptr_t));
+    
+    copyByType((new_list[(list->length)]), input, type);
     free(list->addr);
     list->addr = new_list;
     list->length += 1;
+    return list;
 }
 
-void listPop(List* list) {
+List* listPushExpr(List* list, double input) {
+    void** new_list = (void**)malloc(sizeof(void*) * (list->length + 1));
     if (list->length > 0) {
-        intptr_t* new_list = (intptr_t*)malloc(sizeof(intptr_t) * (list->length - 1));
-        memcpy(new_list, list->addr + 1, (list->length - 1) * sizeof(intptr_t));
+        memcpy(new_list, list->addr, (list->length) * sizeof(void*));
+    }
+    new_list[(list->length)] = malloc(sizeof(double));
+    *((double*)new_list[(list->length)]) = input;
+    free(list->addr);
+    list->addr = new_list;
+    list->length += 1;
+    return list;
+}
+
+List* listPop(List* list) {
+    if (list->length > 0) {
+        void** new_list = (void**)malloc(sizeof(void*) * (list->length - 1));
+        memcpy(new_list, list->addr, (list->length - 1) * sizeof(void*));
         free(list->addr);
         list->addr = new_list;
         list->length -= 1;
-    }    
+    } else if (list->length == 0) {
+        printf("Pop ERROR: list is empty");
+    }
+    return list;
 }
 
-intptr_t listBottom(List* list) {
-    return *(intptr_t*)(list->addr + list->length - 1);
+void* listBottom(List* list) {
+    if (list->length == 0) {
+        printf("Bottom ERROR: list is empty");
+    }
+    return *(void**)(list->addr);
 }
 
-intptr_t listTop(List* list) {
-    return *(intptr_t*)(list->addr);
+void* listTop(List* list) {
+    if (list->length == 0) {
+        printf("Top ERROR: list is empty");
+    }
+    return *(void**)(list->addr + list->length - 1);
 }
 
-intptr_t listGet(List* list, int num) {
-    return *(intptr_t*)(list->addr + num);
+void* listGet(List* list, int num) {
+    if (list->length <= num) {
+        printf("Get ERROR: length of list is %d, but try to get index %d.\n", list->length, num);
+    }
+    return *(void**)(list->addr + num);
 }
 
 // Global lock on the thread and channel states.
