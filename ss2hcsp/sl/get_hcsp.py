@@ -3,7 +3,7 @@
 from decimal import Decimal
 
 from ss2hcsp.hcsp import hcsp as hp
-from ss2hcsp.hcsp.expr import AConst, AVar, OpExpr, RelExpr, true_expr, subst_all, conj, neg_expr
+from ss2hcsp.hcsp.expr import AConst, AVar, OpExpr, RelExpr, true_expr, subst_all, conj, neg_expr, ListExpr
 from ss2hcsp.sl.sl_block import get_gcd
 from ss2hcsp.hcsp.module import HCSPModule
 from ss2hcsp.hcsp import hcsp
@@ -175,6 +175,12 @@ def translate_continuous(diagram):
             pass
         else:
             raise NotImplementedError('Unrecognized continuous block: %s' % block.type)
+
+    # Perform some pre-processing: first substitute the lists
+    for name, e in var_subst.items():
+        if isinstance(e, ListExpr):
+            for name2, e2 in var_subst.items():
+                var_subst[name2] = e2.subst({name: e}).simplify()
 
     for i in range(len(equations)):
         var, e = equations[i]

@@ -16,7 +16,7 @@ class Selector(SL_Block):
         hp_args = []
         for arg in self.indices.args:
             assert isinstance(arg, function.AConst)
-            hp_args.append(expr.ArrayIdxExpr(in_var, expr.AConst(arg.value)))
+            hp_args.append(expr.ArrayIdxExpr(in_var, expr.AConst(arg.value - 1)))
         return expr.ListExpr(*hp_args)
 
     def __str__(self):

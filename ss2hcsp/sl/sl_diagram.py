@@ -1120,7 +1120,7 @@ class SL_Diagram:
             new_input_line = SL_Line(src=src_goto_block.name, dest=dest_from_block.name,
                                      src_port=goto_line.src_port, dest_port=from_line.dest_port)
             new_input_line.branch = goto_line.branch
-            new_input_line.name = tag
+            new_input_line.name = goto_line.name
 
             # Delete the old line (port_line) and add a new one
             dest_from_block.add_dest(from_line.dest_port, new_input_line)

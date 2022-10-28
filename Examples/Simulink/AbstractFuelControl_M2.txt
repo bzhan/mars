@@ -1,0 +1,31 @@
+%type: module
+
+module P():
+output A/F, Throttle Angle, Engine Spped;
+begin
+  t := 0;
+  _tick := 0;
+  throttle_input_(deg)_tick := 0;
+  tt := 0;
+  x15 := 0;
+  x9 := 0.017;
+  A/F := 14.7;
+  x7 := 0.635;
+  x8 := 0.557;
+  {
+    if (throttle_input_(deg)_tick % 314 >= 60 && throttle_input_(deg)_tick % 314 < 217) {
+      x17 := 75.3;
+    } else {
+      x17 := 0.0;
+    }
+    throttle_input_(deg)_tick := throttle_input_(deg)_tick + 1;
+    {tt_dot = 1, x15_dot = 10.0 * x17 - 10.0 * x15, x9_dot = c14 * (c24 * A/F - c11), A/F_dot = 4 * (c15 + c16 * c25 * (1 / c11 * (1 + x9 + c13 * (c24 * A/F - c11)) * (c2 + c3 * (1000 * (pi / 30)) * x8 + c4 * (1000 * (pi / 30)) * x8^2 + c5 * x8 * (1000 * (pi / 30))^2)) + c17 * c25^2 * (1 / c11 * (1 + x9 + c13 * (c24 * A/F - c11)) * (c2 + c3 * (1000 * (pi / 30)) * x8 + c4 * (1000 * (pi / 30)) * x8^2 + c5 * x8 * (1000 * (pi / 30))^2))^2 + c18 * (c12 * (c2 + c3 * (1000 * (pi / 30)) * x7 + c4 * (1000 * (pi / 30)) * x7^2 + c5 * x7 * (1000 * (pi / 30))^2)) + c19 * (c12 * (c2 + c3 * (1000 * (pi / 30)) * x7 + c4 * (1000 * (pi / 30)) * x7^2 + c5 * x7 * (1000 * (pi / 30))^2)) * c25 * (1 / c11 * (1 + x9 + c13 * (c24 * A/F - c11)) * (c2 + c3 * (1000 * (pi / 30)) * x8 + c4 * (1000 * (pi / 30)) * x8^2 + c5 * x8 * (1000 * (pi / 30))^2)) - A/F), x7_dot = c1 * (2 * (c6 + c7 * (if x15 + 8.8 <= 0 then 0 else (if x15 + 8.8 >= 90 then 90 else x15 + 8.8)) + c8 * (if x15 + 8.8 <= 0 then 0 else (if x15 + 8.8 >= 90 then 90 else x15 + 8.8))^2 + c9 * (if x15 + 8.8 <= 0 then 0 else (if x15 + 8.8 >= 90 then 90 else x15 + 8.8))^3) * (c20 * x7^2 + c21 * x7 + c22) - c12 * (c2 + c3 * (1000 * (pi / 30)) * x7 + c4 * (1000 * (pi / 30)) * x7^2 + c5 * x7 * (1000 * (pi / 30))^2)), x8_dot = c1 * (2 * c23 * (c6 + c7 * (if x15 + 8.8 <= 0 then 0 else (if x15 + 8.8 >= 90 then 90 else x15 + 8.8)) + c8 * (if x15 + 8.8 <= 0 then 0 else (if x15 + 8.8 >= 90 then 90 else x15 + 8.8))^2 + c9 * (if x15 + 8.8 <= 0 then 0 else (if x15 + 8.8 >= 90 then 90 else x15 + 8.8))^3) * (c20 * x7^2 + c21 * x7 + c22) - (c2 + c3 * (1000 * (pi / 30)) * x8 + c4 * (1000 * (pi / 30)) * x8^2 + c5 * x8 * (1000 * (pi / 30))^2)) & tt < 0.05}
+    t := t + tt;
+    _tick := _tick + 1;
+    tt := 0;
+  }*
+end
+endmodule
+system
+  P=P()
+endsystem
