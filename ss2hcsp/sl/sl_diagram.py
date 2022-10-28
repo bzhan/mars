@@ -842,12 +842,6 @@ class SL_Diagram:
                     self.add_line(src=src_block, dest=dest_block, src_port=src_port, dest_port=dest_port,
                                   name=line_name, ch_name=ch_name)
 
-        # The line name should keep consistent with the corresponding signals
-        # if its src_block is a Signal Builder.
-        for block in self.blocks_dict.values():
-            if block.type == "signalBuilder":
-                block.rename_src_lines()
-
     def add_block(self, block: SL_Block) -> None:
         """Add given block to the diagram."""
         assert block.name not in self.blocks_dict
@@ -880,12 +874,6 @@ class SL_Diagram:
 
     def add_line_name(self):
         """Give each group of lines a name."""
-
-        # Set names of out-going lines from Signal Builders as the correspoding signals
-        for block in self.blocks_dict.values():
-            if isinstance(block, SignalBuilder):
-                block.rename_src_lines()
-
         num_lines = 0
         for block in self.blocks_dict.values():
             # Give name to the group of lines containing each

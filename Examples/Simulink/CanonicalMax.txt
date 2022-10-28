@@ -1,7 +1,7 @@
 %type: module
 
 module P():
-output y, x;
+output x, y;
 begin
   t := 0;
   _tick := 0;
