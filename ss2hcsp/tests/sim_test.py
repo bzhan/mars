@@ -51,9 +51,7 @@ def run_test(self, location, num_steps, expected_series, *,
             print(block)
 
     # Convert to HCSP
-    result_hp = get_hcsp(
-        diagram.discrete_blocks, diagram.continuous_blocks,
-        diagram.chart_parameters, diagram.outputs)
+    result_hp = get_hcsp(diagram)
 
     if debug_name:
         before_size = 0
@@ -326,9 +324,29 @@ class SimTest(unittest.TestCase):
         }, output_to_file="./Examples/Simulink/TransferFcn1.txt")
 
     def testAbstractFuelControlM2(self):
-        run_test(self, "./Examples/Simulink/AbstractFuelControl_M2.xml", 80, {
-
-        }, output_to_file="./Examples/Simulink/AbstractFuelControl_M2.txt", print_diagram=True)
+        run_test(self, "./Examples/Simulink/AbstractFuelControl_M2.xml", 200, {
+            0.00: {'AF': 14.7},
+            0.05: {'AF': 14.652951328662022},
+            0.10: {'AF': 14.597133383303678},
+            0.15: {'AF': 14.54673387221721},
+            0.20: {'AF': 14.508231577066661},
+            0.25: {'AF': 14.483227478549416},
+            0.30: {'AF': 14.470757070356782},
+            0.35: {'AF': 14.468769394147365},
+            0.40: {'AF': 14.47494692818884},
+            0.45: {'AF': 14.487107544502074},
+            0.50: {'AF': 14.503370055844176},
+            0.55: {'AF': 14.52219662155306},
+            0.60: {'AF': 14.542376480495552},
+            0.65: {'AF': 14.562985562342346},
+            0.70: {'AF': 14.583339506431617},
+            0.75: {'AF': 14.602948367547409},
+            0.80: {'AF': 14.621476445853265},
+            0.85: {'AF': 14.638708247013206},
+            0.90: {'AF': 14.654520430494651},
+            0.95: {'AF': 14.668859120732739},
+            1.00: {'AF': 14.681721805092772},
+        }, output_to_file="./Examples/Simulink/AbstractFuelControl_M2.txt")
 
 
 if __name__ == "__main__":

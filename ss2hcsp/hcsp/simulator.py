@@ -329,8 +329,10 @@ class SimInfo:
                         return round(e1) % int(e2)
                     else:
                         return round(e1) % e2
+                elif expr.op == '^':
+                    return e1 ** e2
                 else:
-                    raise TypeError
+                    raise SimulatorException("Unrecognized operator %s" % expr.op)
 
         elif isinstance(expr, FunExpr):
             # Special functions
@@ -441,6 +443,8 @@ class SimInfo:
                 return random.randint(1, args[0])
             elif expr.fun_name == "zeros":
                 return np.zeros(tuple(args), dtype=int).tolist()
+            elif expr.fun_name == "pi":
+                return math.pi
 
             # Custom functions
             elif expr.fun_name in self.functions:

@@ -72,7 +72,7 @@ def parse_value(value, default=None):
 
 def replace_spaces(name):
     """Replace spaces and newlines in name with underscores."""
-    return name.strip().replace(' ', '_').replace('\n', '_')
+    return name.strip().replace(' ', '_').replace('\n', '_').replace('(', '_').replace(')', '_').replace('/', '_')
 
 def get_attribute_value(block, attribute, name=None):
     for node in block.getElementsByTagName("P"):
@@ -106,9 +106,6 @@ class SL_Diagram:
 
         # Name of the diagram, set by parse_xml
         self.name = None
-
-        # Variables that needs to display
-        self.outputs = list()
 
         # Different parts of the diagram
         self.continuous_blocks = list()
@@ -622,7 +619,6 @@ class SL_Diagram:
                         if get_attribute_value(block=child, attribute="DstBlock", name=block_name):
                             name = get_attribute_value(block=child, attribute="Name")
                             assert name is not None, "Scope output line is not named"
-                            self.outputs.append(name)
                             num_dest += 1
                 self.add_block(Scope(name=block_name, num_dest=num_dest, st=sample_time))
             elif block_type == "TriggerPort":

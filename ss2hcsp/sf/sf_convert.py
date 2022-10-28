@@ -1,6 +1,5 @@
 """Converting a Stateflow chart to HCSP process."""
 
-from ss2hcsp.sl import get_hcsp
 from ss2hcsp.sl import Continuous
 from ss2hcsp.hcsp.pprint import pprint
 from ss2hcsp.sf.sf_state import OR_State, AND_State, Junction, GraphicalFunction

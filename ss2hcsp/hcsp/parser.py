@@ -215,7 +215,10 @@ class HPTransformer(Transformer):
         pass
 
     def var_expr(self, meta, s):
-        return expr.AVar(str(s), meta=meta)
+        if s == "pi":
+            return expr.FunExpr("pi", [], meta=meta)
+        else:
+            return expr.AVar(str(s), meta=meta)
 
     def num_expr(self, meta, v):
         return expr.AConst(Decimal(str(v)) if '.' in v or 'e' in v else int(v), meta=meta)

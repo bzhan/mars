@@ -189,14 +189,16 @@ def translate_continuous(diagram):
     return init_hps, equations, var_subst, constraints, trig_procs, procedures
 
 
-def get_hcsp(discrete_diagram, continuous_diagram, chart_parameters, outputs=()):
+def get_hcsp(diagram: SL_Diagram):
     dis_init_hps, dis_procedures, output_hps, update_hps, sample_time = \
-        translate_discrete(discrete_diagram, chart_parameters)
+        translate_discrete(diagram.discrete_blocks, diagram.chart_parameters)
     con_init_hps, equations, var_subst, constraints, trig_procs, con_procedures = \
-        translate_continuous(continuous_diagram)
+        translate_continuous(diagram.continuous_blocks)
 
     # Initialization
     init_hps = [hp.Assign("t", AConst(0)), hp.Assign("_tick", AConst(0))] + dis_init_hps + con_init_hps
+    for constant, val in diagram.constants.items():
+        init_hps.append(hp.Assign(constant, AConst(val)))
     init_hp = init_hps[0] if len(init_hps) == 1 else hp.Sequence(*init_hps)
 
     ### Discrete process ###
@@ -258,8 +260,13 @@ def get_hcsp(discrete_diagram, continuous_diagram, chart_parameters, outputs=())
     procedures = dis_procedures + con_procedures
 
     dict_procs = {proc.name: proc.hp for proc in procedures}
-    # dict_procs, main_hp = full_optimize_module(dict_procs, main_hp)
     procedures = [hp.Procedure(name=proc_name, hp=proc_hp) for proc_name, proc_hp in dict_procs.items()]
+
+    # Get outputs
+    outputs = []
+    for scope in diagram.scopes:
+        in_vars = [line.name for line in scope.dest_lines]
+        outputs.extend(in_vars)
     return HCSPModule(name="P", code=main_hp, procedures=procedures, outputs=outputs)
 
 
@@ -279,9 +286,7 @@ if __name__ == "__main__":
         diagram.separate_diagram()
 
         # Convert to HCSP
-        result_hp = get_hcsp(
-            diagram.discrete_blocks, diagram.continuous_blocks,
-            diagram.chart_parameters, diagram.outputs)
+        result_hp = get_hcsp(diagram)
 
         # Optimize module
         hp = result_hp.code
