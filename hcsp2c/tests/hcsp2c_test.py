@@ -7,16 +7,16 @@ from ss2hcsp.hcsp.hcsp import HCSPInfo
 
 
 class HCSP2CTest(unittest.TestCase):
-    def run_file(self, progs, filename, expected_output, *, step_size:float = 1e-7, real_time:bool = False, maxTime:float = 5.0):
+    def run_file(self, progs, filename, expected_output, *, step_size:float = 1e-7, real_time:bool = False, max_time:float = 5.0):
         infos = []
         for i, prog in enumerate(progs):
             infos.append(HCSPInfo("P" + str(i+1), parser.hp_parser.parse(prog)))
-        res = transfer2c.convertHps(infos, step_size=step_size, real_time=real_time, maxTime=maxTime)
+        res = transfer2c.convertHps(infos, step_size=step_size, real_time=real_time, max_time=max_time)
 
         with open('hcsp2c/target/%s.c' % filename, 'w') as f:
             f.write(res)
         res = subprocess.run(
-            "sudo gcc hcsp2c/target/%s.c -lpthread -o hcsp2c/output/%s.out" % (filename, filename),
+            "sudo gcc hcsp2c/target/%s.c -lpthread -lm -o hcsp2c/output/%s.out" % (filename, filename),
             stderr=subprocess.PIPE,
             text=True,
             shell=True
@@ -387,7 +387,7 @@ class HCSP2CTest(unittest.TestCase):
             'IO c 485174898.811'
         ]
 
-        self.run_file(progs, "test15", expected_output, step_size=1e-5, maxTime=30.0)
+        self.run_file(progs, "test15", expected_output, step_size=1e-5, max_time=30.0)
 
     # TODO: test16 and 17
 
@@ -436,7 +436,7 @@ class HCSP2CTest(unittest.TestCase):
             'IO cy 2.000'
         ]
 
-        self.run_file(progs, "test20", expected_output, step_size=1e-5, maxTime=10)
+        self.run_file(progs, "test20", expected_output, step_size=1e-5, max_time=10)
 
     def test21(self):
         progs = [
@@ -459,7 +459,7 @@ class HCSP2CTest(unittest.TestCase):
             'IO c 0.000'
         ]
 
-        self.run_file(progs, "test21", expected_output, step_size=1e-5, maxTime=6)
+        self.run_file(progs, "test21", expected_output, step_size=1e-5, max_time=6)
 
     def test24(self):
         progs = [

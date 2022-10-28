@@ -179,7 +179,12 @@ def transferToCExpr(e: expr.Expr) -> str:
             return "-(%s)" % transferToCExpr(e.exprs[0])
         elif e.op in ('+', '-', '*', '/'):
             return "(%s) %s (%s)" % (transferToCExpr(e.exprs[0]), e.op, transferToCExpr(e.exprs[1]))
+        elif e.op == '^':
+            return "pow(%s, %s)" % (transferToCExpr(e.exprs[0]), transferToCExpr(e.exprs[1]))
+        elif e.op == '%':
+            return "(int) %s %% %s" % (transferToCExpr(e.exprs[0]), transferToCExpr(e.exprs[1]))
         else:
+            print("transferToCExpr: %s" % e)
             raise NotImplementedError
     elif isinstance(e, expr.RelExpr):
         if e.op == "==":
@@ -192,6 +197,8 @@ def transferToCExpr(e: expr.Expr) -> str:
                     return "strEqual(%s, &strInit(%s))" % (e.expr1, e.expr2.value)
                 elif isinstance(e.expr2, expr.AVar) and e.expr2.name in gl_var_type and gl_var_type[e.expr2.name] == 2:
                     return "strEqual(%s, %s)" % (e.expr1, e.expr2)
+                else:
+                    return "(%s) == (%s)" % (transferToCExpr(e.expr1), transferToCExpr(e.expr2))
         else:
             return "(%s) %s (%s)" % (transferToCExpr(e.expr1), e.op, transferToCExpr(e.expr2))
     elif isinstance(e, expr.AConst):
@@ -206,6 +213,11 @@ def transferToCExpr(e: expr.Expr) -> str:
         return res
     elif isinstance(e, expr.IfExpr):
         return "(%s ? %s : %s)" % (transferToCExpr(e.cond), transferToCExpr(e.expr1), transferToCExpr(e.expr2))
+    elif isinstance(e, expr.LogicExpr):
+        if e.op == '!':
+            return "!(%s)" % transferToCExpr(e.exprs[0])
+        else:
+            return "(%s) %s (%s)" % (transferToCExpr(e.exprs[0]), e.op, transferToCExpr(e.exprs[1]))
     elif isinstance(e, expr.FunExpr):
         # Special functions
         args = e.exprs
@@ -215,7 +227,10 @@ def transferToCExpr(e: expr.Expr) -> str:
             return "min(%d, %s)" % (len(args), ', '.join(cargs))
         elif e.fun_name == "max":
             return "max(%d, %s)" % (len(args), ', '.join(cargs))
+        elif e.fun_name == "pi":
+            return "PI"
         else:
+            print("transferToCExpr: unsupported function %s" % e.fun_name)
             raise NotImplementedError
         # elif e.fun_name == "abs":
         #     return abs(*args)
@@ -361,10 +376,10 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
             for var in var_list:
                 formats.append("%s = %%.3f" % var)
                 vars.append(var)
-        format = " ".join(formats)
+        format = ", ".join(formats)
         var = ", ".join(vars)
         res =  "if ((int) (localTime[threadNumber] * 1000 + 0.5) % (int) (output_step_size * 1000 + 0.5) == 0) {\n"
-        res += "    printf(\"%%.3f: {%s}\\n\", localTime[threadNumber], %s);\n" % (format, var)
+        res += "    printf(\"%%.3f: %s\\n\", localTime[threadNumber], %s);\n" % (format, var)
         res += "}"
         return res
 
@@ -463,9 +478,9 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
             if_hps = hp.if_hps
             else_hp = hp.else_hp
 
-            res = "if (%s) { %s " % (if_hps[0][0], rec(if_hps[0][1]))
+            res = "if (%s) { %s " % (transferToCExpr(if_hps[0][0]), rec(if_hps[0][1]))
             for cond, hp in if_hps[1:]:
-                res += "} else if (%s) { %s " % (cond, rec(hp))
+                res += "} else if (%s) { %s " % (transferToCExpr(cond), rec(hp))
             if else_hp is None:
                 res += "}"
             else:
@@ -618,6 +633,8 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
 
 header = \
 """
+#include <math.h>
+
 #include "hcsp2c.h"
 
 double step_size = %s;
@@ -651,7 +668,7 @@ main_footer = \
 
 
 def convertHps(infos: List[HCSPInfo], step_size:float = 1e-7, output_step_size:float = 1e-1,
-               real_time:bool = False, maxTime:float = 5.0) -> str:
+               real_time:bool = False, max_time:float = 5.0) -> str:
     """Main function for HCSP to C conversion."""
     ctx = inferTypes(infos)
 
@@ -675,7 +692,7 @@ def convertHps(infos: List[HCSPInfo], step_size:float = 1e-7, output_step_size:f
     for i, info in enumerate(infos):
         res += "\tthreadFuns[%d] = &%s;\n" % (i, info.name)
 
-    res += main_init % maxTime
+    res += main_init % max_time
 
     for i, (name, type) in enumerate(ctx.channelTypes.items()):
         res += "\tchannelNames[%d] = \"%s\";\n" % (i, name)
