@@ -41,12 +41,6 @@ String;
 
 typedef struct {
     int length;
-    double* addr;
-}
-ListNum;
-
-typedef struct {
-    int length;
     intptr_t* addr;
 }
 List;
@@ -269,6 +263,19 @@ void recordAndPrintTime(int thread) {
     recordTime[thread] = localTime[thread];
 }
 
+void copyByType(void* dst, void* src, int type) {
+    if (type == 1) {
+        *((double*) dst) = *((double*) src);
+    } else if (type == 2) {
+        strCopy(((String*) dst), ((String*) src));
+    } else if (type == 3) {
+        listCopy(((List*) dst), ((List*) src));
+    } else if (type == 0) {
+    } else {
+        printf("copy error: type = %d", type);
+    }
+}
+
 void init(int threadNumber, int channelNumber) {
     // Allocate thread and channel states.
     numThread = threadNumber;
@@ -316,6 +323,8 @@ void run(int threadNumber, int channelNumber, void*(**threadFuns)(void*)) {
             channelContent[i] = (void*) malloc(1 * sizeof(String));
         } else if (channelTypes[i] == 3) {
             channelContent[i] = (void*) malloc(1 * sizeof(List));
+        } else if (channelTypes[i] == 0) {
+            channelContent[i] = (void*) malloc(1 * sizeof(double));
         } else {
             printf("Failed init for error channel type: %s %d", channelNames[i], channelTypes[i]);
         }
@@ -333,7 +342,6 @@ void run(int threadNumber, int channelNumber, void*(**threadFuns)(void*)) {
         pthread_join(threads[i], &status);
     }
 }
-
 
 void destroy(int threadNumber, int channelNumber) {
     // Release thread and channel states.
@@ -356,34 +364,26 @@ void copyFromChannel(Channel ch) {
     }
 
     // Copy data from channelContent
+    copyByType(ch.pos, channelContent[ch.channelNo], channelTypes[ch.channelNo]);
     if (channelTypes[ch.channelNo] == 1) {
-        *((double*) ch.pos) = *((double*) channelContent[ch.channelNo]);
         printf("IO %s %.3f\n", channelNames[ch.channelNo], *((double*) ch.pos));
     } else if (channelTypes[ch.channelNo] == 2) {
-        strCopy(((String*) ch.pos), ((String*) channelContent[ch.channelNo]));
         printf("IO %s \"%s\"\n", channelNames[ch.channelNo], ((String*) ch.pos) -> str);
     } else if (channelTypes[ch.channelNo] == 3) {
-        listCopy(((List*) ch.pos), ((List*) channelContent[ch.channelNo]));
         printf("IO %s", channelNames[ch.channelNo]);
         for (int i = 0; i < ((List*) ch.pos) -> length; i++) {
             printf(" %3f", *((double *)(((List*) ch.pos) -> addr + i)));
         }
         printf("\n");
+    } else if (channelTypes[ch.channelNo] == 0) {
+        printf("IO %s\n", channelNames[ch.channelNo]);
     } else {
         ;
     }
 }
 
 void copyToChannel(Channel ch) {
-    if (channelTypes[ch.channelNo] == 1) {
-        *((double*) channelContent[ch.channelNo]) = *((double*) ch.pos);
-    } else if (channelTypes[ch.channelNo] == 2) {
-        strCopy(((String*) channelContent[ch.channelNo]), ((String*) ch.pos));
-    } else if (channelTypes[ch.channelNo] == 3) {
-        listCopy(((List*) channelContent[ch.channelNo]), ((List*) ch.pos));
-    } else {
-        ;
-    }
+    copyByType(channelContent[ch.channelNo], ch.pos, channelTypes[ch.channelNo]);
 }
 
 // ch?x:

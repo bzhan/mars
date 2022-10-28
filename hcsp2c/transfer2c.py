@@ -176,7 +176,57 @@ def transferToCExpr(e: expr.Expr) -> str:
         if isinstance(e.value, str):
             c_str = "*strInit(\"%s\")" % e.value
     elif isinstance(e, expr.ListExpr):
-        c_str = str(e)
+        c_str = "midList = *listInit();\n"
+        for i in range(e.count):
+            c_str += "listPush(midList, %s);\n" % transferToCExpr(e.args[i])
+    elif isinstance(e, expr.FunExpr):
+        args = e.exprs
+        # Special functions
+        if e.fun_name == "min":
+            return "min(%d, *args)" % len(args)
+        elif e.fun_name == "max":
+            return "max(%d, *args)" % len(args)
+        # elif e.fun_name == "abs":
+        #     return abs(*args)
+        # elif e.fun_name == "gcd":
+        #     return math.gcd(*args)
+        # elif e.fun_name == "div":
+        #     a, b = args
+        #     return int(a) // int(b)
+        # elif e.fun_name == "sin":
+        #     return math.sin(args[0])
+        # elif e.fun_name == "push":
+        #     a, b = args
+        #     if not isinstance(a, list):
+        #         a = [a]
+        #     if not isinstance(b, list):
+        #         b = [b]
+        #     return a + b
+        # elif e.fun_name == "pop":
+        #     a, = args
+        #     assert isinstance(a, list)
+        #     if len(a) == 0:
+        #         raise SimulatorException('When evaluating %s: argument is empty' % expr)
+        #     return a[:-1]
+        # elif e.fun_name == "top":
+        #     a, = args
+        #     assert isinstance(a, list)
+        #     if len(a) == 0:
+        #         raise SimulatorException('When evaluating %s: argument is empty' % expr)
+        #     return a[-1]
+        # elif e.fun_name == "bottom":
+        #     a, = args
+        #     assert isinstance(a, list)
+        #     if len(a) == 0:
+        #         raise SimulatorException('When evaluating %s: argument is empty' % expr)
+        #     return a[0]
+        # elif e.fun_name == "get":
+        #     a, = args
+        #     assert isinstance(a, list)
+        #     if len(a) == 0:
+        #         raise SimulatorException('When evaluating %s: argument is empty' % expr)
+        #     return a[1:]
+
 
     return c_str
 
@@ -196,11 +246,12 @@ body_template = \
 """
     int midInt = 0;
     int is_comm = 0;
-    String* minString = NULL;
+    String* midString = NULL;
+    List* midList = NULL;
     Channel channel;
     Channel channels[%d];
     double h = step_size;
-    double nullVar = 0.0;
+    double* midDouble = NULL;
 """
 
 def transferToCProcess(name: str, hp: hcsp.HCSP, context: TypeContext, total_time = 0, is_partial = -1):
@@ -284,12 +335,18 @@ def transferToC(hp: hcsp.HCSP, total_time = 0, is_partial = -1):
         ce = transferToCExpr(e)
         if isinstance(var_name, expr.Expr):
             var_str = str(var_name)
-            c_str = "%s = %s;" % (var_str, ce)
+            if isinstance(e, expr.ListExpr):
+                c_str = "%s%s = midList;" % (ce, var_str)
+            else:
+                c_str = "%s = %s;" % (var_str, ce)
         else:
             return_str = ""
             for n in var_name:
                 var_str = str(n)
-                return_str = return_str + "%s = %s;" % (var_str, ce)
+                if isinstance(e, expr.ListExpr):
+                    return_str = return_str + "%s%s = midList;" % (ce, var_str)
+                else:
+                    return_str = return_str + "%s = %s;" % (var_str, ce)
             c_str = return_str
     elif isinstance(hp, hcsp.RandomAssign):
         var_name = hp.var_name
@@ -340,26 +397,42 @@ def transferToC(hp: hcsp.HCSP, total_time = 0, is_partial = -1):
             if var_name:
                 c_str = "channels[%d].channelNo = %s;\nchannels[%d].type = 0;\nchannels[%d].pos = &%s;" % (is_partial, str(ch_name), is_partial, is_partial, str(var_name))
             else:
-                c_str = "channels[%d].channelNo = %s;\nchannels[%d].type = 0;\nchannels[%d].pos = &nullVar;" % (is_partial, str(ch_name), is_partial, is_partial)
+                c_str = "channels[%d].channelNo = %s;\nchannels[%d].type = 0;\nchannels[%d].pos = midDouble;" % (is_partial, str(ch_name), is_partial, is_partial)
         else :
             if var_name:
                 c_str = "channel.channelNo = %s;\nchannel.type = 0;\nchannel.pos = &%s;\ninput(threadNumber, channel);" % (str(ch_name), str(var_name))
             else:
-                c_str = "channel.channelNo = %s;\nchannel.type = 0;\nchannel.pos = &nullVar;\ninput(threadNumber, channel);" % (str(ch_name))
+                c_str = "channel.channelNo = %s;\nchannel.type = 0;\nchannel.pos = midDouble;\ninput(threadNumber, channel);" % (str(ch_name))
     elif isinstance(hp, hcsp.OutputChannel):
         ch_name = hp.ch_name
         e = hp.expr
 
         if is_partial >= 0:
-            if e is not None:
+            if e is None:
+                return "channels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = midDouble;" % (is_partial, str(ch_name), is_partial, is_partial)
+            elif isinstance(e, expr.AVar):
                 return "channels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = &%s;" % (is_partial, str(ch_name), is_partial, is_partial, str(e))
             else:
-                return "channels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = &nullVar;" % (is_partial, str(ch_name), is_partial, is_partial)
+                if isinstance(e, expr.AConst):
+                    if isinstance(e.value, str):
+                        return "midString = strInit(%s);\nchannels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = midString;" % (e.value, is_partial, str(ch_name), is_partial, is_partial)
+                elif isinstance(e, expr.ListExpr):
+                    return "%schannels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = midList;" % (transferToCExpr(e),  is_partial, str(ch_name), is_partial, is_partial)
+                else:
+                    return "midDouble = (double*) malloc(sizeof(double));\n*midDouble = %s;\nchannels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = midDouble;" % (transferToCExpr(e), is_partial, str(ch_name), is_partial, is_partial)
         else:
-            if e is not None:
+            if e is None:
+                return "channel.channelNo = %s;\nchannel.type = 1;\nchannel.pos = midDouble;\noutput(threadNumber, channel);" % (str(ch_name))
+            elif isinstance(e, expr.AVar):
                 return "channel.channelNo = %s;\nchannel.type = 1;\nchannel.pos = &%s;\noutput(threadNumber, channel);" % (str(ch_name), str(e))
             else:
-                return "channel.channelNo = %s;\nchannel.type = 1;\nchannel.pos = &nullVar;\noutput(threadNumber, channel);" % (str(ch_name))
+                if isinstance(e, expr.AConst):
+                    if isinstance(e.value, str):
+                        return "midString = strInit(%s);\nchannel.channelNo = %s;\nchannel.type = 1;\nchannel.pos = midString;\noutput(threadNumber, channel);" % (e.value, str(ch_name))
+                elif isinstance(e, expr.ListExpr):
+                    return "%schannel.channelNo = %s;\nchannelchannel..type = 1;\nchannel.pos = midList;\noutput(threadNumber, channel);" % (transferToCExpr(e), str(ch_name))
+                else:
+                    return "midDouble = (double*) malloc(sizeof(double));\n*midDouble = %s;\nchannel.channelNo = %s;\nchannel.type = 1;\nchannel.pos = midDouble;\noutput(threadNumber, channel);" % (transferToCExpr(e), str(ch_name))
     elif isinstance(hp, hcsp.IChoice):
         c_str = "if (getIchoice()) {%s} else {%s}" % (str(hp.hp1), str(hp.hp2))
     elif isinstance(hp, hcsp.ODE):
