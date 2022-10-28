@@ -243,9 +243,6 @@ def transferToCExpr(e: expr.Expr) -> str:
             return "max(%d, %s)" % (len(args), ', '.join(cargs))
         elif e.fun_name == "pi":
             return "PI"
-        else:
-            print("transferToCExpr: unsupported function %s" % e.fun_name)
-            raise NotImplementedError
         # elif e.fun_name == "abs":
         #     return abs(*args)
         # elif e.fun_name == "gcd":
@@ -286,6 +283,7 @@ def transferToCExpr(e: expr.Expr) -> str:
         #         raise SimulatorException('When evaluating %s: argument is empty' % expr)
         #     return a[1:]
         else:
+            print("transferToCExpr: unsupported function %s" % e.fun_name)
             raise NotImplementedError
     
     else:
