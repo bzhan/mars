@@ -3,14 +3,15 @@ import subprocess
 
 from ss2hcsp.hcsp import parser
 from hcsp2c import transfer2c
+from ss2hcsp.hcsp.hcsp import HCSPInfo
 
 
 class HCSP2CTest(unittest.TestCase):
     def run_file(self, progs, filename, expected_output, *, step_size:float = 1e-7, real_time:bool = False, maxTime:float = 5.0):
-        hps = []
+        infos = []
         for i, prog in enumerate(progs):
-            hps.append(("P" + str(i+1), parser.hp_parser.parse(prog)))
-        res = transfer2c.convertHps(hps, step_size=step_size, real_time=real_time, maxTime=maxTime)
+            infos.append(HCSPInfo("P" + str(i+1), parser.hp_parser.parse(prog)))
+        res = transfer2c.convertHps(infos, step_size=step_size, real_time=real_time, maxTime=maxTime)
 
         with open('hcsp2c/target/%s.c' % filename, 'w') as f:
             f.write(res)

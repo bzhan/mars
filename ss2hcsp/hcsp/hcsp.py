@@ -1,7 +1,7 @@
 """Hybrid programs"""
 
 from collections import OrderedDict
-from typing import List, Union, Set
+from typing import Dict, List, Optional, Union, Set
 
 from ss2hcsp.hcsp.expr import Expr, AVar, AConst, Expr, true_expr, false_expr, RelExpr, LogicExpr, Expr
 from ss2hcsp.hcsp import assertion
@@ -116,7 +116,7 @@ class HCSP:
     def get_chs(self):
         return set()
 
-    def priority(self):
+    def priority(self) -> int:
         if self.type == "parallel":
             return 30
         elif self.type == "select_comm":
@@ -128,7 +128,7 @@ class HCSP:
         else:
             return 100
 
-    def size(self):
+    def size(self) -> int:
         """Returns size of HCSP program."""
         if isinstance(self, (Var, Skip, Wait, Assign, Assert, Test, Log,
                              InputChannel, OutputChannel)):
@@ -147,7 +147,7 @@ class HCSP:
         else:
             raise NotImplementedError
 
-    def contain_hp(self, name):
+    def contain_hp(self, name) -> bool:
         """Returns whether the given HCSP program contains Var(name)."""
         if isinstance(self, Var):
             return self.name == name
@@ -174,7 +174,7 @@ class HCSP:
         else:
             raise NotImplementedError
 
-    def get_contain_hps_count(self):
+    def get_contain_hps_count(self) -> Dict[str, int]:
         """Returns the dictionary mapping contained hps to number
         of appearances.
         
@@ -208,7 +208,7 @@ class HCSP:
         rec(self)
         return res
 
-    def get_contain_hps(self):
+    def get_contain_hps(self) -> Set[str]:
         """Returns the set of Var calls contained in self."""
         return set(self.get_contain_hps_count())
 
@@ -1423,8 +1423,10 @@ class HCSPInfo:
         self.name = name
         self.hp = hp
         
-        # List of output variables, None indicates output everything
-        self.outputs = outputs
+        # List of output variables
+        self.outputs = []
+        if outputs is not None:
+            self.outputs = outputs
 
         # List of declared procedures
         self.procedures: List[Procedure]
@@ -1496,7 +1498,7 @@ def HCSP_subst(hp, inst):
         print(hp)
         raise NotImplementedError
 
-def reduce_procedures(hp, procs, strict_protect=None):
+def reduce_procedures(hp: HCSP, procs: Dict[str, HCSP], strict_protect:Optional[Set[str]] = None):
     """Reduce number of procedures in the process by inlining.
 
     hp : HCSP - input process.
@@ -1522,7 +1524,7 @@ def reduce_procedures(hp, procs, strict_protect=None):
 
     # First, construct the dependency relation. We use the empty string
     # to represent the toplevel process.
-    dep_relation = dict()
+    dep_relation: Dict[str, HCSP] = dict()
     dep_relation[""] = hp.get_contain_hps()
     for name, proc in procs.items():
         dep_relation[name] = proc.get_contain_hps()

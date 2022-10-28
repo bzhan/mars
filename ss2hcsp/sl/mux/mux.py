@@ -26,7 +26,12 @@ class Mux(SL_Block):
 
     def get_output_hp(self):
         out_var = self.src_lines[0][0].name
-        return hp.Assign(out_var, self.get_expr())
+        # Use a different way for discrete assignments
+        in_vars = [line.name for line in self.dest_lines]
+        e = AVar(in_vars[0])
+        for i in range(1, len(in_vars)):
+            e = FunExpr("push", [e, AVar(in_vars[i])])
+        return hp.Assign(out_var, e)
 
     def get_var_subst(self):
         expr = self.get_expr()

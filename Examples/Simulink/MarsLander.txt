@@ -1,0 +1,40 @@
+%type: module
+
+module P():
+output m, v, Fc, r;
+begin
+  t := 0;
+  _tick := 0;
+  Fc3_state := 2835;
+  x9 := 1500;
+  x10 := 0.6;
+  x11 := 0.01;
+  x3 := -1.5;
+  x6 := 3.732;
+  tt := 0;
+  r := 20;
+  m := 759.5;
+  v := -1.5;
+  {
+    x2 := Fc3_state;
+    x4 := v - -1.5;
+    x14 := x2 / m;
+    x12 := 1500 / m;
+    x7 := x4 * 0.6;
+    x13 := x14 - 3.732;
+    x5 := x13 * 0.01;
+    x8 := -x5 + 3.732 - x7;
+    x0 := max(x8,x12);
+    x1 := x0 * m;
+    Fc := (if x1 <= 1500 then 1500 else (if x1 >= 5000 then 5000 else x1));
+    Fc3_state := Fc;
+    {tt_dot = 1, r_dot = v, m_dot = Fc / (if Fc > 6000 then 2900 else (if Fc > 4000 then 2750 else (if Fc > 3000 then 2600 else (if Fc > 2000 then 2400 else 2200)))) * -1, v_dot = Fc / m - 3.732 & tt < 0.128}
+    t := t + tt;
+    _tick := _tick + 1;
+    tt := 0;
+  }*
+end
+endmodule
+system
+  P=P()
+endsystem

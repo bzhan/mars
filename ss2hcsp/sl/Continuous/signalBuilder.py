@@ -45,7 +45,7 @@ class SignalBuilder(SL_Block):
             branches = []
             time_axis = self.time_axises[s_id]
             data_axis = self.data_axises[s_id]
-            signal_name = self.signal_names[s_id]
+            signal_name = self.src_lines[s_id][0].name
             for i in range(len(time_axis)-1):
                 left = int(time_axis[i] / self.st)
                 right = int(time_axis[i+1] / self.st)
@@ -63,9 +63,3 @@ class SignalBuilder(SL_Block):
             procs.append(hp.ITE(branches, else_act))
         procs.append(hp.Assign(self.tick_var, OpExpr("+", AVar(self.tick_var), AConst(1))))
         return hp.seq(procs)
-
-    def rename_src_lines(self):
-        assert len(self.signal_names) == len(self.src_lines)
-        for i in range(len(self.signal_names)):
-            for line in self.src_lines[i]:
-                line.name = self.signal_names[i]
