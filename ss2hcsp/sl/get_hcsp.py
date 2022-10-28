@@ -147,7 +147,7 @@ def translate_continuous(diagram):
 
     for block in diagram:
         if block.type in ('add', 'product', 'bias', 'gain', 'constant', 'square',
-                          'sqrt', 'switch', 'sine'):
+                          'sqrt', 'switch', 'sine', 'fcn', 'mux', 'selector', 'saturation'):
             var_subst.update(block.get_var_subst())
         elif block.type == "integrator":
             in_var = block.dest_lines[0].name
@@ -160,7 +160,7 @@ def translate_continuous(diagram):
             in_var = block.dest_lines[0].name
             out_var = block.src_lines[0][0].name
             init_hps.append(hp.Assign(out_var, AConst(0)))
-            coeff = AConst(1.0 / block.get_coeff())
+            coeff = AConst(block.get_coeff())
             equations.append((out_var, OpExpr("-", OpExpr("*", coeff, AVar(in_var)), OpExpr("*", coeff, AVar(out_var)))))
             if block.enable != true_expr:
                 constraints.append(block.enable)
@@ -269,6 +269,7 @@ if __name__ == "__main__":
         diagram.add_line_name()
         diagram.comp_inher_st()
         diagram.inherit_to_continuous()
+        diagram.connect_goto()
         diagram.separate_diagram()
 
         # Convert to HCSP

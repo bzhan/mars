@@ -31,6 +31,7 @@ def run_test(self, location, num_steps, expected_series, *,
     diagram.add_line_name()
     diagram.comp_inher_st()
     diagram.inherit_to_continuous()
+    diagram.connect_goto()
     diagram.separate_diagram()
 
     # Optional: print diagram
@@ -45,8 +46,9 @@ def run_test(self, location, num_steps, expected_series, *,
         print("Continuous blocks:")
         for block in diagram.continuous_blocks:
             print(block)
-        print("Outputs:")
-        print(diagram.outputs)
+        print("Scopes:")
+        for block in diagram.scopes:
+            print(block)
 
     # Convert to HCSP
     result_hp = get_hcsp(

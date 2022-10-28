@@ -1,6 +1,6 @@
 from ss2hcsp.sl.sl_block import SL_Block
 from ss2hcsp.hcsp import hcsp as hp
-from ss2hcsp.hcsp.expr import AVar, FunExpr
+from ss2hcsp.hcsp.expr import AVar, FunExpr, ListExpr
 
 class Mux(SL_Block):
     """docstring for Mux"""
@@ -21,9 +21,7 @@ class Mux(SL_Block):
     def get_expr(self):
         """Compute the assignment corresponding to a mux block."""
         in_vars = [line.name for line in self.dest_lines]
-        e = AVar(in_vars[0])
-        for i in range(1, len(in_vars)):
-            e = FunExpr("push", [e, AVar(in_vars[i])])
+        e = ListExpr(*(AVar(var) for var in in_vars))
         return e
 
     def get_output_hp(self):

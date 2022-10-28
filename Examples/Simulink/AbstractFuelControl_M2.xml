@@ -13,7 +13,7 @@
         <P Name="UnitExpr">inherit</P>
       </Outport>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.377</P>
+      <P Name="ComputedModelVersion">1.378</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -76,8 +76,8 @@ introducing unnecessary complexity.   </P>
           <P Name="LoadSaveID" Class="char">0</P>
           <P Name="Extents" Class="double">[1635.0, 701.0]</P>
           <P Name="ZoomFactor" Class="double">1.0</P>
-          <P Name="Offset" Class="double">[-18.25, 48.166666666665975]</P>
-          <P Name="SceneRectInView" Class="double">[-18.25, 48.166666666665975, 1090.0, 467.33333333333331]</P>
+          <P Name="Offset" Class="double">[297.08333333333326, 154.83333333333266]</P>
+          <P Name="SceneRectInView" Class="double">[297.08333333333326, 154.83333333333266, 1090.0, 467.33333333333331]</P>
         </Object>
         <Object PropName="DockComponentsInfo" ObjectID="6" ClassName="Simulink.DockComponentInfo">
           <P Name="Type" Class="char">GLUE2:PropertyInspector</P>
@@ -105,9 +105,9 @@ introducing unnecessary complexity.   </P>
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">bzhan</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Thu Oct 27 11:42:10 2022</P>
-      <P Name="RTWModifiedTimeStamp">588771727</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:377&gt;</P>
+      <P Name="LastModifiedDate">Fri Oct 28 10:00:11 2022</P>
+      <P Name="RTWModifiedTimeStamp">588852009</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:378&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -1240,7 +1240,7 @@ introducing unnecessary complexity.   </P>
         <P Name="GotoTag">ES</P>
         <Port>
           <P Name="PortNumber">1</P>
-          <P Name="Name">Engine Spped</P>
+          <P Name="Name">Engine Speed</P>
         </Port>
       </Block>
       <Block BlockType="From" Name="From8" SID="2222">
@@ -1600,7 +1600,7 @@ introducing unnecessary complexity.   </P>
         <P Name="DstPort">2</P>
       </Line>
       <Line>
-        <P Name="Name">Engine Spped</P>
+        <P Name="Name">Engine Speed</P>
         <P Name="ZOrder">74</P>
         <P Name="Labels">[1, 1]</P>
         <P Name="SrcBlock">From7</P>

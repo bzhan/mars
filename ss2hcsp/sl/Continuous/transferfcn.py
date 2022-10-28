@@ -20,7 +20,7 @@ class TransferFcn(SL_Block):
         assert len(self.denom.args) == 2
         assert self.denom.args[1] == function.AConst(1)
         assert isinstance(self.denom.args[0], function.AConst)
-        return self.denom.args[0].value
+        return 1.0 / self.denom.args[0].value
 
     def __repr__(self):
         return "TransferFcn(%s, %s)" % (self.name, self.denom)

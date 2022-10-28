@@ -639,8 +639,8 @@ class SL_Diagram:
                 expr = expr_parser.parse(get_attribute_value(block, "Expr"))
                 self.add_block(Fcn(name=block_name, expr=expr))
             elif block_type == "Selector":
-                inputPortWidth = get_attribute_value(block, "InputPortWidth")
-                indices = get_attribute_value(block, "Indices")
+                inputPortWidth = int(get_attribute_value(block, "InputPortWidth"))
+                indices = expr_parser.parse(get_attribute_value(block, "Indices"))
                 self.add_block(Selector(name=block_name, width=inputPortWidth, indices=indices))
             elif block_type == "TransferFcn":
                 denom = expr_parser.parse(get_attribute_value(block, "Denominator"))
@@ -1094,6 +1094,41 @@ class SL_Diagram:
         for block in blocks_in_subsystems:
             assert block.name not in self.blocks_dict, "Repeated block name %s" % block.name
             self.blocks_dict[block.name] = block
+
+    def connect_goto(self):
+        """Connect from blocks with goto blocks."""
+        from_blocks = dict()
+        goto_blocks = dict()
+        for _, block in self.blocks_dict.items():
+            if block.type == "from":
+                from_blocks[block.tag] = block
+            if block.type == "goto":
+                goto_blocks[block.tag] = block
+
+        for tag, from_block in from_blocks.items():
+            # For each from-block, find the corresponding goto block, the
+            # destination of from-block, and source of goto-block
+            goto_block = goto_blocks[tag]
+            goto_line = goto_block.dest_lines[0]
+            src_goto_block = self.blocks_dict[goto_line.src]
+
+            from_line = from_block.src_lines[0][0]
+            dest_from_block = self.blocks_dict[from_line.dest]
+
+            src_goto_block.src_lines[goto_line.src_port][goto_line.branch] = unknownLine
+
+            new_input_line = SL_Line(src=src_goto_block.name, dest=dest_from_block.name,
+                                     src_port=goto_line.src_port, dest_port=from_line.dest_port)
+            new_input_line.branch = goto_line.branch
+            new_input_line.name = tag
+
+            # Delete the old line (port_line) and add a new one
+            dest_from_block.add_dest(from_line.dest_port, new_input_line)
+            # Add a new line for src_block
+            src_goto_block.add_src(goto_line.src_port, new_input_line)
+
+            del self.blocks_dict[from_block.name]
+            del self.blocks_dict[goto_block.name]
 
     def separate_diagram(self):
         """Separate the diagram into the different parts, and stored in the

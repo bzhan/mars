@@ -28,3 +28,8 @@ class Fcn(SL_Block):
 
     def __repr__(self):
         return "Fcn(%s, %s)" % (self.name, self.expr)
+
+    def get_var_subst(self):
+        expr = self.get_expr()
+        out_var = self.src_lines[0][0].name
+        return {out_var: expr}
