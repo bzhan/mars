@@ -1,6 +1,7 @@
 """Modules for hybrid programs"""
 
 import os
+from typing import List
 
 from ss2hcsp.hcsp.hcsp import HCSPInfo, Procedure
 from ss2hcsp.hcsp import pprint
@@ -258,14 +259,15 @@ class HCSPDeclarations:
         res += '  ' + repr(self.system) + '\n)'
         return res
 
-    def export(self):
+    def export(self) -> str:
+        """Convert declarations to string that can be written to a file."""
         res = "%type: module\n\n"
         for name, m in self.modules.items():
             res += m.export() + "\n"
         res += "system\n" + str(self.system) + "\nendsystem\n"
         return res
 
-    def generateHCSPInfo(self):
+    def generateHCSPInfo(self) -> List[HCSPInfo]:
         """Produce list of HCSPInfo objects."""
         if self.system is None:
             raise ModuleException("No system in declaration")

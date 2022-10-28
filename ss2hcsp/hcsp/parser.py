@@ -1,5 +1,6 @@
 """Parser for expressions."""
 
+from typing import List
 from lark import Lark, Transformer, v_args, exceptions
 from lark.tree import Meta
 from ss2hcsp.hcsp import expr
@@ -7,6 +8,8 @@ from ss2hcsp.hcsp import assertion, label
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import module
 from decimal import Decimal
+
+from ss2hcsp.hcsp.hcsp import HCSPInfo
 
 
 grammar = r"""
@@ -707,7 +710,6 @@ def parse_file(text):
 
     """
     text_lines = text.strip().split('\n')
-    hcsp_info = []
 
     # First, read lines from file, each line containing ::= means the
     # start of a new program.
@@ -746,7 +748,7 @@ def parse_file(text):
 
     return infos
 
-def parse_module_file(text):
+def parse_module_file(text: str) -> List[HCSPInfo]:
     """Parse a file in module format.
     
     Input is the string of the file. Output is a list of pairs (name, hp).
