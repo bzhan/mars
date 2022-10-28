@@ -172,9 +172,16 @@ def inferTypes(infos: List[HCSPInfo]) -> TypeContext:
 
 def transferToCExpr(e: expr.Expr) -> str:
     """Convert HCSP expression into C expression."""
-    assert isinstance(e, expr.Expr)
-    c_str = str(e)
-    if isinstance(e, expr.RelExpr):
+    if isinstance(e, expr.AVar):
+        return e.name
+    elif isinstance(e, expr.OpExpr):
+        if e.op == '-' and len(e.exprs) == 1:
+            return "-(%s)" % transferToCExpr(e.exprs[0])
+        elif e.op in ('+', '-', '*', '/'):
+            return "(%s) %s (%s)" % (transferToCExpr(e.exprs[0]), e.op, transferToCExpr(e.exprs[1]))
+        else:
+            raise NotImplementedError
+    elif isinstance(e, expr.RelExpr):
         if e.op == "==":
             if isinstance(e.expr1, expr.AConst):
                 mid = e.expr1
@@ -185,9 +192,13 @@ def transferToCExpr(e: expr.Expr) -> str:
                     return "strEqual(%s, &strInit(%s))" % (e.expr1, e.expr2.value)
                 elif isinstance(e.expr2, expr.AVar) and e.expr2.name in gl_var_type and gl_var_type[e.expr2.name] == 2:
                     return "strEqual(%s, %s)" % (e.expr1, e.expr2)
+        else:
+            return "(%s) %s (%s)" % (transferToCExpr(e.expr1), e.op, transferToCExpr(e.expr2))
     elif isinstance(e, expr.AConst):
         if isinstance(e.value, str):
             return "*strInit(\"%s\")" % e.value
+        else:
+            return str(e.value)
     elif isinstance(e, expr.ListExpr):
         res = "midList = *listInit();\n"
         for i in range(e.count):
@@ -204,6 +215,8 @@ def transferToCExpr(e: expr.Expr) -> str:
             return "min(%d, %s)" % (len(args), ', '.join(cargs))
         elif e.fun_name == "max":
             return "max(%d, %s)" % (len(args), ', '.join(cargs))
+        else:
+            raise NotImplementedError
         # elif e.fun_name == "abs":
         #     return abs(*args)
         # elif e.fun_name == "gcd":
@@ -244,9 +257,10 @@ def transferToCExpr(e: expr.Expr) -> str:
         #     if len(a) == 0:
         #         raise SimulatorException('When evaluating %s: argument is empty' % expr)
         #     return a[1:]
-
-
-    return c_str
+    
+    else:
+        print("transferToCExpr:", e)
+        raise NotImplementedError
 
 
 c_process_template = \
@@ -345,11 +359,14 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
         vars = []
         for var_list in info.outputs:
             for var in var_list:
-                formats.append("%.3f")
+                formats.append("%s = %%.3f" % var)
                 vars.append(var)
         format = " ".join(formats)
         var = ", ".join(vars)
-        return "printf(\"%%.3f %s\\n\", localTime[threadNumber], %s);\n" % (format, var)
+        res =  "if ((int) (localTime[threadNumber] * 1000 + 0.5) % (int) (output_step_size * 1000 + 0.5) == 0) {\n"
+        res += "    printf(\"%%.3f: {%s}\\n\", localTime[threadNumber], %s);\n" % (format, var)
+        res += "}"
+        return res
 
     def rec(hp: hcsp.HCSP) -> str:
         c_str = ""
@@ -475,7 +492,7 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
                     (str(ch_name))
             elif isinstance(e, expr.AVar):
                 return "channel.channelNo = %s;\nchannel.type = 1;\nchannel.pos = &%s;\noutput(threadNumber, channel);" % \
-                    (str(ch_name), str(e))
+                    (str(ch_name), transferToCExpr(e))
             else:
                 if isinstance(e, expr.AConst):
                     if isinstance(e.value, str):
@@ -495,33 +512,31 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
 
             res = "h = step_size;\n"
             loop_cp = ""
-            trace_back = ""
+            if info.outputs:
+                loop_cp += outputVars()
             var_names = []
             exprs = []
             for var_name, e in eqs:
                 var_names.append(var_name)
                 exprs.append(e)
                 loop_cp += "double %s_ori = %s;\n" % (var_name, var_name)
-                trace_back += "double %s = %s_ori;\n" % (var_name, var_name)
             for var_name, e in eqs:
-                loop_cp += "double %s_dot1 = %s;\n" % (var_name, e)
+                loop_cp += "double %s_dot1 = %s;\n" % (var_name, transferToCExpr(e))
             for var_name, e in eqs:
                 loop_cp += "%s = %s_ori + %s_dot1 * h / 2;\n" % (var_name, var_name, var_name)
             for var_name, e in eqs:
-                loop_cp += "double %s_dot2 = %s;\n" % (var_name, e)
+                loop_cp += "double %s_dot2 = %s;\n" % (var_name, transferToCExpr(e))
             for var_name, e in eqs:
                 loop_cp += "%s = %s_ori + %s_dot2 * h / 2;\n" % (var_name, var_name, var_name)
             for var_name, e in eqs:
-                loop_cp += "double %s_dot3 = %s;\n" % (var_name, e)
+                loop_cp += "double %s_dot3 = %s;\n" % (var_name, transferToCExpr(e))
             for var_name, e in eqs:
                 loop_cp += "%s = %s_ori + %s_dot3 * h;\n" % (var_name, var_name, var_name)
             for var_name, e in eqs:
-                loop_cp += "double %s_dot4 = %s;\n" % (var_name, e)
+                loop_cp += "double %s_dot4 = %s;\n" % (var_name, transferToCExpr(e))
             for var_name, e in eqs:
                 loop_cp += "%s = %s_ori + (%s_dot1 + 2 * %s_dot2 + 2 * %s_dot3 + %s_dot4) * h / 6;\n" % (var_name, var_name, var_name, var_name, var_name, var_name)
             loop_cp += "delay(threadNumber, h);\n"
-            if info.outputs:
-                loop_cp += outputVars()
             loop_cp += "if (!(%s)) {\n\tbreak;\n}" % constraint
             res += "while (1) {\n%s\n}" % indent(loop_cp)
             c_str = res
@@ -546,14 +561,12 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
                 choice_str += "if (midInt == %d) {\n%s\n}" % (i, indent(out_hps[i]))
             res += "h = step_size;\nis_comm = 0;\n"
             loop_cp = ""
-            trace_back = ""
             var_names = []
             exprs = []
             for var_name, e in eqs:
                 var_names.append(var_name)
                 exprs.append(e)
                 loop_cp += "double %s_ori = %s;\n" % (var_name, var_name)
-                trace_back += "double %s = %s_ori;\n" % (var_name, var_name)
             for var_name, e in eqs:
                 loop_cp += "double %s_dot1 = %s;\n" % (var_name, e)
             for var_name, e in eqs:
@@ -608,7 +621,7 @@ header = \
 #include "hcsp2c.h"
 
 double step_size = %s;
-double min_step_size = 1e-10;
+double output_step_size = %s;
 """
 
 main_header = \
@@ -637,12 +650,13 @@ main_footer = \
 """
 
 
-def convertHps(infos: List[HCSPInfo], step_size:float = 1e-7, real_time:bool = False, maxTime:float = 5.0) -> str:
+def convertHps(infos: List[HCSPInfo], step_size:float = 1e-7, output_step_size:float = 1e-1,
+               real_time:bool = False, maxTime:float = 5.0) -> str:
     """Main function for HCSP to C conversion."""
     ctx = inferTypes(infos)
 
     res = ""
-    res += header % step_size
+    res += header % (step_size, output_step_size)
     count = 0
     for channel in ctx.channelTypes.keys():
         res += "const int %s = %d;\n" % (channel, count)
