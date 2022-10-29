@@ -1,7 +1,7 @@
 %type: module
 
 module P():
-output AF;
+output AF, TA = (if x13 + 8.8 <= 0 then 0 else (if x13 + 8.8 >= 90 then 90 else x13 + 8.8)), ES = 1000;
 begin
   t := 0;
   _tick := 0;

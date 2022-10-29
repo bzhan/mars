@@ -266,7 +266,12 @@ def get_hcsp(diagram: SL_Diagram):
     outputs = []
     for scope in diagram.scopes:
         in_vars = [line.name for line in scope.dest_lines]
-        outputs.extend(in_vars)
+        for in_var in in_vars:
+            subst_e = hp.subst_all(AVar(in_var), var_subst)
+            if subst_e == AVar(in_var):
+                outputs.append(hp.HCSPOutput(in_var))
+            else:
+                outputs.append(hp.HCSPOutput(in_var, subst_e))
     return HCSPModule(name="P", code=main_hp, procedures=procedures, outputs=outputs)
 
 

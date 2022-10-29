@@ -7,7 +7,6 @@ The state is given by a dictionary from variable names to numbers.
 import copy
 import ast
 import math
-from pickle import FALSE
 import random
 from decimal import Decimal
 from typing import Dict, List, Optional
@@ -229,24 +228,29 @@ class SimInfo:
     or None if execution has reached the end.
 
     """
-    def __init__(self, name: str, hp: hcsp.HCSP, *, outputs=None,
+    def __init__(self, name: str, hp: hcsp.HCSP, *,
+                 outputs: Optional[List[hcsp.HCSPOutput]] = None,
                  procedures: Optional[Dict[str, hcsp.Procedure]] = None,
                  functions: Optional[Dict[str, hcsp.Function]] = None,
-                 pos="start", state=None):
+                 pos="start",
+                 state=None):
         """Initializes with starting position as the execution position."""
 
         # Name of the program
         assert isinstance(name, str)
-        self.name = name
+        self.name: str = name
 
         # Code for the program
+        self.hp: hcsp.HCSP
         if isinstance(hp, str):
             self.hp = parser.hp_parser.parse(hp)
         else:
             self.hp = hp
 
-        # List of output variables, None indicates output everything.
-        self.outputs = outputs
+        # List of output variables
+        self.outputs: List[hcsp.HCSPOutput] = []
+        if outputs is not None:
+            self.outputs = outputs
 
         # Dictionary of procedure declarations
         if procedures is None:
@@ -254,7 +258,7 @@ class SimInfo:
         assert isinstance(procedures, dict)
         for k, v in procedures.items():
             assert isinstance(k, str) and isinstance(v, hcsp.Procedure)
-        self.procedures = procedures
+        self.procedures: Dict[str, hcsp.Procedure] = procedures
 
         # Dictionary of function declarations
         if functions is None:
@@ -262,7 +266,7 @@ class SimInfo:
         assert isinstance(functions, dict)
         for k, v in functions.items():
             assert isinstance(k, str) and isinstance(v, hcsp.Function)
-        self.functions = functions
+        self.functions: Dict[str, hcsp.Function] = functions
     
         # Current position of execution
         if isinstance(pos, str):
@@ -1267,7 +1271,7 @@ def extract_event(infos):
         return "deadlock"
 
 
-def exec_parallel(infos, *, num_io_events=None, num_steps=3000, num_show=None,
+def exec_parallel(infos: List[SimInfo], *, num_io_events=None, num_steps=3000, num_show=None,
                   show_interval=None, start_event=None, show_event_only=False, verbose=True):
     """Given a list of SimInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
@@ -1339,7 +1343,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=3000, num_show=None,
         if not show_event_only or new_event['type'] != 'step':
             res['trace'].append(new_event)
 
-    def log_time_series(info, time, state):
+    def log_time_series(info: SimInfo, time, state):
         """Log the given time series for program with the given name."""
         if info.name not in res['time_series']:
             return
@@ -1348,13 +1352,26 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=3000, num_show=None,
             "event": len(res['trace']),
             "state": dict()
         }
-        for k, v in state.items():
-            if info.outputs is None or any(k in output for output in info.outputs):
-                if isinstance(v, (int, float)):
-                    new_entry['state'][k] = v
-                elif isinstance(v, list):
-                    for i, val in enumerate(v):
-                        new_entry['state'][k+'['+str(i)+']'] = val
+        for output in info.outputs:
+            if output.expr is None:
+                if output.varname in state:
+                    v = state[output.varname]
+                    if isinstance(v, (int, float)):
+                        new_entry['state'][output.varname] = v
+                    elif isinstance(v, list):
+                        for i, val in enumerate(v):
+                            new_entry['state'][output.varname+'['+str(i)+']'] = val
+            else:
+                try:
+                    v = eval_expr(output.expr, state)
+                    if isinstance(v, (int, float)):
+                        new_entry['state'][output.varname] = v
+                    elif isinstance(v, list):
+                        for i, val in enumerate(v):
+                            new_entry['state'][output.varname+'['+str(i)+']'] = val
+                except SimulatorException:
+                    pass
+
         series = res['time_series'][info.name]
         if len(series) == 0 or new_entry != series[-1]:
             series.append(new_entry)

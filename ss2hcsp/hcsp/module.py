@@ -1,9 +1,9 @@
 """Modules for hybrid programs"""
 
 import os
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
-from ss2hcsp.hcsp.hcsp import HCSPInfo, Procedure
+from ss2hcsp.hcsp.hcsp import HCSPInfo, Procedure, HCSP
 from ss2hcsp.hcsp import pprint
 from ss2hcsp.hcsp import expr
 
@@ -24,7 +24,8 @@ class HCSPModule:
     code: code (template) for the main process.
     
     """
-    def __init__(self, name, code, *, params=None, outputs=None, procedures=None, meta=None):
+    def __init__(self, name: str, code: Union[str, HCSP], *, params=None,
+                 outputs=None, procedures=None, meta=None):
         self.name = name
         if params is None:
             params = tuple()
@@ -57,9 +58,9 @@ class HCSPModule:
 
     def export(self):
         """Print the string that will parse to the module."""
-        def str_of_output(outputs):
+        def str_of_outputs(outputs):
             if outputs:
-                return "output %s;\n" % (', '.join(outputs))
+                return "output %s;\n" % (', '.join(str(output) for output in outputs))
             else:
                 return ""
 
@@ -83,7 +84,7 @@ class HCSPModule:
         res = "module %s(%s):\n%s%sbegin\n%send\nendmodule" % (
             self.name,
             ','.join(self.params),
-            str_of_output(self.outputs),
+            str_of_outputs(self.outputs),
             str_of_procedure(self.procedures),
             str_of_code(self.code)
         )

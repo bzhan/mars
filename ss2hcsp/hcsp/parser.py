@@ -176,9 +176,11 @@ grammar = r"""
     ?module_sig: CNAME "(" (CNAME | "$" CNAME) ("," (CNAME | "$" CNAME))* ")"  -> module_sig
         | CNAME "(" ")"                            -> module_sig
 
-    ?module_output: "output" CNAME ("," CNAME)* ";"    -> module_output
+    ?module_output: (CNAME | CNAME "=" expr)    -> module_output
+
+    ?module_outputs: "output" module_output ("," module_output)* ";"  -> module_outputs
     
-    ?module: "module" module_sig ":" (module_output)* (procedure)* "begin" cmd "end" "endmodule"
+    ?module: "module" module_sig ":" (module_outputs)* (procedure)* "begin" cmd "end" "endmodule"
     
     ?module_arg: CNAME ("[" INT "]")*   -> module_arg_channel
         | "$" expr    -> module_arg_expr
@@ -600,7 +602,13 @@ class HPTransformer(Transformer):
         return tuple(str(arg) for arg in args)
 
     def module_output(self, meta, *args):
-        return tuple(str(arg) for arg in args)
+        if len(args) == 1:
+            return hcsp.HCSPOutput(str(args[0]))
+        else:
+            return hcsp.HCSPOutput(str(args[0]), args[1])
+
+    def module_outputs(self, meta, *args):
+        return tuple(args)
 
     def module(self, meta, *args):
         # The first item is a tuple consisting of name and list of parameters
