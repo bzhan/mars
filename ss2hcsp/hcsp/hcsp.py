@@ -1678,7 +1678,7 @@ def convert_to_concrete_chs(hp: HCSP, concrete_map: Dict[str, Set[Tuple[Expr]]])
                     raise TypeError
                 assert comm_hp.ch_name.name in concrete_map
                 if len(comm_hp.ch_name.args) == 0:
-                    new_io_comms.append((comm_hp, out_hp))
+                    new_io_comms.append((comm_hp, rec(out_hp)))
                 
                 assert all(isinstance(arg, AConst) for arg in comm_hp.ch_name.args[:-1])
 
@@ -1699,7 +1699,7 @@ def convert_to_concrete_chs(hp: HCSP, concrete_map: Dict[str, Set[Tuple[Expr]]])
                         new_hp = InputChannel(Channel(new_name, new_args), comm_hp.var_name)
                     else:
                         new_hp = OutputChannel(Channel(new_name, new_args), comm_hp.expr)
-                    new_io_comms.append((new_hp, out_hp))
+                    new_io_comms.append((new_hp, rec(out_hp)))
                 elif isinstance(last_arg, AVar) and last_arg.name.startswith("_"):
                     # Wildcard case
                     matches = find_match(comm_hp.ch_name)

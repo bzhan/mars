@@ -7,360 +7,360 @@ begin
   run_now := -1;
   run_prior := -1;
   {
-    reqProcessor[0]["pan_ctr_th"]?prior -->
-      if (run_prior >= prior) {
-        Pool := push(Pool,[[prior,"pan_ctr_th"]]);
-      } else {
-        if (run_now != -1) {
-          if (run_now == "pan_ctr_th") {
-            preempt[0]["pan_ctr_th"]!;
-          } else if (run_now == "PI_ctr") {
-            preempt[0]["PI_ctr"]!;
-          } else if (run_now == "img_acq") {
-            preempt[0]["img_acq"]!;
-          } else if (run_now == "comp_obs_pos") {
-            preempt[0]["comp_obs_pos"]!;
-          } else if (run_now == "velo_voter") {
-            preempt[0]["velo_voter"]!;
-          } else if (run_now == "emerg") {
-            preempt[0]["emerg"]!;
-          }
-        }
-        run_now := "pan_ctr_th";
-        run_prior := prior;
-        if (run_now == "pan_ctr_th") {
-          run[0]["pan_ctr_th"]!;
-        } else if (run_now == "PI_ctr") {
-          run[0]["PI_ctr"]!;
-        } else if (run_now == "img_acq") {
-          run[0]["img_acq"]!;
-        } else if (run_now == "comp_obs_pos") {
-          run[0]["comp_obs_pos"]!;
-        } else if (run_now == "velo_voter") {
-          run[0]["velo_voter"]!;
-        } else if (run_now == "emerg") {
-          run[0]["emerg"]!;
-        }
-      } $
-    reqProcessor[0]["PI_ctr"]?prior -->
+    reqProcessor_l_0_r__lb_PI_ctr_rb_?prior -->
       if (run_prior >= prior) {
         Pool := push(Pool,[[prior,"PI_ctr"]]);
       } else {
         if (run_now != -1) {
-          if (run_now == "pan_ctr_th") {
-            preempt[0]["pan_ctr_th"]!;
-          } else if (run_now == "PI_ctr") {
-            preempt[0]["PI_ctr"]!;
-          } else if (run_now == "img_acq") {
-            preempt[0]["img_acq"]!;
+          if (run_now == "PI_ctr") {
+            preempt_l_0_r__lb_PI_ctr_rb_!;
           } else if (run_now == "comp_obs_pos") {
-            preempt[0]["comp_obs_pos"]!;
-          } else if (run_now == "velo_voter") {
-            preempt[0]["velo_voter"]!;
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
           } else if (run_now == "emerg") {
-            preempt[0]["emerg"]!;
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+          } else if (run_now == "img_acq") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+          } else if (run_now == "pan_ctr_th") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+          } else if (run_now == "velo_voter") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
           }
         }
         run_now := "PI_ctr";
         run_prior := prior;
-        if (run_now == "pan_ctr_th") {
-          run[0]["pan_ctr_th"]!;
-        } else if (run_now == "PI_ctr") {
-          run[0]["PI_ctr"]!;
-        } else if (run_now == "img_acq") {
-          run[0]["img_acq"]!;
+        if (run_now == "PI_ctr") {
+          run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
-          run[0]["comp_obs_pos"]!;
-        } else if (run_now == "velo_voter") {
-          run[0]["velo_voter"]!;
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
         } else if (run_now == "emerg") {
-          run[0]["emerg"]!;
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+        } else if (run_now == "img_acq") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+        } else if (run_now == "pan_ctr_th") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+        } else if (run_now == "velo_voter") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
         }
       } $
-    reqProcessor[0]["img_acq"]?prior -->
-      if (run_prior >= prior) {
-        Pool := push(Pool,[[prior,"img_acq"]]);
-      } else {
-        if (run_now != -1) {
-          if (run_now == "pan_ctr_th") {
-            preempt[0]["pan_ctr_th"]!;
-          } else if (run_now == "PI_ctr") {
-            preempt[0]["PI_ctr"]!;
-          } else if (run_now == "img_acq") {
-            preempt[0]["img_acq"]!;
-          } else if (run_now == "comp_obs_pos") {
-            preempt[0]["comp_obs_pos"]!;
-          } else if (run_now == "velo_voter") {
-            preempt[0]["velo_voter"]!;
-          } else if (run_now == "emerg") {
-            preempt[0]["emerg"]!;
-          }
-        }
-        run_now := "img_acq";
-        run_prior := prior;
-        if (run_now == "pan_ctr_th") {
-          run[0]["pan_ctr_th"]!;
-        } else if (run_now == "PI_ctr") {
-          run[0]["PI_ctr"]!;
-        } else if (run_now == "img_acq") {
-          run[0]["img_acq"]!;
-        } else if (run_now == "comp_obs_pos") {
-          run[0]["comp_obs_pos"]!;
-        } else if (run_now == "velo_voter") {
-          run[0]["velo_voter"]!;
-        } else if (run_now == "emerg") {
-          run[0]["emerg"]!;
-        }
-      } $
-    reqProcessor[0]["comp_obs_pos"]?prior -->
+    reqProcessor_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_?prior -->
       if (run_prior >= prior) {
         Pool := push(Pool,[[prior,"comp_obs_pos"]]);
       } else {
         if (run_now != -1) {
-          if (run_now == "pan_ctr_th") {
-            preempt[0]["pan_ctr_th"]!;
-          } else if (run_now == "PI_ctr") {
-            preempt[0]["PI_ctr"]!;
-          } else if (run_now == "img_acq") {
-            preempt[0]["img_acq"]!;
+          if (run_now == "PI_ctr") {
+            preempt_l_0_r__lb_PI_ctr_rb_!;
           } else if (run_now == "comp_obs_pos") {
-            preempt[0]["comp_obs_pos"]!;
-          } else if (run_now == "velo_voter") {
-            preempt[0]["velo_voter"]!;
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
           } else if (run_now == "emerg") {
-            preempt[0]["emerg"]!;
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+          } else if (run_now == "img_acq") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+          } else if (run_now == "pan_ctr_th") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+          } else if (run_now == "velo_voter") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
           }
         }
         run_now := "comp_obs_pos";
         run_prior := prior;
-        if (run_now == "pan_ctr_th") {
-          run[0]["pan_ctr_th"]!;
-        } else if (run_now == "PI_ctr") {
-          run[0]["PI_ctr"]!;
-        } else if (run_now == "img_acq") {
-          run[0]["img_acq"]!;
+        if (run_now == "PI_ctr") {
+          run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
-          run[0]["comp_obs_pos"]!;
-        } else if (run_now == "velo_voter") {
-          run[0]["velo_voter"]!;
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
         } else if (run_now == "emerg") {
-          run[0]["emerg"]!;
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+        } else if (run_now == "img_acq") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+        } else if (run_now == "pan_ctr_th") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+        } else if (run_now == "velo_voter") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
         }
       } $
-    reqProcessor[0]["velo_voter"]?prior -->
-      if (run_prior >= prior) {
-        Pool := push(Pool,[[prior,"velo_voter"]]);
-      } else {
-        if (run_now != -1) {
-          if (run_now == "pan_ctr_th") {
-            preempt[0]["pan_ctr_th"]!;
-          } else if (run_now == "PI_ctr") {
-            preempt[0]["PI_ctr"]!;
-          } else if (run_now == "img_acq") {
-            preempt[0]["img_acq"]!;
-          } else if (run_now == "comp_obs_pos") {
-            preempt[0]["comp_obs_pos"]!;
-          } else if (run_now == "velo_voter") {
-            preempt[0]["velo_voter"]!;
-          } else if (run_now == "emerg") {
-            preempt[0]["emerg"]!;
-          }
-        }
-        run_now := "velo_voter";
-        run_prior := prior;
-        if (run_now == "pan_ctr_th") {
-          run[0]["pan_ctr_th"]!;
-        } else if (run_now == "PI_ctr") {
-          run[0]["PI_ctr"]!;
-        } else if (run_now == "img_acq") {
-          run[0]["img_acq"]!;
-        } else if (run_now == "comp_obs_pos") {
-          run[0]["comp_obs_pos"]!;
-        } else if (run_now == "velo_voter") {
-          run[0]["velo_voter"]!;
-        } else if (run_now == "emerg") {
-          run[0]["emerg"]!;
-        }
-      } $
-    reqProcessor[0]["emerg"]?prior -->
+    reqProcessor_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_?prior -->
       if (run_prior >= prior) {
         Pool := push(Pool,[[prior,"emerg"]]);
       } else {
         if (run_now != -1) {
-          if (run_now == "pan_ctr_th") {
-            preempt[0]["pan_ctr_th"]!;
-          } else if (run_now == "PI_ctr") {
-            preempt[0]["PI_ctr"]!;
-          } else if (run_now == "img_acq") {
-            preempt[0]["img_acq"]!;
+          if (run_now == "PI_ctr") {
+            preempt_l_0_r__lb_PI_ctr_rb_!;
           } else if (run_now == "comp_obs_pos") {
-            preempt[0]["comp_obs_pos"]!;
-          } else if (run_now == "velo_voter") {
-            preempt[0]["velo_voter"]!;
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
           } else if (run_now == "emerg") {
-            preempt[0]["emerg"]!;
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+          } else if (run_now == "img_acq") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+          } else if (run_now == "pan_ctr_th") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+          } else if (run_now == "velo_voter") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
           }
         }
         run_now := "emerg";
         run_prior := prior;
-        if (run_now == "pan_ctr_th") {
-          run[0]["pan_ctr_th"]!;
-        } else if (run_now == "PI_ctr") {
-          run[0]["PI_ctr"]!;
-        } else if (run_now == "img_acq") {
-          run[0]["img_acq"]!;
+        if (run_now == "PI_ctr") {
+          run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
-          run[0]["comp_obs_pos"]!;
-        } else if (run_now == "velo_voter") {
-          run[0]["velo_voter"]!;
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
         } else if (run_now == "emerg") {
-          run[0]["emerg"]!;
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+        } else if (run_now == "img_acq") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+        } else if (run_now == "pan_ctr_th") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+        } else if (run_now == "velo_voter") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
         }
       } $
-    free[0]["pan_ctr_th"]? -->
-      assert("pan_ctr_th" == run_now);
-      if (len(Pool) > 0) {
-        (run_prior, run_now) := get_max(Pool);
-        Pool := del0(Pool,run_now);
-        if (run_now == "pan_ctr_th") {
-          run[0]["pan_ctr_th"]!;
-        } else if (run_now == "PI_ctr") {
-          run[0]["PI_ctr"]!;
-        } else if (run_now == "img_acq") {
-          run[0]["img_acq"]!;
-        } else if (run_now == "comp_obs_pos") {
-          run[0]["comp_obs_pos"]!;
-        } else if (run_now == "velo_voter") {
-          run[0]["velo_voter"]!;
-        } else if (run_now == "emerg") {
-          run[0]["emerg"]!;
-        }
+    reqProcessor_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_?prior -->
+      if (run_prior >= prior) {
+        Pool := push(Pool,[[prior,"img_acq"]]);
       } else {
-        run_prior := -1;
-        run_now := -1;
+        if (run_now != -1) {
+          if (run_now == "PI_ctr") {
+            preempt_l_0_r__lb_PI_ctr_rb_!;
+          } else if (run_now == "comp_obs_pos") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+          } else if (run_now == "emerg") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+          } else if (run_now == "img_acq") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+          } else if (run_now == "pan_ctr_th") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+          } else if (run_now == "velo_voter") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+          }
+        }
+        run_now := "img_acq";
+        run_prior := prior;
+        if (run_now == "PI_ctr") {
+          run_l_0_r__lb_PI_ctr_rb_!;
+        } else if (run_now == "comp_obs_pos") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+        } else if (run_now == "emerg") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+        } else if (run_now == "img_acq") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+        } else if (run_now == "pan_ctr_th") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+        } else if (run_now == "velo_voter") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+        }
       } $
-    free[0]["PI_ctr"]? -->
+    reqProcessor_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_?prior -->
+      if (run_prior >= prior) {
+        Pool := push(Pool,[[prior,"pan_ctr_th"]]);
+      } else {
+        if (run_now != -1) {
+          if (run_now == "PI_ctr") {
+            preempt_l_0_r__lb_PI_ctr_rb_!;
+          } else if (run_now == "comp_obs_pos") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+          } else if (run_now == "emerg") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+          } else if (run_now == "img_acq") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+          } else if (run_now == "pan_ctr_th") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+          } else if (run_now == "velo_voter") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+          }
+        }
+        run_now := "pan_ctr_th";
+        run_prior := prior;
+        if (run_now == "PI_ctr") {
+          run_l_0_r__lb_PI_ctr_rb_!;
+        } else if (run_now == "comp_obs_pos") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+        } else if (run_now == "emerg") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+        } else if (run_now == "img_acq") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+        } else if (run_now == "pan_ctr_th") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+        } else if (run_now == "velo_voter") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+        }
+      } $
+    reqProcessor_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_?prior -->
+      if (run_prior >= prior) {
+        Pool := push(Pool,[[prior,"velo_voter"]]);
+      } else {
+        if (run_now != -1) {
+          if (run_now == "PI_ctr") {
+            preempt_l_0_r__lb_PI_ctr_rb_!;
+          } else if (run_now == "comp_obs_pos") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+          } else if (run_now == "emerg") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+          } else if (run_now == "img_acq") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+          } else if (run_now == "pan_ctr_th") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+          } else if (run_now == "velo_voter") {
+            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+          }
+        }
+        run_now := "velo_voter";
+        run_prior := prior;
+        if (run_now == "PI_ctr") {
+          run_l_0_r__lb_PI_ctr_rb_!;
+        } else if (run_now == "comp_obs_pos") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+        } else if (run_now == "emerg") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+        } else if (run_now == "img_acq") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+        } else if (run_now == "pan_ctr_th") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+        } else if (run_now == "velo_voter") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+        }
+      } $
+    free_l_0_r__lb_PI_ctr_rb_? -->
       assert("PI_ctr" == run_now);
       if (len(Pool) > 0) {
         (run_prior, run_now) := get_max(Pool);
         Pool := del0(Pool,run_now);
-        if (run_now == "pan_ctr_th") {
-          run[0]["pan_ctr_th"]!;
-        } else if (run_now == "PI_ctr") {
-          run[0]["PI_ctr"]!;
-        } else if (run_now == "img_acq") {
-          run[0]["img_acq"]!;
+        if (run_now == "PI_ctr") {
+          run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
-          run[0]["comp_obs_pos"]!;
-        } else if (run_now == "velo_voter") {
-          run[0]["velo_voter"]!;
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
         } else if (run_now == "emerg") {
-          run[0]["emerg"]!;
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+        } else if (run_now == "img_acq") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+        } else if (run_now == "pan_ctr_th") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+        } else if (run_now == "velo_voter") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
         }
       } else {
         run_prior := -1;
         run_now := -1;
       } $
-    free[0]["img_acq"]? -->
-      assert("img_acq" == run_now);
-      if (len(Pool) > 0) {
-        (run_prior, run_now) := get_max(Pool);
-        Pool := del0(Pool,run_now);
-        if (run_now == "pan_ctr_th") {
-          run[0]["pan_ctr_th"]!;
-        } else if (run_now == "PI_ctr") {
-          run[0]["PI_ctr"]!;
-        } else if (run_now == "img_acq") {
-          run[0]["img_acq"]!;
-        } else if (run_now == "comp_obs_pos") {
-          run[0]["comp_obs_pos"]!;
-        } else if (run_now == "velo_voter") {
-          run[0]["velo_voter"]!;
-        } else if (run_now == "emerg") {
-          run[0]["emerg"]!;
-        }
-      } else {
-        run_prior := -1;
-        run_now := -1;
-      } $
-    free[0]["comp_obs_pos"]? -->
+    free_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_? -->
       assert("comp_obs_pos" == run_now);
       if (len(Pool) > 0) {
         (run_prior, run_now) := get_max(Pool);
         Pool := del0(Pool,run_now);
-        if (run_now == "pan_ctr_th") {
-          run[0]["pan_ctr_th"]!;
-        } else if (run_now == "PI_ctr") {
-          run[0]["PI_ctr"]!;
-        } else if (run_now == "img_acq") {
-          run[0]["img_acq"]!;
+        if (run_now == "PI_ctr") {
+          run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
-          run[0]["comp_obs_pos"]!;
-        } else if (run_now == "velo_voter") {
-          run[0]["velo_voter"]!;
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
         } else if (run_now == "emerg") {
-          run[0]["emerg"]!;
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+        } else if (run_now == "img_acq") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+        } else if (run_now == "pan_ctr_th") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+        } else if (run_now == "velo_voter") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
         }
       } else {
         run_prior := -1;
         run_now := -1;
       } $
-    free[0]["velo_voter"]? -->
-      assert("velo_voter" == run_now);
-      if (len(Pool) > 0) {
-        (run_prior, run_now) := get_max(Pool);
-        Pool := del0(Pool,run_now);
-        if (run_now == "pan_ctr_th") {
-          run[0]["pan_ctr_th"]!;
-        } else if (run_now == "PI_ctr") {
-          run[0]["PI_ctr"]!;
-        } else if (run_now == "img_acq") {
-          run[0]["img_acq"]!;
-        } else if (run_now == "comp_obs_pos") {
-          run[0]["comp_obs_pos"]!;
-        } else if (run_now == "velo_voter") {
-          run[0]["velo_voter"]!;
-        } else if (run_now == "emerg") {
-          run[0]["emerg"]!;
-        }
-      } else {
-        run_prior := -1;
-        run_now := -1;
-      } $
-    free[0]["emerg"]? -->
+    free_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_? -->
       assert("emerg" == run_now);
       if (len(Pool) > 0) {
         (run_prior, run_now) := get_max(Pool);
         Pool := del0(Pool,run_now);
-        if (run_now == "pan_ctr_th") {
-          run[0]["pan_ctr_th"]!;
-        } else if (run_now == "PI_ctr") {
-          run[0]["PI_ctr"]!;
-        } else if (run_now == "img_acq") {
-          run[0]["img_acq"]!;
+        if (run_now == "PI_ctr") {
+          run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
-          run[0]["comp_obs_pos"]!;
-        } else if (run_now == "velo_voter") {
-          run[0]["velo_voter"]!;
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
         } else if (run_now == "emerg") {
-          run[0]["emerg"]!;
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+        } else if (run_now == "img_acq") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+        } else if (run_now == "pan_ctr_th") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+        } else if (run_now == "velo_voter") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
         }
       } else {
         run_prior := -1;
         run_now := -1;
       } $
-    exit[0]["pan_ctr_th"]? -->
-      Pool := del0(Pool,"pan_ctr_th"); $
-    exit[0]["PI_ctr"]? -->
+    free_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_? -->
+      assert("img_acq" == run_now);
+      if (len(Pool) > 0) {
+        (run_prior, run_now) := get_max(Pool);
+        Pool := del0(Pool,run_now);
+        if (run_now == "PI_ctr") {
+          run_l_0_r__lb_PI_ctr_rb_!;
+        } else if (run_now == "comp_obs_pos") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+        } else if (run_now == "emerg") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+        } else if (run_now == "img_acq") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+        } else if (run_now == "pan_ctr_th") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+        } else if (run_now == "velo_voter") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+        }
+      } else {
+        run_prior := -1;
+        run_now := -1;
+      } $
+    free_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_? -->
+      assert("pan_ctr_th" == run_now);
+      if (len(Pool) > 0) {
+        (run_prior, run_now) := get_max(Pool);
+        Pool := del0(Pool,run_now);
+        if (run_now == "PI_ctr") {
+          run_l_0_r__lb_PI_ctr_rb_!;
+        } else if (run_now == "comp_obs_pos") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+        } else if (run_now == "emerg") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+        } else if (run_now == "img_acq") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+        } else if (run_now == "pan_ctr_th") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+        } else if (run_now == "velo_voter") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+        }
+      } else {
+        run_prior := -1;
+        run_now := -1;
+      } $
+    free_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_? -->
+      assert("velo_voter" == run_now);
+      if (len(Pool) > 0) {
+        (run_prior, run_now) := get_max(Pool);
+        Pool := del0(Pool,run_now);
+        if (run_now == "PI_ctr") {
+          run_l_0_r__lb_PI_ctr_rb_!;
+        } else if (run_now == "comp_obs_pos") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+        } else if (run_now == "emerg") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+        } else if (run_now == "img_acq") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+        } else if (run_now == "pan_ctr_th") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+        } else if (run_now == "velo_voter") {
+          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+        }
+      } else {
+        run_prior := -1;
+        run_now := -1;
+      } $
+    exit_l_0_r__lb_PI_ctr_rb_? -->
       Pool := del0(Pool,"PI_ctr"); $
-    exit[0]["img_acq"]? -->
-      Pool := del0(Pool,"img_acq"); $
-    exit[0]["comp_obs_pos"]? -->
+    exit_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_? -->
       Pool := del0(Pool,"comp_obs_pos"); $
-    exit[0]["velo_voter"]? -->
-      Pool := del0(Pool,"velo_voter"); $
-    exit[0]["emerg"]? -->
-      Pool := del0(Pool,"emerg");
+    exit_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_? -->
+      Pool := del0(Pool,"emerg"); $
+    exit_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_? -->
+      Pool := del0(Pool,"img_acq"); $
+    exit_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_? -->
+      Pool := del0(Pool,"pan_ctr_th"); $
+    exit_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_? -->
+      Pool := del0(Pool,"velo_voter");
   }*
 end
 endmodule
@@ -375,23 +375,23 @@ begin
   PHY_vehicle_imp_veh_v_l := 0;
   PHY_vehicle_imp_veh_v_w := 0;
   {
-    inputs["PHY_vehicle_imp"]["veh_s"]!s -->
+    inputs_lb_PHY_vehicle_imp_rb__lb_veh_s_rb_!s -->
       PHY_vehicle_imp_veh_s := 1; $
-    inputs["PHY_vehicle_imp"]["veh_v_l"]!v -->
+    inputs_lb_PHY_vehicle_imp_rb__lb_veh_v_l_rb_!v -->
       PHY_vehicle_imp_veh_v_l := 1; $
-    inputs["PHY_vehicle_imp"]["veh_v_w"]!v -->
+    inputs_lb_PHY_vehicle_imp_rb__lb_veh_v_w_rb_!v -->
       PHY_vehicle_imp_veh_v_w := 1;
   }*(PHY_vehicle_imp_veh_s == 0 || PHY_vehicle_imp_veh_v_l == 0 || PHY_vehicle_imp_veh_v_w == 0)
-  outputs["PHY_vehicle_imp"]["veh_a"]?a;
+  outputs_lb_PHY_vehicle_imp_rb__lb_veh_a_rb_?a;
   {
     {v_dot = a, s_dot = v & true} |> [] (
-      outputs["PHY_vehicle_imp"]["veh_a"]?a -->
+      outputs_lb_PHY_vehicle_imp_rb__lb_veh_a_rb_?a -->
         skip;,
-      inputs["PHY_vehicle_imp"]["veh_s"]!s -->
+      inputs_lb_PHY_vehicle_imp_rb__lb_veh_s_rb_!s -->
         skip;,
-      inputs["PHY_vehicle_imp"]["veh_v_l"]!v -->
+      inputs_lb_PHY_vehicle_imp_rb__lb_veh_v_l_rb_!v -->
         skip;,
-      inputs["PHY_vehicle_imp"]["veh_v_w"]!v -->
+      inputs_lb_PHY_vehicle_imp_rb__lb_veh_v_w_rb_!v -->
         skip;
     )
   }*
@@ -402,7 +402,7 @@ module camera():
 output img;
 begin
   {
-    outputs["camera"]["img"]!-1;
+    outputs_lb_camera_rb__lb_img_rb_!-1;
     wait(0.2);
   }*
 end
@@ -422,7 +422,7 @@ begin
     } else {
       data := 0.0;
     }
-    outputs["radar"]["obs_pos_radar"]!data;
+    outputs_lb_radar_rb__lb_obs_pos_radar_rb_!data;
     wait(0.01);
     t := t + 0.01;
   }*
@@ -433,8 +433,8 @@ module actuator():
 output cmd;
 begin
   {
-    inputs["actuator"]["cmd"]?cmd;
-    outputs["PHY_vehicle_imp"]["veh_a"]!cmd;
+    inputs_lb_actuator_rb__lb_cmd_rb_?cmd;
+    outputs_lb_PHY_vehicle_imp_rb__lb_veh_a_rb_!cmd;
     wait(0.002);
   }*
 end
@@ -444,8 +444,8 @@ module GPS():
 output data;
 begin
   {
-    inputs["PHY_vehicle_imp"]["veh_s"]?data;
-    outputs["GPS"]["veh_pos"]!data;
+    inputs_lb_PHY_vehicle_imp_rb__lb_veh_s_rb_?data;
+    outputs_lb_GPS_rb__lb_veh_pos_rb_!data;
     wait(0.006);
   }*
 end
@@ -454,13 +454,13 @@ endmodule
 module laser():
 begin
   {
-    inputs["PHY_vehicle_imp"]["veh_v_l"]?data;
+    inputs_lb_PHY_vehicle_imp_rb__lb_veh_v_l_rb_?data;
     t := 0;
     {t_dot = 1 & t < 0.01} |> [] (
-      outputs["laser"]["laser_valid"]!1.0 -->
+      outputs_lb_laser_rb__lb_laser_valid_rb_!1.0 -->
         error := 0;
         x := data + error;
-        outputs["laser"]["laser_v"]!data + error;
+        outputs_lb_laser_rb__lb_laser_v_rb_!data + error;
     )
     {t_dot = 1 & t < 0.01}
   }*
@@ -470,13 +470,13 @@ endmodule
 module wheel():
 begin
   {
-    inputs["PHY_vehicle_imp"]["veh_v_w"]?data;
+    inputs_lb_PHY_vehicle_imp_rb__lb_veh_v_w_rb_?data;
     t := 0;
     {t_dot = 1 & t < 0.01} |> [] (
-      outputs["wheel"]["wheel_valid"]!1.0 -->
+      outputs_lb_wheel_rb__lb_wheel_valid_rb_!1.0 -->
         error := 0;
         x := data + error;
-        outputs["wheel"]["wheel_v"]!data + error;
+        outputs_lb_wheel_rb__lb_wheel_v_rb_!data + error;
     )
     {t_dot = 1 & t < 0.01}
   }*
@@ -485,21 +485,21 @@ endmodule
 
 module user_panel():
 begin
-  outputs["user_panel"]["event"]!"inc";
+  outputs_lb_user_panel_rb__lb_event_rb_!"inc";
   wait(0.5);
-  outputs["user_panel"]["event"]!"inc";
+  outputs_lb_user_panel_rb__lb_event_rb_!"inc";
   wait(0.5);
-  outputs["user_panel"]["event"]!"inc";
+  outputs_lb_user_panel_rb__lb_event_rb_!"inc";
   wait(29);
-  outputs["user_panel"]["event"]!"dec";
-  outputs["user_panel"]["event"]!"dec";
+  outputs_lb_user_panel_rb__lb_event_rb_!"dec";
+  outputs_lb_user_panel_rb__lb_event_rb_!"dec";
 end
 endmodule
 
 module ACT_img_acq():
 begin
   {
-    dis["img_acq"]!;
+    dis_lb_img_acq_rb_!;
     wait(0.045);
   }*
 end
@@ -514,21 +514,21 @@ begin
   prior := 1;
   {
     if (state == "wait") {
-      dis["img_acq"]?;
-      inputs["img_acq"]["img"]?image;
+      dis_lb_img_acq_rb_?;
+      inputs_lb_img_acq_rb__lb_img_rb_?image;
       t := 0;
       entered := 0;
       state := "ready";
     } else if (state == "ready") {
-      reqProcessor[0]["img_acq"]!prior;
+      reqProcessor_l_0_r__lb_img_acq_rb_!prior;
       {t_dot = 1 & t < 0.045} |> [] (
-        run[0]["img_acq"]? -->
+        run_l_0_r__lb_img_acq_rb_? -->
           state := "running";
       )
       if (t == 0.045 && state == "ready") {
-        exit[0]["img_acq"]! -->
+        exit_l_0_r__lb_img_acq_rb_! -->
           state := "wait"; $
-        run[0]["img_acq"]? -->
+        run_l_0_r__lb_img_acq_rb_? -->
           state := "running";
       }
     } else {
@@ -540,22 +540,22 @@ begin
       }
       if (entered == 1) {
         {t_dot = 1, c_dot = 1 & c < 0.01 && t < 0.045} |> [] (
-          preempt[0]["img_acq"]? -->
+          preempt_l_0_r__lb_img_acq_rb_? -->
             state := "ready";
         )
         if (state == "running") {
           if (c == 0.01) {
-            outputs["img_acq"]["proc_img"]!new_image;
+            outputs_lb_img_acq_rb__lb_proc_img_rb_!new_image;
             {
-              preempt[0]["img_acq"]? -->
+              preempt_l_0_r__lb_img_acq_rb_? -->
                 state := "wait"; $
-              free[0]["img_acq"]! -->
+              free_l_0_r__lb_img_acq_rb_! -->
                 state := "wait";
             }
           } else {
-            preempt[0]["img_acq"]? -->
+            preempt_l_0_r__lb_img_acq_rb_? -->
               state := "wait"; $
-            free[0]["img_acq"]! -->
+            free_l_0_r__lb_img_acq_rb_! -->
               state := "wait";
           }
         }
@@ -568,7 +568,7 @@ endmodule
 module ACT_comp_obs_pos():
 begin
   {
-    dis["comp_obs_pos"]!;
+    dis_lb_comp_obs_pos_rb_!;
     wait(0.097);
   }*
 end
@@ -583,22 +583,22 @@ begin
   prior := 1;
   {
     if (state == "wait") {
-      dis["comp_obs_pos"]?;
-      inputs["comp_obs_pos"]["obs_pos_radar"]?obs_pos_radar;
-      inputs["comp_obs_pos"]["proc_img"]?proc_img;
+      dis_lb_comp_obs_pos_rb_?;
+      inputs_lb_comp_obs_pos_rb__lb_obs_pos_radar_rb_?obs_pos_radar;
+      inputs_lb_comp_obs_pos_rb__lb_proc_img_rb_?proc_img;
       t := 0;
       entered := 0;
       state := "ready";
     } else if (state == "ready") {
-      reqProcessor[0]["comp_obs_pos"]!prior;
+      reqProcessor_l_0_r__lb_comp_obs_pos_rb_!prior;
       {t_dot = 1 & t < 0.097} |> [] (
-        run[0]["comp_obs_pos"]? -->
+        run_l_0_r__lb_comp_obs_pos_rb_? -->
           state := "running";
       )
       if (t == 0.097 && state == "ready") {
-        exit[0]["comp_obs_pos"]! -->
+        exit_l_0_r__lb_comp_obs_pos_rb_! -->
           state := "wait"; $
-        run[0]["comp_obs_pos"]? -->
+        run_l_0_r__lb_comp_obs_pos_rb_? -->
           state := "running";
       }
     } else {
@@ -612,22 +612,22 @@ begin
       }
       if (entered == 1) {
         {t_dot = 1, c_dot = 1 & c < 0.02 && t < 0.097} |> [] (
-          preempt[0]["comp_obs_pos"]? -->
+          preempt_l_0_r__lb_comp_obs_pos_rb_? -->
             state := "ready";
         )
         if (state == "running") {
           if (c == 0.02) {
-            outputs["comp_obs_pos"]["obs_pos"]!obs_pos;
+            outputs_lb_comp_obs_pos_rb__lb_obs_pos_rb_!obs_pos;
             {
-              preempt[0]["comp_obs_pos"]? -->
+              preempt_l_0_r__lb_comp_obs_pos_rb_? -->
                 state := "wait"; $
-              free[0]["comp_obs_pos"]! -->
+              free_l_0_r__lb_comp_obs_pos_rb_! -->
                 state := "wait";
             }
           } else {
-            preempt[0]["comp_obs_pos"]? -->
+            preempt_l_0_r__lb_comp_obs_pos_rb_? -->
               state := "wait"; $
-            free[0]["comp_obs_pos"]! -->
+            free_l_0_r__lb_comp_obs_pos_rb_! -->
               state := "wait";
           }
         }
@@ -640,7 +640,7 @@ endmodule
 module ACT_emerg():
 begin
   {
-    dis["emerg"]!;
+    dis_lb_emerg_rb_!;
     wait(0.005);
   }*
 end
@@ -817,24 +817,24 @@ begin
   prior := 2;
   {
     if (state == "wait") {
-      dis["emerg"]?;
-      inputs["emerg"]["des_a"]?des_a;
-      inputs["emerg"]["veh_v"]?veh_v;
-      inputs["emerg"]["obs_pos"]?obs_pos;
-      inputs["emerg"]["veh_pos"]?veh_pos;
+      dis_lb_emerg_rb_?;
+      inputs_lb_emerg_rb__lb_des_a_rb_?des_a;
+      inputs_lb_emerg_rb__lb_veh_v_rb_?veh_v;
+      inputs_lb_emerg_rb__lb_obs_pos_rb_?obs_pos;
+      inputs_lb_emerg_rb__lb_veh_pos_rb_?veh_pos;
       t := 0;
       entered := 0;
       state := "ready";
     } else if (state == "ready") {
-      reqProcessor[0]["emerg"]!prior;
+      reqProcessor_l_0_r__lb_emerg_rb_!prior;
       {t_dot = 1 & t < 0.005} |> [] (
-        run[0]["emerg"]? -->
+        run_l_0_r__lb_emerg_rb_? -->
           state := "running";
       )
       if (t == 0.005 && state == "ready") {
-        exit[0]["emerg"]! -->
+        exit_l_0_r__lb_emerg_rb_! -->
           state := "wait"; $
-        run[0]["emerg"]? -->
+        run_l_0_r__lb_emerg_rb_? -->
           state := "running";
       }
     } else if (state == "running") {
@@ -845,36 +845,36 @@ begin
       }
       if (entered == 1) {
         {t_dot = 1, c_dot = 1 & c < 0.001 && t < 0.005} |> [] (
-          preempt[0]["emerg"]? -->
+          preempt_l_0_r__lb_emerg_rb_? -->
             state := "ready";
         )
         if (state == "running") {
           if (c == 0.001) {
-            reqBus["emerg"]! -->
-              outputs["emerg"]["cmd"]!cmd;
+            reqBus_lb_emerg_rb_! -->
+              outputs_lb_emerg_rb__lb_cmd_rb_!cmd;
               {
-                preempt[0]["emerg"]? -->
+                preempt_l_0_r__lb_emerg_rb_? -->
                   state := "wait"; $
-                free[0]["emerg"]! -->
+                free_l_0_r__lb_emerg_rb_! -->
                   state := "wait";
               } $
-            block["emerg"]? --> {
-              preempt[0]["emerg"]? -->
+            block_lb_emerg_rb_? --> {
+              preempt_l_0_r__lb_emerg_rb_? -->
                 state := "await"; $
-              free[0]["emerg"]! -->
+              free_l_0_r__lb_emerg_rb_! -->
                 state := "await";
             }
           } else {
-            preempt[0]["emerg"]? -->
+            preempt_l_0_r__lb_emerg_rb_? -->
               state := "wait"; $
-            free[0]["emerg"]! -->
+            free_l_0_r__lb_emerg_rb_! -->
               state := "wait";
           }
         }
       }
     } else {
       {t_dot = 1 & t < 0.005} |> [] (
-        unblock["emerg"]? -->
+        unblock_lb_emerg_rb_? -->
           state := "ready";
       )
       if (t == 0.005) {
@@ -888,7 +888,7 @@ endmodule
 module ACT_velo_voter():
 begin
   {
-    dis["velo_voter"]!;
+    dis_lb_velo_voter_rb_!;
     wait(0.008);
   }*
 end
@@ -902,24 +902,24 @@ begin
   prior := 1;
   {
     if (state == "wait") {
-      dis["velo_voter"]?;
-      inputs["velo_voter"]["wheel_v"]?wheel_v;
-      inputs["velo_voter"]["wheel_valid"]?wheel_valid;
-      inputs["velo_voter"]["laser_v"]?laser_v;
-      inputs["velo_voter"]["laser_valid"]?laser_valid;
+      dis_lb_velo_voter_rb_?;
+      inputs_lb_velo_voter_rb__lb_wheel_v_rb_?wheel_v;
+      inputs_lb_velo_voter_rb__lb_wheel_valid_rb_?wheel_valid;
+      inputs_lb_velo_voter_rb__lb_laser_v_rb_?laser_v;
+      inputs_lb_velo_voter_rb__lb_laser_valid_rb_?laser_valid;
       t := 0;
       entered := 0;
       state := "ready";
     } else if (state == "ready") {
-      reqProcessor[0]["velo_voter"]!prior;
+      reqProcessor_l_0_r__lb_velo_voter_rb_!prior;
       {t_dot = 1 & t < 0.008} |> [] (
-        run[0]["velo_voter"]? -->
+        run_l_0_r__lb_velo_voter_rb_? -->
           state := "running";
       )
       if (t == 0.008 && state == "ready") {
-        exit[0]["velo_voter"]! -->
+        exit_l_0_r__lb_velo_voter_rb_! -->
           state := "wait"; $
-        run[0]["velo_voter"]? -->
+        run_l_0_r__lb_velo_voter_rb_? -->
           state := "running";
       }
     } else {
@@ -933,22 +933,22 @@ begin
       }
       if (entered == 1) {
         {t_dot = 1, c_dot = 1 & c < 0.001 && t < 0.008} |> [] (
-          preempt[0]["velo_voter"]? -->
+          preempt_l_0_r__lb_velo_voter_rb_? -->
             state := "ready";
         )
         if (state == "running") {
           if (c == 0.001) {
-            outputs["velo_voter"]["veh_v"]!veh_v;
+            outputs_lb_velo_voter_rb__lb_veh_v_rb_!veh_v;
             {
-              preempt[0]["velo_voter"]? -->
+              preempt_l_0_r__lb_velo_voter_rb_? -->
                 state := "wait"; $
-              free[0]["velo_voter"]! -->
+              free_l_0_r__lb_velo_voter_rb_! -->
                 state := "wait";
             }
           } else {
-            preempt[0]["velo_voter"]? -->
+            preempt_l_0_r__lb_velo_voter_rb_? -->
               state := "wait"; $
-            free[0]["velo_voter"]! -->
+            free_l_0_r__lb_velo_voter_rb_! -->
               state := "wait";
           }
         }
@@ -1076,20 +1076,20 @@ begin
   prior := 0;
   {
     if (state == "wait") {
-      dis["pan_ctr_th"]["event"]?event;
+      dis_lb_pan_ctr_th_rb__lb_event_rb_?event;
       t := 0;
       entered := 0;
       state := "ready";
     } else if (state == "ready") {
-      reqProcessor[0]["pan_ctr_th"]!prior;
+      reqProcessor_l_0_r__lb_pan_ctr_th_rb_!prior;
       {t_dot = 1 & t < 0.1} |> [] (
-        run[0]["pan_ctr_th"]? -->
+        run_l_0_r__lb_pan_ctr_th_rb_? -->
           state := "running";
       )
       if (t == 0.1 && state == "ready") {
-        exit[0]["pan_ctr_th"]! -->
+        exit_l_0_r__lb_pan_ctr_th_rb_! -->
           state := "wait"; $
-        run[0]["pan_ctr_th"]? -->
+        run_l_0_r__lb_pan_ctr_th_rb_? -->
           state := "running";
       }
     } else {
@@ -1102,22 +1102,22 @@ begin
       }
       if (entered == 1) {
         {t_dot = 1, c_dot = 1 & c < 0.01 && t < 0.1} |> [] (
-          preempt[0]["pan_ctr_th"]? -->
+          preempt_l_0_r__lb_pan_ctr_th_rb_? -->
             state := "ready";
         )
         if (state == "running") {
           if (c == 0.01) {
-            outputs["pan_ctr_th"]["des_v"]!des_v;
+            outputs_lb_pan_ctr_th_rb__lb_des_v_rb_!des_v;
             {
-              preempt[0]["pan_ctr_th"]? -->
+              preempt_l_0_r__lb_pan_ctr_th_rb_? -->
                 state := "wait"; $
-              free[0]["pan_ctr_th"]! -->
+              free_l_0_r__lb_pan_ctr_th_rb_! -->
                 state := "wait";
             }
           } else {
-            preempt[0]["pan_ctr_th"]? -->
+            preempt_l_0_r__lb_pan_ctr_th_rb_? -->
               state := "wait"; $
-            free[0]["pan_ctr_th"]! -->
+            free_l_0_r__lb_pan_ctr_th_rb_! -->
               state := "wait";
           }
         }
@@ -1133,9 +1133,9 @@ begin
   data := 0.0;
   {
     {x_dot = 0 & true} |> [] (
-      outputs["bus0"]["img"]?data -->
+      outputs_lb_bus0_rb__lb_img_rb_?data -->
         skip;,
-      inputs["img_acq"]["img"]!data -->
+      inputs_lb_img_acq_rb__lb_img_rb_!data -->
         skip;
     )
   }*
@@ -1148,9 +1148,9 @@ begin
   data := 0.0;
   {
     {x_dot = 0 & true} |> [] (
-      outputs["bus0"]["obs_pos_radar"]?data -->
+      outputs_lb_bus0_rb__lb_obs_pos_radar_rb_?data -->
         skip;,
-      inputs["comp_obs_pos"]["obs_pos_radar"]!data -->
+      inputs_lb_comp_obs_pos_rb__lb_obs_pos_radar_rb_!data -->
         skip;
     )
   }*
@@ -1163,9 +1163,9 @@ begin
   data := 0.0;
   {
     {x_dot = 0 & true} |> [] (
-      outputs["bus1"]["cmd"]?data -->
+      outputs_lb_bus1_rb__lb_cmd_rb_?data -->
         skip;,
-      inputs["actuator"]["cmd"]!data -->
+      inputs_lb_actuator_rb__lb_cmd_rb_!data -->
         skip;
     )
   }*
@@ -1178,9 +1178,9 @@ begin
   data := 0.0;
   {
     {x_dot = 0 & true} |> [] (
-      outputs["bus0"]["veh_pos"]?data -->
+      outputs_lb_bus0_rb__lb_veh_pos_rb_?data -->
         skip;,
-      inputs["emerg"]["veh_pos"]!data -->
+      inputs_lb_emerg_rb__lb_veh_pos_rb_!data -->
         skip;
     )
   }*
@@ -1193,9 +1193,9 @@ begin
   data := 0.0;
   {
     {x_dot = 0 & true} |> [] (
-      outputs["bus0"]["laser_valid"]?data -->
+      outputs_lb_bus0_rb__lb_laser_valid_rb_?data -->
         skip;,
-      inputs["velo_voter"]["laser_valid"]!data -->
+      inputs_lb_velo_voter_rb__lb_laser_valid_rb_!data -->
         skip;
     )
   }*
@@ -1208,9 +1208,9 @@ begin
   data := 0.0;
   {
     {x_dot = 0 & true} |> [] (
-      outputs["bus0"]["laser_v"]?data -->
+      outputs_lb_bus0_rb__lb_laser_v_rb_?data -->
         skip;,
-      inputs["velo_voter"]["laser_v"]!data -->
+      inputs_lb_velo_voter_rb__lb_laser_v_rb_!data -->
         skip;
     )
   }*
@@ -1223,9 +1223,9 @@ begin
   data := 0.0;
   {
     {x_dot = 0 & true} |> [] (
-      outputs["bus0"]["wheel_valid"]?data -->
+      outputs_lb_bus0_rb__lb_wheel_valid_rb_?data -->
         skip;,
-      inputs["velo_voter"]["wheel_valid"]!data -->
+      inputs_lb_velo_voter_rb__lb_wheel_valid_rb_!data -->
         skip;
     )
   }*
@@ -1238,9 +1238,9 @@ begin
   data := 0.0;
   {
     {x_dot = 0 & true} |> [] (
-      outputs["bus0"]["wheel_v"]?data -->
+      outputs_lb_bus0_rb__lb_wheel_v_rb_?data -->
         skip;,
-      inputs["velo_voter"]["wheel_v"]!data -->
+      inputs_lb_velo_voter_rb__lb_wheel_v_rb_!data -->
         skip;
     )
   }*
@@ -1252,12 +1252,12 @@ begin
   queue := [];
   {
     if (len(queue) == 0) {
-      outputs["bus0"]["event"]?event;
+      outputs_lb_bus0_rb__lb_event_rb_?event;
       queue := push(queue,event);
     } else {
-      outputs["bus0"]["event"]?event -->
+      outputs_lb_bus0_rb__lb_event_rb_?event -->
         queue := push(queue,event); $
-      dis["pan_ctr_th"]["event"]!bottom(queue) -->
+      dis_lb_pan_ctr_th_rb__lb_event_rb_!bottom(queue) -->
         queue := get(queue);
     }
   }*
@@ -1269,12 +1269,12 @@ begin
   queue := [];
   {
     if (len(queue) == 0) {
-      outputs["user_panel"]["event"]?event;
+      outputs_lb_user_panel_rb__lb_event_rb_?event;
       queue := push(queue,event);
     } else {
-      outputs["user_panel"]["event"]?event -->
+      outputs_lb_user_panel_rb__lb_event_rb_?event -->
         queue := push(queue,event); $
-      inputs["bus0"]["event"]!bottom(queue) -->
+      inputs_lb_bus0_rb__lb_event_rb_!bottom(queue) -->
         queue := get(queue);
     }
   }*
@@ -1287,9 +1287,9 @@ begin
   data := 0.0;
   {
     {x_dot = 0 & true} |> [] (
-      outputs["pan_ctr_th"]["des_v"]?data -->
+      outputs_lb_pan_ctr_th_rb__lb_des_v_rb_?data -->
         skip;,
-      inputs["PI_ctr"]["des_v"]!data -->
+      inputs_lb_PI_ctr_rb__lb_des_v_rb_!data -->
         skip;
     )
   }*
@@ -1302,9 +1302,9 @@ begin
   data := 0.0;
   {
     {x_dot = 0 & true} |> [] (
-      outputs["img_acq"]["proc_img"]?data -->
+      outputs_lb_img_acq_rb__lb_proc_img_rb_?data -->
         skip;,
-      inputs["comp_obs_pos"]["proc_img"]!data -->
+      inputs_lb_comp_obs_pos_rb__lb_proc_img_rb_!data -->
         skip;
     )
   }*
@@ -1317,9 +1317,9 @@ begin
   data := 0.0;
   {
     {x_dot = 0 & true} |> [] (
-      outputs["comp_obs_pos"]["obs_pos"]?data -->
+      outputs_lb_comp_obs_pos_rb__lb_obs_pos_rb_?data -->
         skip;,
-      inputs["emerg"]["obs_pos"]!data -->
+      inputs_lb_emerg_rb__lb_obs_pos_rb_!data -->
         skip;
     )
   }*
@@ -1332,11 +1332,11 @@ begin
   data := 0.0;
   {
     {x_dot = 0 & true} |> [] (
-      outputs["velo_voter"]["veh_v"]?data -->
+      outputs_lb_velo_voter_rb__lb_veh_v_rb_?data -->
         skip;,
-      inputs["emerg"]["veh_v"]!data -->
+      inputs_lb_emerg_rb__lb_veh_v_rb_!data -->
         skip;,
-      inputs["PI_ctr"]["veh_v"]!data -->
+      inputs_lb_PI_ctr_rb__lb_veh_v_rb_!data -->
         skip;
     )
   }*
@@ -1349,9 +1349,9 @@ begin
   data := 0.0;
   {
     {x_dot = 0 & true} |> [] (
-      outputs["PI_ctr"]["des_a"]?data -->
+      outputs_lb_PI_ctr_rb__lb_des_a_rb_?data -->
         skip;,
-      inputs["emerg"]["des_a"]!data -->
+      inputs_lb_emerg_rb__lb_des_a_rb_!data -->
         skip;
     )
   }*
@@ -1361,7 +1361,7 @@ endmodule
 module ACT_PI_ctr():
 begin
   {
-    dis["PI_ctr"]!;
+    dis_lb_PI_ctr_rb_!;
     wait(0.007);
   }*
 end
@@ -1375,22 +1375,22 @@ begin
   prior := 1;
   {
     if (state == "wait") {
-      dis["PI_ctr"]?;
-      inputs["PI_ctr"]["des_v"]?des_v;
-      inputs["PI_ctr"]["veh_v"]?veh_v;
+      dis_lb_PI_ctr_rb_?;
+      inputs_lb_PI_ctr_rb__lb_des_v_rb_?des_v;
+      inputs_lb_PI_ctr_rb__lb_veh_v_rb_?veh_v;
       t := 0;
       entered := 0;
       state := "ready";
     } else if (state == "ready") {
-      reqProcessor[0]["PI_ctr"]!prior;
+      reqProcessor_l_0_r__lb_PI_ctr_rb_!prior;
       {t_dot = 1 & t < 0.007} |> [] (
-        run[0]["PI_ctr"]? -->
+        run_l_0_r__lb_PI_ctr_rb_? -->
           state := "running";
       )
       if (t == 0.007 && state == "ready") {
-        exit[0]["PI_ctr"]! -->
+        exit_l_0_r__lb_PI_ctr_rb_! -->
           state := "wait"; $
-        run[0]["PI_ctr"]? -->
+        run_l_0_r__lb_PI_ctr_rb_? -->
           state := "running";
       }
     } else {
@@ -1424,22 +1424,22 @@ begin
       }
       if (entered == 1) {
         {t_dot = 1, c_dot = 1 & c < 0.001 && t < 0.007} |> [] (
-          preempt[0]["PI_ctr"]? -->
+          preempt_l_0_r__lb_PI_ctr_rb_? -->
             state := "ready";
         )
         if (state == "running") {
           if (c == 0.001) {
-            outputs["PI_ctr"]["des_a"]!des_a;
+            outputs_lb_PI_ctr_rb__lb_des_a_rb_!des_a;
             {
-              preempt[0]["PI_ctr"]? -->
+              preempt_l_0_r__lb_PI_ctr_rb_? -->
                 state := "wait"; $
-              free[0]["PI_ctr"]! -->
+              free_l_0_r__lb_PI_ctr_rb_! -->
                 state := "wait";
             }
           } else {
-            preempt[0]["PI_ctr"]? -->
+            preempt_l_0_r__lb_PI_ctr_rb_? -->
               state := "wait"; $
-            free[0]["PI_ctr"]! -->
+            free_l_0_r__lb_PI_ctr_rb_! -->
               state := "wait";
           }
         }
@@ -1456,28 +1456,28 @@ end
 
 begin
   {
-    outputs["camera"]["img"]?img -->
+    outputs_lb_camera_rb__lb_img_rb_?img -->
       @BLOCK;
-      outputs["bus0"]["img"]!img; $
-    outputs["radar"]["obs_pos_radar"]?obs_pos_radar -->
+      outputs_lb_bus0_rb__lb_img_rb_!img; $
+    outputs_lb_radar_rb__lb_obs_pos_radar_rb_?obs_pos_radar -->
       @BLOCK;
-      outputs["bus0"]["obs_pos_radar"]!obs_pos_radar; $
-    outputs["GPS"]["veh_pos"]?veh_pos -->
+      outputs_lb_bus0_rb__lb_obs_pos_radar_rb_!obs_pos_radar; $
+    outputs_lb_GPS_rb__lb_veh_pos_rb_?veh_pos -->
       @BLOCK;
-      outputs["bus0"]["veh_pos"]!veh_pos; $
-    outputs["laser"]["laser_valid"]?laser_valid -->
-      outputs["laser"]["laser_v"]?laser_v;
+      outputs_lb_bus0_rb__lb_veh_pos_rb_!veh_pos; $
+    outputs_lb_laser_rb__lb_laser_valid_rb_?laser_valid -->
+      outputs_lb_laser_rb__lb_laser_v_rb_?laser_v;
       @BLOCK;
-      outputs["bus0"]["laser_valid"]!laser_valid;
-      outputs["bus0"]["laser_v"]!laser_v; $
-    outputs["wheel"]["wheel_valid"]?wheel_valid -->
-      outputs["wheel"]["wheel_v"]?wheel_v;
+      outputs_lb_bus0_rb__lb_laser_valid_rb_!laser_valid;
+      outputs_lb_bus0_rb__lb_laser_v_rb_!laser_v; $
+    outputs_lb_wheel_rb__lb_wheel_valid_rb_?wheel_valid -->
+      outputs_lb_wheel_rb__lb_wheel_v_rb_?wheel_v;
       @BLOCK;
-      outputs["bus0"]["wheel_valid"]!wheel_valid;
-      outputs["bus0"]["wheel_v"]!wheel_v; $
-    inputs["bus0"]["event"]?event -->
+      outputs_lb_bus0_rb__lb_wheel_valid_rb_!wheel_valid;
+      outputs_lb_bus0_rb__lb_wheel_v_rb_!wheel_v; $
+    inputs_lb_bus0_rb__lb_event_rb_?event -->
       @BLOCK;
-      outputs["bus0"]["event"]!event;
+      outputs_lb_bus0_rb__lb_event_rb_!event;
   }*
 end
 endmodule
@@ -1487,7 +1487,7 @@ procedure BLOCK begin
   t := 0;
   {
     {t_dot = 1 & t < 0.003} |> [] (
-      block["emerg"]! -->
+      block_lb_emerg_rb_! -->
         skip;
     )
   }*(t < 0.003)
@@ -1499,11 +1499,11 @@ end
 
 begin
   {
-    reqBus["emerg"]? -->
-      outputs["emerg"]["cmd"]?cmd;
+    reqBus_lb_emerg_rb_? -->
+      outputs_lb_emerg_rb__lb_cmd_rb_?cmd;
       @BLOCK_by_emerg;
-      outputs["bus1"]["cmd"]!cmd; $
-    unblock["emerg"]! -->
+      outputs_lb_bus1_rb__lb_cmd_rb_!cmd; $
+    unblock_lb_emerg_rb_! -->
       skip;
   }*
 end
