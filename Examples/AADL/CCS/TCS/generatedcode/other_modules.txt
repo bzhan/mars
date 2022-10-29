@@ -9,6 +9,7 @@ begin
   PHY_vehicle_imp_veh_s := 0;
   PHY_vehicle_imp_veh_v_l := 0;
   PHY_vehicle_imp_veh_v_w := 0;
+  a := 0.0;
   {
     inputs["PHY_vehicle_imp"]["veh_s"]!s -->
       PHY_vehicle_imp_veh_s := 1; $
