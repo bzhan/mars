@@ -4,7 +4,7 @@ import unittest
 import json
 
 from aadl2hcsp.json2hcsp import translate_aadl_from_json
-from ss2hcsp.hcsp.hcsp import convert_infos_to_concrete_chs
+from ss2hcsp.hcsp.hcsp import convert_infos_to_concrete_chs, has_all_concrete_chs
 from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp.pprint import pprint
 from ss2hcsp.hcsp.module import HCSPDeclarations, HCSPModule, HCSPModuleInst, HCSPSystem
@@ -23,6 +23,7 @@ class Json2HCSPTest(unittest.TestCase):
 
         infos = parser.parse_module_file(text)
         infos2 = convert_infos_to_concrete_chs(infos)
+        assert has_all_concrete_chs(infos2)
 
         modules = []
         module_insts = []

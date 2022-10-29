@@ -7,178 +7,234 @@ begin
   run_now := -1;
   run_prior := -1;
   {
-    reqProcessor[0]["img_acq"]?prior -->
-      if (run_prior >= prior) {
-        Pool := push(Pool,[[prior,"img_acq"]]);
-      } else {
-        if (run_now != -1) {
-          preempt[0][run_now]!;
-        }
-        run_now := "img_acq";
-        run_prior := prior;
-        run[0][run_now]!;
-      } $
-    reqProcessor[0]["comp_obs_pos"]?prior -->
-      if (run_prior >= prior) {
-        Pool := push(Pool,[[prior,"comp_obs_pos"]]);
-      } else {
-        if (run_now != -1) {
-          preempt[0][run_now]!;
-        }
-        run_now := "comp_obs_pos";
-        run_prior := prior;
-        run[0][run_now]!;
-      } $
-    reqProcessor[0]["emerg"]?prior -->
-      if (run_prior >= prior) {
-        Pool := push(Pool,[[prior,"emerg"]]);
-      } else {
-        if (run_now != -1) {
-          preempt[0][run_now]!;
-        }
-        run_now := "emerg";
-        run_prior := prior;
-        run[0][run_now]!;
-      } $
     reqProcessor[0]["velo_voter"]?prior -->
       if (run_prior >= prior) {
         Pool := push(Pool,[[prior,"velo_voter"]]);
       } else {
         if (run_now != -1) {
-          preempt[0][run_now]!;
+          if (run_now == "velo_voter") {
+            preempt[0]["velo_voter"]!;
+          } else if (run_now == "PI_ctr") {
+            preempt[0]["PI_ctr"]!;
+          } else if (run_now == "pan_ctr_th") {
+            preempt[0]["pan_ctr_th"]!;
+          } else if (run_now == "img_acq") {
+            preempt[0]["img_acq"]!;
+          } else if (run_now == "emerg") {
+            preempt[0]["emerg"]!;
+          } else if (run_now == "comp_obs_pos") {
+            preempt[0]["comp_obs_pos"]!;
+          }
         }
         run_now := "velo_voter";
         run_prior := prior;
-        run[0][run_now]!;
-      } $
-    reqProcessor[0]["pan_ctr_th"]?prior -->
-      if (run_prior >= prior) {
-        Pool := push(Pool,[[prior,"pan_ctr_th"]]);
-      } else {
-        if (run_now != -1) {
-          preempt[0][run_now]!;
+        if (run_now == "velo_voter") {
+          run[0]["velo_voter"]!;
+        } else if (run_now == "PI_ctr") {
+          run[0]["PI_ctr"]!;
+        } else if (run_now == "pan_ctr_th") {
+          run[0]["pan_ctr_th"]!;
+        } else if (run_now == "img_acq") {
+          run[0]["img_acq"]!;
+        } else if (run_now == "emerg") {
+          run[0]["emerg"]!;
+        } else if (run_now == "comp_obs_pos") {
+          run[0]["comp_obs_pos"]!;
         }
-        run_now := "pan_ctr_th";
-        run_prior := prior;
-        run[0][run_now]!;
       } $
     reqProcessor[0]["PI_ctr"]?prior -->
       if (run_prior >= prior) {
         Pool := push(Pool,[[prior,"PI_ctr"]]);
       } else {
         if (run_now != -1) {
-          preempt[0][run_now]!;
+          if (run_now == "velo_voter") {
+            preempt[0]["velo_voter"]!;
+          } else if (run_now == "PI_ctr") {
+            preempt[0]["PI_ctr"]!;
+          } else if (run_now == "pan_ctr_th") {
+            preempt[0]["pan_ctr_th"]!;
+          } else if (run_now == "img_acq") {
+            preempt[0]["img_acq"]!;
+          } else if (run_now == "emerg") {
+            preempt[0]["emerg"]!;
+          } else if (run_now == "comp_obs_pos") {
+            preempt[0]["comp_obs_pos"]!;
+          }
         }
         run_now := "PI_ctr";
         run_prior := prior;
-        run[0][run_now]!;
+        if (run_now == "velo_voter") {
+          run[0]["velo_voter"]!;
+        } else if (run_now == "PI_ctr") {
+          run[0]["PI_ctr"]!;
+        } else if (run_now == "pan_ctr_th") {
+          run[0]["pan_ctr_th"]!;
+        } else if (run_now == "img_acq") {
+          run[0]["img_acq"]!;
+        } else if (run_now == "emerg") {
+          run[0]["emerg"]!;
+        } else if (run_now == "comp_obs_pos") {
+          run[0]["comp_obs_pos"]!;
+        }
       } $
-    free[0]["img_acq"]? -->
-      assert("img_acq" == run_now);
-      if (len(Pool) > 0) {
-        (run_prior, run_now) := get_max(Pool);
-        Pool := del0(Pool,run_now);
-        run[0][run_now]!;
+    reqProcessor[0]["pan_ctr_th"]?prior -->
+      if (run_prior >= prior) {
+        Pool := push(Pool,[[prior,"pan_ctr_th"]]);
       } else {
-        run_prior := -1;
-        run_now := -1;
+        if (run_now != -1) {
+          if (run_now == "velo_voter") {
+            preempt[0]["velo_voter"]!;
+          } else if (run_now == "PI_ctr") {
+            preempt[0]["PI_ctr"]!;
+          } else if (run_now == "pan_ctr_th") {
+            preempt[0]["pan_ctr_th"]!;
+          } else if (run_now == "img_acq") {
+            preempt[0]["img_acq"]!;
+          } else if (run_now == "emerg") {
+            preempt[0]["emerg"]!;
+          } else if (run_now == "comp_obs_pos") {
+            preempt[0]["comp_obs_pos"]!;
+          }
+        }
+        run_now := "pan_ctr_th";
+        run_prior := prior;
+        if (run_now == "velo_voter") {
+          run[0]["velo_voter"]!;
+        } else if (run_now == "PI_ctr") {
+          run[0]["PI_ctr"]!;
+        } else if (run_now == "pan_ctr_th") {
+          run[0]["pan_ctr_th"]!;
+        } else if (run_now == "img_acq") {
+          run[0]["img_acq"]!;
+        } else if (run_now == "emerg") {
+          run[0]["emerg"]!;
+        } else if (run_now == "comp_obs_pos") {
+          run[0]["comp_obs_pos"]!;
+        }
       } $
-    free[0]["img_acq"]? -->
-      assert("img_acq" == run_now);
-      if (len(Pool) > 0) {
-        (run_prior, run_now) := get_max(Pool);
-        Pool := del0(Pool,run_now);
-        run[0][run_now]!;
+    reqProcessor[0]["img_acq"]?prior -->
+      if (run_prior >= prior) {
+        Pool := push(Pool,[[prior,"img_acq"]]);
       } else {
-        run_prior := -1;
-        run_now := -1;
+        if (run_now != -1) {
+          if (run_now == "velo_voter") {
+            preempt[0]["velo_voter"]!;
+          } else if (run_now == "PI_ctr") {
+            preempt[0]["PI_ctr"]!;
+          } else if (run_now == "pan_ctr_th") {
+            preempt[0]["pan_ctr_th"]!;
+          } else if (run_now == "img_acq") {
+            preempt[0]["img_acq"]!;
+          } else if (run_now == "emerg") {
+            preempt[0]["emerg"]!;
+          } else if (run_now == "comp_obs_pos") {
+            preempt[0]["comp_obs_pos"]!;
+          }
+        }
+        run_now := "img_acq";
+        run_prior := prior;
+        if (run_now == "velo_voter") {
+          run[0]["velo_voter"]!;
+        } else if (run_now == "PI_ctr") {
+          run[0]["PI_ctr"]!;
+        } else if (run_now == "pan_ctr_th") {
+          run[0]["pan_ctr_th"]!;
+        } else if (run_now == "img_acq") {
+          run[0]["img_acq"]!;
+        } else if (run_now == "emerg") {
+          run[0]["emerg"]!;
+        } else if (run_now == "comp_obs_pos") {
+          run[0]["comp_obs_pos"]!;
+        }
       } $
-    free[0]["comp_obs_pos"]? -->
-      assert("comp_obs_pos" == run_now);
-      if (len(Pool) > 0) {
-        (run_prior, run_now) := get_max(Pool);
-        Pool := del0(Pool,run_now);
-        run[0][run_now]!;
+    reqProcessor[0]["emerg"]?prior -->
+      if (run_prior >= prior) {
+        Pool := push(Pool,[[prior,"emerg"]]);
       } else {
-        run_prior := -1;
-        run_now := -1;
+        if (run_now != -1) {
+          if (run_now == "velo_voter") {
+            preempt[0]["velo_voter"]!;
+          } else if (run_now == "PI_ctr") {
+            preempt[0]["PI_ctr"]!;
+          } else if (run_now == "pan_ctr_th") {
+            preempt[0]["pan_ctr_th"]!;
+          } else if (run_now == "img_acq") {
+            preempt[0]["img_acq"]!;
+          } else if (run_now == "emerg") {
+            preempt[0]["emerg"]!;
+          } else if (run_now == "comp_obs_pos") {
+            preempt[0]["comp_obs_pos"]!;
+          }
+        }
+        run_now := "emerg";
+        run_prior := prior;
+        if (run_now == "velo_voter") {
+          run[0]["velo_voter"]!;
+        } else if (run_now == "PI_ctr") {
+          run[0]["PI_ctr"]!;
+        } else if (run_now == "pan_ctr_th") {
+          run[0]["pan_ctr_th"]!;
+        } else if (run_now == "img_acq") {
+          run[0]["img_acq"]!;
+        } else if (run_now == "emerg") {
+          run[0]["emerg"]!;
+        } else if (run_now == "comp_obs_pos") {
+          run[0]["comp_obs_pos"]!;
+        }
       } $
-    free[0]["comp_obs_pos"]? -->
-      assert("comp_obs_pos" == run_now);
-      if (len(Pool) > 0) {
-        (run_prior, run_now) := get_max(Pool);
-        Pool := del0(Pool,run_now);
-        run[0][run_now]!;
+    reqProcessor[0]["comp_obs_pos"]?prior -->
+      if (run_prior >= prior) {
+        Pool := push(Pool,[[prior,"comp_obs_pos"]]);
       } else {
-        run_prior := -1;
-        run_now := -1;
-      } $
-    free[0]["emerg"]? -->
-      assert("emerg" == run_now);
-      if (len(Pool) > 0) {
-        (run_prior, run_now) := get_max(Pool);
-        Pool := del0(Pool,run_now);
-        run[0][run_now]!;
-      } else {
-        run_prior := -1;
-        run_now := -1;
-      } $
-    free[0]["emerg"]? -->
-      assert("emerg" == run_now);
-      if (len(Pool) > 0) {
-        (run_prior, run_now) := get_max(Pool);
-        Pool := del0(Pool,run_now);
-        run[0][run_now]!;
-      } else {
-        run_prior := -1;
-        run_now := -1;
-      } $
-    free[0]["emerg"]? -->
-      assert("emerg" == run_now);
-      if (len(Pool) > 0) {
-        (run_prior, run_now) := get_max(Pool);
-        Pool := del0(Pool,run_now);
-        run[0][run_now]!;
-      } else {
-        run_prior := -1;
-        run_now := -1;
+        if (run_now != -1) {
+          if (run_now == "velo_voter") {
+            preempt[0]["velo_voter"]!;
+          } else if (run_now == "PI_ctr") {
+            preempt[0]["PI_ctr"]!;
+          } else if (run_now == "pan_ctr_th") {
+            preempt[0]["pan_ctr_th"]!;
+          } else if (run_now == "img_acq") {
+            preempt[0]["img_acq"]!;
+          } else if (run_now == "emerg") {
+            preempt[0]["emerg"]!;
+          } else if (run_now == "comp_obs_pos") {
+            preempt[0]["comp_obs_pos"]!;
+          }
+        }
+        run_now := "comp_obs_pos";
+        run_prior := prior;
+        if (run_now == "velo_voter") {
+          run[0]["velo_voter"]!;
+        } else if (run_now == "PI_ctr") {
+          run[0]["PI_ctr"]!;
+        } else if (run_now == "pan_ctr_th") {
+          run[0]["pan_ctr_th"]!;
+        } else if (run_now == "img_acq") {
+          run[0]["img_acq"]!;
+        } else if (run_now == "emerg") {
+          run[0]["emerg"]!;
+        } else if (run_now == "comp_obs_pos") {
+          run[0]["comp_obs_pos"]!;
+        }
       } $
     free[0]["velo_voter"]? -->
       assert("velo_voter" == run_now);
       if (len(Pool) > 0) {
         (run_prior, run_now) := get_max(Pool);
         Pool := del0(Pool,run_now);
-        run[0][run_now]!;
-      } else {
-        run_prior := -1;
-        run_now := -1;
-      } $
-    free[0]["velo_voter"]? -->
-      assert("velo_voter" == run_now);
-      if (len(Pool) > 0) {
-        (run_prior, run_now) := get_max(Pool);
-        Pool := del0(Pool,run_now);
-        run[0][run_now]!;
-      } else {
-        run_prior := -1;
-        run_now := -1;
-      } $
-    free[0]["pan_ctr_th"]? -->
-      assert("pan_ctr_th" == run_now);
-      if (len(Pool) > 0) {
-        (run_prior, run_now) := get_max(Pool);
-        Pool := del0(Pool,run_now);
-        run[0][run_now]!;
-      } else {
-        run_prior := -1;
-        run_now := -1;
-      } $
-    free[0]["pan_ctr_th"]? -->
-      assert("pan_ctr_th" == run_now);
-      if (len(Pool) > 0) {
-        (run_prior, run_now) := get_max(Pool);
-        Pool := del0(Pool,run_now);
-        run[0][run_now]!;
+        if (run_now == "velo_voter") {
+          run[0]["velo_voter"]!;
+        } else if (run_now == "PI_ctr") {
+          run[0]["PI_ctr"]!;
+        } else if (run_now == "pan_ctr_th") {
+          run[0]["pan_ctr_th"]!;
+        } else if (run_now == "img_acq") {
+          run[0]["img_acq"]!;
+        } else if (run_now == "emerg") {
+          run[0]["emerg"]!;
+        } else if (run_now == "comp_obs_pos") {
+          run[0]["comp_obs_pos"]!;
+        }
       } else {
         run_prior := -1;
         run_now := -1;
@@ -188,33 +244,123 @@ begin
       if (len(Pool) > 0) {
         (run_prior, run_now) := get_max(Pool);
         Pool := del0(Pool,run_now);
-        run[0][run_now]!;
+        if (run_now == "velo_voter") {
+          run[0]["velo_voter"]!;
+        } else if (run_now == "PI_ctr") {
+          run[0]["PI_ctr"]!;
+        } else if (run_now == "pan_ctr_th") {
+          run[0]["pan_ctr_th"]!;
+        } else if (run_now == "img_acq") {
+          run[0]["img_acq"]!;
+        } else if (run_now == "emerg") {
+          run[0]["emerg"]!;
+        } else if (run_now == "comp_obs_pos") {
+          run[0]["comp_obs_pos"]!;
+        }
       } else {
         run_prior := -1;
         run_now := -1;
       } $
-    free[0]["PI_ctr"]? -->
-      assert("PI_ctr" == run_now);
+    free[0]["pan_ctr_th"]? -->
+      assert("pan_ctr_th" == run_now);
       if (len(Pool) > 0) {
         (run_prior, run_now) := get_max(Pool);
         Pool := del0(Pool,run_now);
-        run[0][run_now]!;
+        if (run_now == "velo_voter") {
+          run[0]["velo_voter"]!;
+        } else if (run_now == "PI_ctr") {
+          run[0]["PI_ctr"]!;
+        } else if (run_now == "pan_ctr_th") {
+          run[0]["pan_ctr_th"]!;
+        } else if (run_now == "img_acq") {
+          run[0]["img_acq"]!;
+        } else if (run_now == "emerg") {
+          run[0]["emerg"]!;
+        } else if (run_now == "comp_obs_pos") {
+          run[0]["comp_obs_pos"]!;
+        }
       } else {
         run_prior := -1;
         run_now := -1;
       } $
-    exit[0]["img_acq"]? -->
-      Pool := del0(Pool,"img_acq"); $
-    exit[0]["comp_obs_pos"]? -->
-      Pool := del0(Pool,"comp_obs_pos"); $
-    exit[0]["emerg"]? -->
-      Pool := del0(Pool,"emerg"); $
+    free[0]["img_acq"]? -->
+      assert("img_acq" == run_now);
+      if (len(Pool) > 0) {
+        (run_prior, run_now) := get_max(Pool);
+        Pool := del0(Pool,run_now);
+        if (run_now == "velo_voter") {
+          run[0]["velo_voter"]!;
+        } else if (run_now == "PI_ctr") {
+          run[0]["PI_ctr"]!;
+        } else if (run_now == "pan_ctr_th") {
+          run[0]["pan_ctr_th"]!;
+        } else if (run_now == "img_acq") {
+          run[0]["img_acq"]!;
+        } else if (run_now == "emerg") {
+          run[0]["emerg"]!;
+        } else if (run_now == "comp_obs_pos") {
+          run[0]["comp_obs_pos"]!;
+        }
+      } else {
+        run_prior := -1;
+        run_now := -1;
+      } $
+    free[0]["emerg"]? -->
+      assert("emerg" == run_now);
+      if (len(Pool) > 0) {
+        (run_prior, run_now) := get_max(Pool);
+        Pool := del0(Pool,run_now);
+        if (run_now == "velo_voter") {
+          run[0]["velo_voter"]!;
+        } else if (run_now == "PI_ctr") {
+          run[0]["PI_ctr"]!;
+        } else if (run_now == "pan_ctr_th") {
+          run[0]["pan_ctr_th"]!;
+        } else if (run_now == "img_acq") {
+          run[0]["img_acq"]!;
+        } else if (run_now == "emerg") {
+          run[0]["emerg"]!;
+        } else if (run_now == "comp_obs_pos") {
+          run[0]["comp_obs_pos"]!;
+        }
+      } else {
+        run_prior := -1;
+        run_now := -1;
+      } $
+    free[0]["comp_obs_pos"]? -->
+      assert("comp_obs_pos" == run_now);
+      if (len(Pool) > 0) {
+        (run_prior, run_now) := get_max(Pool);
+        Pool := del0(Pool,run_now);
+        if (run_now == "velo_voter") {
+          run[0]["velo_voter"]!;
+        } else if (run_now == "PI_ctr") {
+          run[0]["PI_ctr"]!;
+        } else if (run_now == "pan_ctr_th") {
+          run[0]["pan_ctr_th"]!;
+        } else if (run_now == "img_acq") {
+          run[0]["img_acq"]!;
+        } else if (run_now == "emerg") {
+          run[0]["emerg"]!;
+        } else if (run_now == "comp_obs_pos") {
+          run[0]["comp_obs_pos"]!;
+        }
+      } else {
+        run_prior := -1;
+        run_now := -1;
+      } $
     exit[0]["velo_voter"]? -->
       Pool := del0(Pool,"velo_voter"); $
+    exit[0]["PI_ctr"]? -->
+      Pool := del0(Pool,"PI_ctr"); $
     exit[0]["pan_ctr_th"]? -->
       Pool := del0(Pool,"pan_ctr_th"); $
-    exit[0]["PI_ctr"]? -->
-      Pool := del0(Pool,"PI_ctr");
+    exit[0]["img_acq"]? -->
+      Pool := del0(Pool,"img_acq"); $
+    exit[0]["emerg"]? -->
+      Pool := del0(Pool,"emerg"); $
+    exit[0]["comp_obs_pos"]? -->
+      Pool := del0(Pool,"comp_obs_pos");
   }*
 end
 endmodule
@@ -235,7 +381,7 @@ begin
       PHY_vehicle_imp_veh_v_l := 1; $
     inputs["PHY_vehicle_imp"]["veh_v_w"]!v -->
       PHY_vehicle_imp_veh_v_w := 1;
-  }*
+  }*(PHY_vehicle_imp_veh_s == 0 || PHY_vehicle_imp_veh_v_l == 0 || PHY_vehicle_imp_veh_v_w == 0)
   outputs["PHY_vehicle_imp"]["veh_a"]?a;
   {
     {v_dot = a, s_dot = v & true} |> [] (
@@ -1344,7 +1490,7 @@ procedure BLOCK begin
       block["emerg"]! -->
         skip;
     )
-  }*
+  }*(t < 0.003)
 end
 
 procedure BLOCK_by_emerg begin

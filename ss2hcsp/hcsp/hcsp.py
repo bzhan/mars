@@ -1489,19 +1489,19 @@ def HCSP_subst(hp: HCSP, inst: Dict[str, HCSP]) -> HCSP:
         print(hp)
         raise NotImplementedError
 
-def get_concrete_chs(infos: List[HCSPInfo]) -> Dict[str, List[Tuple[Expr]]]:
+def get_concrete_chs(infos: List[HCSPInfo]) -> Dict[str, Set[Tuple[Expr]]]:
     """Return a mapping from channel names to list of concrete instantiations
     of the channel.
     
     """
-    res: Dict[str, List[Tuple[Expr]]] = dict()
+    res: Dict[str, Set[Tuple[Expr]]] = dict()
 
     def rec(hp):
         if isinstance(hp, (InputChannel, OutputChannel)):
             if hp.ch_name.name not in res:
-                res[hp.ch_name.name] = []
+                res[hp.ch_name.name] = set()
             if all(isinstance(arg, AConst) for arg in hp.ch_name.args):
-                res[hp.ch_name.name].append(hp.ch_name.args)
+                res[hp.ch_name.name].add(hp.ch_name.args)
         elif isinstance(hp, (Var, Skip, Wait, Assign, Assert, Test, Log)):
             pass
         elif isinstance(hp, Loop):
@@ -1526,9 +1526,12 @@ def get_concrete_chs(infos: List[HCSPInfo]) -> Dict[str, List[Tuple[Expr]]]:
 
     for info in infos:
         rec(info.hp)
+        for proc in info.procedures:
+            rec(proc.hp)
+
     return res
 
-def convert_to_concrete_chs(hp: HCSP, concrete_map: Dict[str, List[Tuple[Expr]]]) -> HCSP:
+def convert_to_concrete_chs(hp: HCSP, concrete_map: Dict[str, Set[Tuple[Expr]]]) -> HCSP:
     """Using the mapping from channel names to concrete instantiations,
     convert parameterized HCSP program to unparameterized form.
     
@@ -1613,10 +1616,10 @@ def convert_to_concrete_chs(hp: HCSP, concrete_map: Dict[str, List[Tuple[Expr]]]
                         new_args = comm_hp.ch_name.args[:-1] + (match,)
                         if isinstance(comm_hp, InputChannel):
                             new_io_comms.append((InputChannel(Channel(comm_hp.ch_name.name, new_args), comm_hp.var_name),
-                                                 out_hp.subst_comm({last_arg.name: match})))
+                                                 rec(out_hp.subst_comm({last_arg.name: match}))))
                         else:
                             new_io_comms.append((OutputChannel(Channel(comm_hp.ch_name.name, new_args), comm_hp.expr),
-                                                 out_hp.subst_comm({last_arg.name: match})))
+                                                 rec(out_hp.subst_comm({last_arg.name: match}))))
                 else:
                     raise NotImplementedError
             
@@ -1628,7 +1631,7 @@ def convert_to_concrete_chs(hp: HCSP, concrete_map: Dict[str, List[Tuple[Expr]]]
         elif isinstance(hp, (Var, Skip, Wait, Assign, Assert, Test, Log)):
             return hp
         elif isinstance(hp, Loop):
-            return Loop(rec(hp.hp))
+            return Loop(rec(hp.hp), constraint=hp.constraint)
         elif isinstance(hp, Sequence):
             return Sequence(*(rec(sub_hp) for sub_hp in hp.hps))
         elif isinstance(hp, ODE):
@@ -1657,6 +1660,43 @@ def convert_infos_to_concrete_chs(infos: List[HCSPInfo]) -> List[HCSPInfo]:
             new_procs.append(Procedure(proc.name, convert_to_concrete_chs(proc.hp, concrete_chs)))
         new_infos.append(HCSPInfo(info.name, new_hp, outputs=info.outputs, procedures=new_procs))
     return new_infos
+
+def has_all_concrete_chs(infos: List[HCSPInfo]) -> bool:
+    def rec(hp):
+        if isinstance(hp, (InputChannel, OutputChannel)):
+            if not all(isinstance(arg, AConst) for arg in hp.ch_name.args):
+                print("Non-concrete chs:", hp)
+                return False
+            else:
+                return True
+        elif isinstance(hp, (Var, Skip, Wait, Assign, Assert, Test, Log)):
+            return True
+        elif isinstance(hp, Loop):
+            return rec(hp.hp)
+        elif isinstance(hp, Sequence):
+            return all(rec(sub_hp) for sub_hp in hp.hps)
+        elif isinstance(hp, ODE):
+            return rec(hp.out_hp)
+        elif isinstance(hp, (ODE_Comm, SelectComm)):
+            return all(rec(comm) and rec(out_hp) for comm, out_hp in hp.io_comms)
+        elif isinstance(hp, ITE):
+            for _, if_hp in hp.if_hps:
+                if not rec(if_hp):
+                    return False
+            if hp.else_hp is not None and not rec(hp.else_hp):
+                return False
+            return True
+        else:
+            print(hp)
+            raise NotImplementedError
+
+    for info in infos:
+        if not rec(info.hp):
+            return False
+        for proc in info.procedures:
+            if not rec(proc.hp):
+                return False
+    return True
 
 def reduce_procedures(hp: HCSP, procs: Dict[str, HCSP], strict_protect:Optional[Set[str]] = None):
     """Reduce number of procedures in the process by inlining.
