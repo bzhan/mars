@@ -169,6 +169,43 @@ def inferTypes(infos: List[HCSPInfo]) -> TypeContext:
 
     return ctx
 
+def cPriority(e: expr.Expr) -> int:
+    """Obtain the priority of expression when converted to C."""
+    if isinstance(e, expr.AVar):
+        return 100
+    elif isinstance(e, expr.AConst):
+        return 100
+    elif isinstance(e, expr.OpExpr):
+        if len(e.exprs) == 1:
+            return 80
+        elif e.op == '^':
+            return 100
+        elif e.op in ('*', '/', '%'):
+            return 70
+        else:
+            return 65
+    elif isinstance(e, expr.RelExpr):
+        return 50
+    elif isinstance(e, expr.IfExpr):
+        return 100
+    elif isinstance(e, expr.LogicExpr):
+        if e.op == '<->':
+            return 25
+        elif e.op == '->':
+            return 20
+        elif e.op == '&&':
+            return 35
+        elif e.op == '||':
+            return 30
+        elif e.op == '!':
+            return 40
+    elif isinstance(e, expr.FunExpr):
+        return 100
+    elif isinstance(e, expr.ListExpr):
+        return 100
+    else:
+        raise NotImplementedError
+
 
 def transferToCExpr(e: expr.Expr) -> str:
     """Convert HCSP expression into C expression."""
@@ -176,16 +213,25 @@ def transferToCExpr(e: expr.Expr) -> str:
         return e.name
     elif isinstance(e, expr.OpExpr):
         if e.op == '-' and len(e.exprs) == 1:
-            return "-(%s)" % transferToCExpr(e.exprs[0])
-        elif e.op in ('+', '-', '*', '/'):
-            return "(%s) %s (%s)" % (transferToCExpr(e.exprs[0]), e.op, transferToCExpr(e.exprs[1]))
-        elif e.op == '^':
-            return "pow(%s, %s)" % (transferToCExpr(e.exprs[0]), transferToCExpr(e.exprs[1]))
-        elif e.op == '%':
-            return "(int) %s %% %s" % (transferToCExpr(e.exprs[0]), transferToCExpr(e.exprs[1]))
+            s = transferToCExpr(e.exprs[0])
+            if cPriority(e.exprs[0]) < cPriority(e):
+                s = '(' + s + ')'
+            return '-' + s
         else:
-            print("transferToCExpr: %s" % e)
-            raise NotImplementedError
+            s1, s2 = transferToCExpr(e.exprs[0]), transferToCExpr(e.exprs[1])
+            if cPriority(e.exprs[0]) < cPriority(e):
+                s1 = '(' + s1 + ')'
+            if cPriority(e.exprs[1]) <= cPriority(e):
+                s2 = '(' + s2 + ')'
+            if e.op in ('+', '-', '*', '/'):
+                return "%s %s %s" % (s1, e.op, s2)
+            elif e.op == '^':
+                return "pow(%s, %s)" % (transferToCExpr(e.exprs[0]), transferToCExpr(e.exprs[1]))
+            elif e.op == '%':
+                return "(int) %s %% %s" % (s1, s2)
+            else:
+                print("transferToCExpr: %s" % e)
+                raise NotImplementedError
     elif isinstance(e, expr.RelExpr):
         if e.op == "==":
             if isinstance(e.expr1, expr.AConst):
@@ -198,9 +244,19 @@ def transferToCExpr(e: expr.Expr) -> str:
                 elif isinstance(e.expr2, expr.AVar) and e.expr2.name in gl_var_type and isinstance(gl_var_type[e.expr2.name], StringType):
                     return "strEqual(%s, %s)" % (e.expr1, e.expr2)
                 else:
-                    return "(%s) == (%s)" % (transferToCExpr(e.expr1), transferToCExpr(e.expr2))
+                    s1, s2 = transferToCExpr(e.expr1), transferToCExpr(e.expr2)
+                    if cPriority(e.expr1) < cPriority(e):
+                        s1 = '(' + s1 + ')'
+                    if cPriority(e.expr2) <= cPriority(e):
+                        s2 = '(' + s2 + ')'
+                    return "%s == %s" % (s1, s2)
         else:
-            return "(%s) %s (%s)" % (transferToCExpr(e.expr1), e.op, transferToCExpr(e.expr2))
+            s1, s2 = transferToCExpr(e.expr1), transferToCExpr(e.expr2)
+            if cPriority(e.expr1) < cPriority(e):
+                s1 = '(' + s1 + ')'
+            if cPriority(e.expr2) <= cPriority(e):
+                s2 = '(' + s2 + ')'
+            return "%s %s %s" % (s1, e.op, s2)
     elif isinstance(e, expr.AConst):
         if isinstance(e.value, str):
             return "*strInit(\"%s\")" % e.value
@@ -229,9 +285,17 @@ def transferToCExpr(e: expr.Expr) -> str:
         return "(%s ? %s : %s)" % (transferToCExpr(e.cond), transferToCExpr(e.expr1), transferToCExpr(e.expr2))
     elif isinstance(e, expr.LogicExpr):
         if e.op == '!':
-            return "!(%s)" % transferToCExpr(e.exprs[0])
+            s = transferToCExpr(e.exprs[0])
+            if cPriority(e.exprs[0]) < cPriority(e):
+                s = '(' + s + ')'
+            return "!%s" % s
         else:
-            return "(%s) %s (%s)" % (transferToCExpr(e.exprs[0]), e.op, transferToCExpr(e.exprs[1]))
+            s1, s2 = transferToCExpr(e.exprs[0]), transferToCExpr(e.exprs[1])
+            if cPriority(e.exprs[0]) < cPriority(e):
+                s1 = '(' + s1 + ')'
+            if cPriority(e.exprs[1]) <= cPriority(e):
+                s2 = '(' + s2 + ')'
+            return "(%s) %s (%s)" % (s1, e.op, s2)
     elif isinstance(e, expr.FunExpr):
         # Special functions
         args = e.exprs
@@ -395,7 +459,7 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
         var = ", ".join(vars)
         res =  "if ((int) (localTime[threadNumber] * 1000 + 0.5) % (int) (output_step_size * 1000 + 0.5) == 0) {\n"
         res += "    printf(\"%%.3f: %s\\n\", localTime[threadNumber], %s);\n" % (format, var)
-        res += "}"
+        res += "}\n"
         return res
 
     def rec(hp: hcsp.HCSP) -> str:
