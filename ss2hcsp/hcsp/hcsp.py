@@ -1441,7 +1441,7 @@ class HCSPInfo:
         self.hp: HCSP = hp
         
         # List of output variables
-        self.outputs = []
+        self.outputs: List[HCSPOutput] = []
         if outputs is not None:
             assert all(isinstance(output, HCSPOutput) for output in outputs)
             self.outputs = tuple(outputs)
