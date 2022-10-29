@@ -4,12 +4,19 @@ module scheduler():
 output prior, run_prior;
 begin
   Pool := [];
+  PriorList := [];
+  PriorList2 := [];
   run_now := -1;
   run_prior := -1;
   {
     reqProcessor_l_0_r__lb_PI_ctr_rb_?prior -->
       if (run_prior >= prior) {
-        Pool := push(Pool,[[prior,"PI_ctr"]]);
+        PriorList := [];
+        PriorList2 := [];
+        PriorList2 := push(PriorList2,prior);
+        PriorList2 := push(PriorList2,"PI_ctr");
+        PriorList := push(PriorList,PriorList2);
+        Pool := push(Pool,PriorList);
       } else {
         if (run_now != -1) {
           if (run_now == "PI_ctr") {
@@ -44,7 +51,12 @@ begin
       } $
     reqProcessor_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_?prior -->
       if (run_prior >= prior) {
-        Pool := push(Pool,[[prior,"comp_obs_pos"]]);
+        PriorList := [];
+        PriorList2 := [];
+        PriorList2 := push(PriorList2,prior);
+        PriorList2 := push(PriorList2,"comp_obs_pos");
+        PriorList := push(PriorList,PriorList2);
+        Pool := push(Pool,PriorList);
       } else {
         if (run_now != -1) {
           if (run_now == "PI_ctr") {
@@ -79,7 +91,12 @@ begin
       } $
     reqProcessor_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_?prior -->
       if (run_prior >= prior) {
-        Pool := push(Pool,[[prior,"emerg"]]);
+        PriorList := [];
+        PriorList2 := [];
+        PriorList2 := push(PriorList2,prior);
+        PriorList2 := push(PriorList2,"emerg");
+        PriorList := push(PriorList,PriorList2);
+        Pool := push(Pool,PriorList);
       } else {
         if (run_now != -1) {
           if (run_now == "PI_ctr") {
@@ -114,7 +131,12 @@ begin
       } $
     reqProcessor_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_?prior -->
       if (run_prior >= prior) {
-        Pool := push(Pool,[[prior,"img_acq"]]);
+        PriorList := [];
+        PriorList2 := [];
+        PriorList2 := push(PriorList2,prior);
+        PriorList2 := push(PriorList2,"img_acq");
+        PriorList := push(PriorList,PriorList2);
+        Pool := push(Pool,PriorList);
       } else {
         if (run_now != -1) {
           if (run_now == "PI_ctr") {
@@ -149,7 +171,12 @@ begin
       } $
     reqProcessor_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_?prior -->
       if (run_prior >= prior) {
-        Pool := push(Pool,[[prior,"pan_ctr_th"]]);
+        PriorList := [];
+        PriorList2 := [];
+        PriorList2 := push(PriorList2,prior);
+        PriorList2 := push(PriorList2,"pan_ctr_th");
+        PriorList := push(PriorList,PriorList2);
+        Pool := push(Pool,PriorList);
       } else {
         if (run_now != -1) {
           if (run_now == "PI_ctr") {
@@ -184,7 +211,12 @@ begin
       } $
     reqProcessor_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_?prior -->
       if (run_prior >= prior) {
-        Pool := push(Pool,[[prior,"velo_voter"]]);
+        PriorList := [];
+        PriorList2 := [];
+        PriorList2 := push(PriorList2,prior);
+        PriorList2 := push(PriorList2,"velo_voter");
+        PriorList := push(PriorList,PriorList2);
+        Pool := push(Pool,PriorList);
       } else {
         if (run_now != -1) {
           if (run_now == "PI_ctr") {
