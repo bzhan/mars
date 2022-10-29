@@ -1408,16 +1408,44 @@ class Procedure:
         return "procedure %s begin %s end" % (self.name, str(self.hp))
 
 
+class HCSPOutput:
+    """Represents an output info"""
+    def __init__(self, varname: str, expr: Optional[Expr] = None):
+        self.varname: str = varname
+        self.expr: Optional[Expr] = expr
+
+    def __str__(self):
+        if self.expr is None:
+            return self.varname
+        else:
+            return self.varname + " = " + str(self.expr)
+
+    def toJson(self):
+        if self.expr is None:
+            return self.varname
+        else:
+            return [self.varname, str(self.expr)]
+
+def outputFromJson(data) -> HCSPOutput:
+    if isinstance(data, str):
+        return HCSPOutput(data)
+    else:
+        from ss2hcsp.hcsp.parser import expr_parser
+        return HCSPOutput(data[0], expr_parser.parse(data[1]))
+
+
 class HCSPInfo:
     """HCSP process with extra information."""
-    def __init__(self, name: str, hp: HCSP, *, outputs=None, procedures=None):
+    def __init__(self, name: str, hp: HCSP, *, outputs: Optional[List[HCSPOutput]]=None,
+                 procedures: Optional[List[Procedure]]=None):
         self.name: str = name
         self.hp: HCSP = hp
         
         # List of output variables
-        self.outputs = []
+        self.outputs: List[HCSPOutput] = []
         if outputs is not None:
-            self.outputs = outputs
+            assert all(isinstance(output, HCSPOutput) for output in outputs)
+            self.outputs = tuple(outputs)
 
         # List of declared procedures
         self.procedures: List[Procedure]
@@ -1458,6 +1486,21 @@ def subst_comm_all(hp: HCSP, inst):
     for var in reversed(topo_order):
         hp = hp.subst_comm({var: inst[var]})
     return hp
+
+def subst_all(e: Expr, inst):
+    """Perform all substitutions on an expression. Detect cycles."""
+    # Set of all variables to be substituted
+    all_vars = set(inst.keys())
+
+    # Mapping variable to its dependencies
+    dep_order = dict()
+    for var in all_vars:
+        dep_order[var] = list(inst[var].get_vars().intersection(all_vars))
+
+    topo_order = topological_sort(dep_order)
+    for var in reversed(topo_order):
+        e = e.subst({var: inst[var]})
+    return e
 
 def HCSP_subst(hp: HCSP, inst: Dict[str, HCSP]) -> HCSP:
     """Substitution of program variables for their instantiations."""
@@ -1577,7 +1620,7 @@ def convert_to_concrete_chs(hp: HCSP, concrete_map: Dict[str, Set[Tuple[Expr]]])
                 matches = find_match(hp.ch_name)
                 assert len(matches) > 0
                 if_hps = []
-                for match in matches:
+                for match in sorted(matches):
                     new_args = ()
                     if isinstance(match.value, str):
                         new_name = new_name + "_lb_" + match.value + "_rb_"
@@ -1618,7 +1661,7 @@ def convert_to_concrete_chs(hp: HCSP, concrete_map: Dict[str, Set[Tuple[Expr]]])
                 matches = find_match(hp.ch_name)
                 assert len(matches) > 0
                 if_hps = []
-                for match in matches:
+                for match in sorted(matches):
                     new_args = ()
                     if isinstance(match.value, str):
                         new_name = new_name + "_lb_" + match.value + "_rb_"
@@ -1661,7 +1704,7 @@ def convert_to_concrete_chs(hp: HCSP, concrete_map: Dict[str, Set[Tuple[Expr]]])
                     # Wildcard case
                     matches = find_match(comm_hp.ch_name)
                     assert len(matches) > 0
-                    for match in matches:
+                    for match in sorted(matches):
                         new_args = ()
                         if isinstance(match.value, str):
                             new_name = new_name + "_lb_" + match.value + "_rb_"

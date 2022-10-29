@@ -121,8 +121,6 @@ class AConst(Expr):
     def __init__(self, value, meta=None):
         super(AConst, self).__init__()
         assert isinstance(value, (int, float, Decimal, Fraction, str))
-        # if isinstance(value, Decimal):
-        #     value = float(value)
         self.value = value
         self.meta = meta
 
@@ -134,6 +132,9 @@ class AConst(Expr):
 
     def __eq__(self, other):
         return isinstance(other, AConst) and self.value == other.value
+
+    def __lt__(self, other):
+        return self.value < other.value
 
     def __hash__(self):
         return hash(("AConst", str(self.value)))

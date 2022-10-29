@@ -74,7 +74,7 @@ def parse_hcsp():
             hcsp_info.append({
                 'name': name,
                 'text': str(hp),
-                'outputs': info.outputs,
+                'outputs': [output.toJson() for output in info.outputs],
                 'lines': lines,
                 'mapping': mapping,
                 'procedures': json_procs
@@ -95,10 +95,11 @@ def run_hcsp():
     profile = False
 
     def convert_procs(procs):
-        return {proc['name']:hcsp.Procedure(proc['name'], proc['text'])
+        return {proc['name']: hcsp.Procedure(proc['name'], proc['text'])
                 for proc in procs}
 
-    infos = [simulator.SimInfo(info['name'], info['text'], outputs=info['outputs'],
+    infos = [simulator.SimInfo(info['name'], info['text'],
+                               outputs=[hcsp.outputFromJson(output) for output in info['outputs']],
                                procedures=convert_procs(info['procedures']))
              for info in infos if 'parallel' not in info]
 

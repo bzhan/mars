@@ -385,9 +385,12 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
     def outputVars() -> str:
         formats = []
         vars = []
-        for var in info.outputs:
-            formats.append("%s = %%.3f" % var)
-            vars.append(var)
+        for output in info.outputs:
+            formats.append("%s = %%.3f" % output.varname)
+            if output.expr is None:
+                vars.append(output.varname)
+            else:
+                vars.append("(double) " + transferToCExpr(output.expr))
         format = ", ".join(formats)
         var = ", ".join(vars)
         res =  "if ((int) (localTime[threadNumber] * 1000 + 0.5) % (int) (output_step_size * 1000 + 0.5) == 0) {\n"

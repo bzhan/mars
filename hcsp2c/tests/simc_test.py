@@ -75,19 +75,16 @@ class SimcTest(unittest.TestCase):
         self.run_test(
             "./Examples/Simulink/AbstractFuelControl_M2.txt", "AbstractFuelControl_M2",
             step_size=1e-3,
-            output_step_size=0.1,
-            max_time=1.0,
+            output_step_size=5.0,
+            max_time=31.0,
             expected_output=[
-                "0.000: AF = 14.700",
-                "0.100: AF = 14.566",
-                "0.200: AF = 14.455",
-                "0.300: AF = 14.402",
-                "0.400: AF = 14.396",
-                "0.500: AF = 14.419",
-                "0.600: AF = 14.458",
-                "0.700: AF = 14.503",
-                "0.800: AF = 14.547",
-                "0.900: AF = 14.588"
+                "0.000: AF = 14.700, TA = 8.800, ES = 1000.000",
+                "5.000: AF = 14.746, TA = 84.100, ES = 1000.000",
+                "10.000: AF = 14.700, TA = 84.100, ES = 1000.000",
+                "15.000: AF = 14.690, TA = 8.800, ES = 1000.000",
+                "20.000: AF = 14.731, TA = 84.100, ES = 1000.000",
+                "25.000: AF = 14.701, TA = 84.100, ES = 1000.000",
+                "30.000: AF = 14.679, TA = 8.800, ES = 1000.000"
             ]
         )
 
