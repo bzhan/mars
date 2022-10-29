@@ -5,7 +5,8 @@ begin
 Pool := [];
 PriorList := [];
 PriorList2 := [];
-run_now := -1;
+prior := -1;
+run_now := "";
 run_prior := -1;
 {
 reqProcessor[sid][_tid]?prior -->
@@ -17,7 +18,7 @@ reqProcessor[sid][_tid]?prior -->
         PriorList := push(PriorList, PriorList2);
         Pool := push(Pool, PriorList);
     } else {
-        if (run_now != -1) {
+        if (run_now != "") {
             preempt[sid][run_now]!;
         } 
         run_now := _tid;
@@ -32,7 +33,7 @@ free[sid][_tid]? -->
         Pool := del0(Pool, run_now);
         run[sid][run_now]!;
     } else {
-        run_prior := -1; run_now := -1;
+        run_prior := -1; run_now := "";
     }
 $
 exit[sid][_tid]? --> Pool := del0(Pool, _tid);

@@ -80,8 +80,12 @@ def inferExprType(e: expr.Expr, hp_name: str, ctx: TypeContext) -> CType:
     elif isinstance(e, expr.OpExpr):
         return RealType()
     elif isinstance(e, expr.FunExpr):
-        if e.fun_name in ('max'):
+        if e.fun_name in ('max', 'min', 'len'):
             return RealType()
+        elif e.fun_name in ('push', 'pop', 'get'):
+            return ListType()
+        # elif e.fun_name in ('bottom', 'top'): # not really
+        #     return RealType()
         else:
             print("inferExprType: unrecognized function %s" % e.fun_name)
             raise NotImplementedError
@@ -126,7 +130,7 @@ def inferTypes(infos: List[HCSPInfo]) -> TypeContext:
                     if v.name in ctx.varTypes[hp_name]:
                         ctx.channelTypes[ch.name] = ctx.varTypes[hp_name][v.name]
                     else:
-                        raise AssertionError("inferTypes: unknown type for input variable")
+                        raise AssertionError("inferTypes: unknown type for input variable %s", v.name)
                 else:
                     raise NotImplementedError
         
@@ -140,7 +144,7 @@ def inferTypes(infos: List[HCSPInfo]) -> TypeContext:
                 e = hp.expr
                 typ = inferExprType(e, hp_name, ctx)
                 if isinstance(typ, UndefType):
-                    raise AssertionError("inferTypes: unknown type for output expression")
+                    raise AssertionError("inferTypes: unknown type for output expression %s", e)
                 else:
                     ctx.channelTypes[ch.name] = typ
         
@@ -340,12 +344,25 @@ def transferToCExpr(e: expr.Expr) -> str:
         elif e.fun_name == "bottom":
             a, = args
             return "listBottom(&%s)" % a
+        elif e.fun_name == "len":
+            a, = args
+            return "%s.length" % a
+        
         # elif e.fun_name == "get":
         #     a, = args
         #     assert isinstance(a, list)
         #     if len(a) == 0:
         #         raise SimulatorException('When evaluating %s: argument is empty' % expr)
         #     return a[1:]
+        # elif e.fun_name == "get":
+        #     a, = args
+        #     return "%s.length" % a
+        # elif e.fun_name == "get_max":
+        #     a, = args
+        #     return "%s.length" % a
+        # elif e.fun_name == "del0":
+        #     a, b = args
+        #     return "%s.length" % a
         else:
             print("transferToCExpr: unsupported function %s" % e.fun_name)
             raise NotImplementedError

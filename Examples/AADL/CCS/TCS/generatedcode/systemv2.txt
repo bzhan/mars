@@ -6,7 +6,8 @@ begin
   Pool := [];
   PriorList := [];
   PriorList2 := [];
-  run_now := -1;
+  prior := -1;
+  run_now := "";
   run_prior := -1;
   {
     reqProcessor_l_0_r__lb_PI_ctr_rb_?prior -->
@@ -18,7 +19,7 @@ begin
         PriorList := push(PriorList,PriorList2);
         Pool := push(Pool,PriorList);
       } else {
-        if (run_now != -1) {
+        if (run_now != "") {
           if (run_now == "PI_ctr") {
             preempt_l_0_r__lb_PI_ctr_rb_!;
           } else if (run_now == "comp_obs_pos") {
@@ -58,7 +59,7 @@ begin
         PriorList := push(PriorList,PriorList2);
         Pool := push(Pool,PriorList);
       } else {
-        if (run_now != -1) {
+        if (run_now != "") {
           if (run_now == "PI_ctr") {
             preempt_l_0_r__lb_PI_ctr_rb_!;
           } else if (run_now == "comp_obs_pos") {
@@ -98,7 +99,7 @@ begin
         PriorList := push(PriorList,PriorList2);
         Pool := push(Pool,PriorList);
       } else {
-        if (run_now != -1) {
+        if (run_now != "") {
           if (run_now == "PI_ctr") {
             preempt_l_0_r__lb_PI_ctr_rb_!;
           } else if (run_now == "comp_obs_pos") {
@@ -138,7 +139,7 @@ begin
         PriorList := push(PriorList,PriorList2);
         Pool := push(Pool,PriorList);
       } else {
-        if (run_now != -1) {
+        if (run_now != "") {
           if (run_now == "PI_ctr") {
             preempt_l_0_r__lb_PI_ctr_rb_!;
           } else if (run_now == "comp_obs_pos") {
@@ -178,7 +179,7 @@ begin
         PriorList := push(PriorList,PriorList2);
         Pool := push(Pool,PriorList);
       } else {
-        if (run_now != -1) {
+        if (run_now != "") {
           if (run_now == "PI_ctr") {
             preempt_l_0_r__lb_PI_ctr_rb_!;
           } else if (run_now == "comp_obs_pos") {
@@ -218,7 +219,7 @@ begin
         PriorList := push(PriorList,PriorList2);
         Pool := push(Pool,PriorList);
       } else {
-        if (run_now != -1) {
+        if (run_now != "") {
           if (run_now == "PI_ctr") {
             preempt_l_0_r__lb_PI_ctr_rb_!;
           } else if (run_now == "comp_obs_pos") {
@@ -269,7 +270,7 @@ begin
         }
       } else {
         run_prior := -1;
-        run_now := -1;
+        run_now := "";
       } $
     free_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_? -->
       assert("comp_obs_pos" == run_now);
@@ -291,7 +292,7 @@ begin
         }
       } else {
         run_prior := -1;
-        run_now := -1;
+        run_now := "";
       } $
     free_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_? -->
       assert("emerg" == run_now);
@@ -313,7 +314,7 @@ begin
         }
       } else {
         run_prior := -1;
-        run_now := -1;
+        run_now := "";
       } $
     free_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_? -->
       assert("img_acq" == run_now);
@@ -335,7 +336,7 @@ begin
         }
       } else {
         run_prior := -1;
-        run_now := -1;
+        run_now := "";
       } $
     free_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_? -->
       assert("pan_ctr_th" == run_now);
@@ -357,7 +358,7 @@ begin
         }
       } else {
         run_prior := -1;
-        run_now := -1;
+        run_now := "";
       } $
     free_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_? -->
       assert("velo_voter" == run_now);
@@ -379,7 +380,7 @@ begin
         }
       } else {
         run_prior := -1;
-        run_now := -1;
+        run_now := "";
       } $
     exit_l_0_r__lb_PI_ctr_rb_? -->
       Pool := del0(Pool,"PI_ctr"); $
@@ -406,6 +407,7 @@ begin
   PHY_vehicle_imp_veh_s := 0;
   PHY_vehicle_imp_veh_v_l := 0;
   PHY_vehicle_imp_veh_v_w := 0;
+  a := 0.0;
   {
     inputs_lb_PHY_vehicle_imp_rb__lb_veh_s_rb_!s -->
       PHY_vehicle_imp_veh_s := 1; $
