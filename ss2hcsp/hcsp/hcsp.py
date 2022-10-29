@@ -31,6 +31,7 @@ class Channel:
 
     def __str__(self):
         return self.name + ''.join('[' + str(arg) + ']' for arg in self.args)
+        # return self.name + ''.join('_l_' + str(arg) + '_r_' for arg in self.args)
     
     def __repr__(self):
         if self.args:
@@ -1554,8 +1555,21 @@ def convert_to_concrete_chs(hp: HCSP, concrete_map: Dict[str, Set[Tuple[Expr]]])
             assert all(isinstance(arg, AConst) for arg in hp.ch_name.args[:-1])
 
             last_arg = hp.ch_name.args[-1]
+            new_name = hp.ch_name.name
+            for arg in hp.ch_name.args[:-1]:
+                if isinstance(arg.value, str):
+                    new_name = new_name + '_lb_' + arg.value + '_rb_'
+                else:
+                    new_name = new_name + '_l_' + str(arg) + '_r_'
+                    
             if isinstance(last_arg, AConst):
-                return hp
+                if isinstance(last_arg.value, str):
+                    new_name = new_name + '_lb_' + last_arg.value + '_rb_'
+                else:
+                    new_name = new_name + '_l_' + str(last_arg) + '_r_'
+                new_args = ()
+                new_hp = InputChannel(Channel(new_name, new_args), hp.var_name)
+                return new_hp
             elif isinstance(last_arg, AVar) and last_arg.name.startswith("_"):
                 raise NotImplementedError
             else:
@@ -1564,9 +1578,13 @@ def convert_to_concrete_chs(hp: HCSP, concrete_map: Dict[str, Set[Tuple[Expr]]])
                 assert len(matches) > 0
                 if_hps = []
                 for match in matches:
-                    new_args = hp.ch_name.args[:-1] + (match,)
+                    new_args = ()
+                    if isinstance(match.value, str):
+                        new_name = new_name + "_lb_" + match.value + "_rb_"
+                    else:
+                        new_name = new_name + "_l_" + str(match) + "_r_"
                     if_hps.append((RelExpr("==", last_arg, match),
-                                   InputChannel(Channel(hp.ch_name.name, new_args), hp.var_name)))
+                                   InputChannel(Channel(new_name, new_args), hp.var_name)))
                 return ITE(if_hps)
 
         elif isinstance(hp, OutputChannel):
@@ -1579,8 +1597,20 @@ def convert_to_concrete_chs(hp: HCSP, concrete_map: Dict[str, Set[Tuple[Expr]]])
             assert all(isinstance(arg, AConst) for arg in hp.ch_name.args[:-1])
 
             last_arg = hp.ch_name.args[-1]
+            new_name = hp.ch_name.name
+            for arg in hp.ch_name.args[:-1]:
+                if isinstance(arg.value, str):
+                    new_name = new_name + '_lb_' + arg.value + '_rb_'
+                else:
+                    new_name = new_name + '_l_' + str(arg) + '_r_'
             if isinstance(last_arg, AConst):
-                return hp
+                if isinstance(last_arg.value, str):
+                    new_name = new_name + '_lb_' + last_arg.value + '_rb_'
+                else:
+                    new_name = new_name + '_l_' + str(last_arg) + '_r_'
+                new_args = ()
+                new_hp = OutputChannel(Channel(new_name, new_args), hp.expr)
+                return new_hp
             elif isinstance(last_arg, AVar) and last_arg.name.startswith("_"):
                 raise NotImplementedError
             else:
@@ -1589,9 +1619,13 @@ def convert_to_concrete_chs(hp: HCSP, concrete_map: Dict[str, Set[Tuple[Expr]]])
                 assert len(matches) > 0
                 if_hps = []
                 for match in matches:
-                    new_args = hp.ch_name.args[:-1] + (match,)
+                    new_args = ()
+                    if isinstance(match.value, str):
+                        new_name = new_name + "_lb_" + match.value + "_rb_"
+                    else:
+                        new_name = new_name + "_l_" + str(match) + "_r_"
                     if_hps.append((RelExpr("==", last_arg, match),
-                                   OutputChannel(Channel(hp.ch_name.name, new_args), hp.expr)))
+                                   OutputChannel(Channel(new_name, new_args), hp.expr)))
                 return ITE(if_hps)
 
         elif isinstance(hp, (SelectComm, ODE_Comm)):
@@ -1606,19 +1640,38 @@ def convert_to_concrete_chs(hp: HCSP, concrete_map: Dict[str, Set[Tuple[Expr]]])
                 assert all(isinstance(arg, AConst) for arg in comm_hp.ch_name.args[:-1])
 
                 last_arg = comm_hp.ch_name.args[-1]
+                new_name = comm_hp.ch_name.name
+                for arg in comm_hp.ch_name.args[:-1]:
+                    if isinstance(arg.value, str):
+                        new_name = new_name + '_lb_' + arg.value + '_rb_'
+                    else:
+                        new_name = new_name + '_l_' + str(arg) + '_r_'
                 if isinstance(last_arg, AConst):
-                    new_io_comms.append((comm_hp, out_hp))
+                    if isinstance(last_arg.value, str):
+                        new_name = new_name + '_lb_' + last_arg.value + '_rb_'
+                    else:
+                        new_name = new_name + '_l_' + str(last_arg) + '_r_'
+                    new_args = ()
+                    if isinstance(comm_hp, InputChannel):
+                        new_hp = InputChannel(Channel(new_name, new_args), comm_hp.var_name)
+                    else:
+                        new_hp = OutputChannel(Channel(new_name, new_args), comm_hp.expr)
+                    new_io_comms.append((new_hp, out_hp))
                 elif isinstance(last_arg, AVar) and last_arg.name.startswith("_"):
                     # Wildcard case
                     matches = find_match(comm_hp.ch_name)
                     assert len(matches) > 0
                     for match in matches:
-                        new_args = comm_hp.ch_name.args[:-1] + (match,)
+                        new_args = ()
+                        if isinstance(match.value, str):
+                            new_name = new_name + "_lb_" + match.value + "_rb_"
+                        else:
+                            new_name = new_name + "_l_" + str(match) + "_r_"
                         if isinstance(comm_hp, InputChannel):
-                            new_io_comms.append((InputChannel(Channel(comm_hp.ch_name.name, new_args), comm_hp.var_name),
+                            new_io_comms.append((InputChannel(Channel(new_name, new_args), comm_hp.var_name),
                                                  rec(out_hp.subst_comm({last_arg.name: match}))))
                         else:
-                            new_io_comms.append((OutputChannel(Channel(comm_hp.ch_name.name, new_args), comm_hp.expr),
+                            new_io_comms.append((OutputChannel(Channel(new_name, new_args), comm_hp.expr),
                                                  rec(out_hp.subst_comm({last_arg.name: match}))))
                 else:
                     raise NotImplementedError
@@ -1664,6 +1717,8 @@ def convert_infos_to_concrete_chs(infos: List[HCSPInfo]) -> List[HCSPInfo]:
 def has_all_concrete_chs(infos: List[HCSPInfo]) -> bool:
     def rec(hp):
         if isinstance(hp, (InputChannel, OutputChannel)):
+            if len(hp.ch_name.args) != 0:
+                print("Not empty chs:", hp)
             if not all(isinstance(arg, AConst) for arg in hp.ch_name.args):
                 print("Non-concrete chs:", hp)
                 return False
