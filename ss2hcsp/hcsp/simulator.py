@@ -10,7 +10,7 @@ import math
 from pickle import FALSE
 import random
 from decimal import Decimal
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 from scipy.integrate import solve_ivp
 from ss2hcsp.hcsp.expr import Expr, AVar, AConst, OpExpr, FunExpr, IfExpr, \
     ListExpr, DictExpr, ArrayIdxExpr, FieldNameExpr, BConst, LogicExpr, \
@@ -1508,7 +1508,7 @@ def get_comm_maps(comm_in_map,comm_out_map,hp,name):
             comm_out_map[ch_name].append(name)
     return comm_in_map,comm_out_map
 
-def instantation(comm_map_A,comm_map_B):
+def instantation(comm_map_A, comm_map_B):
     # instanation of comm_map_A with comm_map_B
     new_map = {}
     deletechs = []
@@ -1545,7 +1545,7 @@ def instantation(comm_map_A,comm_map_B):
         comm_map_A.pop(ch)
     return comm_map_A,comm_map_B,instantedchs
 
-def check_comms(infos):
+def check_comms(infos: List[hcsp.HCSPInfo]):
     """Given a list of HCSP infos, check for potential mismatch of
     communication channels.
 
@@ -1556,12 +1556,11 @@ def check_comms(infos):
     for info in infos:
         if info.hp.type == 'parallel':
             continue
-        comm_in_map,comm_out_map = get_comm_maps(comm_in_map,comm_out_map,info.hp,info.name)
-        if len(info.procedures)!=0:
-            for key,procedure in info.procedures.items():
-                comm_in_map,comm_out_map = get_comm_maps(comm_in_map,comm_out_map,procedure.hp,info.name)
+        comm_in_map, comm_out_map = get_comm_maps(comm_in_map,comm_out_map,info.hp,info.name)
+        if len(info.procedures) != 0:
+            for key, procedure in info.procedures.items():
+                comm_in_map, comm_out_map = get_comm_maps(comm_in_map,comm_out_map,procedure.hp,info.name)
     
-    # instantation  _ +'CNAME'
     instantedchs=[]
     comm_in_map,comm_out_map,chs=instantation(comm_in_map,comm_out_map)
     instantedchs.extend(chs)

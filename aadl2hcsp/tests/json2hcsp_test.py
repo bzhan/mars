@@ -4,7 +4,6 @@ import unittest
 import json
 
 from aadl2hcsp.json2hcsp import translate_aadl_from_json
-from ss2hcsp.hcsp import module
 
 class Json2HCSPTest(unittest.TestCase):
     def testJson2HCSP(self):

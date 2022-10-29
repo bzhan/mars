@@ -1,7 +1,7 @@
 """Hybrid programs"""
 
 from collections import OrderedDict
-from typing import Dict, List, Optional, Union, Set
+from typing import Dict, List, Optional, Tuple, Union, Set
 
 from ss2hcsp.hcsp.expr import Expr, AVar, AConst, Expr, true_expr, false_expr, RelExpr, LogicExpr, Expr
 from ss2hcsp.hcsp import assertion
@@ -19,27 +19,18 @@ class Channel:
     to be matched are indicated by variables.
 
     """
-    def __init__(self, name, args=None, meta=None):
+    def __init__(self, name: str, args: Optional[Union[int, str, Expr]] = None, meta=None):
         assert isinstance(name, str)
-        if args is None:
-            args = tuple()
-
-        # Each argument is either integer, (unevaluated) expression, or variable
-        assert isinstance(args, tuple) and all(isinstance(arg, (Expr, int, str)) for arg in args)
-
-        self.name = name
-        self.args = args
+        if args:
+            assert all(isinstance(arg, (int, str, Expr)) for arg in args)
+        self.name: str = name
+        self.args: tuple[Expr] = tuple()
+        if args is not None:
+            self.args = tuple([AConst(arg) if isinstance(arg, (int, str)) else arg for arg in args])
         self.meta = meta
 
     def __str__(self):
-        def str_arg(arg):
-            # if isinstance(arg, str):
-            #     return repr(arg)
-            if isinstance(arg, AConst) and isinstance(arg.value, str) and arg.value[0] != "\"":
-                return "\"" + arg.value + "\""
-            else:
-                return str(arg)
-        return self.name + ''.join('[' + str_arg(arg) + ']' for arg in self.args)
+        return self.name + ''.join('[' + str(arg) + ']' for arg in self.args)
     
     def __repr__(self):
         if self.args:
@@ -59,15 +50,13 @@ class Channel:
     def __lt__(self, other):
         return (self.name, self.args) < (other.name, other.args)
 
-    def subst(self, inst):
+    def subst(self, inst) -> "Channel":
         if self.name in inst:
             target = inst[self.name]
             assert isinstance(target, Channel)
-            return Channel(target.name, tuple(arg if isinstance(arg, (int, str)) else arg.subst(inst)
-                                              for arg in target.args + self.args))
+            return Channel(target.name, tuple(arg.subst(inst) for arg in target.args + self.args))
         else:
-            return Channel(self.name, tuple(arg if isinstance(arg, (int, str)) else arg.subst(inst)
-                                            for arg in self.args))
+            return Channel(self.name, tuple(arg.subst(inst) for arg in self.args))
 
 class Function:
     """Declarations of (pure functions).
@@ -140,10 +129,10 @@ class HCSP:
         elif isinstance(self, ODE):
             return 1
         elif isinstance(self, (ODE_Comm, SelectComm)):
-            return 1 + sum([1 + out_hp.size() for comm_hp, out_hp in self.io_comms])
+            return 1 + sum([1 + out_hp.size() for _, out_hp in self.io_comms])
         elif isinstance(self, ITE):
-            return 1 + sum([1 + hp.size() for cond, hp in self.if_hps]) + \
-              (self.else_hp.size() if self.else_hp else 0)
+            return 1 + sum([1 + hp.size() for _, hp in self.if_hps]) + \
+                       (self.else_hp.size() if self.else_hp else 0)
         else:
             raise NotImplementedError
 
@@ -263,7 +252,7 @@ class HCSP:
 
 
 class Var(HCSP):
-    def __init__(self, name, meta=None):
+    def __init__(self, name: str, meta=None):
         super(Var, self).__init__()
         self.type = "var" 
         assert isinstance(name, str)
@@ -551,11 +540,11 @@ class Test(HCSP):
 
 
 class Log(HCSP):
-    def __init__(self, pattern, *, exprs=None, meta=None):
+    def __init__(self, pattern: Expr, *, exprs=None, meta=None):
         super(Log, self).__init__()
         self.type = "log"
         assert isinstance(pattern, Expr)
-        self.pattern = pattern
+        self.pattern: Expr = pattern
         if exprs is None:
             exprs = tuple()
         else:
@@ -601,17 +590,17 @@ class Log(HCSP):
         return fun_set
     
 class InputChannel(HCSP):
-    def __init__(self, ch_name, var_name=None, meta=None):
+    def __init__(self, ch_name: Union[str, Channel], var_name: Optional[Union[str, Expr]] = None, meta=None):
         super(InputChannel, self).__init__()
         self.type = "input_channel"
         if isinstance(ch_name, str):
             ch_name = Channel(ch_name)
         assert isinstance(ch_name, Channel)
         if isinstance(var_name, str):
-            var_name = AVar(str(var_name))
+            var_name = AVar(var_name)
         assert var_name is None or isinstance(var_name, Expr)
-        self.ch_name = ch_name  # Channel
-        self.var_name = var_name  # Expr or None
+        self.ch_name: Channel = ch_name
+        self.var_name: Optional[Expr] = var_name
         self.meta = meta
 
     def __eq__(self, other):
@@ -673,15 +662,15 @@ class ParaInputChannel(InputChannel):
 
 
 class OutputChannel(HCSP):
-    def __init__(self, ch_name, expr=None, meta=None):
+    def __init__(self, ch_name: Union[str, Channel], expr: Optional[Expr] = None, meta=None):
         super(OutputChannel, self).__init__()
         self.type = "output_channel"
         if isinstance(ch_name, str):
             ch_name = Channel(ch_name)
         assert isinstance(ch_name, Channel)
         assert expr is None or isinstance(expr, Expr)
-        self.ch_name = ch_name  # Channel
-        self.expr = expr  # Expr or None
+        self.ch_name: Channel = ch_name
+        self.expr: Optional[Expr] = expr
         self.meta = meta
 
     def __eq__(self, other):
@@ -756,7 +745,7 @@ class Sequence(HCSP):
         self.type = "sequence"
         assert all(isinstance(hp, HCSP) for hp in hps)
         assert len(hps) >= 1
-        self.hps = []
+        self.hps: List[HCSP] = []
         for hp in hps:
             if isinstance(hp, Sequence):
                 self.hps.extend(hp.hps)
@@ -982,9 +971,9 @@ class ODE_Comm(HCSP):
             assert is_comm_channel(io_comm[0]) and isinstance(io_comm[1], HCSP)
 
         self.type = "ode_comm"
-        self.eqs = eqs  # list
-        self.constraint = constraint  # Expr
-        self.io_comms = io_comms  # list
+        self.eqs: List[Tuple[str, Expr]] = eqs
+        self.constraint: Expr = constraint
+        self.io_comms: List[Tuple[HCSP, HCSP]] = io_comms
         self.meta = meta
 
     def __eq__(self, other):
@@ -1176,13 +1165,11 @@ class SelectComm(HCSP):
         any program.
         
         """
-        super(SelectComm, self).__init__()
         self.type = "select_comm"
         assert len(io_comms) >= 2
-
         assert all(is_comm_channel(comm_hp) and isinstance(out_hp, HCSP)
                    for comm_hp, out_hp in io_comms)
-        self.io_comms = tuple(io_comms)
+        self.io_comms: List[Tuple[HCSP, HCSP]] = io_comms
         self.meta = meta
 
     def __eq__(self, other):
@@ -1250,8 +1237,8 @@ class ITE(HCSP):
         assert len(if_hps) > 0, "ITE: must have at least one if branch"
         assert else_hp is None or isinstance(else_hp, HCSP)
         self.type = "ite"
-        self.if_hps = tuple(tuple(p) for p in if_hps)
-        self.else_hp = else_hp
+        self.if_hps: List[Tuple[Expr, HCSP]] = list(tuple(p) for p in if_hps)
+        self.else_hp: Optional[HCSP] = else_hp
         self.meta = meta
 
     def __eq__(self, other):
@@ -1316,7 +1303,7 @@ class ITE(HCSP):
             ch_set.update(self.else_hp.get_chs())
         return ch_set
 
-def ite(if_hps, else_hp):
+def ite(if_hps: List[Tuple[Expr, HCSP]], else_hp: Optional[HCSP]) -> HCSP:
     """Construction of if-then-else with simplifications."""
     new_if_hps, new_else_hp = [], else_hp
     for cond, if_hp in if_hps:
@@ -1334,7 +1321,7 @@ def ite(if_hps, else_hp):
     else:
         return ITE(new_if_hps, new_else_hp)
 
-def get_comm_chs(hp):
+def get_comm_chs(hp: HCSP):
     """Returns the list of communication channels for the given program.
     
     Result is a list of pairs (ch_name, '?'/'!').
@@ -1371,8 +1358,11 @@ def get_comm_chs(hp):
 
 class Constants:
     """Represent constants in a program.
-    -vars: a set of constant vars
-    -preds: a list of constant predicates"""
+
+    vars: a set of constant vars
+    preds: a list of constant predicates
+    
+    """
     def __init__(self, vars=set(), preds=list()):
         assert isinstance(vars, set)
         assert isinstance(preds, list)
@@ -1419,9 +1409,9 @@ class Procedure:
 
 class HCSPInfo:
     """HCSP process with extra information."""
-    def __init__(self, name, hp, *, outputs=None, procedures=None):
-        self.name = name
-        self.hp = hp
+    def __init__(self, name: str, hp: HCSP, *, outputs=None, procedures=None):
+        self.name: str = name
+        self.hp: HCSP = hp
         
         # List of output variables
         self.outputs = []
@@ -1447,7 +1437,7 @@ class HCSPInfo:
     def __eq__(self, other):
         return self.name == other.name and self.hp == other.hp
 
-def subst_comm_all(hp, inst):
+def subst_comm_all(hp: HCSP, inst):
     """Perform all substitutions given in inst. Detect cycles.
     
     First compute a topological sort of dependency in inst, which will
@@ -1467,7 +1457,7 @@ def subst_comm_all(hp, inst):
         hp = hp.subst_comm({var: inst[var]})
     return hp
 
-def HCSP_subst(hp, inst):
+def HCSP_subst(hp: HCSP, inst: Dict[str, HCSP]) -> HCSP:
     """Substitution of program variables for their instantiations."""
     assert isinstance(hp, HCSP)
     if isinstance(hp, Var):
@@ -1497,6 +1487,143 @@ def HCSP_subst(hp, inst):
     else:
         print(hp)
         raise NotImplementedError
+
+def get_concrete_chs(infos: List[HCSPInfo]) -> Dict[str, List[Tuple[Expr]]]:
+    """Return a mapping from channel names to list of concrete instantiations
+    of the channel.
+    
+    """
+    res: Dict[str, List[Tuple[Expr]]] = dict()
+
+    def rec(hp):
+        if isinstance(hp, (InputChannel, OutputChannel)):
+            if hp.ch_name.name not in res:
+                res[hp.ch_name.name] = []
+            if all(isinstance(arg, AConst) for arg in hp.ch_name.args):
+                res[hp.ch_name.name].append(hp.ch_name.args)
+        elif isinstance(hp, (Var, Skip, Wait, Assign, Assert, Test, Log)):
+            pass
+        elif isinstance(hp, Loop):
+            rec(hp.hp)
+        elif isinstance(hp, Sequence):
+            for sub_hp in hp.hps:
+                rec(sub_hp)
+        elif isinstance(hp, ODE):
+            rec(hp.out_hp)
+        elif isinstance(hp, (ODE_Comm, SelectComm)):
+            for comm, out_hp in hp.io_comms:
+                rec(comm)
+                rec(out_hp)
+        elif isinstance(hp, ITE):
+            for _, if_hp in hp.if_hps:
+                rec(if_hp)
+            if hp.else_hp is not None:
+                rec(hp.else_hp)
+        else:
+            print(hp)
+            raise NotImplementedError
+
+    for info in infos:
+        rec(info.hp)
+    return res
+
+def convert_to_concrete_chs(hp: HCSP, concrete_map: Dict[str, List[Tuple[Expr]]]) -> HCSP:
+    """Using the mapping from channel names to concrete instantiations,
+    convert parameterized HCSP program to unparameterized form.
+    
+    """
+    def find_match(ch_name: Channel):
+        res = []
+        for concrete_args in concrete_map[ch_name.name]:
+            if ch_name.args[:-1] == concrete_args[:-1]:
+                res.append(concrete_args[-1])
+        return res
+
+    def rec(hp):
+        if isinstance(hp, InputChannel):
+            assert hp.ch_name.name in concrete_map
+            if len(hp.ch_name.args) == 0:
+                return hp
+            
+            # Currently only handle the case where all but the last index
+            # are constants.
+            assert all(isinstance(arg, AConst) for arg in hp.ch_name.args[:-1])
+
+            last_arg = hp.ch_name.args[-1]
+            if isinstance(last_arg, AConst):
+                return hp
+            elif isinstance(last_arg, AVar) and last_arg.name.startswith("_"):
+                raise NotImplementedError
+            else:
+                # Expression case
+                matches = find_match(hp.ch_name)
+                assert len(matches) > 0
+                if_hps = []
+                for match in matches:
+                    new_args = hp.ch_name.args[:-1] + (match,)
+                    if_hps.append((RelExpr("==", last_arg, match),
+                                   InputChannel(Channel(hp.ch_name.name, new_args), hp.var_name)))
+                return ITE(if_hps)
+
+        elif isinstance(hp, OutputChannel):
+            assert hp.ch_name.name in concrete_map
+            if len(hp.ch_name.args) == 0:
+                return hp
+            
+            # Currently only handle the case where all but the last index
+            # are constants.
+            assert all(isinstance(arg, AConst) for arg in hp.ch_name.args[:-1])
+
+            last_arg = hp.ch_name.args[-1]
+            if isinstance(last_arg, AConst):
+                return hp
+            elif isinstance(last_arg, AVar) and last_arg.name.startswith("_"):
+                raise NotImplementedError
+            else:
+                # Expression case
+                matches = find_match(hp.ch_name)
+                assert len(matches) > 0
+                if_hps = []
+                for match in matches:
+                    new_args = hp.ch_name.args[:-1] + (match,)
+                    if_hps.append((RelExpr("==", last_arg, match),
+                                   OutputChannel(Channel(hp.ch_name.name, new_args), hp.expr)))
+                return ITE(if_hps)
+
+        elif isinstance(hp, SelectComm):
+            new_io_comms = []
+            for comm_hp, out_hp in hp.io_comms:
+                if not isinstance(comm_hp, (InputChannel, OutputChannel)):
+                    raise TypeError
+                assert comm_hp.ch_name.name in concrete_map
+                if len(comm_hp.ch_name.args) == 0:
+                    new_io_comms.append((comm_hp, out_hp))
+                
+                assert all(isinstance(arg, AConst) for arg in comm_hp.ch_name.args[:-1])
+
+                last_arg = comm_hp.ch_name.args[-1]
+                if isinstance(last_arg, AConst):
+                    new_io_comms.append((comm_hp, out_hp))
+                elif isinstance(last_arg, AVar) and last_arg.name.startswith("_"):
+                    # Wildcard case
+                    matches = find_match(comm_hp.ch_name)
+                    assert len(matches) > 0
+                    for match in matches:
+                        new_args = comm_hp.ch_name.args[:-1] + (match,)
+                        if isinstance(comm_hp, InputChannel):
+                            new_io_comms.append((InputChannel(Channel(comm_hp.ch_name.name, new_args), comm_hp.var_name),
+                                                 out_hp.subst_comm({last_arg, match})))
+                        else:
+                            new_io_comms.append((OutputChannel(Channel(comm_hp.ch_name.name, new_args), comm_hp.expr),
+                                                 out_hp.subst_comm({last_arg, match})))
+                else:
+                    raise NotImplementedError
+            return SelectComm(*new_io_comms)
+
+        else:
+            raise NotImplementedError
+
+    return rec(hp)
 
 def reduce_procedures(hp: HCSP, procs: Dict[str, HCSP], strict_protect:Optional[Set[str]] = None):
     """Reduce number of procedures in the process by inlining.

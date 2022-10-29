@@ -3,8 +3,7 @@
 import math
 from decimal import Decimal
 from fractions import Fraction
-import itertools
-from typing import Dict
+from typing import Dict, Set
 
 from ss2hcsp.util.topsort import topological_sort
 
@@ -52,19 +51,19 @@ class Expr:
     def __init__(self):
         pass
 
-    def priority(self):
+    def priority(self) -> int:
         """Returns priority during printing."""
         raise NotImplementedError
 
-    def get_vars(self):
+    def get_vars(self) -> Set[str]:
         """Returns set of variables in the expression."""
         raise NotImplementedError
 
-    def get_fun_names(self):
+    def get_fun_names(self) -> Set[str]:
         """Return set of function names in the expression"""
         return NotImplementedError
 
-    def get_zero_arity_funcs(self):
+    def get_zero_arity_funcs(self) -> Set[str]:
         """Return set of functions with zero arity in the expression"""
         return NotImplementedError
 
@@ -75,6 +74,7 @@ class Expr:
     def simplify(self) -> "Expr":
         """Return a simplified version of the expression."""
         raise NotImplementedError
+
 
 class AVar(Expr):
     def __init__(self, name, meta=None):
