@@ -1181,7 +1181,7 @@ class SimInfo:
         else:
             assert False
 
-def match_channel(out_ch, in_ch):
+def match_channel(out_ch: hcsp.Channel, in_ch: hcsp.Channel):
     """Matching between two channels.
     
     If there is no match, return None. Otherwise, return a pair of
@@ -1194,18 +1194,18 @@ def match_channel(out_ch, in_ch):
     inst_out, inst_in = dict(), dict()
     for out_arg, in_arg in zip(out_ch.args, in_ch.args):
         if isinstance(out_arg, AVar):
-            if isinstance(in_arg, (int, str)):
-                inst_out[out_arg.name] = in_arg
+            if isinstance(in_arg, AConst):
+                inst_out[out_arg.name] = in_arg.value
             elif isinstance(in_arg, AVar):
                 return None  # both sides are variables
             else:
                 raise TypeError
-        elif isinstance(out_arg, (int, str)):
-            if isinstance(in_arg, (int, str)):
+        elif isinstance(out_arg, AConst):
+            if isinstance(in_arg, AConst):
                 if out_arg != in_arg:
                     return None
             elif isinstance(in_arg, AVar):
-                inst_in[in_arg.name] = out_arg
+                inst_in[in_arg.name] = out_arg.value
             else:
                 raise TypeError
         else:

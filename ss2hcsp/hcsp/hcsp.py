@@ -202,48 +202,48 @@ class HCSP:
         return set(self.get_contain_hps_count())
 
     def subst_comm(self, inst):
-        def subst_io_comm(io_comm):
+        def subst_io_comm(io_comm: Tuple[HCSP, HCSP]):
             return (io_comm[0].subst_comm(inst), io_comm[1].subst_comm(inst))
 
-        def subst_if_hp(if_hp):
+        def subst_if_hp(if_hp: Tuple[Expr, HCSP]):
             return (if_hp[0].subst(inst), if_hp[1].subst_comm(inst))
 
-        def subst_ode_eq(ode_eq):
+        def subst_ode_eq(ode_eq: Tuple[str, Expr]):
             return (ode_eq[0], ode_eq[1].subst(inst))
 
-        if self.type in ('var', 'skip'):
+        if isinstance(self, (Var, Skip)):
             return self
-        elif self.type == 'wait':
+        elif isinstance(self, Wait):
             return Wait(self.delay.subst(inst))
-        elif self.type == 'assign':
+        elif isinstance(self, Assign):
             return Assign(self.var_name, self.expr.subst(inst))
-        elif self.type == 'assert':
+        elif isinstance(self, Assert):
             return Assert(self.bexpr.subst(inst), [expr.subst(inst) for expr in self.msgs])
-        elif self.type == 'test':
+        elif isinstance(self, Test):
             return Test(self.bexpr.subst(inst), [expr.subst(inst) for expr in self.msgs])
-        elif self.type == 'log':
+        elif isinstance(self, Log):
             return Log(self.pattern.subst(inst), exprs=[expr.subst(inst) for expr in self.exprs])
-        elif self.type == 'input_channel':
+        elif isinstance(self, InputChannel):
             return InputChannel(self.ch_name.subst(inst), self.var_name)
-        elif self.type == 'output_channel':
+        elif isinstance(self, OutputChannel):
             if self.expr is None:
                 return OutputChannel(self.ch_name.subst(inst))
             else:
                 return OutputChannel(self.ch_name.subst(inst), self.expr.subst(inst))
-        elif self.type == 'sequence':
+        elif isinstance(self, Sequence):
             return Sequence(*(hp.subst_comm(inst) for hp in self.hps))
-        elif self.type == 'ode':
+        elif isinstance(self, ODE):
             return ODE([subst_ode_eq(eq) for eq in self.eqs],
                        self.constraint.subst(inst), out_hp=self.out_hp.subst_comm(inst))
-        elif self.type == 'ode_comm':
+        elif isinstance(self, ODE_Comm):
             return ODE_Comm([subst_ode_eq(eq) for eq in self.eqs],
                             self.constraint.subst(inst),
                             [subst_io_comm(io_comm) for io_comm in self.io_comms])
-        elif self.type == 'loop':
+        elif isinstance(self, Loop):
             return Loop(self.hp.subst_comm(inst), constraint=self.constraint)
-        elif self.type == 'select_comm':
+        elif isinstance(self, SelectComm):
             return SelectComm(*(subst_io_comm(io_comm) for io_comm in self.io_comms))
-        elif self.type == 'ite':
+        elif isinstance(self, ITE):
             return ITE([subst_if_hp(if_hp) for if_hp in self.if_hps], 
               self.else_hp.subst_comm(inst) if self.else_hp is not None else None)
         else:
@@ -448,10 +448,10 @@ class Assert(HCSP):
         super(Assert, self).__init__()
         self.type = "assert"
         assert isinstance(bexpr, Expr)
-        self.bexpr = bexpr
+        self.bexpr: Expr = bexpr
         msgs = tuple(msgs)
         assert all(isinstance(msg, Expr) for msg in msgs)
-        self.msgs = msgs
+        self.msgs: Tuple[Expr] = msgs
         self.meta = meta
 
     def __eq__(self, other):
@@ -496,10 +496,10 @@ class Test(HCSP):
         super(Test, self).__init__()
         self.type = "test"
         assert isinstance(bexpr, Expr)
-        self.bexpr = bexpr
+        self.bexpr: Expr = bexpr
         msgs = tuple(msgs)
         assert all(isinstance(msg, Expr) for msg in msgs)
-        self.msgs = msgs
+        self.msgs: Tuple[Expr] = msgs
         self.meta = meta
 
     def __eq__(self, other):
@@ -550,7 +550,7 @@ class Log(HCSP):
         else:
             exprs = tuple(exprs)
         assert all(isinstance(expr, Expr) for expr in exprs)
-        self.exprs = exprs
+        self.exprs: Tuple[Expr] = exprs
         self.meta = meta
 
     def __eq__(self, other):
@@ -1389,12 +1389,12 @@ class HoareTriple:
 
 class Procedure:
     """Declared procedure within a process."""
-    def __init__(self, name, hp, meta=None):
-        self.name = name
+    def __init__(self, name: str, hp: Union[str, HCSP], meta=None):
+        self.name: str = name
         if isinstance(hp, str):
             from ss2hcsp.hcsp.parser import hp_parser
             hp = hp_parser.parse(hp)
-        self.hp = hp
+        self.hp: HCSP = hp
         self.meta = meta
 
     def __eq__(self, other):
@@ -1436,6 +1436,7 @@ class HCSPInfo:
 
     def __eq__(self, other):
         return self.name == other.name and self.hp == other.hp
+
 
 def subst_comm_all(hp: HCSP, inst):
     """Perform all substitutions given in inst. Detect cycles.
@@ -1590,7 +1591,7 @@ def convert_to_concrete_chs(hp: HCSP, concrete_map: Dict[str, List[Tuple[Expr]]]
                                    OutputChannel(Channel(hp.ch_name.name, new_args), hp.expr)))
                 return ITE(if_hps)
 
-        elif isinstance(hp, SelectComm):
+        elif isinstance(hp, (SelectComm, ODE_Comm)):
             new_io_comms = []
             for comm_hp, out_hp in hp.io_comms:
                 if not isinstance(comm_hp, (InputChannel, OutputChannel)):
@@ -1612,18 +1613,50 @@ def convert_to_concrete_chs(hp: HCSP, concrete_map: Dict[str, List[Tuple[Expr]]]
                         new_args = comm_hp.ch_name.args[:-1] + (match,)
                         if isinstance(comm_hp, InputChannel):
                             new_io_comms.append((InputChannel(Channel(comm_hp.ch_name.name, new_args), comm_hp.var_name),
-                                                 out_hp.subst_comm({last_arg, match})))
+                                                 out_hp.subst_comm({last_arg.name: match})))
                         else:
                             new_io_comms.append((OutputChannel(Channel(comm_hp.ch_name.name, new_args), comm_hp.expr),
-                                                 out_hp.subst_comm({last_arg, match})))
+                                                 out_hp.subst_comm({last_arg.name: match})))
                 else:
                     raise NotImplementedError
-            return SelectComm(*new_io_comms)
+            
+            if isinstance(hp, SelectComm):
+                return SelectComm(*new_io_comms)
+            else:
+                return ODE_Comm(hp.eqs, hp.constraint, new_io_comms)
 
+        elif isinstance(hp, (Var, Skip, Wait, Assign, Assert, Test, Log)):
+            return hp
+        elif isinstance(hp, Loop):
+            return Loop(rec(hp.hp))
+        elif isinstance(hp, Sequence):
+            return Sequence(*(rec(sub_hp) for sub_hp in hp.hps))
+        elif isinstance(hp, ODE):
+            return ODE(hp.eqs, hp.constraint, out_hp=rec(hp.out_hp))
+        elif isinstance(hp, ITE):
+            new_if_hps = []
+            for cond, if_hp in hp.if_hps:
+                new_if_hps.append((cond, rec(if_hp)))
+            new_else_hp = None
+            if hp.else_hp is not None:
+                new_else_hp = rec(hp.else_hp)
+            return ITE(new_if_hps, new_else_hp)
         else:
+            print(type(hp))
             raise NotImplementedError
 
     return rec(hp)
+
+def convert_infos_to_concrete_chs(infos: List[HCSPInfo]) -> List[HCSPInfo]:
+    concrete_chs = get_concrete_chs(infos)
+    new_infos = []
+    for info in infos:
+        new_hp = convert_to_concrete_chs(info.hp, concrete_chs)
+        new_procs = []
+        for proc in info.procedures:
+            new_procs.append(Procedure(proc.name, convert_to_concrete_chs(proc.hp, concrete_chs)))
+        new_infos.append(HCSPInfo(info.name, new_hp, outputs=info.outputs, procedures=new_procs))
+    return new_infos
 
 def reduce_procedures(hp: HCSP, procs: Dict[str, HCSP], strict_protect:Optional[Set[str]] = None):
     """Reduce number of procedures in the process by inlining.

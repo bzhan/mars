@@ -34,9 +34,9 @@ class HCSPTest(unittest.TestCase):
     def testConvertToConcreteChs3(self):
         concrete_chs = {'ch': [(AConst(0),), (AConst(1),)],
                         'dh': [(AConst(2),), (AConst(3),)]}
-        hp = hp_parser.parse("ch[_c]!x --> skip; $ dh[_c]!x --> skip;")
+        hp = hp_parser.parse("ch[_c]!x --> y := _c; $ dh[_c]!x --> y := _c;")
         self.assertEqual(convert_to_concrete_chs(hp, concrete_chs),
-                         hp_parser.parse("ch[0]!x --> skip; $ ch[1]!x --> skip; $ dh[2]!x --> skip; $ dh[3]!x --> skip;"))
+                         hp_parser.parse("ch[0]!x --> y := 0; $ ch[1]!x --> y := 1; $ dh[2]!x --> y := 2; $ dh[3]!x --> y := 3;"))
 
 
 if __name__ == "__main__":

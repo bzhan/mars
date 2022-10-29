@@ -615,7 +615,7 @@ class HPTransformer(Transformer):
         outputs, procedures = [], []
         for decl in decls:
             if isinstance(decl, tuple):
-                outputs.append(decl)
+                outputs.extend(decl)
             elif isinstance(decl, hcsp.Procedure):
                 procedures.append(decl)
             else:

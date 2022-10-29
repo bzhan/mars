@@ -1,7 +1,7 @@
 """Modules for hybrid programs"""
 
 import os
-from typing import List
+from typing import List, Optional, Tuple
 
 from ss2hcsp.hcsp.hcsp import HCSPInfo, Procedure
 from ss2hcsp.hcsp import pprint
@@ -97,10 +97,12 @@ class HCSPModuleInst:
     to be instantiated, and list of concrete argments for the parameters.
 
     """
-    def __init__(self, name, module_name, args, meta=None):
-        self.name = name
-        self.module_name = module_name
-        self.args = args
+    def __init__(self, name: str, module_name: str, args: Optional[Tuple[expr.Expr]]=None, meta=None):
+        self.name: str = name
+        self.module_name: str = module_name
+        self.args: Tuple[expr.Expr] = tuple()
+        if args is not None:
+            self.args = tuple(args)
         self.meta = meta
 
     def __str__(self):
@@ -117,7 +119,7 @@ class HCSPModuleInst:
             return "ModuleInst(%s,%s,%s)" % (self.name, self.module_name,
                 ','.join(str(arg) for arg in self.args))
 
-    def export(self):
+    def export(self) -> str:
         """Print the string that will parse to the module instantiation."""
         def print_arg(arg):
             if isinstance(arg, expr.AConst):
@@ -136,7 +138,7 @@ class HCSPModuleInst:
             return "%s = %s(%s)" % (self.name, self.module_name,
                 ', '.join(print_arg(arg) for arg in self.args))
 
-    def generateInst(self, module):
+    def generateInst(self, module: HCSPModule) -> HCSPInfo:
         """Given the module, construct the corresponding HCSP info."""
 
         # First, construct the mapping between formal and actual parameters
@@ -161,7 +163,7 @@ class HCSPSystem:
     HCSP process.
     
     """
-    def __init__(self, module_insts, meta=None):
+    def __init__(self, module_insts: List[HCSPModuleInst], meta=None):
         self.module_insts = module_insts
         self.meta = meta
 
@@ -263,7 +265,7 @@ class HCSPDeclarations:
         """Convert declarations to string that can be written to a file."""
         res = "%type: module\n\n"
         for name, m in self.modules.items():
-            res += m.export() + "\n"
+            res += m.export() + "\n\n"
         res += "system\n" + str(self.system) + "\nendsystem\n"
         return res
 

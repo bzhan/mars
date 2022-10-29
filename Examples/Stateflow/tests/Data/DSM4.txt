@@ -10,6 +10,7 @@ begin
   }*
 end
 endmodule
+
 module Chart1():
 begin
   start_Chart1?;
@@ -50,6 +51,7 @@ begin
   }*
 end
 endmodule
+
 module Chart2():
 begin
   start_Chart2?;
@@ -90,6 +92,7 @@ begin
   }*
 end
 endmodule
+
 module data_ctrl():
 begin
   global_x := 1;
@@ -101,6 +104,7 @@ begin
   }*
 end
 endmodule
+
 system
 order_ctrl() ||
 Chart1() ||
