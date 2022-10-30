@@ -87,8 +87,9 @@ def inferExprType(e: expr.Expr, hp_name: str, ctx: TypeContext) -> CType:
         # elif e.fun_name in ('bottom', 'top'): # not really
         #     return RealType()
         else:
-            print("inferExprType: unrecognized function %s" % e.fun_name)
-            raise NotImplementedError
+            # print("inferExprType: unrecognized function %s" % e.fun_name)
+            return UndefType()
+            # raise NotImplementedError
     else:
         print("inferExprType on %s" % e)
         raise NotImplementedError
@@ -103,73 +104,123 @@ def inferTypes(infos: List[HCSPInfo]) -> TypeContext:
     for info in infos:
         ctx.varTypes[info.name] = dict()
 
-    def infer(hp_name, hp):
+    def infer(hp_name, hp) -> int:
+        flag = 0
         if isinstance(hp, hcsp.Assign):
             v = hp.var_name
             if isinstance(v, expr.AVar):
-                if v.name in ctx.varTypes[hp_name]:
+                if v.name in ctx.varTypes[hp_name] and not isinstance(ctx.varTypes[hp_name][v.name], UndefType):
                     pass   # Already know type of v, skip type checking
                 else:
                     typ = inferExprType(hp.expr, hp_name, ctx)
                     if isinstance(typ, UndefType):
-                        raise AssertionError("inferTypes: unknown type for right side of assignment")
+                        ctx.varTypes[hp_name][v.name] = typ
+                        # raise AssertionError("inferTypes: unknown type for right side of assignment")
                     else:
                         ctx.varTypes[hp_name][v.name] = typ
+                        flag = 1
             else:
                 pass  # skip type inference for arrays and fields
 
         elif isinstance(hp, hcsp.InputChannel):
             ch = hp.ch_name
-            if ch.name in ctx.channelTypes:
-                pass  # Already know type of ch, skip type checking
+            
+            if ch.name in ctx.channelTypes and not isinstance(ctx.channelTypes[ch.name], UndefType):
+                v = hp.var_name
+                if isinstance(v, expr.AVar):
+                    if v.name not in ctx.varTypes[hp_name] or isinstance(ctx.varTypes[hp_name][v.name], UndefType):
+                        ctx.varTypes[hp_name][v.name] = ctx.channelTypes[ch.name]
+                        flag = 1
+                    else:
+                        pass  # Already know type of ch and v, skip type checking
+                elif v is None:
+                    ctx.channelTypes[ch.name] = NullType()
+                else:
+                    print(str(v))
+                    raise NotImplementedError
             elif hp.var_name is None:
                 ctx.channelTypes[ch.name] = NullType()
+                flag = 1
             else:
                 v = hp.var_name
                 if isinstance(v, expr.AVar):
-                    if v.name in ctx.varTypes[hp_name]:
+                    if v.name in ctx.varTypes[hp_name] and not isinstance(ctx.varTypes[hp_name][v.name], UndefType):
                         ctx.channelTypes[ch.name] = ctx.varTypes[hp_name][v.name]
+                        flag = 1
                     else:
-                        raise AssertionError("inferTypes: unknown type for input variable %s", v.name)
+                        ctx.channelTypes[ch.name] = UndefType()
+                        # raise AssertionError("inferTypes: unknown type for input variable %s", v.name)
                 else:
                     raise NotImplementedError
         
         elif isinstance(hp, hcsp.OutputChannel):
             ch = hp.ch_name
-            if ch.name in ctx.channelTypes:
+            
+            if ch.name in ctx.channelTypes and not isinstance(ctx.channelTypes[ch.name], UndefType):
                 pass  # Already know type of ch, skip type checking
             elif hp.expr is None:
                 ctx.channelTypes[ch.name] = NullType()
+                flag = 1
             else:
                 e = hp.expr
                 typ = inferExprType(e, hp_name, ctx)
                 if isinstance(typ, UndefType):
-                    raise AssertionError("inferTypes: unknown type for output expression %s", e)
+                    ctx.channelTypes[ch.name] = typ
+                    # raise AssertionError("inferTypes: unknown type for output expression %s", e)
                 else:
                     ctx.channelTypes[ch.name] = typ
+                    flag = 1
         
         elif isinstance(hp, (hcsp.ODE_Comm, hcsp.SelectComm)):
-            for io_comm, _ in hp.io_comms:
-                infer(hp_name, io_comm)
+            for io_comm, out_hp in hp.io_comms:
+                mid_flag = infer(hp_name, io_comm)
+                if mid_flag == 1:
+                    flag = 1
+                if out_hp is not None:
+                    mid_flag = infer(hp_name, out_hp)
+                    if mid_flag == 1:
+                        flag = 1
 
         elif isinstance(hp, hcsp.Sequence):
             for sub_hp in hp.hps:
-                infer(hp_name, sub_hp)
+                mid_flag = infer(hp_name, sub_hp)
+                if mid_flag == 1:
+                    flag = 1
 
         elif isinstance(hp, hcsp.ITE):
             for _, if_hp in hp.if_hps:
-                infer(hp_name, if_hp)
+                mid_flag = infer(hp_name, if_hp)
+                if mid_flag == 1:
+                    flag = 1
             if hp.else_hp is not None:
-                infer(hp_name, hp.else_hp)
+                mid_flag = infer(hp_name, hp.else_hp)
+                if mid_flag == 1:
+                    flag = 1
 
         elif isinstance(hp, hcsp.Loop):
-            infer(hp_name, hp.hp)
+            mid_flag = infer(hp_name, hp.hp)
+            if mid_flag == 1:
+                    flag = 1
 
         else:
             pass  # No need for type inference on other commands
+        return flag
 
+    flag = 0
+    count = 0
     for info in infos:
-        infer(info.name, info.hp)
+        flag += infer(info.name, info.hp)
+        for procedure in info.procedures:
+            flag += infer(info.name, procedure.hp)
+    while flag > 0:
+        count += 1
+        print(count)
+        print(flag)
+        flag = 0
+        for info in infos:
+            flag += infer(info.name, info.hp)
+            for procedure in info.procedures:
+                flag += infer(info.name, procedure.hp)
 
     return ctx
 
@@ -410,6 +461,8 @@ def transferToCProcess(info: HCSPInfo, context: TypeContext) -> str:
     vars = info.hp.get_vars()
     body += body_template % len(info.hp.get_chs())
     for var in vars:
+        if var not in context.varTypes[info.name]:
+            raise AssertionError("type of %s in %s is unkonwn." % (var, info.name))
         if isinstance(context.varTypes[info.name][var], RealType):
             body += "\tdouble %s = 0.0;\n" % var
         elif isinstance(context.varTypes[info.name][var], StringType):
