@@ -10,13 +10,24 @@ class SysTest(unittest.TestCase):
             s = f.read()
             infos = parse_module_file(s)
 
-        res = transfer2c.convertHps(infos, step_size=step_size, output_step_size=output_step_size,
+        (res, head_res, threads_res) = transfer2c.convertHps(outputfile, infos, step_size=step_size, output_step_size=output_step_size,
                                     max_time=max_time)
 
+        run_str = "sudo gcc"
         with open('hcsp2c/target/%s.c' % outputfile, 'w') as f:
             f.write(res)
+            run_str += ' hcsp2c/target/%s.c' % outputfile
+        with open('hcsp2c/target/%s.h' % outputfile, 'w') as f:
+            f.write(head_res)
+        for (thread_name, thread_body) in threads_res:
+            with open('hcsp2c/target/%s__%s.c' % (outputfile, thread_name), 'w') as f:
+                f.write(thread_body)
+                run_str += ' hcsp2c/target/%s__%s.c' % (outputfile, thread_name)
+        
+        run_str += " hcsp2c/target/hcsp2c.c -lpthread -lm -o hcsp2c/output/%s.out" % outputfile
+
         res = subprocess.run(
-            "sudo gcc hcsp2c/target/%s.c -lpthread -lm -o hcsp2c/output/%s.out" % (outputfile, outputfile),
+            run_str,
             stderr=subprocess.PIPE,
             text=True,
             shell=True

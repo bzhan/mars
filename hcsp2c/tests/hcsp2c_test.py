@@ -11,12 +11,26 @@ class HCSP2CTest(unittest.TestCase):
         infos = []
         for i, prog in enumerate(progs):
             infos.append(HCSPInfo("P" + str(i+1), parser.hp_parser.parse(prog)))
-        res = transfer2c.convertHps(infos, step_size=step_size, real_time=real_time, max_time=max_time)
+            
+        outputfile = filename
 
-        with open('hcsp2c/target/%s.c' % filename, 'w') as f:
+        (res, head_res, threads_res) = transfer2c.convertHps(outputfile, infos, step_size=step_size, real_time=real_time, max_time=max_time)
+
+        run_str = "sudo gcc"
+        with open('hcsp2c/target/%s.c' % outputfile, 'w') as f:
             f.write(res)
+            run_str += ' hcsp2c/target/%s.c' % outputfile
+        with open('hcsp2c/target/%s.h' % outputfile, 'w') as f:
+            f.write(head_res)
+        for (thread_name, thread_body) in threads_res:
+            with open('hcsp2c/target/%s__%s.c' % (outputfile, thread_name), 'w') as f:
+                f.write(thread_body)
+                run_str += ' hcsp2c/target/%s__%s.c' % (outputfile, thread_name)
+        
+        run_str += " hcsp2c/target/hcsp2c.c -lpthread -lm -o hcsp2c/output/%s.out" % outputfile
+
         res = subprocess.run(
-            "sudo gcc hcsp2c/target/%s.c -lpthread -lm -o hcsp2c/output/%s.out" % (filename, filename),
+            run_str,
             stderr=subprocess.PIPE,
             text=True,
             shell=True
@@ -391,12 +405,12 @@ class HCSP2CTest(unittest.TestCase):
 
     def test16(self):
         progs = [
-            "EL := []; x := \"\";EL := push(EL, \"a\"); EL := push(EL, \"b\"); EL := pop(EL); x := top(EL); ch!x;",
-            "x := \"\"; ch?x;"
+            "EL := []; x := \"\";EL := push(EL, \"a\"); EL := push(EL, \"b\"); EL := pop(EL); x := top(EL); chE!x;",
+            "x := \"\"; chE?x;"
         ]
 
         expected_output = [
-            'IO ch "a"', 
+            'IO chE "a"', 
             "deadlock"
         ]
 
@@ -422,12 +436,12 @@ class HCSP2CTest(unittest.TestCase):
 
     def test18(self):
         progs = [
-            "num := 0; if (num == 0) { E := \"e\"; num := 1; } ch!E;",
-            "E := \"\"; ch?E;"
+            "num := 0; if (num == 0) { E := \"e\"; num := 1; } chE!E;",
+            "E := \"\"; chE?E;"
         ]
 
         expected_output = [
-            'IO ch "e"', 
+            'IO chE "e"', 
             'deadlock'
         ]
 

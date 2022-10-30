@@ -6,7 +6,7 @@ from typing import List
 
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import expr
-from ss2hcsp.hcsp.hcsp import HCSPInfo
+from ss2hcsp.hcsp.hcsp import HCSPInfo, Procedure
 
 
 gl_var_type = {} # key: var_name, value:type,  0 -> undef, 1 -> double, 2 -> string, 3 -> list
@@ -434,11 +434,22 @@ def transferToCExpr(e: expr.Expr) -> str:
         print("transferToCExpr:", e)
         raise NotImplementedError
 
+c_procedure_template = \
+"""
+void %s () {
+    %s
+    return;
+}
+"""
+
+def transferToCProcedure(procedure: Procedure) -> str:
+    pro_info = HCSPInfo(procedure.name, procedure.hp)
+    res = c_procedure_template % (procedure.name, indent(transferToC(pro_info)))
+    return res
 
 c_process_template = \
 """
 void* %s (void* arg) {
-    int threadNumber = 0;
     threadNumber = (int)(*((int*)arg));
     %s
     threadState[threadNumber] = STATE_STOPPED;
@@ -448,43 +459,50 @@ void* %s (void* arg) {
 
 body_template = \
 """
-    int midInt = 0;
-    int is_comm = 0;
-    String* midString = NULL;
-    List* midList = NULL;
-    Channel channel;
-    Channel channels[%d];
-    double h = step_size;
-    double* midDouble = NULL;
+#include <math.h>
+#include "hcsp2c.h"
+#include "%s.h"
+
+static int threadNumber = 0;
+static int midInt = 0;
+static int is_comm = 0;
+static String* midString = NULL;
+static List* midList = NULL;
+static Channel channel;
+static Channel channels[%d];
+static double h = step_size;
+static double* midDouble = NULL;
 """
 
-def transferToCProcess(info: HCSPInfo, context: TypeContext) -> str:
+def transferToCProcess(name: str, info: HCSPInfo, context: TypeContext) -> str:
     """Convert HCSP process with given name to a C function"""
     c_process_str = ""
     global gl_var_type
     gl_var_type = context.varTypes[info.name]
     body = ""
+    procedures_body = ""
     procedures = []
     for procedure in procedures:
-        body += str(procedure) + '\n'
+        procedures_body += transferToCProcedure(procedure) + '\n'
     vars = info.hp.get_vars()
-    body += body_template % len(info.hp.get_chs())
+    init_body = body_template % (name, len(info.hp.get_chs()))
     for var in vars:
         if var not in context.varTypes[info.name]:
             raise AssertionError("type of %s in %s is unkonwn." % (var, info.name))
         if isinstance(context.varTypes[info.name][var], RealType):
-            body += "\tdouble %s = 0.0;\n" % var
+            init_body += "\tstatic double %s = 0.0;\n" % var
         elif isinstance(context.varTypes[info.name][var], StringType):
-            body += "\tString %s;\n" % var
+            init_body += "\tstatic String %s;\n" % var
         elif isinstance(context.varTypes[info.name][var], ListType):
-            body += "\tList %s;\n" % var
+            init_body += "\tstatic List %s;\n" % var
         else:
             raise AssertionError("init: unknown type for variable %s" % var)
 
     body += indent(transferToC(info))
 
     c_process_str = c_process_template % (info.name, body)
-    return c_process_str
+    res = init_body + procedures_body + c_process_str
+    return res
 
 def transferIndexInputToC(hp: hcsp.InputChannel, index: int) -> str:
     ch_name = hp.ch_name
@@ -791,11 +809,16 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
 header = \
 """
 #include <math.h>
-
+#include "%s.h"
 #include "hcsp2c.h"
+"""
+header_header = \
+"""
+#ifndef %s_h
+#define %s_h
 
-double step_size = %s;
-double output_step_size = %s;
+#define step_size %s
+#define output_step_size %s
 """
 
 main_header = \
@@ -824,23 +847,27 @@ main_footer = \
 """
 
 
-def convertHps(infos: List[HCSPInfo], step_size:float = 1e-7, output_step_size:float = 1e-1,
-               real_time:bool = False, max_time:float = 5.0) -> str:
+def convertHps(name: str, infos: List[HCSPInfo], step_size:float = 1e-7, output_step_size:float = 1e-1,
+               real_time:bool = False, max_time:float = 5.0) -> tuple:
     """Main function for HCSP to C conversion."""
     ctx = inferTypes(infos)
 
     res = ""
-    res += header % (step_size, output_step_size)
+    res += header % (name)
     count = 0
+    head_res = header_header % (name, name, step_size, output_step_size)
     for channel in ctx.channelTypes.keys():
-        res += "const int %s = %d;\n" % (channel, count)
+        head_res += "#define %s %d\n" % (channel, count)
         count += 1
 
+    threads_res = []
     for info in infos:
-        code = transferToCProcess(info, ctx)
-        res += code
+        code = transferToCProcess(name, info, ctx)
+        threads_res.append((info.name, code))
+        head_res += "void* %s (void* arg);\n" % info.name
 
     res += main_header % (len(infos), count)
+    head_res += "#endif"
 
     # Simulate in real-time
     if real_time:
@@ -862,4 +889,4 @@ def convertHps(infos: List[HCSPInfo], step_size:float = 1e-7, output_step_size:f
     
     res += main_footer
 
-    return res
+    return (res, head_res, threads_res)
