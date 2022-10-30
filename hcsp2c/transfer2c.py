@@ -299,7 +299,7 @@ def transferToCExpr(e: expr.Expr) -> str:
                 e.expr2 = mid
             if isinstance(e.expr2, expr.AConst):
                 if isinstance(e.expr2.value, str):
-                    return "strEqual(%s, &strInit(%s))" % (e.expr1, e.expr2.value)
+                    return "strEqual(%s, *strInit(\"%s\"))" % (e.expr1, e.expr2.value)
                 elif isinstance(e.expr2, expr.AVar) and e.expr2.name in gl_var_type and isinstance(gl_var_type[e.expr2.name], StringType):
                     return "strEqual(%s, %s)" % (e.expr1, e.expr2)
                 else:
@@ -309,6 +309,23 @@ def transferToCExpr(e: expr.Expr) -> str:
                     if cPriority(e.expr2) <= cPriority(e):
                         s2 = '(' + s2 + ')'
                     return "%s == %s" % (s1, s2)
+        elif e.op == "!=":
+            if isinstance(e.expr1, expr.AConst):
+                mid = e.expr1
+                e.expr1 = e.expr2
+                e.expr2 = mid
+            if isinstance(e.expr2, expr.AConst):
+                if isinstance(e.expr2.value, str):
+                    return "!strEqual(%s, *strInit(\"%s\"))" % (e.expr1, e.expr2.value)
+                elif isinstance(e.expr2, expr.AVar) and e.expr2.name in gl_var_type and isinstance(gl_var_type[e.expr2.name], StringType):
+                    return "!strEqual(%s, %s)" % (e.expr1, e.expr2)
+                else:
+                    s1, s2 = transferToCExpr(e.expr1), transferToCExpr(e.expr2)
+                    if cPriority(e.expr1) < cPriority(e):
+                        s1 = '(' + s1 + ')'
+                    if cPriority(e.expr2) <= cPriority(e):
+                        s2 = '(' + s2 + ')'
+                    return "%s != %s" % (s1, s2)
         else:
             s1, s2 = transferToCExpr(e.expr1), transferToCExpr(e.expr2)
             if cPriority(e.expr1) < cPriority(e):
@@ -528,11 +545,14 @@ def transferIndexOutputToC(hp: hcsp.OutputChannel, index: int) -> str:
     else:
         if isinstance(e, expr.AConst):
             if isinstance(e.value, str):
-                return "midString = strInit(%s);\nchannels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = midString;" % \
+                return "midString = strInit(\"%s\");\nchannels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = midString;" % \
                     (e.value, index, str(ch_name), index, index)
         elif isinstance(e, expr.ListExpr):
             return "%schannels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = midList;" % \
                 (transferToCExpr(e),  index, str(ch_name), index, index)
+        elif isinstance(e, expr.FunExpr) and e.fun_name in ("top", "bottom", "get_max") or isinstance(e, expr.ArrayIdxExpr):
+            return "midDouble = (double*) malloc(sizeof(double));\n*midDouble = *(double*)%s;\nchannels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = midDouble;" % \
+                (transferToCExpr(e), index, str(ch_name), index, index)
         else:
             return "midDouble = (double*) malloc(sizeof(double));\n*midDouble = %s;\nchannels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = midDouble;" % \
                 (transferToCExpr(e), index, str(ch_name), index, index)
@@ -565,7 +585,7 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
     def rec(hp: hcsp.HCSP) -> str:
         c_str = ""
         if isinstance(hp, hcsp.Var):
-            c_str = "var_" + hp.name
+            c_str = "%s();" % hp.name
         elif isinstance(hp, hcsp.Skip):
             c_str = ";"
         elif isinstance(hp, hcsp.Wait):
@@ -593,7 +613,7 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
                 if isinstance(e, expr.ListExpr):
                     c_str = "%s%s = *midList;" % (ce, var_str)
                 else:
-                    if isinstance(e, expr.FunExpr) and e.fun_name in ("top", "bottom", "get", "get_max"):
+                    if isinstance(e, expr.FunExpr) and e.fun_name in ("top", "bottom", "get_max") or isinstance(e, expr.ArrayIdxExpr):
                         if isinstance(gl_var_type[var_str], RealType):
                             c_str = "%s = *(double*)%s;" % (var_str, ce)
                         elif isinstance(gl_var_type[var_str], StringType):
@@ -611,7 +631,7 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
                     if isinstance(e, expr.ListExpr):
                         return_str = return_str + "%s%s = *midList;" % (ce, var_str)
                     else:
-                        if isinstance(e, expr.FunExpr) and e.fun_name in ("top", "bottom", "get"):
+                        if isinstance(e, expr.FunExpr) and e.fun_name in ("top", "bottom", "get_max") or isinstance(e, expr.ArrayIdxExpr):
                             if isinstance(gl_var_type[var_str], RealType):
                                 return_str = return_str + "%s = *(double*)%s;" % (var_str, ce)
                             elif isinstance(gl_var_type[var_str], StringType):
@@ -635,7 +655,8 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
                 var_name = tuple(var_name)
                 assert len(var_name) >= 2 and all(isinstance(name, (str, expr.Expr)) for name in var_name)
                 var_name = [expr.AVar(n) if isinstance(n, str) else n for n in var_name]
-
+            
+            e = transferToCExpr(e)
             if isinstance(var_name, expr.Expr):
                 var_str = str(var_name)
                 c_str = "%s = randomDouble();\nwhile(!(%s)) {\n%s = randomDouble();\n}" % (var_str, e, var_str)
@@ -648,7 +669,7 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
             if hp.constraint == expr.true_expr:
                 c_str = "while (1) {\n%s\n}" % indent(rec(hp.hp))
             else:
-                c_str = "while (%s) {\n%s\n}" % (hp.constraint, indent(rec(hp.hp)))
+                c_str = "while (%s) {\n%s\n}" % (transferToCExpr(hp.constraint), indent(rec(hp.hp)))
         elif isinstance(hp, hcsp.ITE):
             if_hps = hp.if_hps
             else_hp = hp.else_hp
@@ -690,6 +711,9 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
                             (e.value, str(ch_name))
                 elif isinstance(e, expr.ListExpr):
                     return "%schannel.channelNo = %s;\nchannelchannel..type = 1;\nchannel.pos = midList;\noutput(threadNumber, channel);" % \
+                        (transferToCExpr(e), str(ch_name))
+                elif isinstance(e, expr.FunExpr) and e.fun_name in ("top", "bottom", "get_max") or isinstance(e, expr.ArrayIdxExpr):
+                    return "midDouble = (double*) malloc(sizeof(double));\n*midDouble = *(double*)%s;\nchannel.channelNo = %s;\nchannel.type = 1;\nchannel.pos = midDouble;\noutput(threadNumber, channel);" % \
                         (transferToCExpr(e), str(ch_name))
                 else:
                     return "midDouble = (double*) malloc(sizeof(double));\n*midDouble = %s;\nchannel.channelNo = %s;\nchannel.type = 1;\nchannel.pos = midDouble;\noutput(threadNumber, channel);" % \
@@ -742,7 +766,8 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
 
             res = ""
             for comm_hp in comm_hps:
-                res += "%s\n" % comm_hp
+                if comm_hp is not None:
+                    res += "%s\n" % comm_hp
             res += "interruptInit(threadNumber, %d, channels);\n" % len(comm_hps)
             choice_str = ""
             for i in range(0, len(out_hps)):
@@ -794,7 +819,8 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
                 out_hps.append(rec(io_comm[1]))
             res = ""
             for comm_hp in comm_hps:
-                res += "%s" % comm_hp 
+                if comm_hp is not None:
+                    res += "%s" % comm_hp 
             res += "midInt = externalChoice(threadNumber, %d, channels);\n" % len(comm_hps)
             for i in range(0, len(out_hps)):
                 if i > 0:

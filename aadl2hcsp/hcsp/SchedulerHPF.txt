@@ -30,7 +30,9 @@ free[sid][_tid]? -->
         max_index := 0;
         index := 0;
         {   
-            if (Pool_prior[index] > run_prior) {
+            now_prior := 0;
+            now_prior := Pool_prior[index];
+            if (now_prior > run_prior) {
                 run_prior := Pool_prior[index];
                 run_now := Pool_now[index];
                 max_index := index;
@@ -49,7 +51,9 @@ exit[sid][_tid]? -->
     index := 0;
     del_index := 0;
     {   
-        if (Pool_now[index] == _tid) {
+        now_now := "";
+        now_now := Pool_now[index];
+        if (now_now == _tid) {
             del_index := index;
         }
         index := index + 1;
