@@ -177,6 +177,24 @@ void* listGet(List* list, int num) {
     return (list->addr)[num];
 }
 
+List* listDel(List* list, int num) {
+    if (list->length <= num) {
+        printf("Del ERROR: length of list is %d, but try to del index %d.\n", list->length, num);
+    }
+    
+    void** new_list = (void**)malloc(sizeof(void*) * (list->length + 1));
+
+    if (num > 0) {
+        memcpy(new_list, list->addr, (num) * sizeof(void*));
+    }
+    if (num < list->length - 1) {
+        memcpy(new_list + num, list->addr + num + 1, (list->length - num - 1) * sizeof(void*));
+    }
+    list->length -= 1;
+    list->addr = new_list;
+    return list;
+}
+
 void* listGetMax(List* list) {
     if (list->length == 0) {
         printf("Getmax ERROR: list is empty");

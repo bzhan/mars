@@ -82,7 +82,7 @@ def inferExprType(e: expr.Expr, hp_name: str, ctx: TypeContext) -> CType:
     elif isinstance(e, expr.FunExpr):
         if e.fun_name in ('max', 'min', 'len'):
             return RealType()
-        elif e.fun_name in ('push', 'pop', 'get', 'del0', 'get_max'):
+        elif e.fun_name in ('push', 'pop', 'get', 'del0', 'get_max', 'del'):
             return ListType()
         # elif e.fun_name in ('bottom', 'top'): # not really
         #     return RealType()
@@ -90,6 +90,8 @@ def inferExprType(e: expr.Expr, hp_name: str, ctx: TypeContext) -> CType:
             # print("inferExprType: unrecognized function %s" % e.fun_name)
             return UndefType()
             # raise NotImplementedError
+    elif isinstance(e, expr.ArrayIdxExpr):
+        return UndefType()
     else:
         print("inferExprType on %s" % e)
         raise NotImplementedError
@@ -258,6 +260,8 @@ def cPriority(e: expr.Expr) -> int:
         return 100
     elif isinstance(e, expr.ListExpr):
         return 100
+    elif isinstance(e, expr.ArrayIdxExpr):
+        return 100
     else:
         raise NotImplementedError
 
@@ -351,6 +355,8 @@ def transferToCExpr(e: expr.Expr) -> str:
             if cPriority(e.exprs[1]) <= cPriority(e):
                 s2 = '(' + s2 + ')'
             return "(%s) %s (%s)" % (s1, e.op, s2)
+    elif isinstance(e, expr.ArrayIdxExpr):
+        return "listGet(&%s, %s)" % (e.expr1, e.expr2)
     elif isinstance(e, expr.FunExpr):
         # Special functions
         args = e.exprs
@@ -386,6 +392,9 @@ def transferToCExpr(e: expr.Expr) -> str:
                 raise AssertionError("cannot push a raw list to a list")
             else:
                 return "*listPushExpr(&%s, %s)" % (a, b)
+        elif e.fun_name == "del":
+            a, b = args
+            return "*listDel(&%s, %s)" % (a, b)
         elif e.fun_name == "pop":
             a, = args
             return "*listPop(&%s)" % a
