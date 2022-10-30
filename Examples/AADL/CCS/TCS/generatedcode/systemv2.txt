@@ -24,15 +24,15 @@ begin
           if (run_now == "PI_ctr") {
             preempt_l_0_r__lb_PI_ctr_rb_!;
           } else if (run_now == "comp_obs_pos") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+            preempt_l_0_r__lb_comp_obs_pos_rb_!;
           } else if (run_now == "emerg") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+            preempt_l_0_r__lb_emerg_rb_!;
           } else if (run_now == "img_acq") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+            preempt_l_0_r__lb_img_acq_rb_!;
           } else if (run_now == "pan_ctr_th") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+            preempt_l_0_r__lb_pan_ctr_th_rb_!;
           } else if (run_now == "velo_voter") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+            preempt_l_0_r__lb_velo_voter_rb_!;
           }
         }
         run_now := "PI_ctr";
@@ -40,18 +40,18 @@ begin
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+          run_l_0_r__lb_comp_obs_pos_rb_!;
         } else if (run_now == "emerg") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+          run_l_0_r__lb_emerg_rb_!;
         } else if (run_now == "img_acq") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+          run_l_0_r__lb_img_acq_rb_!;
         } else if (run_now == "pan_ctr_th") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+          run_l_0_r__lb_pan_ctr_th_rb_!;
         } else if (run_now == "velo_voter") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+          run_l_0_r__lb_velo_voter_rb_!;
         }
       } $
-    reqProcessor_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_?prior -->
+    reqProcessor_l_0_r__lb_comp_obs_pos_rb_?prior -->
       if (run_prior >= prior) {
         PriorList := [];
         PriorList2 := [];
@@ -64,15 +64,15 @@ begin
           if (run_now == "PI_ctr") {
             preempt_l_0_r__lb_PI_ctr_rb_!;
           } else if (run_now == "comp_obs_pos") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+            preempt_l_0_r__lb_comp_obs_pos_rb_!;
           } else if (run_now == "emerg") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+            preempt_l_0_r__lb_emerg_rb_!;
           } else if (run_now == "img_acq") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+            preempt_l_0_r__lb_img_acq_rb_!;
           } else if (run_now == "pan_ctr_th") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+            preempt_l_0_r__lb_pan_ctr_th_rb_!;
           } else if (run_now == "velo_voter") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+            preempt_l_0_r__lb_velo_voter_rb_!;
           }
         }
         run_now := "comp_obs_pos";
@@ -80,18 +80,18 @@ begin
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+          run_l_0_r__lb_comp_obs_pos_rb_!;
         } else if (run_now == "emerg") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+          run_l_0_r__lb_emerg_rb_!;
         } else if (run_now == "img_acq") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+          run_l_0_r__lb_img_acq_rb_!;
         } else if (run_now == "pan_ctr_th") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+          run_l_0_r__lb_pan_ctr_th_rb_!;
         } else if (run_now == "velo_voter") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+          run_l_0_r__lb_velo_voter_rb_!;
         }
       } $
-    reqProcessor_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_?prior -->
+    reqProcessor_l_0_r__lb_emerg_rb_?prior -->
       if (run_prior >= prior) {
         PriorList := [];
         PriorList2 := [];
@@ -104,15 +104,15 @@ begin
           if (run_now == "PI_ctr") {
             preempt_l_0_r__lb_PI_ctr_rb_!;
           } else if (run_now == "comp_obs_pos") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+            preempt_l_0_r__lb_comp_obs_pos_rb_!;
           } else if (run_now == "emerg") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+            preempt_l_0_r__lb_emerg_rb_!;
           } else if (run_now == "img_acq") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+            preempt_l_0_r__lb_img_acq_rb_!;
           } else if (run_now == "pan_ctr_th") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+            preempt_l_0_r__lb_pan_ctr_th_rb_!;
           } else if (run_now == "velo_voter") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+            preempt_l_0_r__lb_velo_voter_rb_!;
           }
         }
         run_now := "emerg";
@@ -120,18 +120,18 @@ begin
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+          run_l_0_r__lb_comp_obs_pos_rb_!;
         } else if (run_now == "emerg") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+          run_l_0_r__lb_emerg_rb_!;
         } else if (run_now == "img_acq") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+          run_l_0_r__lb_img_acq_rb_!;
         } else if (run_now == "pan_ctr_th") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+          run_l_0_r__lb_pan_ctr_th_rb_!;
         } else if (run_now == "velo_voter") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+          run_l_0_r__lb_velo_voter_rb_!;
         }
       } $
-    reqProcessor_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_?prior -->
+    reqProcessor_l_0_r__lb_img_acq_rb_?prior -->
       if (run_prior >= prior) {
         PriorList := [];
         PriorList2 := [];
@@ -144,15 +144,15 @@ begin
           if (run_now == "PI_ctr") {
             preempt_l_0_r__lb_PI_ctr_rb_!;
           } else if (run_now == "comp_obs_pos") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+            preempt_l_0_r__lb_comp_obs_pos_rb_!;
           } else if (run_now == "emerg") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+            preempt_l_0_r__lb_emerg_rb_!;
           } else if (run_now == "img_acq") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+            preempt_l_0_r__lb_img_acq_rb_!;
           } else if (run_now == "pan_ctr_th") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+            preempt_l_0_r__lb_pan_ctr_th_rb_!;
           } else if (run_now == "velo_voter") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+            preempt_l_0_r__lb_velo_voter_rb_!;
           }
         }
         run_now := "img_acq";
@@ -160,18 +160,18 @@ begin
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+          run_l_0_r__lb_comp_obs_pos_rb_!;
         } else if (run_now == "emerg") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+          run_l_0_r__lb_emerg_rb_!;
         } else if (run_now == "img_acq") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+          run_l_0_r__lb_img_acq_rb_!;
         } else if (run_now == "pan_ctr_th") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+          run_l_0_r__lb_pan_ctr_th_rb_!;
         } else if (run_now == "velo_voter") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+          run_l_0_r__lb_velo_voter_rb_!;
         }
       } $
-    reqProcessor_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_?prior -->
+    reqProcessor_l_0_r__lb_pan_ctr_th_rb_?prior -->
       if (run_prior >= prior) {
         PriorList := [];
         PriorList2 := [];
@@ -184,15 +184,15 @@ begin
           if (run_now == "PI_ctr") {
             preempt_l_0_r__lb_PI_ctr_rb_!;
           } else if (run_now == "comp_obs_pos") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+            preempt_l_0_r__lb_comp_obs_pos_rb_!;
           } else if (run_now == "emerg") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+            preempt_l_0_r__lb_emerg_rb_!;
           } else if (run_now == "img_acq") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+            preempt_l_0_r__lb_img_acq_rb_!;
           } else if (run_now == "pan_ctr_th") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+            preempt_l_0_r__lb_pan_ctr_th_rb_!;
           } else if (run_now == "velo_voter") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+            preempt_l_0_r__lb_velo_voter_rb_!;
           }
         }
         run_now := "pan_ctr_th";
@@ -200,18 +200,18 @@ begin
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+          run_l_0_r__lb_comp_obs_pos_rb_!;
         } else if (run_now == "emerg") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+          run_l_0_r__lb_emerg_rb_!;
         } else if (run_now == "img_acq") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+          run_l_0_r__lb_img_acq_rb_!;
         } else if (run_now == "pan_ctr_th") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+          run_l_0_r__lb_pan_ctr_th_rb_!;
         } else if (run_now == "velo_voter") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+          run_l_0_r__lb_velo_voter_rb_!;
         }
       } $
-    reqProcessor_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_?prior -->
+    reqProcessor_l_0_r__lb_velo_voter_rb_?prior -->
       if (run_prior >= prior) {
         PriorList := [];
         PriorList2 := [];
@@ -224,15 +224,15 @@ begin
           if (run_now == "PI_ctr") {
             preempt_l_0_r__lb_PI_ctr_rb_!;
           } else if (run_now == "comp_obs_pos") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+            preempt_l_0_r__lb_comp_obs_pos_rb_!;
           } else if (run_now == "emerg") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+            preempt_l_0_r__lb_emerg_rb_!;
           } else if (run_now == "img_acq") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+            preempt_l_0_r__lb_img_acq_rb_!;
           } else if (run_now == "pan_ctr_th") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+            preempt_l_0_r__lb_pan_ctr_th_rb_!;
           } else if (run_now == "velo_voter") {
-            preempt_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+            preempt_l_0_r__lb_velo_voter_rb_!;
           }
         }
         run_now := "velo_voter";
@@ -240,15 +240,15 @@ begin
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+          run_l_0_r__lb_comp_obs_pos_rb_!;
         } else if (run_now == "emerg") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+          run_l_0_r__lb_emerg_rb_!;
         } else if (run_now == "img_acq") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+          run_l_0_r__lb_img_acq_rb_!;
         } else if (run_now == "pan_ctr_th") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+          run_l_0_r__lb_pan_ctr_th_rb_!;
         } else if (run_now == "velo_voter") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+          run_l_0_r__lb_velo_voter_rb_!;
         }
       } $
     free_l_0_r__lb_PI_ctr_rb_? -->
@@ -261,21 +261,21 @@ begin
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+          run_l_0_r__lb_comp_obs_pos_rb_!;
         } else if (run_now == "emerg") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+          run_l_0_r__lb_emerg_rb_!;
         } else if (run_now == "img_acq") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+          run_l_0_r__lb_img_acq_rb_!;
         } else if (run_now == "pan_ctr_th") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+          run_l_0_r__lb_pan_ctr_th_rb_!;
         } else if (run_now == "velo_voter") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+          run_l_0_r__lb_velo_voter_rb_!;
         }
       } else {
         run_prior := -1;
         run_now := "";
       } $
-    free_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_? -->
+    free_l_0_r__lb_comp_obs_pos_rb_? -->
       assert("comp_obs_pos" == run_now);
       if (len(Pool) > 0) {
         GetMaxList := get_max(Pool);
@@ -285,21 +285,21 @@ begin
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+          run_l_0_r__lb_comp_obs_pos_rb_!;
         } else if (run_now == "emerg") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+          run_l_0_r__lb_emerg_rb_!;
         } else if (run_now == "img_acq") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+          run_l_0_r__lb_img_acq_rb_!;
         } else if (run_now == "pan_ctr_th") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+          run_l_0_r__lb_pan_ctr_th_rb_!;
         } else if (run_now == "velo_voter") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+          run_l_0_r__lb_velo_voter_rb_!;
         }
       } else {
         run_prior := -1;
         run_now := "";
       } $
-    free_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_? -->
+    free_l_0_r__lb_emerg_rb_? -->
       assert("emerg" == run_now);
       if (len(Pool) > 0) {
         GetMaxList := get_max(Pool);
@@ -309,21 +309,21 @@ begin
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+          run_l_0_r__lb_comp_obs_pos_rb_!;
         } else if (run_now == "emerg") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+          run_l_0_r__lb_emerg_rb_!;
         } else if (run_now == "img_acq") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+          run_l_0_r__lb_img_acq_rb_!;
         } else if (run_now == "pan_ctr_th") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+          run_l_0_r__lb_pan_ctr_th_rb_!;
         } else if (run_now == "velo_voter") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+          run_l_0_r__lb_velo_voter_rb_!;
         }
       } else {
         run_prior := -1;
         run_now := "";
       } $
-    free_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_? -->
+    free_l_0_r__lb_img_acq_rb_? -->
       assert("img_acq" == run_now);
       if (len(Pool) > 0) {
         GetMaxList := get_max(Pool);
@@ -333,21 +333,21 @@ begin
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+          run_l_0_r__lb_comp_obs_pos_rb_!;
         } else if (run_now == "emerg") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+          run_l_0_r__lb_emerg_rb_!;
         } else if (run_now == "img_acq") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+          run_l_0_r__lb_img_acq_rb_!;
         } else if (run_now == "pan_ctr_th") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+          run_l_0_r__lb_pan_ctr_th_rb_!;
         } else if (run_now == "velo_voter") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+          run_l_0_r__lb_velo_voter_rb_!;
         }
       } else {
         run_prior := -1;
         run_now := "";
       } $
-    free_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_? -->
+    free_l_0_r__lb_pan_ctr_th_rb_? -->
       assert("pan_ctr_th" == run_now);
       if (len(Pool) > 0) {
         GetMaxList := get_max(Pool);
@@ -357,21 +357,21 @@ begin
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+          run_l_0_r__lb_comp_obs_pos_rb_!;
         } else if (run_now == "emerg") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+          run_l_0_r__lb_emerg_rb_!;
         } else if (run_now == "img_acq") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+          run_l_0_r__lb_img_acq_rb_!;
         } else if (run_now == "pan_ctr_th") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+          run_l_0_r__lb_pan_ctr_th_rb_!;
         } else if (run_now == "velo_voter") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+          run_l_0_r__lb_velo_voter_rb_!;
         }
       } else {
         run_prior := -1;
         run_now := "";
       } $
-    free_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_? -->
+    free_l_0_r__lb_velo_voter_rb_? -->
       assert("velo_voter" == run_now);
       if (len(Pool) > 0) {
         GetMaxList := get_max(Pool);
@@ -381,15 +381,15 @@ begin
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_!;
+          run_l_0_r__lb_comp_obs_pos_rb_!;
         } else if (run_now == "emerg") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_!;
+          run_l_0_r__lb_emerg_rb_!;
         } else if (run_now == "img_acq") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_!;
+          run_l_0_r__lb_img_acq_rb_!;
         } else if (run_now == "pan_ctr_th") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_!;
+          run_l_0_r__lb_pan_ctr_th_rb_!;
         } else if (run_now == "velo_voter") {
-          run_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_!;
+          run_l_0_r__lb_velo_voter_rb_!;
         }
       } else {
         run_prior := -1;
@@ -397,15 +397,15 @@ begin
       } $
     exit_l_0_r__lb_PI_ctr_rb_? -->
       Pool := del0(Pool,"PI_ctr"); $
-    exit_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_? -->
+    exit_l_0_r__lb_comp_obs_pos_rb_? -->
       Pool := del0(Pool,"comp_obs_pos"); $
-    exit_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_? -->
+    exit_l_0_r__lb_emerg_rb_? -->
       Pool := del0(Pool,"emerg"); $
-    exit_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_? -->
+    exit_l_0_r__lb_img_acq_rb_? -->
       Pool := del0(Pool,"img_acq"); $
-    exit_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_? -->
+    exit_l_0_r__lb_pan_ctr_th_rb_? -->
       Pool := del0(Pool,"pan_ctr_th"); $
-    exit_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_? -->
+    exit_l_0_r__lb_velo_voter_rb_? -->
       Pool := del0(Pool,"velo_voter");
   }*
 end

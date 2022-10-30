@@ -1623,11 +1623,11 @@ def convert_to_concrete_chs(hp: HCSP, concrete_map: Dict[str, Set[Tuple[Expr]]])
                 for match in sorted(matches):
                     new_args = ()
                     if isinstance(match.value, str):
-                        new_name = new_name + "_lb_" + match.value + "_rb_"
+                        match_name = new_name + "_lb_" + match.value + "_rb_"
                     else:
-                        new_name = new_name + "_l_" + str(match) + "_r_"
+                        match_name = new_name + "_l_" + str(match) + "_r_"
                     if_hps.append((RelExpr("==", last_arg, match),
-                                   InputChannel(Channel(new_name, new_args), hp.var_name)))
+                                   InputChannel(Channel(match_name, new_args), hp.var_name)))
                 return ITE(if_hps)
 
         elif isinstance(hp, OutputChannel):
@@ -1664,11 +1664,11 @@ def convert_to_concrete_chs(hp: HCSP, concrete_map: Dict[str, Set[Tuple[Expr]]])
                 for match in sorted(matches):
                     new_args = ()
                     if isinstance(match.value, str):
-                        new_name = new_name + "_lb_" + match.value + "_rb_"
+                        match_name = new_name + "_lb_" + match.value + "_rb_"
                     else:
-                        new_name = new_name + "_l_" + str(match) + "_r_"
+                        match_name = new_name + "_l_" + str(match) + "_r_"
                     if_hps.append((RelExpr("==", last_arg, match),
-                                   OutputChannel(Channel(new_name, new_args), hp.expr)))
+                                   OutputChannel(Channel(match_name, new_args), hp.expr)))
                 return ITE(if_hps)
 
         elif isinstance(hp, (SelectComm, ODE_Comm)):
@@ -1707,14 +1707,14 @@ def convert_to_concrete_chs(hp: HCSP, concrete_map: Dict[str, Set[Tuple[Expr]]])
                     for match in sorted(matches):
                         new_args = ()
                         if isinstance(match.value, str):
-                            new_name = new_name + "_lb_" + match.value + "_rb_"
+                            match_name = new_name + "_lb_" + match.value + "_rb_"
                         else:
-                            new_name = new_name + "_l_" + str(match) + "_r_"
+                            match_name = new_name + "_l_" + str(match) + "_r_"
                         if isinstance(comm_hp, InputChannel):
-                            new_io_comms.append((InputChannel(Channel(new_name, new_args), comm_hp.var_name),
+                            new_io_comms.append((InputChannel(Channel(match_name, new_args), comm_hp.var_name),
                                                  rec(out_hp.subst_comm({last_arg.name: match}))))
                         else:
-                            new_io_comms.append((OutputChannel(Channel(new_name, new_args), comm_hp.expr),
+                            new_io_comms.append((OutputChannel(Channel(match_name, new_args), comm_hp.expr),
                                                  rec(out_hp.subst_comm({last_arg.name: match}))))
                 else:
                     raise NotImplementedError
