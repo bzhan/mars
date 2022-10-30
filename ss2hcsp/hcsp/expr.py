@@ -3,7 +3,7 @@
 import math
 from decimal import Decimal
 from fractions import Fraction
-import itertools
+from typing import Dict, Set
 
 from ss2hcsp.util.topsort import topological_sort
 
@@ -51,24 +51,28 @@ class Expr:
     def __init__(self):
         pass
 
-    def priority(self):
+    def priority(self) -> int:
         """Returns priority during printing."""
         raise NotImplementedError
 
-    def get_vars(self):
+    def get_vars(self) -> Set[str]:
         """Returns set of variables in the expression."""
         raise NotImplementedError
 
-    def get_fun_names(self):
+    def get_fun_names(self) -> Set[str]:
         """Return set of function names in the expression"""
         return NotImplementedError
 
-    def get_zero_arity_funcs(self):
+    def get_zero_arity_funcs(self) -> Set[str]:
         """Return set of functions with zero arity in the expression"""
         return NotImplementedError
 
-    def subst(self, inst):
+    def subst(self, inst: Dict[str, "Expr"]):
         """inst is a dictionary mapping variable names to expressions."""
+        raise NotImplementedError
+
+    def simplify(self) -> "Expr":
+        """Return a simplified version of the expression."""
         raise NotImplementedError
 
 
@@ -109,13 +113,14 @@ class AVar(Expr):
         else:
             return self
 
+    def simplify(self) -> Expr:
+        return self
+
 
 class AConst(Expr):
     def __init__(self, value, meta=None):
         super(AConst, self).__init__()
         assert isinstance(value, (int, float, Decimal, Fraction, str))
-        # if isinstance(value, Decimal):
-        #     value = float(value)
         self.value = value
         self.meta = meta
 
@@ -127,6 +132,9 @@ class AConst(Expr):
 
     def __eq__(self, other):
         return isinstance(other, AConst) and self.value == other.value
+
+    def __lt__(self, other):
+        return self.value < other.value
 
     def __hash__(self):
         return hash(("AConst", str(self.value)))
@@ -144,6 +152,9 @@ class AConst(Expr):
         return set()
 
     def subst(self, inst):
+        return self
+
+    def simplify(self) -> Expr:
         return self
 
 
@@ -212,6 +223,10 @@ class OpExpr(Expr):
     def subst(self, inst):
         return OpExpr(self.op, *(expr.subst(inst) for expr in self.exprs))
 
+    def simplify(self) -> Expr:
+        return OpExpr(self.op, *(expr.simplify() for expr in self.exprs))
+
+
 def list_add(*args):
     if len(args) == 0:
         return 0
@@ -273,6 +288,10 @@ class FunExpr(Expr):
 
     def subst(self, inst):
         return FunExpr(self.fun_name, [expr.subst(inst) for expr in self.exprs])
+
+    def simplify(self) -> Expr:
+        return FunExpr(self.fun_name, [expr.simplify() for expr in self.exprs])
+
 
 def replace_function(e: FunExpr, funcs=dict()):
     """Replace a FunExpr by the expr of its corresponding Function object.
@@ -363,6 +382,9 @@ class IfExpr(Expr):
     def subst(self, inst):
         return IfExpr(self.cond.subst(inst), self.expr1.subst(inst), self.expr2.subst(inst))
 
+    def simplify(self) -> Expr:
+        return IfExpr(self.cond.simplify(), self.expr1.simplify(), self.expr2.simplify())
+
 
 class ListExpr(Expr):
     """List expressions."""
@@ -400,6 +422,9 @@ class ListExpr(Expr):
 
     def subst(self, inst):
         return ListExpr(*(expr.subst(inst) for expr in self.args))
+
+    def simplify(self) -> Expr:
+        return ListExpr(*(expr.simplify() for expr in self.args))
 
 
 class DictExpr(Expr):
@@ -440,6 +465,9 @@ class DictExpr(Expr):
 
     def subst(self, inst):
         return DictExpr(*((k, v.subst(inst)) for k, v in self.dict.items()))
+
+    def simplify(self) -> Expr:
+        return DictExpr(*((k, v.simplify()) for k, v in self.dict.items()))
 
 
 class ArrayIdxExpr(Expr):
@@ -493,6 +521,13 @@ class ArrayIdxExpr(Expr):
     def subst(self, inst):
         return ArrayIdxExpr(expr1=self.expr1.subst(inst), expr2=self.expr2.subst(inst))
 
+    def simplify(self) -> Expr:
+        e1, e2 = self.expr1.simplify(), self.expr2.simplify()
+        if isinstance(self.expr1, ListExpr) and isinstance(self.expr2, AConst):
+            return self.expr1.args[int(self.expr2.value)]
+        else:
+            return ArrayIdxExpr(e1, e2)
+
 
 class FieldNameExpr(Expr):
     """Expression of the form a.name, where a evaluates to a structure
@@ -534,6 +569,10 @@ class FieldNameExpr(Expr):
     def subst(self, inst):
         return FieldNameExpr(expr=self.expr.subst(inst), field=self.field)
 
+    def simplify(self) -> Expr:
+        return FieldNameExpr(self.expr.simplify(), self.field)
+
+
 class BConst(Expr):  # Boolean expression
     def __init__(self, value, meta=None):
         super(BConst, self).__init__()
@@ -567,6 +606,10 @@ class BConst(Expr):  # Boolean expression
 
     def subst(self, inst):
         return self
+
+    def simplify(self) -> Expr:
+        return self
+
 
 true_expr = BConst(True)
 false_expr = BConst(False)
@@ -634,6 +677,9 @@ class LogicExpr(Expr):
 
     def subst(self, inst):
         return LogicExpr(self.op, *(expr.subst(inst) for expr in self.exprs))
+
+    def simplify(self) -> Expr:
+        return LogicExpr(self.op, *(expr.simplify() for expr in self.exprs))
 
 
 def list_conj(*args):
@@ -745,6 +791,10 @@ class RelExpr(Expr):
     def subst(self, inst):
         return RelExpr(self.op, self.expr1.subst(inst), self.expr2.subst(inst))
 
+    def simplify(self) -> Expr:
+        return RelExpr(self.op, self.expr1.simplify(), self.expr2.simplify())
+
+
 class ExistsExpr(Expr):
     """Exists expressions"""
     def __init__(self, vars, expr, meta=None):
@@ -797,6 +847,10 @@ class ExistsExpr(Expr):
             assert str(var) not in inst
         return ExistsExpr(self.vars, self.expr.subst(inst))
 
+    def simplify(self) -> Expr:
+        return ExistsExpr(self.vars, self.expr.simplify())
+
+
 class ForAllExpr(Expr):
     """ForAll expressions"""
     def __init__(self, vars, expr, meta=None):
@@ -848,6 +902,10 @@ class ForAllExpr(Expr):
         for var in self.vars:
             assert str(var) not in inst
         return ForAllExpr(self.vars, self.expr.subst(inst))
+
+    def simplify(self) -> Expr:
+        return ForAllExpr(self.vars, self.expr.simplify())
+
 
 def neg_expr(e):
     """Returns the negation of an expression, using deMorgan's law to move

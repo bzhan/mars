@@ -3,19 +3,20 @@ import subprocess
 
 from ss2hcsp.hcsp import parser
 from hcsp2c import transfer2c
+from ss2hcsp.hcsp.hcsp import HCSPInfo
 
 
 class HCSP2CTest(unittest.TestCase):
-    def run_file(self, progs, filename, expected_output, *, step_size:float = 1e-7, real_time:bool = False, maxTime:float = 5.0):
-        hps = []
+    def run_file(self, progs, filename, expected_output, *, step_size:float = 1e-7, real_time:bool = False, max_time:float = 5.0):
+        infos = []
         for i, prog in enumerate(progs):
-            hps.append(("P" + str(i+1), parser.hp_parser.parse(prog)))
-        res = transfer2c.convertHps(hps, step_size=step_size, real_time=real_time, maxTime=maxTime)
+            infos.append(HCSPInfo("P" + str(i+1), parser.hp_parser.parse(prog)))
+        res = transfer2c.convertHps(infos, step_size=step_size, real_time=real_time, max_time=max_time)
 
         with open('hcsp2c/target/%s.c' % filename, 'w') as f:
             f.write(res)
         res = subprocess.run(
-            "sudo gcc hcsp2c/target/%s.c -lpthread -o hcsp2c/output/%s.out" % (filename, filename),
+            "sudo gcc hcsp2c/target/%s.c -lpthread -lm -o hcsp2c/output/%s.out" % (filename, filename),
             stderr=subprocess.PIPE,
             text=True,
             shell=True
@@ -145,11 +146,12 @@ class HCSP2CTest(unittest.TestCase):
     
     def testg(self):
         progs = [
-            "x := 0; v := 0; a := 1; c!x; d!x; {x_dot = v, v_dot = a & true} |> [](d!x --> skip;, c!x --> skip;)",
-            "x := 0; c?x; d?x; wait(3); c?x;"
+            "x := 0; v := 0; a := 1; e!; c!x; d!x; {x_dot = v, v_dot = a & true} |> [](d!x --> skip;, c!x --> skip;)",
+            "x := 0; e?; c?x; d?x; wait(3); c?x;"
         ]
 
         expected_output = [
+            "IO e",
             "IO c 0.000",
             "IO d 0.000",
             "delay 3.000",
@@ -158,6 +160,37 @@ class HCSP2CTest(unittest.TestCase):
         ]
 
         self.run_file(progs, "testg", expected_output, step_size=1e-5)
+
+    def test1_ori(self):
+        progs = [
+            "x := 0; { p2c!x; c2p?x; }*",
+            "x := 0; { wait(2); p2c?x; c2p!x - 1; }*"
+        ]
+
+        expected_output = [
+            "delay 2.000",
+            "IO p2c 0.000",
+            "IO c2p -1.000",
+            "delay 2.000",
+            "IO p2c -1.000",
+            "IO c2p -2.000"
+        ]
+
+        self.run_file(progs, "test1_ori", expected_output)
+
+    def test2_ori(self):
+        progs = [
+            "x := 0; { {x_dot = 1 & true} |> [](p2c!x --> skip;) c2p?x; }*",
+            "x := 0; wait(2); p2c?x; c2p!x-1;"
+        ]
+
+        expected_output = [
+            "delay 2.000",
+            "IO p2c 2.000",
+            "IO c2p 1.000"
+        ]
+
+        self.run_file(progs, "test2_ori", expected_output, step_size=1e-1)
 
     def test1(self):
         # TODO: support c2p!x-1 rather than y := x-1; c2p!y
@@ -180,7 +213,7 @@ class HCSP2CTest(unittest.TestCase):
     def test2(self):
         progs = [
             "x := 0; { {x_dot = 1 & true} |> [](p2c!x --> skip;) c2p?x; }*",
-            "x := 0; y := 0; wait(2); p2c?x; y := x-1; c2p!y;",
+            "x := 0; y := 0; wait(2); p2c?x; y := x-1; c2p!y;"
         ]
 
         expected_output = [
@@ -194,7 +227,7 @@ class HCSP2CTest(unittest.TestCase):
     def test3(self):
         progs = [
             "x := 0; x := x + 1;",
-            "y := 2;",
+            "y := 2;"
         ]
 
         expected_output = [
@@ -206,7 +239,7 @@ class HCSP2CTest(unittest.TestCase):
     def test4(self):
         progs = [
             "x := 0; { {x_dot = 1 & true} |> [](p2c!x --> skip;) c2p?x; }*",
-            "x := 0; { {x_dot = 1 & true} |> [](p2c!x --> skip;) c2p?x; }*",
+            "x := 0; { {x_dot = 1 & true} |> [](p2c!x --> skip;) c2p?x; }*"
         ]
 
         expected_output = [
@@ -218,7 +251,7 @@ class HCSP2CTest(unittest.TestCase):
         # TODO: changing channel names from chx, chz, chy to x, z, y reveals a bug.
         progs = [
             "x := 0; y := 0; z := 1; {chx?x --> skip; $ chz!z --> skip; $ chy?y --> skip;}",
-            "y := 2; chy!y;",
+            "y := 2; chy!y;"
         ]
 
         expected_output = [
@@ -231,7 +264,7 @@ class HCSP2CTest(unittest.TestCase):
     def test6(self):
         progs = [
             "x := 0; y := 0; z := 1; {chx?x --> skip; $ chz!z --> skip; $ chy?y --> skip;}",
-            "z := 0; chz?z;",
+            "z := 0; chz?z;"
         ]
 
         expected_output = [
@@ -354,9 +387,38 @@ class HCSP2CTest(unittest.TestCase):
             'IO c 485174898.811'
         ]
 
-        self.run_file(progs, "test15", expected_output, step_size=1e-5, maxTime=30.0)
+        self.run_file(progs, "test15", expected_output, step_size=1e-5, max_time=30.0)
 
-    # TODO: test16 and 17
+    def test16(self):
+        progs = [
+            "EL := []; x := \"\";EL := push(EL, \"a\"); EL := push(EL, \"b\"); EL := pop(EL); x := top(EL); ch!x;",
+            "x := \"\"; ch?x;"
+        ]
+
+        expected_output = [
+            'IO ch "a"', 
+            "deadlock"
+        ]
+
+        self.run_file(progs, "test16", expected_output, step_size=1e-5)
+
+    def test17(self):
+        progs = [
+            "EL := []; e := \"\";{ in?e --> EL := push(EL, e); $ out? --> e := top(EL); outval!e; EL := pop(EL); }*",
+            "e := \"\"; in!\"a\"; in!\"b\"; out!; outval?e; out!; outval?e;"
+        ]
+
+        expected_output = [
+            'IO in "a"', 
+            'IO in "b"', 
+            'IO out', 
+            'IO outval "b"', 
+            'IO out', 
+            'IO outval "a"', 
+            'deadlock'
+        ]
+
+        self.run_file(progs, "test17", expected_output, step_size=1e-5)    
 
     def test18(self):
         progs = [
@@ -403,7 +465,7 @@ class HCSP2CTest(unittest.TestCase):
             'IO cy 2.000'
         ]
 
-        self.run_file(progs, "test20", expected_output, step_size=1e-5, maxTime=10)
+        self.run_file(progs, "test20", expected_output, step_size=1e-5, max_time=10)
 
     def test21(self):
         progs = [
@@ -426,7 +488,7 @@ class HCSP2CTest(unittest.TestCase):
             'IO c 0.000'
         ]
 
-        self.run_file(progs, "test21", expected_output, step_size=1e-5, maxTime=6)
+        self.run_file(progs, "test21", expected_output, step_size=1e-5, max_time=6)
 
     def test24(self):
         progs = [

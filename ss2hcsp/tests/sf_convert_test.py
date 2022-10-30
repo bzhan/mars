@@ -759,29 +759,29 @@ class SFConvertTest(unittest.TestCase):
 
     def testTriggerEdge5(self):
         run_sim_test(self, prefix+"Triggered/TriggerEdge5.xml", 60, {
-            0.1: {'y': 0.0},
-            3.9: {'y': 0.0},
-            4.1: {'y': 1.0},
-            5.9: {'y': 1.0},
-            6.1: {'y': 2.0}
+            0.1: {'y': 0.0, 'signal': 0.0},
+            3.9: {'y': 0.0, 'signal': 0.0},
+            4.1: {'y': 1.0, 'signal': 1.0},
+            5.9: {'y': 1.0, 'signal': 1.0},
+            6.1: {'y': 2.0, 'signal': 0.0}
         }, output_to_file=prefix+"Triggered/TriggerEdge5.txt")
 
     def testTriggerEdge6(self):
         run_sim_test(self, prefix+"Triggered/TriggerEdge6.xml", 60, {
-            0.1: {'y': 0.0},
-            3.9: {'y': 0.0},
-            4.1: {'y': 1.0},
-            5.9: {'y': 1.0},
-            6.1: {'y': 1.0}
+            0.1: {'y': 0.0, 'signal': 0.0},
+            3.9: {'y': 0.0, 'signal': 0.0},
+            4.1: {'y': 1.0, 'signal': 1.0},
+            5.9: {'y': 1.0, 'signal': 1.0},
+            6.1: {'y': 1.0, 'signal': 0.0}
         }, output_to_file=prefix+"Triggered/TriggerEdge6.txt")
 
     def testTriggerEdge7(self):
         run_sim_test(self, prefix+"Triggered/TriggerEdge7.xml", 60, {
-            0.1: {'y': 0.0},
-            3.9: {'y': 0.0},
-            4.1: {'y': 0.0},
-            5.9: {'y': 0.0},
-            6.1: {'y': 1.0}
+            0.1: {'y': 0.0, 'signal': 0.0},
+            3.9: {'y': 0.0, 'signal': 0.0},
+            4.1: {'y': 0.0, 'signal': 1.0},
+            5.9: {'y': 0.0, 'signal': 1.0},
+            6.1: {'y': 1.0, 'signal': 0.0}
         }, output_to_file=prefix+"Triggered/TriggerEdge7.txt")
 
     def testTriggerEdge8(self):
@@ -847,97 +847,97 @@ class SFConvertTest(unittest.TestCase):
 
     def testStopWatch1(self):
         run_sim_test(self, prefix+"StopWatch1.xml", 6000, {
-            0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
-            0.1: {'t': 0.1, 'cent': 6, 'disp_cent': 6},
-            0.2: {'t': 0.2, 'cent': 16, 'disp_cent': 15},
-            0.3: {'t': 0.3, 'cent': 26, 'disp_cent': 15},
-            0.4: {'t': 0.4, 'cent': 36, 'disp_cent': 36},
-            0.5: {'t': 0.5, 'cent': 46, 'disp_cent': 46},
-            0.6: {'t': 0.6, 'cent': 56, 'disp_cent': 56},
-            0.7: {'t': 0.7, 'cent': 66, 'disp_cent': 66},
-            0.8: {'t': 0.8, 'cent': 76, 'disp_cent': 76},
-            0.9: {'t': 0.9, 'cent': 86, 'disp_cent': 86},
-            1.0: {'t': 1.0, 'cent': 96, 'disp_cent': 96},
-            1.1: {'t': 1.1, 'cent': 6, 'disp_cent': 6},
+            0:   {'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            0.1: {'disp_cent': 6, 'start': 1.0, 'lap': 0.0},
+            0.2: {'disp_cent': 15, 'start': 1.0, 'lap': 1.0},
+            0.3: {'disp_cent': 15, 'start': 1.0, 'lap': 0.0},
+            0.4: {'disp_cent': 36, 'start': 1.0, 'lap': 1.0},
+            0.5: {'disp_cent': 46, 'start': 1.0, 'lap': 1.0},
+            0.6: {'disp_cent': 56, 'start': 0.0, 'lap': 0.0},
+            0.7: {'disp_cent': 66, 'start': 0.0, 'lap': 0.0},
+            0.8: {'disp_cent': 76, 'start': 0.0, 'lap': 0.0},
+            0.9: {'disp_cent': 86, 'start': 0.0, 'lap': 0.0},
+            1.0: {'disp_cent': 96, 'start': 0.0, 'lap': 0.0},
+            1.1: {'disp_cent': 6, 'start': 0.0, 'lap': 0.0},
         }, output_to_file=prefix+"StopWatch1.txt")
 
     def testStopWatch2(self):
         run_sim_test(self, prefix+"StopWatch2.xml", 6000, {
-            0: {'t': 0.0, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
-            0.1: {'t': 0.1, 'cent': 8, 'disp_cent': 2, 'start': 1.0, 'lap': 0.0},
-            0.2: {'t': 0.2, 'cent': 18, 'disp_cent': 18, 'start': 0.0, 'lap': 0.0},
-            0.3: {'t': 0.3, 'cent': 28, 'disp_cent': 22, 'start': 0.0, 'lap': 0.0},
-            0.4: {'t': 0.4, 'cent': 30, 'disp_cent': 22, 'start': 1.0, 'lap': 0.0},
-            0.5: {'t': 0.5, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
-            0.6: {'t': 0.6, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
-            0.7: {'t': 0.7, 'cent': 8, 'disp_cent': 2, 'start': 1.0, 'lap': 0.0},
-            0.8: {'t': 0.8, 'cent': 18, 'disp_cent': 18, 'start': 0.0, 'lap': 0.0},
-            0.9: {'t': 0.9, 'cent': 28, 'disp_cent': 22, 'start': 0.0, 'lap': 0.0},
-            1.0: {'t': 1.0, 'cent': 30, 'disp_cent': 22, 'start': 1.0, 'lap': 0.0},
+            0:   {'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            0.1: {'disp_cent': 2, 'start': 1.0, 'lap': 0.0},
+            0.2: {'disp_cent': 18, 'start': 0.0, 'lap': 0.0},
+            0.3: {'disp_cent': 22, 'start': 0.0, 'lap': 0.0},
+            0.4: {'disp_cent': 22, 'start': 1.0, 'lap': 0.0},
+            0.5: {'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            0.6: {'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            0.7: {'disp_cent': 2, 'start': 1.0, 'lap': 0.0},
+            0.8: {'disp_cent': 18, 'start': 0.0, 'lap': 0.0},
+            0.9: {'disp_cent': 22, 'start': 0.0, 'lap': 0.0},
+            1.0: {'disp_cent': 22, 'start': 1.0, 'lap': 0.0},
         }, output_to_file=prefix+"StopWatch2.txt")
 
     def testStopWatch3(self):
         run_sim_test(self, prefix+"StopWatch3.xml", 6000, {
-            0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
-            0.1: {'t': 0.1, 'cent': 6, 'disp_cent': 5},
-            0.2: {'t': 0.2, 'cent': 16, 'disp_cent': 5},
-            0.3: {'t': 0.3, 'cent': 26, 'disp_cent': 26},
-            0.4: {'t': 0.4, 'cent': 35, 'disp_cent': 35},
-            0.5: {'t': 0.5, 'cent': 35, 'disp_cent': 35},
-            0.6: {'t': 0.6, 'cent': 35, 'disp_cent': 35},
-            0.7: {'t': 0.7, 'cent': 36, 'disp_cent': 36},
-            0.8: {'t': 0.8, 'cent': 46, 'disp_cent': 46},
-            0.9: {'t': 0.9, 'cent': 56, 'disp_cent': 56},
-            1.0: {'t': 1.0, 'cent': 66, 'disp_cent': 66},
-            1.1: {'t': 1.1, 'cent': 76, 'disp_cent': 76},
+            0:   {'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            0.1: {'disp_cent': 5, 'start': 1.0, 'lap': 1.0},
+            0.2: {'disp_cent': 5, 'start': 1.0, 'lap': 0.0},
+            0.3: {'disp_cent': 26, 'start': 0.0, 'lap': 1.0},
+            0.4: {'disp_cent': 35, 'start': 1.0, 'lap': 0.0},
+            0.5: {'disp_cent': 35, 'start': 1.0, 'lap': 0.0},
+            0.6: {'disp_cent': 35, 'start': 0.0, 'lap': 0.0},
+            0.7: {'disp_cent': 36, 'start': 1.0, 'lap': 0.0},
+            0.8: {'disp_cent': 46, 'start': 1.0, 'lap': 0.0},
+            0.9: {'disp_cent': 56, 'start': 0.0, 'lap': 0.0},
+            1.0: {'disp_cent': 66, 'start': 0.0, 'lap': 0.0},
+            1.1: {'disp_cent': 76, 'start': 0.0, 'lap': 0.0},
         }, output_to_file=prefix+"StopWatch3.txt")
 
     def testStopWatch4(self):
         run_sim_test(self, prefix+"StopWatch4.xml", 6000, {
-            0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
-            0.1: {'t': 0.1, 'cent': 6, 'disp_cent': 6},
-            0.2: {'t': 0.2, 'cent': 16, 'disp_cent': 16},
-            0.3: {'t': 0.3, 'cent': 26, 'disp_cent': 26},
-            0.4: {'t': 0.4, 'cent': 35, 'disp_cent': 35},
-            0.5: {'t': 0.5, 'cent': 0, 'disp_cent': 0},
-            0.6: {'t': 0.6, 'cent': 0, 'disp_cent': 0},
-            0.7: {'t': 0.7, 'cent': 1, 'disp_cent': 1},
-            0.8: {'t': 0.8, 'cent': 11, 'disp_cent': 11},
-            0.9: {'t': 0.9, 'cent': 21, 'disp_cent': 21},
-            1.0: {'t': 1.0, 'cent': 31, 'disp_cent': 31},
-            1.1: {'t': 1.1, 'cent': 41, 'disp_cent': 41},
+            0:   {'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            0.1: {'disp_cent': 6, 'start': 1.0, 'lap': 0.0},
+            0.2: {'disp_cent': 16, 'start': 1.0, 'lap': 0.0},
+            0.3: {'disp_cent': 26, 'start': 0.0, 'lap': 0.0},
+            0.4: {'disp_cent': 35, 'start': 1.0, 'lap': 0.0},
+            0.5: {'disp_cent': 0, 'start': 1.0, 'lap': 1.0},
+            0.6: {'disp_cent': 0, 'start': 0.0, 'lap': 1.0},
+            0.7: {'disp_cent': 1, 'start': 1.0, 'lap': 0.0},
+            0.8: {'disp_cent': 11, 'start': 1.0, 'lap': 0.0},
+            0.9: {'disp_cent': 21, 'start': 0.0, 'lap': 0.0},
+            1.0: {'disp_cent': 31, 'start': 0.0, 'lap': 0.0},
+            1.1: {'disp_cent': 41, 'start': 0.0, 'lap': 0.0},
         }, output_to_file=prefix+"StopWatch4.txt")
 
     def testStopWatch5(self):
         run_sim_test(self, prefix+"StopWatch5.xml", 6000, {
-            0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
-            0.1: {'t': 0.1, 'cent': 6, 'disp_cent': 6},
-            0.2: {'t': 0.2, 'cent': 16, 'disp_cent': 15},
-            0.3: {'t': 0.3, 'cent': 26, 'disp_cent': 15},
-            0.4: {'t': 0.4, 'cent': 35, 'disp_cent': 15},
-            0.5: {'t': 0.5, 'cent': 35, 'disp_cent': 15},
-            0.6: {'t': 0.6, 'cent': 35, 'disp_cent': 15},
-            0.7: {'t': 0.7, 'cent': 36, 'disp_cent': 15},
-            0.8: {'t': 0.8, 'cent': 46, 'disp_cent': 46},
-            0.9: {'t': 0.9, 'cent': 56, 'disp_cent': 56},
-            1.0: {'t': 1.0, 'cent': 66, 'disp_cent': 66},
-            1.1: {'t': 1.1, 'cent': 76, 'disp_cent': 76},
+            0:   {'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            0.1: {'disp_cent': 6, 'start': 1.0, 'lap': 0.0},
+            0.2: {'disp_cent': 15, 'start': 1.0, 'lap': 1.0},
+            0.3: {'disp_cent': 15, 'start': 0.0, 'lap': 0.0},
+            0.4: {'disp_cent': 15, 'start': 1.0, 'lap': 0.0},
+            0.5: {'disp_cent': 15, 'start': 1.0, 'lap': 0.0},
+            0.6: {'disp_cent': 15, 'start': 0.0, 'lap': 0.0},
+            0.7: {'disp_cent': 15, 'start': 1.0, 'lap': 0.0},
+            0.8: {'disp_cent': 46, 'start': 1.0, 'lap': 1.0},
+            0.9: {'disp_cent': 56, 'start': 0.0, 'lap': 0.0},
+            1.0: {'disp_cent': 66, 'start': 0.0, 'lap': 0.0},
+            1.1: {'disp_cent': 76, 'start': 0.0, 'lap': 0.0},
         }, output_to_file=prefix+"StopWatch5.txt")
 
     def testStopWatch6(self):
         run_sim_test(self, prefix+"StopWatch6.xml", 6000, {
-            0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
-            0.1: {'t': 0.1, 'cent': 6, 'disp_cent': 6},
-            0.2: {'t': 0.2, 'cent': 16, 'disp_cent': 15},
-            0.3: {'t': 0.3, 'cent': 26, 'disp_cent': 15},
-            0.4: {'t': 0.4, 'cent': 35, 'disp_cent': 15},
-            0.5: {'t': 0.5, 'cent': 35, 'disp_cent': 15},
-            0.6: {'t': 0.6, 'cent': 35, 'disp_cent': 15},
-            0.7: {'t': 0.7, 'cent': 36, 'disp_cent': 36},
-            0.8: {'t': 0.8, 'cent': 46, 'disp_cent': 46},
-            0.9: {'t': 0.9, 'cent': 56, 'disp_cent': 56},
-            1.0: {'t': 1.0, 'cent': 66, 'disp_cent': 66},
-            1.1: {'t': 1.1, 'cent': 76, 'disp_cent': 76},
+            0:   {'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            0.1: {'disp_cent': 6, 'start': 1.0, 'lap': 0.0},
+            0.2: {'disp_cent': 15, 'start': 1.0, 'lap': 1.0},
+            0.3: {'disp_cent': 15, 'start': 0.0, 'lap': 0.0},
+            0.4: {'disp_cent': 15, 'start': 1.0, 'lap': 0.0},
+            0.5: {'disp_cent': 15, 'start': 1.0, 'lap': 1.0},
+            0.6: {'disp_cent': 15, 'start': 0.0, 'lap': 0.0},
+            0.7: {'disp_cent': 36, 'start': 1.0, 'lap': 0.0},
+            0.8: {'disp_cent': 46, 'start': 1.0, 'lap': 0.0},
+            0.9: {'disp_cent': 56, 'start': 0.0, 'lap': 0.0},
+            1.0: {'disp_cent': 66, 'start': 0.0, 'lap': 0.0},
+            1.1: {'disp_cent': 76, 'start': 0.0, 'lap': 0.0},
         }, output_to_file=prefix+"StopWatch6.txt")
 
     def testSFSawtooth1(self):

@@ -275,14 +275,17 @@ def translate_abstract(name, info):
 
         # get ports {port_name: port_type}
         ports = dict()
+        inputvalues= dict()
         for port_name, var_dict in info["input"].items():
             assert port_name not in ports
             ports[port_name] = (var_dict['var'], "in data")
+            inputvalues[port_name] = (var_dict['var'], var_dict['val'])
         for port_name, var_name in info["output"].items():
             assert port_name not in ports
             ports[port_name] = (var_name, "out data")
         return get_continuous_module(name="PHY_"+name,
                                      ports=ports,
+                                     inputvalues= inputvalues,
                                      continuous_diagram=list(diagram.blocks_dict.values()),
                                      outputs=info['display'])
 

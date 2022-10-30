@@ -6,14 +6,14 @@
     <GraphicalInterface>
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">1</P>
-      <Outport Name="A/F">
+      <Outport Name="AF">
         <P Name="BusObject"/>
         <P Name="BusOutputAsStruct">off</P>
-        <P Name="SignalName">A/F</P>
+        <P Name="SignalName">AF</P>
         <P Name="UnitExpr">inherit</P>
       </Outport>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.377</P>
+      <P Name="ComputedModelVersion">1.385</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -76,8 +76,8 @@ introducing unnecessary complexity.   </P>
           <P Name="LoadSaveID" Class="char">0</P>
           <P Name="Extents" Class="double">[1635.0, 701.0]</P>
           <P Name="ZoomFactor" Class="double">1.0</P>
-          <P Name="Offset" Class="double">[-18.25, 48.166666666665975]</P>
-          <P Name="SceneRectInView" Class="double">[-18.25, 48.166666666665975, 1090.0, 467.33333333333331]</P>
+          <P Name="Offset" Class="double">[297.08333333333331, 10.833333333332826]</P>
+          <P Name="SceneRectInView" Class="double">[297.08333333333331, 10.833333333332826, 1090.0, 467.33333333333331]</P>
         </Object>
         <Object PropName="DockComponentsInfo" ObjectID="6" ClassName="Simulink.DockComponentInfo">
           <P Name="Type" Class="char">GLUE2:PropertyInspector</P>
@@ -105,9 +105,9 @@ introducing unnecessary complexity.   </P>
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">bzhan</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Thu Oct 27 11:42:10 2022</P>
-      <P Name="RTWModifiedTimeStamp">588771727</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:377&gt;</P>
+      <P Name="LastModifiedDate">Fri Oct 28 11:49:40 2022</P>
+      <P Name="RTWModifiedTimeStamp">588858579</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:385&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -1241,6 +1241,7 @@ introducing unnecessary complexity.   </P>
         <Port>
           <P Name="PortNumber">1</P>
           <P Name="Name">Engine Spped</P>
+          <P Name="PropagatedSignals">ES</P>
         </Port>
       </Block>
       <Block BlockType="From" Name="From8" SID="2222">
@@ -1251,6 +1252,7 @@ introducing unnecessary complexity.   </P>
         <Port>
           <P Name="PortNumber">1</P>
           <P Name="Name">Throttle Angle</P>
+          <P Name="PropagatedSignals">TA</P>
         </Port>
       </Block>
       <Block BlockType="Fcn" Name="Fuel Cmd Closed" SID="2226">
@@ -1274,7 +1276,7 @@ introducing unnecessary complexity.   </P>
       <Block BlockType="Fcn" Name="InputPoly" SID="2168">
         <P Name="Position">[595, 360, 655, 390]</P>
         <P Name="ZOrder">-8</P>
-        <P Name="Expr">c6+c7*u(1)+c8*u(1)^2+c9*u(1)^3
+        <P Name="Expr">c6+c7*u+c8*u^2+c9*u^3
 </P>
       </Block>
       <Block BlockType="Scope" Name="Monitor" SID="2224">
@@ -1332,7 +1334,7 @@ introducing unnecessary complexity.   </P>
         <P Name="ShowName">off</P>
         <P Name="Inputs">|++</P>
       </Block>
-      <Block BlockType="TransferFcn" Name="Throttle  delay" SID="2213">
+      <Block BlockType="TransferFcn" Name="Throttle delay" SID="2213">
         <P Name="Position">[160, 82, 215, 118]</P>
         <P Name="ZOrder">60</P>
         <P Name="Denominator">[.1 1]</P>
@@ -1343,6 +1345,10 @@ introducing unnecessary complexity.   </P>
         <P Name="ZOrder">56</P>
         <P Name="AttributesFormatString">%&lt;Description&gt;</P>
         <P Name="Value">1000</P>
+        <Port>
+          <P Name="PortNumber">1</P>
+          <P Name="Name">ES</P>
+        </Port>
       </Block>
       <Block BlockType="Integrator" Name="i" SID="2191">
         <P Name="Ports">[1, 1]</P>
@@ -1357,7 +1363,7 @@ introducing unnecessary complexity.   </P>
         <P Name="InitialCondition">14.7</P>
         <Port>
           <P Name="PortNumber">1</P>
-          <P Name="Name">A/F</P>
+          <P Name="Name">AF</P>
         </Port>
       </Block>
       <Block BlockType="Integrator" Name="p" SID="2193">
@@ -1378,6 +1384,10 @@ introducing unnecessary complexity.   </P>
         <P Name="NameLocation">top</P>
         <P Name="UpperLimit">90</P>
         <P Name="LowerLimit">0</P>
+        <Port>
+          <P Name="PortNumber">1</P>
+          <P Name="Name">TA</P>
+        </Port>
       </Block>
       <Block BlockType="DiscretePulseGenerator" Name="throttle input (deg)" SID="2210">
         <P Name="Description">[0, 81.2]</P>
@@ -1387,11 +1397,11 @@ introducing unnecessary complexity.   </P>
         <P Name="AttributesFormatString">%&lt;Description&gt;</P>
         <P Name="PulseType">Time based</P>
         <P Name="Amplitude">75.2996</P>
-        <P Name="Period">15.7139</P>
+        <P Name="Period">15.7</P>
         <P Name="PulseWidth">50</P>
         <P Name="PhaseDelay">3</P>
       </Block>
-      <Block BlockType="Outport" Name="A/F" SID="2200">
+      <Block BlockType="Outport" Name="AF" SID="2200">
         <P Name="Position">[1325, 183, 1355, 197]</P>
         <P Name="ZOrder">-22</P>
       </Block>
@@ -1486,7 +1496,7 @@ introducing unnecessary complexity.   </P>
         <P Name="DstPort">4</P>
       </Line>
       <Line>
-        <P Name="Name">A/F</P>
+        <P Name="Name">AF</P>
         <P Name="ZOrder">25</P>
         <P Name="SrcBlock">lambda</P>
         <P Name="SrcPort">1</P>
@@ -1509,7 +1519,7 @@ introducing unnecessary complexity.   </P>
           </Branch>
           <Branch>
             <P Name="ZOrder">76</P>
-            <P Name="DstBlock">A/F</P>
+            <P Name="DstBlock">AF</P>
             <P Name="DstPort">1</P>
           </Branch>
         </Branch>
@@ -1555,12 +1565,12 @@ introducing unnecessary complexity.   </P>
         <P Name="ZOrder">47</P>
         <P Name="SrcBlock">throttle input (deg)</P>
         <P Name="SrcPort">1</P>
-        <P Name="DstBlock">Throttle  delay</P>
+        <P Name="DstBlock">Throttle delay</P>
         <P Name="DstPort">1</P>
       </Line>
       <Line>
         <P Name="ZOrder">45</P>
-        <P Name="SrcBlock">Throttle  delay</P>
+        <P Name="SrcBlock">Throttle delay</P>
         <P Name="SrcPort">1</P>
         <P Name="DstBlock">Sum1</P>
         <P Name="DstPort">1</P>
@@ -1573,7 +1583,9 @@ introducing unnecessary complexity.   </P>
         <P Name="DstPort">1</P>
       </Line>
       <Line>
+        <P Name="Name">TA</P>
         <P Name="ZOrder">48</P>
+        <P Name="Labels">[1, 1]</P>
         <P Name="SrcBlock">theta [0 90]</P>
         <P Name="SrcPort">1</P>
         <P Name="Points">[32, 0]</P>
@@ -1609,7 +1621,9 @@ introducing unnecessary complexity.   </P>
         <P Name="DstPort">3</P>
       </Line>
       <Line>
+        <P Name="Name">ES</P>
         <P Name="ZOrder">96</P>
+        <P Name="Labels">[1, 1]</P>
         <P Name="SrcBlock">engine speed (rpm)</P>
         <P Name="SrcPort">1</P>
         <P Name="Points">[49, 0]</P>

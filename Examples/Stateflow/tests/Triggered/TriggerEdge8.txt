@@ -13,25 +13,25 @@ begin
   tt := 0;
   {
     if (Signal_Builder_tick >= 0 && Signal_Builder_tick < 4) {
-      Signal_Builder_Signal_1 := 0.0 * (Signal_Builder_tick - 0) + 0.0;
+      x1 := 0.0 * (Signal_Builder_tick - 0) + 0.0;
     } else if (Signal_Builder_tick >= 4 && Signal_Builder_tick < 6) {
-      Signal_Builder_Signal_1 := 0.0 * (Signal_Builder_tick - 4) + 1.0;
+      x1 := 0.0 * (Signal_Builder_tick - 4) + 1.0;
     } else if (Signal_Builder_tick >= 6 && Signal_Builder_tick < 10) {
-      Signal_Builder_Signal_1 := 0.0 * (Signal_Builder_tick - 6) + 0.0;
+      x1 := 0.0 * (Signal_Builder_tick - 6) + 0.0;
     } else {
-      Signal_Builder_Signal_1 := 0.0;
+      x1 := 0.0;
     }
     if (Signal_Builder_tick >= 0 && Signal_Builder_tick < 1) {
-      Signal_Builder_Signal_2 := 0.0 * (Signal_Builder_tick - 0) + 0.0;
+      x2 := 0.0 * (Signal_Builder_tick - 0) + 0.0;
     } else if (Signal_Builder_tick >= 1 && Signal_Builder_tick < 3) {
-      Signal_Builder_Signal_2 := 0.0 * (Signal_Builder_tick - 1) + 1.0;
+      x2 := 0.0 * (Signal_Builder_tick - 1) + 1.0;
     } else if (Signal_Builder_tick >= 3 && Signal_Builder_tick < 10) {
-      Signal_Builder_Signal_2 := 0.0 * (Signal_Builder_tick - 3) + 0.0;
+      x2 := 0.0 * (Signal_Builder_tick - 3) + 0.0;
     } else {
-      Signal_Builder_Signal_2 := 0.0;
+      x2 := 0.0;
     }
     Signal_Builder_tick := Signal_Builder_tick + 1;
-    x0 := push(Signal_Builder_Signal_1,Signal_Builder_Signal_2);
+    x0 := push(x1,x2);
     if (pre_x0[0] < 0 && x0[0] >= 0 || pre_x0[0] == 0 && x0[0] > 0) {
       Chart1EL := push(Chart1EL,"out_cmd1");
       Chart1_done := 0;

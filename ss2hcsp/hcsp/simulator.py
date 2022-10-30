@@ -7,10 +7,9 @@ The state is given by a dictionary from variable names to numbers.
 import copy
 import ast
 import math
-from pickle import FALSE
 import random
 from decimal import Decimal
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 from scipy.integrate import solve_ivp
 from ss2hcsp.hcsp.expr import Expr, AVar, AConst, OpExpr, FunExpr, IfExpr, \
     ListExpr, DictExpr, ArrayIdxExpr, FieldNameExpr, BConst, LogicExpr, \
@@ -229,24 +228,29 @@ class SimInfo:
     or None if execution has reached the end.
 
     """
-    def __init__(self, name: str, hp: hcsp.HCSP, *, outputs=None,
+    def __init__(self, name: str, hp: hcsp.HCSP, *,
+                 outputs: Optional[List[hcsp.HCSPOutput]] = None,
                  procedures: Optional[Dict[str, hcsp.Procedure]] = None,
                  functions: Optional[Dict[str, hcsp.Function]] = None,
-                 pos="start", state=None):
+                 pos="start",
+                 state=None):
         """Initializes with starting position as the execution position."""
 
         # Name of the program
         assert isinstance(name, str)
-        self.name = name
+        self.name: str = name
 
         # Code for the program
+        self.hp: hcsp.HCSP
         if isinstance(hp, str):
             self.hp = parser.hp_parser.parse(hp)
         else:
             self.hp = hp
 
-        # List of output variables, None indicates output everything.
-        self.outputs = outputs
+        # List of output variables
+        self.outputs: List[hcsp.HCSPOutput] = []
+        if outputs is not None:
+            self.outputs = outputs
 
         # Dictionary of procedure declarations
         if procedures is None:
@@ -254,7 +258,7 @@ class SimInfo:
         assert isinstance(procedures, dict)
         for k, v in procedures.items():
             assert isinstance(k, str) and isinstance(v, hcsp.Procedure)
-        self.procedures = procedures
+        self.procedures: Dict[str, hcsp.Procedure] = procedures
 
         # Dictionary of function declarations
         if functions is None:
@@ -262,7 +266,7 @@ class SimInfo:
         assert isinstance(functions, dict)
         for k, v in functions.items():
             assert isinstance(k, str) and isinstance(v, hcsp.Function)
-        self.functions = functions
+        self.functions: Dict[str, hcsp.Function] = functions
     
         # Current position of execution
         if isinstance(pos, str):
@@ -329,8 +333,10 @@ class SimInfo:
                         return round(e1) % int(e2)
                     else:
                         return round(e1) % e2
+                elif expr.op == '^':
+                    return e1 ** e2
                 else:
-                    raise TypeError
+                    raise SimulatorException("Unrecognized operator %s" % expr.op)
 
         elif isinstance(expr, FunExpr):
             # Special functions
@@ -379,6 +385,11 @@ class SimInfo:
                 if len(a) == 0:
                     raise SimulatorException('When evaluating %s: argument is empty' % expr)
                 return a[1:]
+            elif expr.fun_name == "del":
+                a, b = args
+                assert isinstance(a, list)
+                del a[b]
+                return a
             elif expr.fun_name == "del0":
                 a, b = args
                 assert isinstance(a, list)
@@ -441,6 +452,8 @@ class SimInfo:
                 return random.randint(1, args[0])
             elif expr.fun_name == "zeros":
                 return np.zeros(tuple(args), dtype=int).tolist()
+            elif expr.fun_name == "pi":
+                return math.pi
 
             # Custom functions
             elif expr.fun_name in self.functions:
@@ -1177,7 +1190,7 @@ class SimInfo:
         else:
             assert False
 
-def match_channel(out_ch, in_ch):
+def match_channel(out_ch: hcsp.Channel, in_ch: hcsp.Channel):
     """Matching between two channels.
     
     If there is no match, return None. Otherwise, return a pair of
@@ -1190,18 +1203,18 @@ def match_channel(out_ch, in_ch):
     inst_out, inst_in = dict(), dict()
     for out_arg, in_arg in zip(out_ch.args, in_ch.args):
         if isinstance(out_arg, AVar):
-            if isinstance(in_arg, (int, str)):
-                inst_out[out_arg.name] = in_arg
+            if isinstance(in_arg, AConst):
+                inst_out[out_arg.name] = in_arg.value
             elif isinstance(in_arg, AVar):
                 return None  # both sides are variables
             else:
                 raise TypeError
-        elif isinstance(out_arg, (int, str)):
-            if isinstance(in_arg, (int, str)):
+        elif isinstance(out_arg, AConst):
+            if isinstance(in_arg, AConst):
                 if out_arg != in_arg:
                     return None
             elif isinstance(in_arg, AVar):
-                inst_in[in_arg.name] = out_arg
+                inst_in[in_arg.name] = out_arg.value
             else:
                 raise TypeError
         else:
@@ -1263,7 +1276,7 @@ def extract_event(infos):
         return "deadlock"
 
 
-def exec_parallel(infos, *, num_io_events=None, num_steps=3000, num_show=None,
+def exec_parallel(infos: List[SimInfo], *, num_io_events=None, num_steps=3000, num_show=None,
                   show_interval=None, start_event=None, show_event_only=False, verbose=True):
     """Given a list of SimInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
@@ -1335,7 +1348,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=3000, num_show=None,
         if not show_event_only or new_event['type'] != 'step':
             res['trace'].append(new_event)
 
-    def log_time_series(info, time, state):
+    def log_time_series(info: SimInfo, time, state):
         """Log the given time series for program with the given name."""
         if info.name not in res['time_series']:
             return
@@ -1344,13 +1357,26 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=3000, num_show=None,
             "event": len(res['trace']),
             "state": dict()
         }
-        for k, v in state.items():
-            if info.outputs is None or any(k in output for output in info.outputs):
-                if isinstance(v, (int, float)):
-                    new_entry['state'][k] = v
-                elif isinstance(v, list):
-                    for i, val in enumerate(v):
-                        new_entry['state'][k+'['+str(i)+']'] = val
+        for output in info.outputs:
+            if output.expr is None:
+                if output.varname in state:
+                    v = state[output.varname]
+                    if isinstance(v, (int, float)):
+                        new_entry['state'][output.varname] = v
+                    elif isinstance(v, list):
+                        for i, val in enumerate(v):
+                            new_entry['state'][output.varname+'['+str(i)+']'] = val
+            else:
+                try:
+                    v = eval_expr(output.expr, state)
+                    if isinstance(v, (int, float)):
+                        new_entry['state'][output.varname] = v
+                    elif isinstance(v, list):
+                        for i, val in enumerate(v):
+                            new_entry['state'][output.varname+'['+str(i)+']'] = val
+                except SimulatorException:
+                    pass
+
         series = res['time_series'][info.name]
         if len(series) == 0 or new_entry != series[-1]:
             series.append(new_entry)
@@ -1504,7 +1530,7 @@ def get_comm_maps(comm_in_map,comm_out_map,hp,name):
             comm_out_map[ch_name].append(name)
     return comm_in_map,comm_out_map
 
-def instantation(comm_map_A,comm_map_B):
+def instantation(comm_map_A, comm_map_B):
     # instanation of comm_map_A with comm_map_B
     new_map = {}
     deletechs = []
@@ -1541,7 +1567,7 @@ def instantation(comm_map_A,comm_map_B):
         comm_map_A.pop(ch)
     return comm_map_A,comm_map_B,instantedchs
 
-def check_comms(infos):
+def check_comms(infos: List[hcsp.HCSPInfo]):
     """Given a list of HCSP infos, check for potential mismatch of
     communication channels.
 
@@ -1552,12 +1578,11 @@ def check_comms(infos):
     for info in infos:
         if info.hp.type == 'parallel':
             continue
-        comm_in_map,comm_out_map = get_comm_maps(comm_in_map,comm_out_map,info.hp,info.name)
-        if len(info.procedures)!=0:
-            for key,procedure in info.procedures.items():
-                comm_in_map,comm_out_map = get_comm_maps(comm_in_map,comm_out_map,procedure.hp,info.name)
+        comm_in_map, comm_out_map = get_comm_maps(comm_in_map,comm_out_map,info.hp,info.name)
+        if len(info.procedures) != 0:
+            for key, procedure in info.procedures.items():
+                comm_in_map, comm_out_map = get_comm_maps(comm_in_map,comm_out_map,procedure.hp,info.name)
     
-    # instantation  _ +'CNAME'
     instantedchs=[]
     comm_in_map,comm_out_map,chs=instantation(comm_in_map,comm_out_map)
     instantedchs.extend(chs)

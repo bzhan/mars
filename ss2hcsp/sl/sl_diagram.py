@@ -72,7 +72,7 @@ def parse_value(value, default=None):
 
 def replace_spaces(name):
     """Replace spaces and newlines in name with underscores."""
-    return name.strip().replace(' ', '_').replace('\n', '_')
+    return name.strip().replace(' ', '_').replace('\n', '_').replace('(', '_').replace(')', '_').replace('/', '_')
 
 def get_attribute_value(block, attribute, name=None):
     for node in block.getElementsByTagName("P"):
@@ -106,9 +106,6 @@ class SL_Diagram:
 
         # Name of the diagram, set by parse_xml
         self.name = None
-
-        # Variables that needs to display
-        self.outputs = list()
 
         # Different parts of the diagram
         self.continuous_blocks = list()
@@ -622,7 +619,6 @@ class SL_Diagram:
                         if get_attribute_value(block=child, attribute="DstBlock", name=block_name):
                             name = get_attribute_value(block=child, attribute="Name")
                             assert name is not None, "Scope output line is not named"
-                            self.outputs.append(name)
                             num_dest += 1
                 self.add_block(Scope(name=block_name, num_dest=num_dest, st=sample_time))
             elif block_type == "TriggerPort":
@@ -636,14 +632,14 @@ class SL_Diagram:
                 tag = get_attribute_value(block, "GotoTag")
                 self.add_block(Goto(name=block_name, tag=tag))
             elif block_type == "Fcn":
-                expr = get_attribute_value(block, "Expr")
-                self.add_block(Fcn(name=block_name, expr=expr.strip()))
+                expr = expr_parser.parse(get_attribute_value(block, "Expr"))
+                self.add_block(Fcn(name=block_name, expr=expr))
             elif block_type == "Selector":
-                inputPortWidth = get_attribute_value(block, "InputPortWidth")
-                indices = get_attribute_value(block, "Indices")
+                inputPortWidth = int(get_attribute_value(block, "InputPortWidth"))
+                indices = expr_parser.parse(get_attribute_value(block, "Indices"))
                 self.add_block(Selector(name=block_name, width=inputPortWidth, indices=indices))
             elif block_type == "TransferFcn":
-                denom = get_attribute_value(block, "Denominator")
+                denom = expr_parser.parse(get_attribute_value(block, "Denominator"))
                 self.add_block(TransferFcn(name=block_name, denom=denom))
             elif block_type == "SubSystem":
                 subsystem = block.getElementsByTagName("System")[0]
@@ -846,12 +842,6 @@ class SL_Diagram:
                     self.add_line(src=src_block, dest=dest_block, src_port=src_port, dest_port=dest_port,
                                   name=line_name, ch_name=ch_name)
 
-        # The line name should keep consistent with the corresponding signals
-        # if its src_block is a Signal Builder.
-        for block in self.blocks_dict.values():
-            if block.type == "signalBuilder":
-                block.rename_src_lines()
-
     def add_block(self, block: SL_Block) -> None:
         """Add given block to the diagram."""
         assert block.name not in self.blocks_dict
@@ -884,12 +874,6 @@ class SL_Diagram:
 
     def add_line_name(self):
         """Give each group of lines a name."""
-
-        # Set names of out-going lines from Signal Builders as the correspoding signals
-        for block in self.blocks_dict.values():
-            if isinstance(block, SignalBuilder):
-                block.rename_src_lines()
-
         num_lines = 0
         for block in self.blocks_dict.values():
             # Give name to the group of lines containing each
@@ -1094,6 +1078,41 @@ class SL_Diagram:
         for block in blocks_in_subsystems:
             assert block.name not in self.blocks_dict, "Repeated block name %s" % block.name
             self.blocks_dict[block.name] = block
+
+    def connect_goto(self):
+        """Connect from blocks with goto blocks."""
+        from_blocks = dict()
+        goto_blocks = dict()
+        for _, block in self.blocks_dict.items():
+            if block.type == "from":
+                from_blocks[block.tag] = block
+            if block.type == "goto":
+                goto_blocks[block.tag] = block
+
+        for tag, from_block in from_blocks.items():
+            # For each from-block, find the corresponding goto block, the
+            # destination of from-block, and source of goto-block
+            goto_block = goto_blocks[tag]
+            goto_line = goto_block.dest_lines[0]
+            src_goto_block = self.blocks_dict[goto_line.src]
+
+            from_line = from_block.src_lines[0][0]
+            dest_from_block = self.blocks_dict[from_line.dest]
+
+            src_goto_block.src_lines[goto_line.src_port][goto_line.branch] = unknownLine
+
+            new_input_line = SL_Line(src=src_goto_block.name, dest=dest_from_block.name,
+                                     src_port=goto_line.src_port, dest_port=from_line.dest_port)
+            new_input_line.branch = goto_line.branch
+            new_input_line.name = goto_line.name
+
+            # Delete the old line (port_line) and add a new one
+            dest_from_block.add_dest(from_line.dest_port, new_input_line)
+            # Add a new line for src_block
+            src_goto_block.add_src(goto_line.src_port, new_input_line)
+
+            del self.blocks_dict[from_block.name]
+            del self.blocks_dict[goto_block.name]
 
     def separate_diagram(self):
         """Separate the diagram into the different parts, and stored in the

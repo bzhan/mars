@@ -1,5 +1,6 @@
 """Parser for expressions."""
 
+from typing import List
 from lark import Lark, Transformer, v_args, exceptions
 from lark.tree import Meta
 from ss2hcsp.hcsp import expr
@@ -7,6 +8,8 @@ from ss2hcsp.hcsp import assertion, label
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import module
 from decimal import Decimal
+
+from ss2hcsp.hcsp.hcsp import HCSPInfo
 
 
 grammar = r"""
@@ -173,9 +176,11 @@ grammar = r"""
     ?module_sig: CNAME "(" (CNAME | "$" CNAME) ("," (CNAME | "$" CNAME))* ")"  -> module_sig
         | CNAME "(" ")"                            -> module_sig
 
-    ?module_output: "output" CNAME ("," CNAME)* ";"    -> module_output
+    ?module_output: (CNAME | CNAME "=" expr)    -> module_output
+
+    ?module_outputs: "output" module_output ("," module_output)* ";"  -> module_outputs
     
-    ?module: "module" module_sig ":" (module_output)* (procedure)* "begin" cmd "end" "endmodule"
+    ?module: "module" module_sig ":" (module_outputs)* (procedure)* "begin" cmd "end" "endmodule"
     
     ?module_arg: CNAME ("[" INT "]")*   -> module_arg_channel
         | "$" expr    -> module_arg_expr
@@ -215,7 +220,10 @@ class HPTransformer(Transformer):
         pass
 
     def var_expr(self, meta, s):
-        return expr.AVar(str(s), meta=meta)
+        if s == "pi":
+            return expr.FunExpr("pi", [], meta=meta)
+        else:
+            return expr.AVar(str(s), meta=meta)
 
     def num_expr(self, meta, v):
         return expr.AConst(Decimal(str(v)) if '.' in v or 'e' in v else int(v), meta=meta)
@@ -594,7 +602,13 @@ class HPTransformer(Transformer):
         return tuple(str(arg) for arg in args)
 
     def module_output(self, meta, *args):
-        return tuple(str(arg) for arg in args)
+        if len(args) == 1:
+            return hcsp.HCSPOutput(str(args[0]))
+        else:
+            return hcsp.HCSPOutput(str(args[0]), args[1])
+
+    def module_outputs(self, meta, *args):
+        return tuple(args)
 
     def module(self, meta, *args):
         # The first item is a tuple consisting of name and list of parameters
@@ -609,7 +623,7 @@ class HPTransformer(Transformer):
         outputs, procedures = [], []
         for decl in decls:
             if isinstance(decl, tuple):
-                outputs.append(decl)
+                outputs.extend(decl)
             elif isinstance(decl, hcsp.Procedure):
                 procedures.append(decl)
             else:
@@ -704,7 +718,6 @@ def parse_file(text):
 
     """
     text_lines = text.strip().split('\n')
-    hcsp_info = []
 
     # First, read lines from file, each line containing ::= means the
     # start of a new program.
@@ -743,7 +756,7 @@ def parse_file(text):
 
     return infos
 
-def parse_module_file(text):
+def parse_module_file(text: str) -> List[HCSPInfo]:
     """Parse a file in module format.
     
     Input is the string of the file. Output is a list of pairs (name, hp).

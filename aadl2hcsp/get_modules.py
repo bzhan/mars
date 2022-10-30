@@ -149,7 +149,7 @@ def get_databuffer_module(recv_num=1):
                       code=hp.Sequence(init_x, init_data, transfer))
 
 
-def get_continuous_module(name, ports, continuous_diagram, outputs):
+def get_continuous_module(name, ports, inputvalues, continuous_diagram, outputs):
     """
     ports: {port_name: (var_name, port_type)}
     """
@@ -178,6 +178,8 @@ def get_continuous_module(name, ports, continuous_diagram, outputs):
                               hp.Assign(var_name=send_flags[-1], expr=AConst(1))))
         else:
             raise RuntimeError("Not implemented!")
+    for port_name ,(var_name, val) in inputvalues.items():
+        init_hps.append(hp.Assign(var_name=var_name, expr=AConst(val)))
     init_hps = hp.Sequence(*init_hps) if len(init_hps) >= 2 else init_hps[0]
 
     assert send_flags

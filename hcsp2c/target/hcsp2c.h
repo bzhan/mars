@@ -15,7 +15,7 @@
 // 1 for real-time simulation, 0 for as-fast-as-possible.
 int SIMULATE_REAL_TIME = 0;
 
-#define PI 3.14
+#define PI 3.1415926
 #define G 9.8
 #define true 1
 #define false 0
@@ -24,6 +24,8 @@ int SIMULATE_REAL_TIME = 0;
 static long long tm_to_ns(struct timespec tm) {
     return tm.tv_sec * 1000000000 + tm.tv_nsec;
 }
+
+void copyByType(void* dst, void* src, int type);
 
 // type: 0 -> input, 1 -> output
 typedef struct {
@@ -41,13 +43,7 @@ String;
 
 typedef struct {
     int length;
-    double* addr;
-}
-ListNum;
-
-typedef struct {
-    int length;
-    intptr_t* addr;
+    void** addr;
 }
 List;
 
@@ -55,14 +51,14 @@ String* strInit(char* input) {
     String* new_str = (String*)malloc(sizeof(String));
     new_str->length = strlen(input) + 1;
     new_str->str = (char*)malloc(sizeof(char) * new_str->length);
-    new_str->str = strcpy(new_str->str, input);
+    strcpy(new_str->str, input);
     return new_str;
 }
 
 void strCopy(String* dst, String* src) {
     dst->length = src->length;
     dst->str = (char*)malloc(sizeof(char) * dst->length);
-    dst->str = strcpy(dst->str, src->str);
+    strcpy(dst->str, src->str);
 }
 
 int strEqual(String a, String b) {
@@ -91,44 +87,144 @@ List* listInit() {
 void listCopy(List* dst, List* src) {
     assert(dst->length >= src->length);
     dst->length = src->length;
-    intptr_t* new_list = (intptr_t*)malloc(sizeof(intptr_t) * src->length);
+    void** new_list = (void**)malloc(sizeof(void*) * src->length);
     if (src->length > 0) {
-        memcpy(new_list, src->addr, (src->length) * sizeof(intptr_t));
+        memcpy(new_list, src->addr, (src->length) * sizeof(void*));
     }
     dst->addr = new_list;
 }
 
-void listPush(List* list, intptr_t input) {
-    intptr_t* new_list = (intptr_t*)malloc(sizeof(intptr_t) * (list->length + 1));
+List* listPush(List* list, void* input, int type) {
+    void** new_list = (void**)malloc(sizeof(void*) * (list->length + 1));
     if (list->length > 0) {
-        memcpy(new_list, list->addr, (list->length) * sizeof(intptr_t));
+        memcpy(new_list, list->addr, (list->length) * sizeof(void*));
+    }   
+
+    if (type == 1) {
+        new_list[(list->length)] = malloc(sizeof(double));
+    } else if (type == 2) {
+        new_list[(list->length)] = malloc(sizeof(String));
+    } else if (type == 3) {
+        new_list[(list->length)] = malloc(sizeof(List));
+    } else {
+        printf("Pop ERROR: type doesn't match.");
     }
-    memcpy(new_list + list->length, &input, sizeof(intptr_t));
+    
+    copyByType((new_list[(list->length)]), input, type);
     free(list->addr);
     list->addr = new_list;
     list->length += 1;
+    return list;
 }
 
-void listPop(List* list) {
+List* listPushExpr(List* list, double input) {
+    void** new_list = (void**)malloc(sizeof(void*) * (list->length + 1));
     if (list->length > 0) {
-        intptr_t* new_list = (intptr_t*)malloc(sizeof(intptr_t) * (list->length - 1));
-        memcpy(new_list, list->addr + 1, (list->length - 1) * sizeof(intptr_t));
+        memcpy(new_list, list->addr, (list->length) * sizeof(void*));
+    }
+    new_list[(list->length)] = malloc(sizeof(double));
+    *((double*)new_list[(list->length)]) = input;
+    free(list->addr);
+    list->addr = new_list;
+    list->length += 1;
+    return list;
+}
+
+List* listPop(List* list) {
+    if (list->length > 0) {
+        void** new_list = (void**)malloc(sizeof(void*) * (list->length - 1));
+        memcpy(new_list, list->addr + 1, (list->length - 1) * sizeof(void*));
         free(list->addr);
         list->addr = new_list;
         list->length -= 1;
-    }    
+    } else if (list->length == 0) {
+        printf("Pop ERROR: list is empty");
+    }
+    return list;
 }
 
-intptr_t listBottom(List* list) {
-    return *(intptr_t*)(list->addr + list->length - 1);
+List* listPopBack(List* list) {
+    if (list->length > 0) {
+        void** new_list = (void**)malloc(sizeof(void*) * (list->length - 1));
+        memcpy(new_list, list->addr, (list->length - 1) * sizeof(void*));
+        free(list->addr);
+        list->addr = new_list;
+        list->length -= 1;
+    } else if (list->length == 0) {
+        printf("Pop ERROR: list is empty");
+    }
+    return list;
 }
 
-intptr_t listTop(List* list) {
-    return *(intptr_t*)(list->addr);
+void* listBottom(List* list) {
+    if (list->length == 0) {
+        printf("Bottom ERROR: list is empty");
+    }
+    return (list->addr)[0];
 }
 
-intptr_t listGet(List* list, int num) {
-    return *(intptr_t*)(list->addr + num);
+void* listTop(List* list) {
+    if (list->length == 0) {
+        printf("Top ERROR: list is empty");
+    }
+    return (list->addr)[list->length - 1];
+}
+
+void* listGet(List* list, int num) {
+    if (list->length <= num) {
+        printf("Get ERROR: length of list is %d, but try to get index %d.\n", list->length, num);
+    }
+    return (list->addr)[num];
+}
+
+void* listGetMax(List* list) {
+    if (list->length == 0) {
+        printf("Getmax ERROR: list is empty");
+    }
+    double max = *(double*)((list->addr)[0]);
+    void* ret = (list->addr)[0];
+    for (int i = 1; i < list->length; i++) {
+        if (*(double*)((list->addr)[i]) > max) {
+            max = *(double*)((list->addr)[i]);
+            ret = (list->addr)[i];
+        }
+    }
+    return ret;
+}
+
+void* listGetMaxList(List* list) {
+    if (list->length == 0) {
+        printf("Getmax ERROR: list is empty");
+    }
+    double max = *(double*)(((List*)((list->addr)[0]))->addr)[0];
+    void* ret = (list->addr)[0];
+    for (int i = 1; i < list->length; i++) {
+        if (*(double*)(((List*)((list->addr)[i]))->addr)[0] > max) {
+            max = *(double*)(((List*)((list->addr)[i]))->addr)[0];
+            ret = (list->addr)[i];
+        }
+    }
+    return ret;
+}
+
+List* listDel0(List* list, void* input, int type) {
+    List* ans = listInit();
+    if (type == 2) {
+        for (int i = 0; i < list->length; i++) {
+            if (!strEqual(*(String*)listTop((List*)((list->addr)[i])), *(String*)input)) {
+                ans = listPush(ans, (List*)((list->addr)[i]), 3);
+            }
+        }
+    } else if (type == 1) {
+        for (int i = 0; i < list->length; i++) {
+            if (*(double*)listTop((List*)((list->addr)[i])) == *(double*)input) {
+                ans = listPush(ans, (List*)((list->addr)[i]), 3);
+            }
+        }
+    } else {
+        printf("del0 type error: type %d.\n", type);
+    }
+    return ans;
 }
 
 // Global lock on the thread and channel states.
@@ -269,6 +365,19 @@ void recordAndPrintTime(int thread) {
     recordTime[thread] = localTime[thread];
 }
 
+void copyByType(void* dst, void* src, int type) {
+    if (type == 1) {
+        *((double*) dst) = *((double*) src);
+    } else if (type == 2) {
+        strCopy(((String*) dst), ((String*) src));
+    } else if (type == 3) {
+        listCopy(((List*) dst), ((List*) src));
+    } else if (type == 0) {
+    } else {
+        printf("copy error: type = %d", type);
+    }
+}
+
 void init(int threadNumber, int channelNumber) {
     // Allocate thread and channel states.
     numThread = threadNumber;
@@ -316,6 +425,8 @@ void run(int threadNumber, int channelNumber, void*(**threadFuns)(void*)) {
             channelContent[i] = (void*) malloc(1 * sizeof(String));
         } else if (channelTypes[i] == 3) {
             channelContent[i] = (void*) malloc(1 * sizeof(List));
+        } else if (channelTypes[i] == 0) {
+            channelContent[i] = (void*) malloc(1 * sizeof(double));
         } else {
             printf("Failed init for error channel type: %s %d", channelNames[i], channelTypes[i]);
         }
@@ -333,7 +444,6 @@ void run(int threadNumber, int channelNumber, void*(**threadFuns)(void*)) {
         pthread_join(threads[i], &status);
     }
 }
-
 
 void destroy(int threadNumber, int channelNumber) {
     // Release thread and channel states.
@@ -356,34 +466,26 @@ void copyFromChannel(Channel ch) {
     }
 
     // Copy data from channelContent
+    copyByType(ch.pos, channelContent[ch.channelNo], channelTypes[ch.channelNo]);
     if (channelTypes[ch.channelNo] == 1) {
-        *((double*) ch.pos) = *((double*) channelContent[ch.channelNo]);
         printf("IO %s %.3f\n", channelNames[ch.channelNo], *((double*) ch.pos));
     } else if (channelTypes[ch.channelNo] == 2) {
-        strCopy(((String*) ch.pos), ((String*) channelContent[ch.channelNo]));
         printf("IO %s \"%s\"\n", channelNames[ch.channelNo], ((String*) ch.pos) -> str);
     } else if (channelTypes[ch.channelNo] == 3) {
-        listCopy(((List*) ch.pos), ((List*) channelContent[ch.channelNo]));
         printf("IO %s", channelNames[ch.channelNo]);
         for (int i = 0; i < ((List*) ch.pos) -> length; i++) {
             printf(" %3f", *((double *)(((List*) ch.pos) -> addr + i)));
         }
         printf("\n");
+    } else if (channelTypes[ch.channelNo] == 0) {
+        printf("IO %s\n", channelNames[ch.channelNo]);
     } else {
         ;
     }
 }
 
 void copyToChannel(Channel ch) {
-    if (channelTypes[ch.channelNo] == 1) {
-        *((double*) channelContent[ch.channelNo]) = *((double*) ch.pos);
-    } else if (channelTypes[ch.channelNo] == 2) {
-        strCopy(((String*) channelContent[ch.channelNo]), ((String*) ch.pos));
-    } else if (channelTypes[ch.channelNo] == 3) {
-        listCopy(((List*) channelContent[ch.channelNo]), ((List*) ch.pos));
-    } else {
-        ;
-    }
+    copyByType(channelContent[ch.channelNo], ch.pos, channelTypes[ch.channelNo]);
 }
 
 // ch?x:

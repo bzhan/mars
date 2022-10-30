@@ -31,6 +31,7 @@ def run_test(self, location, num_steps, expected_series, *,
     diagram.add_line_name()
     diagram.comp_inher_st()
     diagram.inherit_to_continuous()
+    diagram.connect_goto()
     diagram.separate_diagram()
 
     # Optional: print diagram
@@ -45,13 +46,12 @@ def run_test(self, location, num_steps, expected_series, *,
         print("Continuous blocks:")
         for block in diagram.continuous_blocks:
             print(block)
-        print("Outputs:")
-        print(diagram.outputs)
+        print("Scopes:")
+        for block in diagram.scopes:
+            print(block)
 
     # Convert to HCSP
-    result_hp = get_hcsp(
-        diagram.discrete_blocks, diagram.continuous_blocks,
-        diagram.chart_parameters, diagram.outputs)
+    result_hp = get_hcsp(diagram)
 
     if debug_name:
         before_size = 0
@@ -125,17 +125,17 @@ class SimTest(unittest.TestCase):
             6.016: {'m': 1244.903, 'v': -1.543, 'Fc': 2025.467},
             8.036: {'m': 1243.269, 'v': -1.536, 'Fc': 2019.523},
             9.984: {'m': 1241.697, 'v': -1.532, 'Fc': 2016.002}
-        })
+        }, output_to_file="./Examples/Simulink/LunarLander.txt")
 
     def testMarsLander(self):
         run_test(self, "./Examples/Simulink/MarsLander.xml", 1600, {
-            0.000: {'m': 759.5, 'v': -1.5, 'Fc': 2834.449},
-            2.020: {'m': 757.118, 'v': -1.500, 'Fc': 2825.807},
-            3.968: {'m': 754.828, 'v': -1.499, 'Fc': 2816.761},
-            6.016: {'m': 752.428, 'v': -1.499, 'Fc': 2807.788},
-            8.036: {'m': 750.068, 'v': -1.499, 'Fc': 2799.413},
-            9.984: {'m': 747.800, 'v': -1.499, 'Fc': 2790.511}
-        })
+            0.000: {'r': 20.0, 'm': 759.5, 'v': -1.5, 'Fc': 2834.449},
+            2.020: {'r': 16.971, 'm': 757.118, 'v': -1.500, 'Fc': 2825.807},
+            3.968: {'r': 14.049, 'm': 754.828, 'v': -1.499, 'Fc': 2816.761},
+            6.016: {'r': 10.979, 'm': 752.428, 'v': -1.499, 'Fc': 2807.788},
+            8.036: {'r': 7.950, 'm': 750.068, 'v': -1.499, 'Fc': 2799.413},
+            9.984: {'r': 5.029, 'm': 747.800, 'v': -1.499, 'Fc': 2790.511}
+        }, output_to_file="./Examples/Simulink/MarsLander.txt")
 
     def testVanderPol(self):
         # This test case contains blocks with different sample times
@@ -308,10 +308,35 @@ class SimTest(unittest.TestCase):
 
         }, output_to_file="./Examples/Simulink/CanonicalMax2.txt")
 
-    def testAbstractFuelControlM2(self):
-        run_test(self, "./Examples/Simulink/AbstractFuelControl_M2.xml", 80, {
+    def testTransferFcn1(self):
+        run_test(self, "./Examples/Simulink/TransferFcn1.xml", 10, {
+            0.00: {'y': 0, 'u': 1.0},
+            0.10: {'y': 0.28346924831934156, 'u': 1.0},
+            0.20: {'y': 0.48658392408107254, 'u': 1.0},
+            0.30: {'y': 0.6321214212850567, 'u': 1.0},
+            0.40: {'y': 0.7364023884971252, 'u': 1.0},
+            0.50: {'y': 0.8111235425573193, 'u': 1.0},
+            0.60: {'y': 0.8646657542925558, 'u': 1.0},
+            0.70: {'y': 0.9030281701522963, 'u': 1.0},
+            0.80: {'y': 0.9305151699725418, 'u': 1.0},
+            0.90: {'y': 0.9502140562735414, 'u': 1.0},
+            1.00: {'y': 0.9643238807540565, 'u': 1.0},
+        }, output_to_file="./Examples/Simulink/TransferFcn1.txt")
 
-        }, output_to_file="./Examples/Simulink/AbstractFuelControl_M2.txt", print_diagram=True)
+    def testAbstractFuelControlM2(self):
+        run_test(self, "./Examples/Simulink/AbstractFuelControl_M2.xml", 120, {
+            0.00: {'AF': 14.7, 'TA': 8.8, 'ES': 1000},
+            0.05: {'AF': 14.652951328662022, 'TA': 8.8, 'ES': 1000},
+            0.10: {'AF': 14.597133383303678, 'TA': 8.8, 'ES': 1000},
+            0.15: {'AF': 14.54673387221721, 'TA': 8.8, 'ES': 1000},
+            0.20: {'AF': 14.508231577066661, 'TA': 8.8, 'ES': 1000},
+            0.25: {'AF': 14.483227478549416, 'TA': 8.8, 'ES': 1000},
+            0.30: {'AF': 14.470757070356782, 'TA': 8.8, 'ES': 1000},
+            0.35: {'AF': 14.468769394147365, 'TA': 8.8, 'ES': 1000},
+            0.40: {'AF': 14.47494692818884, 'TA': 8.8, 'ES': 1000},
+            0.45: {'AF': 14.487107544502074, 'TA': 8.8, 'ES': 1000},
+            0.50: {'AF': 14.503370055844176, 'TA': 8.8, 'ES': 1000},
+        }, output_to_file="./Examples/Simulink/AbstractFuelControl_M2.txt")
 
 
 if __name__ == "__main__":

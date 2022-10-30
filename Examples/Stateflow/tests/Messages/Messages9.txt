@@ -10,6 +10,7 @@ begin
   }*
 end
 endmodule
+
 module MessageReceiver():
 begin
   start_MessageReceiver?;
@@ -91,6 +92,7 @@ begin
   }*
 end
 endmodule
+
 module MessageSender():
 begin
   start_MessageSender?;
@@ -127,6 +129,7 @@ begin
   }*
 end
 endmodule
+
 module data_ctrl():
 begin
   {
@@ -141,6 +144,7 @@ begin
   }*
 end
 endmodule
+
 system
 order_ctrl() ||
 MessageReceiver() ||

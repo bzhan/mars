@@ -10,6 +10,7 @@ begin
   }*
 end
 endmodule
+
 module Chart():
 procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
   Chart_model_RTPS_Writer_Writer_repair_repairing_done := 0;
@@ -1948,6 +1949,7 @@ begin
   }*
 end
 endmodule
+
 module DDS_Writer():
 begin
   start_DDS_Writer?;
@@ -1993,6 +1995,7 @@ begin
   }*
 end
 endmodule
+
 module data_ctrl():
 begin
   WHC := [0,0,0,0,0];
@@ -2022,6 +2025,7 @@ begin
   }*
 end
 endmodule
+
 module Continuous():
 begin
   {
@@ -2032,6 +2036,7 @@ begin
   }*
 end
 endmodule
+
 system
 order_ctrl() ||
 Chart() ||
