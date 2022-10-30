@@ -135,6 +135,7 @@ endmodule
 module EXE_img_acq():
 output image, new_image;
 begin
+  image := 0.0;
   skip;
   processing_state := 0;
   state := "wait";
@@ -195,6 +196,8 @@ endmodule
 module EXE_comp_obs_pos():
 output obs_pos_radar, proc_img, obs_pos;
 begin
+  obs_pos_radar := 0.0;
+  proc_img := 0.0;
   skip;
   x0 := 0;
   state := "wait";
@@ -421,6 +424,10 @@ procedure exec_emerg_imp begin
 end
 
 begin
+  des_a := 0.0;
+  veh_v := 0.0;
+  obs_pos := 0.0;
+  veh_pos := 0.0;
   @init_emerg_imp;
   state := "wait";
   prior := 2;
@@ -497,6 +504,10 @@ endmodule
 module EXE_velo_voter():
 output wheel_v, laser_v, veh_v;
 begin
+  wheel_v := 0.0;
+  wheel_valid := -1.0;
+  laser_v := 0.0;
+  laser_valid := -1.0;
   x3 := 2;
   state := "wait";
   prior := 1;
@@ -670,6 +681,7 @@ procedure exec_pan_ctr_th_imp begin
 end
 
 begin
+  event := " ";
   skip;
   @init_pan_ctr_th_imp;
   state := "wait";
@@ -730,6 +742,8 @@ endmodule
 module EXE_PI_ctr():
 output des_v, veh_v, des_a;
 begin
+  des_v := 0.0;
+  veh_v := 0.0;
   Integrator_DSTATE := 0;
   state := "wait";
   prior := 1;

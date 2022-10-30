@@ -165,7 +165,17 @@
             "des_v"
         ],
         "event_input": {
-            "event": "event"
+            "event": {
+                "var": "event",
+                "val": " "
+            }
+        },
+        "input": {
+            "event":{
+                "var":"event",
+                "val":" "
+            }
+
         },
         "initialization": "",
         "priority": 0

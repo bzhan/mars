@@ -205,6 +205,9 @@ def translate_thread(name, info, bus=None):
         return _init_hp, procs, _dis_comp
 
     initializations = list()
+    for port_name, port_val in info['input'].items():
+        initializations.append(hcsp.Assign(
+            var_name=port_val['var'], expr=hcsp.AConst(port_val['val'])))
     if 'initialization' in info.keys():
         initializations.append(parser.hp_parser.parse(info['initialization']))
     if info['impl'] == "Simulink":

@@ -153,10 +153,10 @@
     },
     "pan_ctr_th": {
         "display": ["des_v"],
-        "event_input": {"event": "event"},
+        "event_input": {"event": {"var": "event", "val": " "}},
+        "input": {"event": {"var": "event", "val": " "}},
         "initialization": "",
         "priority": 0,
-        "input": {"event": "event"},
         "output": {"des_v": "des_v"},
         "dispatch_protocol": "aperiodic",
         "compute_execution_time": "10ms",
