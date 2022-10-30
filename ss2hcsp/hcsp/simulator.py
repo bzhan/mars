@@ -385,6 +385,11 @@ class SimInfo:
                 if len(a) == 0:
                     raise SimulatorException('When evaluating %s: argument is empty' % expr)
                 return a[1:]
+            elif expr.fun_name == "del":
+                a, b = args
+                assert isinstance(a, list)
+                del a[b]
+                return a
             elif expr.fun_name == "del0":
                 a, b = args
                 assert isinstance(a, list)

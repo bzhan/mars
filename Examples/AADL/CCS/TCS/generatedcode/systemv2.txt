@@ -3,9 +3,8 @@
 module scheduler():
 output prior, run_prior;
 begin
-  Pool := [];
-  PriorList := [];
-  PriorList2 := [];
+  Pool_prior := [];
+  Pool_now := [];
   GetMaxList := [];
   prior := -1;
   run_now := "";
@@ -13,12 +12,8 @@ begin
   {
     reqProcessor_l_0_r__lb_PI_ctr_rb_?prior -->
       if (run_prior >= prior) {
-        PriorList := [];
-        PriorList2 := [];
-        PriorList2 := push(PriorList2,prior);
-        PriorList2 := push(PriorList2,"PI_ctr");
-        PriorList := push(PriorList,PriorList2);
-        Pool := push(Pool,PriorList);
+        Pool_prior := push(Pool_prior,prior);
+        Pool_now := push(Pool_now,"PI_ctr");
       } else {
         if (run_now != "") {
           if (run_now == "PI_ctr") {
@@ -53,12 +48,8 @@ begin
       } $
     reqProcessor_l_0_r__lb_comp_obs_pos_rb_?prior -->
       if (run_prior >= prior) {
-        PriorList := [];
-        PriorList2 := [];
-        PriorList2 := push(PriorList2,prior);
-        PriorList2 := push(PriorList2,"comp_obs_pos");
-        PriorList := push(PriorList,PriorList2);
-        Pool := push(Pool,PriorList);
+        Pool_prior := push(Pool_prior,prior);
+        Pool_now := push(Pool_now,"comp_obs_pos");
       } else {
         if (run_now != "") {
           if (run_now == "PI_ctr") {
@@ -93,12 +84,8 @@ begin
       } $
     reqProcessor_l_0_r__lb_emerg_rb_?prior -->
       if (run_prior >= prior) {
-        PriorList := [];
-        PriorList2 := [];
-        PriorList2 := push(PriorList2,prior);
-        PriorList2 := push(PriorList2,"emerg");
-        PriorList := push(PriorList,PriorList2);
-        Pool := push(Pool,PriorList);
+        Pool_prior := push(Pool_prior,prior);
+        Pool_now := push(Pool_now,"emerg");
       } else {
         if (run_now != "") {
           if (run_now == "PI_ctr") {
@@ -133,12 +120,8 @@ begin
       } $
     reqProcessor_l_0_r__lb_img_acq_rb_?prior -->
       if (run_prior >= prior) {
-        PriorList := [];
-        PriorList2 := [];
-        PriorList2 := push(PriorList2,prior);
-        PriorList2 := push(PriorList2,"img_acq");
-        PriorList := push(PriorList,PriorList2);
-        Pool := push(Pool,PriorList);
+        Pool_prior := push(Pool_prior,prior);
+        Pool_now := push(Pool_now,"img_acq");
       } else {
         if (run_now != "") {
           if (run_now == "PI_ctr") {
@@ -173,12 +156,8 @@ begin
       } $
     reqProcessor_l_0_r__lb_pan_ctr_th_rb_?prior -->
       if (run_prior >= prior) {
-        PriorList := [];
-        PriorList2 := [];
-        PriorList2 := push(PriorList2,prior);
-        PriorList2 := push(PriorList2,"pan_ctr_th");
-        PriorList := push(PriorList,PriorList2);
-        Pool := push(Pool,PriorList);
+        Pool_prior := push(Pool_prior,prior);
+        Pool_now := push(Pool_now,"pan_ctr_th");
       } else {
         if (run_now != "") {
           if (run_now == "PI_ctr") {
@@ -213,12 +192,8 @@ begin
       } $
     reqProcessor_l_0_r__lb_velo_voter_rb_?prior -->
       if (run_prior >= prior) {
-        PriorList := [];
-        PriorList2 := [];
-        PriorList2 := push(PriorList2,prior);
-        PriorList2 := push(PriorList2,"velo_voter");
-        PriorList := push(PriorList,PriorList2);
-        Pool := push(Pool,PriorList);
+        Pool_prior := push(Pool_prior,prior);
+        Pool_now := push(Pool_now,"velo_voter");
       } else {
         if (run_now != "") {
           if (run_now == "PI_ctr") {
@@ -253,11 +228,21 @@ begin
       } $
     free_l_0_r__lb_PI_ctr_rb_? -->
       assert("PI_ctr" == run_now);
-      if (len(Pool) > 0) {
-        GetMaxList := get_max(Pool);
-        run_now := top(GetMaxList);
-        run_prior := bottom(GetMaxList);
-        Pool := del0(Pool,run_now);
+      if (len(Pool_prior) > 0) {
+        run_prior := -1;
+        run_now := "";
+        max_index := 0;
+        index := 0;
+        {
+          if (Pool_prior[index] > run_prior) {
+            run_prior := Pool_prior[index];
+            run_now := Pool_now[index];
+            max_index := index;
+          }
+          index := index + 1;
+        }*(index < len(Pool_prior))
+        Pool_prior := del(Pool_prior,max_index);
+        Pool_now := del(Pool_now,max_index);
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
@@ -277,11 +262,21 @@ begin
       } $
     free_l_0_r__lb_comp_obs_pos_rb_? -->
       assert("comp_obs_pos" == run_now);
-      if (len(Pool) > 0) {
-        GetMaxList := get_max(Pool);
-        run_now := top(GetMaxList);
-        run_prior := bottom(GetMaxList);
-        Pool := del0(Pool,run_now);
+      if (len(Pool_prior) > 0) {
+        run_prior := -1;
+        run_now := "";
+        max_index := 0;
+        index := 0;
+        {
+          if (Pool_prior[index] > run_prior) {
+            run_prior := Pool_prior[index];
+            run_now := Pool_now[index];
+            max_index := index;
+          }
+          index := index + 1;
+        }*(index < len(Pool_prior))
+        Pool_prior := del(Pool_prior,max_index);
+        Pool_now := del(Pool_now,max_index);
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
@@ -301,11 +296,21 @@ begin
       } $
     free_l_0_r__lb_emerg_rb_? -->
       assert("emerg" == run_now);
-      if (len(Pool) > 0) {
-        GetMaxList := get_max(Pool);
-        run_now := top(GetMaxList);
-        run_prior := bottom(GetMaxList);
-        Pool := del0(Pool,run_now);
+      if (len(Pool_prior) > 0) {
+        run_prior := -1;
+        run_now := "";
+        max_index := 0;
+        index := 0;
+        {
+          if (Pool_prior[index] > run_prior) {
+            run_prior := Pool_prior[index];
+            run_now := Pool_now[index];
+            max_index := index;
+          }
+          index := index + 1;
+        }*(index < len(Pool_prior))
+        Pool_prior := del(Pool_prior,max_index);
+        Pool_now := del(Pool_now,max_index);
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
@@ -325,11 +330,21 @@ begin
       } $
     free_l_0_r__lb_img_acq_rb_? -->
       assert("img_acq" == run_now);
-      if (len(Pool) > 0) {
-        GetMaxList := get_max(Pool);
-        run_now := top(GetMaxList);
-        run_prior := bottom(GetMaxList);
-        Pool := del0(Pool,run_now);
+      if (len(Pool_prior) > 0) {
+        run_prior := -1;
+        run_now := "";
+        max_index := 0;
+        index := 0;
+        {
+          if (Pool_prior[index] > run_prior) {
+            run_prior := Pool_prior[index];
+            run_now := Pool_now[index];
+            max_index := index;
+          }
+          index := index + 1;
+        }*(index < len(Pool_prior))
+        Pool_prior := del(Pool_prior,max_index);
+        Pool_now := del(Pool_now,max_index);
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
@@ -349,11 +364,21 @@ begin
       } $
     free_l_0_r__lb_pan_ctr_th_rb_? -->
       assert("pan_ctr_th" == run_now);
-      if (len(Pool) > 0) {
-        GetMaxList := get_max(Pool);
-        run_now := top(GetMaxList);
-        run_prior := bottom(GetMaxList);
-        Pool := del0(Pool,run_now);
+      if (len(Pool_prior) > 0) {
+        run_prior := -1;
+        run_now := "";
+        max_index := 0;
+        index := 0;
+        {
+          if (Pool_prior[index] > run_prior) {
+            run_prior := Pool_prior[index];
+            run_now := Pool_now[index];
+            max_index := index;
+          }
+          index := index + 1;
+        }*(index < len(Pool_prior))
+        Pool_prior := del(Pool_prior,max_index);
+        Pool_now := del(Pool_now,max_index);
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
@@ -373,11 +398,21 @@ begin
       } $
     free_l_0_r__lb_velo_voter_rb_? -->
       assert("velo_voter" == run_now);
-      if (len(Pool) > 0) {
-        GetMaxList := get_max(Pool);
-        run_now := top(GetMaxList);
-        run_prior := bottom(GetMaxList);
-        Pool := del0(Pool,run_now);
+      if (len(Pool_prior) > 0) {
+        run_prior := -1;
+        run_now := "";
+        max_index := 0;
+        index := 0;
+        {
+          if (Pool_prior[index] > run_prior) {
+            run_prior := Pool_prior[index];
+            run_now := Pool_now[index];
+            max_index := index;
+          }
+          index := index + 1;
+        }*(index < len(Pool_prior))
+        Pool_prior := del(Pool_prior,max_index);
+        Pool_now := del(Pool_now,max_index);
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
@@ -396,17 +431,71 @@ begin
         run_now := "";
       } $
     exit_l_0_r__lb_PI_ctr_rb_? -->
-      Pool := del0(Pool,"PI_ctr"); $
+      index := 0;
+      del_index := 0;
+      {
+        if (Pool_now[index] == "PI_ctr") {
+          del_index := index;
+        }
+        index := index + 1;
+      }*(index < len(Pool_prior))
+      Pool_prior := del(Pool_prior,del_index);
+      Pool_now := del(Pool_now,del_index); $
     exit_l_0_r__lb_comp_obs_pos_rb_? -->
-      Pool := del0(Pool,"comp_obs_pos"); $
+      index := 0;
+      del_index := 0;
+      {
+        if (Pool_now[index] == "comp_obs_pos") {
+          del_index := index;
+        }
+        index := index + 1;
+      }*(index < len(Pool_prior))
+      Pool_prior := del(Pool_prior,del_index);
+      Pool_now := del(Pool_now,del_index); $
     exit_l_0_r__lb_emerg_rb_? -->
-      Pool := del0(Pool,"emerg"); $
+      index := 0;
+      del_index := 0;
+      {
+        if (Pool_now[index] == "emerg") {
+          del_index := index;
+        }
+        index := index + 1;
+      }*(index < len(Pool_prior))
+      Pool_prior := del(Pool_prior,del_index);
+      Pool_now := del(Pool_now,del_index); $
     exit_l_0_r__lb_img_acq_rb_? -->
-      Pool := del0(Pool,"img_acq"); $
+      index := 0;
+      del_index := 0;
+      {
+        if (Pool_now[index] == "img_acq") {
+          del_index := index;
+        }
+        index := index + 1;
+      }*(index < len(Pool_prior))
+      Pool_prior := del(Pool_prior,del_index);
+      Pool_now := del(Pool_now,del_index); $
     exit_l_0_r__lb_pan_ctr_th_rb_? -->
-      Pool := del0(Pool,"pan_ctr_th"); $
+      index := 0;
+      del_index := 0;
+      {
+        if (Pool_now[index] == "pan_ctr_th") {
+          del_index := index;
+        }
+        index := index + 1;
+      }*(index < len(Pool_prior))
+      Pool_prior := del(Pool_prior,del_index);
+      Pool_now := del(Pool_now,del_index); $
     exit_l_0_r__lb_velo_voter_rb_? -->
-      Pool := del0(Pool,"velo_voter");
+      index := 0;
+      del_index := 0;
+      {
+        if (Pool_now[index] == "velo_voter") {
+          del_index := index;
+        }
+        index := index + 1;
+      }*(index < len(Pool_prior))
+      Pool_prior := del(Pool_prior,del_index);
+      Pool_now := del(Pool_now,del_index);
   }*
 end
 endmodule
