@@ -1,3 +1,4 @@
+# Unsolved
 constants
     a > 0;
     c > 0;
@@ -43,6 +44,7 @@ pre [z^2 + y^2 + x^2 < del^2];
                 solution;
         }
     }
-}* invariant [z^2 < del^2];
+}* invariant [a/2 * (x^2+y^2) <= z && a/2 * (x^2+y^2) >= -z -> z^2 < del^2]
+             [a/2 * (x^2+y^2) >= z && a/2 * (x^2+y^2) <= -z -> z^2 + y^2 + x^2 < eps^2];
                   
 post [z^2 + y^2 + x^2 < eps^2];

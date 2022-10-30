@@ -960,6 +960,11 @@ class SFConvertTest(unittest.TestCase):
             ['delay 1.0', 'delay 1.0', 'delay 1.0'],
             output_to_file="./hhlpy/examples/simulink/sf_sawtooth3.txt")
 
+    def testCruiseControl(self):
+        run_test(self, "./Examples/Simulink/CruiseControl.xml", 3,
+            ['delay 100', 'delay 100', 'delay 100'],
+            output_to_file="./Examples/Simulink/CruiseControl.txt")
+
 
 if __name__ == "__main__":
     unittest.main()
