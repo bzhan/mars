@@ -82,7 +82,7 @@ def inferExprType(e: expr.Expr, hp_name: str, ctx: TypeContext) -> CType:
     elif isinstance(e, expr.FunExpr):
         if e.fun_name in ('max', 'min', 'len'):
             return RealType()
-        elif e.fun_name in ('push', 'pop', 'get'):
+        elif e.fun_name in ('push', 'pop', 'get', 'del0', 'get_max'):
             return ListType()
         # elif e.fun_name in ('bottom', 'top'): # not really
         #     return RealType()
@@ -334,7 +334,7 @@ def transferToCExpr(e: expr.Expr) -> str:
             elif isinstance(b, expr.ListExpr):
                 raise AssertionError("cannot push a raw list to a list")
             else:
-                return "*listPushNum(&%s, %s)" % (a, b)
+                return "*listPushExpr(&%s, %s)" % (a, b)
         elif e.fun_name == "pop":
             a, = args
             return "*listPop(&%s)" % a
@@ -347,22 +347,25 @@ def transferToCExpr(e: expr.Expr) -> str:
         elif e.fun_name == "len":
             a, = args
             return "%s.length" % a
-        
-        # elif e.fun_name == "get":
-        #     a, = args
-        #     assert isinstance(a, list)
-        #     if len(a) == 0:
-        #         raise SimulatorException('When evaluating %s: argument is empty' % expr)
-        #     return a[1:]
-        # elif e.fun_name == "get":
-        #     a, = args
-        #     return "%s.length" % a
-        # elif e.fun_name == "get_max":
-        #     a, = args
-        #     return "%s.length" % a
-        # elif e.fun_name == "del0":
-        #     a, b = args
-        #     return "%s.length" % a
+        elif e.fun_name == "get":
+            a, = args
+            return "*listPopBack(&%s)" % a
+        elif e.fun_name == "get_max":
+            a, = args
+            return "listGetMaxList(&%s)" % a
+        elif e.fun_name == "del0":
+            a, b = args
+            if isinstance(b, expr.AVar):
+                if isinstance(gl_var_type[b.name], RealType):
+                    return "*listDel0(&%s, (void*)(&%s), 1)" % (a, b)
+                elif isinstance(gl_var_type[b.name], StringType):
+                    return "*listDel0(&%s, (void*)(&%s), 2)" % (a, b)
+                elif isinstance(gl_var_type[b.name], ListType):
+                    return "*listDel0(&%s, (void*)(&%s), 3)" % (a, b)
+            elif isinstance(b, expr.AConst) and isinstance(b.value, str):
+                return "*listDel0(&%s, (void*)strInit(%s), 2)" % (a, b)
+            else:
+                raise AssertionError("del0 type error: %s %s" % (type(b), str(b)))
         else:
             print("transferToCExpr: unsupported function %s" % e.fun_name)
             raise NotImplementedError
@@ -510,7 +513,7 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
                 if isinstance(e, expr.ListExpr):
                     c_str = "%s%s = *midList;" % (ce, var_str)
                 else:
-                    if isinstance(e, expr.FunExpr) and e.fun_name in ("top", "bottom", "get"):
+                    if isinstance(e, expr.FunExpr) and e.fun_name in ("top", "bottom", "get", "get_max"):
                         if isinstance(gl_var_type[var_str], RealType):
                             c_str = "%s = *(double*)%s;" % (var_str, ce)
                         elif isinstance(gl_var_type[var_str], StringType):

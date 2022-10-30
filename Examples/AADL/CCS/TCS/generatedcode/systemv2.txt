@@ -6,6 +6,7 @@ begin
   Pool := [];
   PriorList := [];
   PriorList2 := [];
+  GetMaxList := [];
   prior := -1;
   run_now := "";
   run_prior := -1;
@@ -253,7 +254,9 @@ begin
     free_l_0_r__lb_PI_ctr_rb_? -->
       assert("PI_ctr" == run_now);
       if (len(Pool) > 0) {
-        (run_prior, run_now) := get_max(Pool);
+        GetMaxList := get_max(Pool);
+        run_now := top(GetMaxList);
+        run_prior := bottom(GetMaxList);
         Pool := del0(Pool,run_now);
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
@@ -275,7 +278,9 @@ begin
     free_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb_? -->
       assert("comp_obs_pos" == run_now);
       if (len(Pool) > 0) {
-        (run_prior, run_now) := get_max(Pool);
+        GetMaxList := get_max(Pool);
+        run_now := top(GetMaxList);
+        run_prior := bottom(GetMaxList);
         Pool := del0(Pool,run_now);
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
@@ -297,7 +302,9 @@ begin
     free_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb_? -->
       assert("emerg" == run_now);
       if (len(Pool) > 0) {
-        (run_prior, run_now) := get_max(Pool);
+        GetMaxList := get_max(Pool);
+        run_now := top(GetMaxList);
+        run_prior := bottom(GetMaxList);
         Pool := del0(Pool,run_now);
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
@@ -319,7 +326,9 @@ begin
     free_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb_? -->
       assert("img_acq" == run_now);
       if (len(Pool) > 0) {
-        (run_prior, run_now) := get_max(Pool);
+        GetMaxList := get_max(Pool);
+        run_now := top(GetMaxList);
+        run_prior := bottom(GetMaxList);
         Pool := del0(Pool,run_now);
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
@@ -341,7 +350,9 @@ begin
     free_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb_? -->
       assert("pan_ctr_th" == run_now);
       if (len(Pool) > 0) {
-        (run_prior, run_now) := get_max(Pool);
+        GetMaxList := get_max(Pool);
+        run_now := top(GetMaxList);
+        run_prior := bottom(GetMaxList);
         Pool := del0(Pool,run_now);
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
@@ -363,7 +374,9 @@ begin
     free_l_0_r__lb_PI_ctr_rb__lb_comp_obs_pos_rb__lb_emerg_rb__lb_img_acq_rb__lb_pan_ctr_th_rb__lb_velo_voter_rb_? -->
       assert("velo_voter" == run_now);
       if (len(Pool) > 0) {
-        (run_prior, run_now) := get_max(Pool);
+        GetMaxList := get_max(Pool);
+        run_now := top(GetMaxList);
+        run_prior := bottom(GetMaxList);
         Pool := del0(Pool,run_now);
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;

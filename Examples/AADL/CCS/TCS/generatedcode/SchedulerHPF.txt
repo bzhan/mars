@@ -5,6 +5,7 @@ begin
 Pool := [];
 PriorList := [];
 PriorList2 := [];
+GetMaxList := [];
 prior := -1;
 run_now := "";
 run_prior := -1;
@@ -29,7 +30,9 @@ $
 free[sid][_tid]? -->
     assert(_tid == run_now);
     if (len(Pool) > 0) {
-        (run_prior, run_now) := get_max(Pool);
+        GetMaxList := get_max(Pool);
+        run_now := top(GetMaxList);
+        run_prior := bottom(GetMaxList);
         Pool := del0(Pool, run_now);
         run[sid][run_now]!;
     } else {

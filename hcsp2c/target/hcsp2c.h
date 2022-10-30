@@ -133,6 +133,19 @@ List* listPushExpr(List* list, double input) {
 List* listPop(List* list) {
     if (list->length > 0) {
         void** new_list = (void**)malloc(sizeof(void*) * (list->length - 1));
+        memcpy(new_list, list->addr + 1, (list->length - 1) * sizeof(void*));
+        free(list->addr);
+        list->addr = new_list;
+        list->length -= 1;
+    } else if (list->length == 0) {
+        printf("Pop ERROR: list is empty");
+    }
+    return list;
+}
+
+List* listPopBack(List* list) {
+    if (list->length > 0) {
+        void** new_list = (void**)malloc(sizeof(void*) * (list->length - 1));
         memcpy(new_list, list->addr, (list->length - 1) * sizeof(void*));
         free(list->addr);
         list->addr = new_list;
@@ -147,21 +160,71 @@ void* listBottom(List* list) {
     if (list->length == 0) {
         printf("Bottom ERROR: list is empty");
     }
-    return *(void**)(list->addr);
+    return (list->addr)[0];
 }
 
 void* listTop(List* list) {
     if (list->length == 0) {
         printf("Top ERROR: list is empty");
     }
-    return *(void**)(list->addr + list->length - 1);
+    return (list->addr)[list->length - 1];
 }
 
 void* listGet(List* list, int num) {
     if (list->length <= num) {
         printf("Get ERROR: length of list is %d, but try to get index %d.\n", list->length, num);
     }
-    return *(void**)(list->addr + num);
+    return (list->addr)[num];
+}
+
+void* listGetMax(List* list) {
+    if (list->length == 0) {
+        printf("Getmax ERROR: list is empty");
+    }
+    double max = *(double*)((list->addr)[0]);
+    void* ret = (list->addr)[0];
+    for (int i = 1; i < list->length; i++) {
+        if (*(double*)((list->addr)[i]) > max) {
+            max = *(double*)((list->addr)[i]);
+            ret = (list->addr)[i];
+        }
+    }
+    return ret;
+}
+
+void* listGetMaxList(List* list) {
+    if (list->length == 0) {
+        printf("Getmax ERROR: list is empty");
+    }
+    double max = *(double*)(((List*)((list->addr)[0]))->addr)[0];
+    void* ret = (list->addr)[0];
+    for (int i = 1; i < list->length; i++) {
+        if (*(double*)(((List*)((list->addr)[i]))->addr)[0] > max) {
+            max = *(double*)(((List*)((list->addr)[i]))->addr)[0];
+            ret = (list->addr)[i];
+        }
+    }
+    return ret;
+}
+
+List* listDel0(List* list, void* input, int type) {
+    List* ans = listInit();
+    if (type == 2) {
+        for (int i = 0; i < list->length; i++) {
+            if (!strEqual(*(String*)listTop((List*)((list->addr)[i])), *(String*)input)) {
+                ans = listPush(ans, (List*)((list->addr)[i]), 3);
+            }
+        }
+    } else if (type == 1) {
+        for (int i = 0; i < list->length; i++) {
+            if (*(double*)listTop((List*)((list->addr)[i])) == *(double*)input) {
+                ans = listPush(ans, (List*)((list->addr)[i]), 3);
+            }
+        }
+    } else {
+        printf("del0 type error: type %d.\n", type);
+    }
+    return ans;
 }
 
 // Global lock on the thread and channel states.
