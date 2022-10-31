@@ -109,7 +109,7 @@ List* listPushExpr(List* list, double input) {
 List* listPop(List* list) {
     if (list->length > 0) {
         void** new_list = (void**)malloc(sizeof(void*) * (list->length - 1));
-        memcpy(new_list, list->addr + 1, (list->length - 1) * sizeof(void*));
+        memcpy(new_list, list->addr, (list->length - 1) * sizeof(void*));
         free(list->addr);
         list->addr = new_list;
         list->length -= 1;
@@ -122,7 +122,7 @@ List* listPop(List* list) {
 List* listPopBack(List* list) {
     if (list->length > 0) {
         void** new_list = (void**)malloc(sizeof(void*) * (list->length - 1));
-        memcpy(new_list, list->addr, (list->length - 1) * sizeof(void*));
+        memcpy(new_list, list->addr + 1, (list->length - 1) * sizeof(void*));
         free(list->addr);
         list->addr = new_list;
         list->length -= 1;
@@ -166,6 +166,7 @@ List* listDel(List* list, int num) {
     if (num < list->length - 1) {
         memcpy(new_list + num, list->addr + num + 1, (list->length - num - 1) * sizeof(void*));
     }
+    free(list->addr);
     list->length -= 1;
     list->addr = new_list;
     return list;
@@ -459,6 +460,7 @@ void copyFromChannel(Channel ch) {
         prevTime = currentTime;
     }
 
+    // printf("input %s %d\n", channelNames[ch.channelNo], channelTypes[ch.channelNo]);
     // Copy data from channelContent
     copyByType(ch.pos, channelContent[ch.channelNo], channelTypes[ch.channelNo]);
     if (channelTypes[ch.channelNo] == 1) {
@@ -479,6 +481,7 @@ void copyFromChannel(Channel ch) {
 }
 
 void copyToChannel(Channel ch) {
+    // printf("output %s %d\n", channelNames[ch.channelNo], channelTypes[ch.channelNo]);
     copyByType(channelContent[ch.channelNo], ch.pos, channelTypes[ch.channelNo]);
 }
 
@@ -488,6 +491,10 @@ void input(int thread, Channel ch) {
     // Take the global lock, and set the channelInput state.
     pthread_mutex_lock(&mutex);
     channelInput[ch.channelNo] = thread;
+    if (!ch.pos && channelTypes[ch.channelNo] != 0) {
+                printf("NULL Input: %d\n", thread);
+                fflush(stdout);
+    }
 
     if (channelOutput[ch.channelNo] != -1 &&
             (threadState[channelOutput[ch.channelNo]] == STATE_AVAILABLE ||
@@ -536,6 +543,11 @@ void output(int thread, Channel ch) {
     // Take the global lock, set the channelOutput state and channel content.
     pthread_mutex_lock(&mutex);
     channelOutput[ch.channelNo] = thread;
+
+    if (!ch.pos && channelTypes[ch.channelNo] != 0) {
+        printf("NULL Output: %d\n", thread);
+        fflush(stdout);
+    }
 
     // Copy data to channel
     copyToChannel(ch);
@@ -598,6 +610,10 @@ int externalChoice(int thread, int nums, Channel* chs) {
                      threadState[channelOutput[curChannel]] == STATE_WAITING_AVAILABLE)) {
                 // If output is available, signal to the output side
                 threadState[channelOutput[curChannel]] = curChannel;
+                if (!chs[i].pos && channelTypes[chs[i].channelNo] != 0) {
+                            printf("NULL Input: %d\n", thread);
+                            fflush(stdout);
+                }
 
                 // Copy data from channelContent
                 copyFromChannel(chs[i]);
@@ -632,6 +648,10 @@ int externalChoice(int thread, int nums, Channel* chs) {
                      threadState[channelInput[curChannel]] == STATE_WAITING_AVAILABLE)) {
                 // If input is available, signal to the input side
                 threadState[channelInput[curChannel]] = curChannel;
+                if (!chs[i].pos && channelTypes[chs[i].channelNo] != 0) {
+                            printf("NULL Output: %d\n", thread);
+                            fflush(stdout);
+                }
 
                 // Update local time
                 if (localTime[thread] < localTime[channelInput[curChannel]]) {
@@ -664,14 +684,20 @@ int externalChoice(int thread, int nums, Channel* chs) {
     int match_index = threadState[thread];
     assert (match_index >= 0);
     curChannel = match_index;
+    match_index = -1;
     for (int j = 0; j < nums; j++) {
-        if (chs[j].channelNo == match_index) {
+        if (chs[j].channelNo == curChannel) {
             match_index = j;
             break;
         }
     }
 
     if (chs[match_index].type == 0) {
+        if (!chs[match_index].pos && channelTypes[chs[match_index].channelNo] != 0) {
+            printf("NULL Input: %d\n", thread);
+            fflush(stdout);
+        }
+
         // Waiting results in input
         copyFromChannel(chs[match_index]);
 
@@ -794,14 +820,20 @@ int interruptPoll(int thread, double seconds, int nums, Channel* chs) {
     int match_index = threadState[thread];
     assert (match_index >= 0);
     curChannel = match_index;
+    match_index = -1;
     for (int j = 0; j < nums; j++) {
-        if (chs[j].channelNo == match_index) {
+        if (chs[j].channelNo == curChannel) {
             match_index = j;
             break;
         }
     }
 
     if (chs[match_index].type == 0) {
+        if (!chs[match_index].pos && channelTypes[chs[match_index].channelNo] != 0) {
+            printf("NULL Ext Input: %d %d\n", match_index, thread);
+            fflush(stdout);
+        }
+
         // Waiting results in input
         copyFromChannel(chs[match_index]);
 

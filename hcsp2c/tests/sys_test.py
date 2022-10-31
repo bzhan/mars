@@ -24,8 +24,9 @@ class SysTest(unittest.TestCase):
                 f.write(thread_body)
                 run_str += ' hcsp2c/target/%s__%s.c' % (outputfile, thread_name)
         
-        run_str += " hcsp2c/target/hcsp2c.c -lpthread -lm -o hcsp2c/output/%s.out" % outputfile
+        run_str += " hcsp2c/target/hcsp2c.c -lpthread -lm -o hcsp2c/output/%s.out -g" % outputfile
 
+        print(run_str)
         res = subprocess.run(
             run_str,
             stderr=subprocess.PIPE,

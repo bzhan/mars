@@ -216,8 +216,6 @@ def inferTypes(infos: List[HCSPInfo]) -> TypeContext:
             flag += infer(info.name, procedure.hp)
     while flag > 0:
         count += 1
-        print(count)
-        print(flag)
         flag = 0
         for info in infos:
             flag += infer(info.name, info.hp)
@@ -475,9 +473,9 @@ static void %s () {
 }
 """
 
-def transferToCProcedure(procedure: Procedure) -> str:
+def transferToCProcedure(procedure: Procedure, context: TypeContext) -> str:
     pro_info = HCSPInfo(procedure.name, procedure.hp)
-    res = c_procedure_template % (procedure.name, indent(transferToC(pro_info)))
+    res = c_procedure_template % (procedure.name, indent(transferToC(pro_info, context)))
     return res
 
 c_process_template = \
@@ -520,7 +518,7 @@ def transferToCProcess(name: str, info: HCSPInfo, context: TypeContext) -> str:
     procedures = info.procedures
     for procedure in procedures:
         init_body += "static void %s();" % procedure.name
-        procedures_body += transferToCProcedure(procedure) + '\n'
+        procedures_body += transferToCProcedure(procedure, context) + '\n'
         vars = vars | procedure.hp.get_vars()
     
     for var in vars:
@@ -535,7 +533,7 @@ def transferToCProcess(name: str, info: HCSPInfo, context: TypeContext) -> str:
         else:
             raise AssertionError("init: unknown type for variable %s" % var)
 
-    body += indent(transferToC(info))
+    body += indent(transferToC(info, context))
 
     c_process_str = c_process_template % (info.name, body)
     res = init_body + procedures_body + c_process_str
@@ -552,7 +550,7 @@ def transferIndexInputToC(hp: hcsp.InputChannel, index: int) -> str:
         return "channels[%d].channelNo = %s;\nchannels[%d].type = 0;\nchannels[%d].pos = midDouble;" % \
             (index, str(ch_name), index, index)
 
-def transferIndexOutputToC(hp: hcsp.OutputChannel, index: int) -> str:
+def transferIndexOutputToC(hp: hcsp.OutputChannel, index: int, context: TypeContext) -> str:
     ch_name = hp.ch_name
     e = hp.expr
 
@@ -567,25 +565,37 @@ def transferIndexOutputToC(hp: hcsp.OutputChannel, index: int) -> str:
             if isinstance(e.value, str):
                 return "midString = strInit(\"%s\");\nchannels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = midString;" % \
                     (e.value, index, str(ch_name), index, index)
+            else:
+                return "midDouble = (double*) malloc(sizeof(double));\n*midDouble = %s;\nchannels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = midDouble;" % \
+                (transferToCExpr(e), index, str(ch_name), index, index)
         elif isinstance(e, expr.ListExpr):
             return "%schannels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = midList;" % \
                 (transferToCExpr(e),  index, str(ch_name), index, index)
         elif isinstance(e, expr.FunExpr) and e.fun_name in ("top", "bottom", "get_max") or isinstance(e, expr.ArrayIdxExpr):
-            return "midDouble = (double*) malloc(sizeof(double));\n*midDouble = *(double*)%s;\nchannels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = midDouble;" % \
+            if isinstance(context.channelTypes[ch_name.name], RealType):
+                return "midDouble = (double*) malloc(sizeof(double));\n*midDouble = *(double*)%s;\nchannels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = midDouble;" % \
                 (transferToCExpr(e), index, str(ch_name), index, index)
+            elif isinstance(context.channelTypes[ch_name.name], StringType):
+                return "midString = (String*) malloc(sizeof(String));\n*midString = *(String*)%s;\nchannels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = midString;" % \
+                (transferToCExpr(e), index, str(ch_name), index, index)
+            elif isinstance(context.channelTypes[ch_name.name], ListType):
+                return "midList = (List*) malloc(sizeof(List));\n*midList = *(List*)%s;\nchannels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = midList;" % \
+                (transferToCExpr(e), index, str(ch_name), index, index)
+            else:
+                raise AssertionError("List output type error: %s %s", str(ch_name), str(e))
         else:
             return "midDouble = (double*) malloc(sizeof(double));\n*midDouble = %s;\nchannels[%d].channelNo = %s;\nchannels[%d].type = 1;\nchannels[%d].pos = midDouble;" % \
                 (transferToCExpr(e), index, str(ch_name), index, index)
 
-def transferIndexCommToC(hp: hcsp.HCSP, index: int) -> str:
+def transferIndexCommToC(hp: hcsp.HCSP, index: int, context: TypeContext) -> str:
     if isinstance(hp, hcsp.InputChannel):
         return transferIndexInputToC(hp, index)
     elif isinstance(hp, hcsp.OutputChannel):
-        return transferIndexOutputToC(hp, index)
+        return transferIndexOutputToC(hp, index, context)
     else:
         raise NotImplementedError
 
-def transferToC(info: hcsp.HCSPInfo) -> str:
+def transferToC(info: hcsp.HCSPInfo, context: TypeContext) -> str:
     def outputVars() -> str:
         formats = []
         vars = []
@@ -729,12 +739,24 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
                     if isinstance(e.value, str):
                         return "midString = strInit(\"%s\");\nchannel.channelNo = %s;\nchannel.type = 1;\nchannel.pos = midString;\noutput(threadNumber, channel);" % \
                             (e.value, str(ch_name))
+                    else:
+                        return "midDouble = (double*) malloc(sizeof(double));\n*midDouble = %s;\nchannel.channelNo = %s;\nchannel.type = 1;\nchannel.pos = midDouble;\noutput(threadNumber, channel);" % \
+                        (transferToCExpr(e), str(ch_name))
                 elif isinstance(e, expr.ListExpr):
                     return "%schannel.channelNo = %s;\nchannelchannel..type = 1;\nchannel.pos = midList;\noutput(threadNumber, channel);" % \
                         (transferToCExpr(e), str(ch_name))
                 elif isinstance(e, expr.FunExpr) and e.fun_name in ("top", "bottom", "get_max") or isinstance(e, expr.ArrayIdxExpr):
-                    return "midDouble = (double*) malloc(sizeof(double));\n*midDouble = *(double*)%s;\nchannel.channelNo = %s;\nchannel.type = 1;\nchannel.pos = midDouble;\noutput(threadNumber, channel);" % \
-                        (transferToCExpr(e), str(ch_name))
+                    if isinstance(context.channelTypes[ch_name.name], RealType):
+                        return "midDouble = (double*) malloc(sizeof(double));\n*midDouble = *(double*)%s;\nchannel.channelNo = %s;\nchannel.type = 1;\nchannel.pos = midDouble;\noutput(threadNumber, channel);" % \
+                            (transferToCExpr(e), str(ch_name))
+                    elif isinstance(context.channelTypes[ch_name.name], StringType):
+                        return "midString = (String*) malloc(sizeof(String));\n*midString = *(String*)%s;\nchannel.channelNo = %s;\nchannel.type = 1;\nchannel.pos = midString;\noutput(threadNumber, channel);" % \
+                            (transferToCExpr(e), str(ch_name))
+                    elif isinstance(context.channelTypes[ch_name.name], ListType):
+                        return "midList = (List*) malloc(sizeof(List));\n*midList = *(List*)%s;\nchannel.channelNo = %s;\nchannel.type = 1;\nchannel.pos = midList;\noutput(threadNumber, channel);" % \
+                            (transferToCExpr(e), str(ch_name))
+                    else:
+                        raise AssertionError("List output type error: %s %s", str(ch_name), str(e))
                 else:
                     return "midDouble = (double*) malloc(sizeof(double));\n*midDouble = %s;\nchannel.channelNo = %s;\nchannel.type = 1;\nchannel.pos = midDouble;\noutput(threadNumber, channel);" % \
                         (transferToCExpr(e), str(ch_name))
@@ -781,7 +803,7 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
             out_hps = []
             for i in range(0, len(hp.io_comms)):
                 io_comm = hp.io_comms[i]
-                comm_hps.append(transferIndexCommToC(io_comm[0], i))
+                comm_hps.append(transferIndexCommToC(io_comm[0], i, context))
                 out_hps.append(rec(io_comm[1]))
 
             res = ""
@@ -835,7 +857,7 @@ def transferToC(info: hcsp.HCSPInfo) -> str:
             out_hps = []
             for i in range(0, len(hp.io_comms)):
                 io_comm = hp.io_comms[i]
-                comm_hps.append(transferIndexCommToC(io_comm[0], i) + '\n')
+                comm_hps.append(transferIndexCommToC(io_comm[0], i, context) + '\n')
                 out_hps.append(rec(io_comm[1]))
             res = ""
             for comm_hp in comm_hps:
