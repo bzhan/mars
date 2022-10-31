@@ -1440,16 +1440,20 @@ endmodule
 module busEventBuffer_tran_event():
 begin
   event := "";
+  bottom_queue := "";
   queue := [];
   {
     if (len(queue) == 0) {
       outputs_lb_user_panel_rb__lb_event_rb_?event;
       queue := push(queue,event);
     } else {
-      outputs_lb_user_panel_rb__lb_event_rb_?event -->
-        queue := push(queue,event); $
-      inputs_lb_bus0_rb__lb_event_rb_!bottom(queue) -->
-        queue := get(queue);
+      bottom_queue := bottom(queue);
+      {
+        outputs_lb_user_panel_rb__lb_event_rb_?event -->
+          queue := push(queue,event); $
+        inputs_lb_bus0_rb__lb_event_rb_!bottom_queue -->
+          queue := get(queue);
+      }
     }
   }*
 end
@@ -1631,7 +1635,6 @@ procedure BLOCK begin
 end
 
 begin
-  event := "";
   {
     outputs_lb_camera_rb__lb_img_rb_?img -->
       @BLOCK;

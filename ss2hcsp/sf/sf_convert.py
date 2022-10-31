@@ -487,7 +487,7 @@ class SFConvert:
                 for _, e in self.events.items():
                     if e.name == str(label.event.name):
                         conds.append(
-                            expr.conj(expr.RelExpr("!=", expr.AVar(self.chart.name+"EL"), expr.ListExpr()),
+                            expr.conj(expr.RelExpr("!=", expr.FunExpr("len",[expr.AVar(self.chart.name+"EL")]), expr.AConst(0)),
                                       expr.RelExpr("==", expr.FunExpr("top", [expr.AVar(self.chart.name+"EL")]), expr.AConst(label.event.name))))
             
             elif isinstance(label.event, function.TemporalEvent):
