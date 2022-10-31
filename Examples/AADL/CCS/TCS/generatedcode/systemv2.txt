@@ -1150,7 +1150,7 @@ end
 
 procedure during_pan_ctr_th_imp_update begin
   pan_ctr_th_imp_update_done := 0;
-  if (pan_ctr_th_impEL != [] && top(pan_ctr_th_impEL) == "inc") {
+  if (len(pan_ctr_th_impEL) != 0 && top(pan_ctr_th_impEL) == "inc") {
     skip;
     if (pan_ctr_th_imp_st == "pan_ctr_th_imp_update") {
       if (pan_ctr_th_imp_st == "pan_ctr_th_imp_update") {
@@ -1164,7 +1164,7 @@ procedure during_pan_ctr_th_imp_update begin
       pan_ctr_th_imp_update_done := pan_ctr_th_imp_ret;
     }
   }
-  if (pan_ctr_th_imp_st == "pan_ctr_th_imp_update" && pan_ctr_th_imp_update_done == 0 && pan_ctr_th_impEL != [] && top(pan_ctr_th_impEL) == "dec") {
+  if (pan_ctr_th_imp_st == "pan_ctr_th_imp_update" && pan_ctr_th_imp_update_done == 0 && len(pan_ctr_th_impEL) != 0 && top(pan_ctr_th_impEL) == "dec") {
     skip;
     if (pan_ctr_th_imp_st == "pan_ctr_th_imp_update") {
       if (pan_ctr_th_imp_st == "pan_ctr_th_imp_update") {
@@ -1631,6 +1631,7 @@ procedure BLOCK begin
 end
 
 begin
+  event := "";
   {
     outputs_lb_camera_rb__lb_img_rb_?img -->
       @BLOCK;

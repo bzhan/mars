@@ -290,7 +290,7 @@ def transferToCExpr(e: expr.Expr) -> str:
             elif e.op == '^':
                 return "pow(%s, %s)" % (transferToCExpr(e.exprs[0]), transferToCExpr(e.exprs[1]))
             elif e.op == '%':
-                return "(int) %s %% %s" % (s1, s2)
+                return "fmod(%s, %s)" % (s1, s2)
             else:
                 print("transferToCExpr: %s" % e)
                 raise NotImplementedError
@@ -301,12 +301,18 @@ def transferToCExpr(e: expr.Expr) -> str:
                 e.expr1 = e.expr2
                 e.expr2 = mid
             if isinstance(e.expr2, expr.AConst):
+                s1, s2 = transferToCExpr(e.expr1), transferToCExpr(e.expr2)
                 if isinstance(e.expr2.value, str):
-                    return "strEqual(%s, *strInit(\"%s\"))" % (e.expr1, e.expr2.value)
+                    if isinstance(e.expr1, expr.FunExpr) and e.expr1.fun_name in ("top", "bottom", "get_max") or isinstance(e.expr1, expr.ArrayIdxExpr):
+                        return "strEqual(*(String*)%s, *strInit(\"%s\"))" % (s1, e.expr2.value)
+                    else:
+                        return "strEqual(%s, *strInit(\"%s\"))" % (s1, e.expr2.value)
                 elif isinstance(e.expr2, expr.AVar) and e.expr2.name in gl_var_type and isinstance(gl_var_type[e.expr2.name], StringType):
-                    return "strEqual(%s, %s)" % (e.expr1, e.expr2)
+                    if isinstance(e.expr1, expr.FunExpr) and e.expr1.fun_name in ("top", "bottom", "get_max") or isinstance(e.expr1, expr.ArrayIdxExpr):
+                        return "strEqual(*(String*)%s, %s)" % (s1, s2)
+                    else:
+                        return "strEqual(%s, %s)" % (s1, s2)
                 else:
-                    s1, s2 = transferToCExpr(e.expr1), transferToCExpr(e.expr2)
                     if cPriority(e.expr1) < cPriority(e):
                         s1 = '(' + s1 + ')'
                     if cPriority(e.expr2) <= cPriority(e):
@@ -463,7 +469,7 @@ def transferToCExpr(e: expr.Expr) -> str:
 
 c_procedure_template = \
 """
-void %s () {
+static void %s () {
     %s
     return;
 }
@@ -508,13 +514,15 @@ def transferToCProcess(name: str, info: HCSPInfo, context: TypeContext) -> str:
     gl_var_type = context.varTypes[info.name]
     body = ""
     procedures_body = ""
+    init_body = body_template % (name, len(info.hp.get_chs()))
+
     vars = info.hp.get_vars()
     procedures = info.procedures
     for procedure in procedures:
+        init_body += "static void %s();" % procedure.name
         procedures_body += transferToCProcedure(procedure) + '\n'
         vars = vars | procedure.hp.get_vars()
     
-    init_body = body_template % (name, len(info.hp.get_chs()))
     for var in vars:
         if var not in context.varTypes[info.name]:
             raise AssertionError("type of %s in %s is unkonwn." % (var, info.name))
