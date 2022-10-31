@@ -80,7 +80,7 @@ def inferExprType(e: expr.Expr, hp_name: str, ctx: TypeContext) -> CType:
     elif isinstance(e, expr.OpExpr):
         return RealType()
     elif isinstance(e, expr.FunExpr):
-        if e.fun_name in ('max', 'min', 'len'):
+        if e.fun_name in ('max', 'min', 'sqrt', 'len'):
             return RealType()
         elif e.fun_name in ('push', 'pop', 'get', 'del0', 'get_max', 'del'):
             return ListType()
@@ -232,6 +232,8 @@ def cPriority(e: expr.Expr) -> int:
         return 100
     elif isinstance(e, expr.AConst):
         return 100
+    elif isinstance(e, expr.BConst):
+        return 100
     elif isinstance(e, expr.OpExpr):
         if len(e.exprs) == 1:
             return 80
@@ -263,6 +265,7 @@ def cPriority(e: expr.Expr) -> int:
     elif isinstance(e, expr.ArrayIdxExpr):
         return 100
     else:
+        print(e)
         raise NotImplementedError
 
 
@@ -338,6 +341,11 @@ def transferToCExpr(e: expr.Expr) -> str:
             return "*strInit(\"%s\")" % e.value
         else:
             return str(e.value)
+    elif isinstance(e, expr.BConst):
+        if e.value:
+            return "1"
+        else:
+            return "0"
     elif isinstance(e, expr.ListExpr):
         res = "midList = listInit();\n"
         for i in range(e.count):
@@ -385,6 +393,8 @@ def transferToCExpr(e: expr.Expr) -> str:
             return "max(%d, %s)" % (len(args), ', '.join(cargs))
         elif e.fun_name == "pi":
             return "PI"
+        elif e.fun_name == "sqrt":
+            return "sqrt(%s)" % args[0]
         # elif e.fun_name == "abs":
         #     return abs(*args)
         # elif e.fun_name == "gcd":
@@ -498,10 +508,12 @@ def transferToCProcess(name: str, info: HCSPInfo, context: TypeContext) -> str:
     gl_var_type = context.varTypes[info.name]
     body = ""
     procedures_body = ""
-    procedures = []
+    vars = info.hp.get_vars()
+    procedures = info.procedures
     for procedure in procedures:
         procedures_body += transferToCProcedure(procedure) + '\n'
-    vars = info.hp.get_vars()
+        vars = vars | procedure.hp.get_vars()
+    
     init_body = body_template % (name, len(info.hp.get_chs()))
     for var in vars:
         if var not in context.varTypes[info.name]:
