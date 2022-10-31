@@ -1,6 +1,7 @@
 %type: module
 module EventBuffer(send, out_port, recv, in_port):
 begin
+event := "";
 queue := [];
 {
 if (len(queue) == 0) {

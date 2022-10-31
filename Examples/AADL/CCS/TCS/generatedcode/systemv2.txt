@@ -231,20 +231,20 @@ begin
       if (len(Pool_prior) > 0) {
         run_prior := -1;
         run_now := "";
-        max_indexx := 0;
-        indexx := 0;
+        max_index := 0;
+        index := 0;
         {
           now_prior := 0;
-          now_prior := Pool_prior[indexx];
+          now_prior := Pool_prior[index];
           if (now_prior > run_prior) {
-            run_prior := Pool_prior[indexx];
-            run_now := Pool_now[indexx];
-            max_indexx := indexx;
+            run_prior := Pool_prior[index];
+            run_now := Pool_now[index];
+            max_index := index;
           }
-          indexx := indexx + 1;
-        }*(indexx < len(Pool_prior))
-        Pool_prior := del(Pool_prior,max_indexx);
-        Pool_now := del(Pool_now,max_indexx);
+          index := index + 1;
+        }*(index < len(Pool_prior))
+        Pool_prior := del(Pool_prior,max_index);
+        Pool_now := del(Pool_now,max_index);
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
@@ -267,20 +267,20 @@ begin
       if (len(Pool_prior) > 0) {
         run_prior := -1;
         run_now := "";
-        max_indexx := 0;
-        indexx := 0;
+        max_index := 0;
+        index := 0;
         {
           now_prior := 0;
-          now_prior := Pool_prior[indexx];
+          now_prior := Pool_prior[index];
           if (now_prior > run_prior) {
-            run_prior := Pool_prior[indexx];
-            run_now := Pool_now[indexx];
-            max_indexx := indexx;
+            run_prior := Pool_prior[index];
+            run_now := Pool_now[index];
+            max_index := index;
           }
-          indexx := indexx + 1;
-        }*(indexx < len(Pool_prior))
-        Pool_prior := del(Pool_prior,max_indexx);
-        Pool_now := del(Pool_now,max_indexx);
+          index := index + 1;
+        }*(index < len(Pool_prior))
+        Pool_prior := del(Pool_prior,max_index);
+        Pool_now := del(Pool_now,max_index);
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
@@ -303,20 +303,20 @@ begin
       if (len(Pool_prior) > 0) {
         run_prior := -1;
         run_now := "";
-        max_indexx := 0;
-        indexx := 0;
+        max_index := 0;
+        index := 0;
         {
           now_prior := 0;
-          now_prior := Pool_prior[indexx];
+          now_prior := Pool_prior[index];
           if (now_prior > run_prior) {
-            run_prior := Pool_prior[indexx];
-            run_now := Pool_now[indexx];
-            max_indexx := indexx;
+            run_prior := Pool_prior[index];
+            run_now := Pool_now[index];
+            max_index := index;
           }
-          indexx := indexx + 1;
-        }*(indexx < len(Pool_prior))
-        Pool_prior := del(Pool_prior,max_indexx);
-        Pool_now := del(Pool_now,max_indexx);
+          index := index + 1;
+        }*(index < len(Pool_prior))
+        Pool_prior := del(Pool_prior,max_index);
+        Pool_now := del(Pool_now,max_index);
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
@@ -339,20 +339,20 @@ begin
       if (len(Pool_prior) > 0) {
         run_prior := -1;
         run_now := "";
-        max_indexx := 0;
-        indexx := 0;
+        max_index := 0;
+        index := 0;
         {
           now_prior := 0;
-          now_prior := Pool_prior[indexx];
+          now_prior := Pool_prior[index];
           if (now_prior > run_prior) {
-            run_prior := Pool_prior[indexx];
-            run_now := Pool_now[indexx];
-            max_indexx := indexx;
+            run_prior := Pool_prior[index];
+            run_now := Pool_now[index];
+            max_index := index;
           }
-          indexx := indexx + 1;
-        }*(indexx < len(Pool_prior))
-        Pool_prior := del(Pool_prior,max_indexx);
-        Pool_now := del(Pool_now,max_indexx);
+          index := index + 1;
+        }*(index < len(Pool_prior))
+        Pool_prior := del(Pool_prior,max_index);
+        Pool_now := del(Pool_now,max_index);
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
@@ -375,20 +375,20 @@ begin
       if (len(Pool_prior) > 0) {
         run_prior := -1;
         run_now := "";
-        max_indexx := 0;
-        indexx := 0;
+        max_index := 0;
+        index := 0;
         {
           now_prior := 0;
-          now_prior := Pool_prior[indexx];
+          now_prior := Pool_prior[index];
           if (now_prior > run_prior) {
-            run_prior := Pool_prior[indexx];
-            run_now := Pool_now[indexx];
-            max_indexx := indexx;
+            run_prior := Pool_prior[index];
+            run_now := Pool_now[index];
+            max_index := index;
           }
-          indexx := indexx + 1;
-        }*(indexx < len(Pool_prior))
-        Pool_prior := del(Pool_prior,max_indexx);
-        Pool_now := del(Pool_now,max_indexx);
+          index := index + 1;
+        }*(index < len(Pool_prior))
+        Pool_prior := del(Pool_prior,max_index);
+        Pool_now := del(Pool_now,max_index);
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
@@ -411,20 +411,20 @@ begin
       if (len(Pool_prior) > 0) {
         run_prior := -1;
         run_now := "";
-        max_indexx := 0;
-        indexx := 0;
+        max_index := 0;
+        index := 0;
         {
           now_prior := 0;
-          now_prior := Pool_prior[indexx];
+          now_prior := Pool_prior[index];
           if (now_prior > run_prior) {
-            run_prior := Pool_prior[indexx];
-            run_now := Pool_now[indexx];
-            max_indexx := indexx;
+            run_prior := Pool_prior[index];
+            run_now := Pool_now[index];
+            max_index := index;
           }
-          indexx := indexx + 1;
-        }*(indexx < len(Pool_prior))
-        Pool_prior := del(Pool_prior,max_indexx);
-        Pool_now := del(Pool_now,max_indexx);
+          index := index + 1;
+        }*(index < len(Pool_prior))
+        Pool_prior := del(Pool_prior,max_index);
+        Pool_now := del(Pool_now,max_index);
         if (run_now == "PI_ctr") {
           run_l_0_r__lb_PI_ctr_rb_!;
         } else if (run_now == "comp_obs_pos") {
@@ -443,83 +443,83 @@ begin
         run_now := "";
       } $
     exit_l_0_r__lb_PI_ctr_rb_? -->
-      indexx := 0;
-      del_indexx := 0;
+      index := 0;
+      del_index := 0;
       {
         now_now := "";
-        now_now := Pool_now[indexx];
+        now_now := Pool_now[index];
         if (now_now == "PI_ctr") {
-          del_indexx := indexx;
+          del_index := index;
         }
-        indexx := indexx + 1;
-      }*(indexx < len(Pool_prior))
-      Pool_prior := del(Pool_prior,del_indexx);
-      Pool_now := del(Pool_now,del_indexx); $
+        index := index + 1;
+      }*(index < len(Pool_prior))
+      Pool_prior := del(Pool_prior,del_index);
+      Pool_now := del(Pool_now,del_index); $
     exit_l_0_r__lb_comp_obs_pos_rb_? -->
-      indexx := 0;
-      del_indexx := 0;
+      index := 0;
+      del_index := 0;
       {
         now_now := "";
-        now_now := Pool_now[indexx];
+        now_now := Pool_now[index];
         if (now_now == "comp_obs_pos") {
-          del_indexx := indexx;
+          del_index := index;
         }
-        indexx := indexx + 1;
-      }*(indexx < len(Pool_prior))
-      Pool_prior := del(Pool_prior,del_indexx);
-      Pool_now := del(Pool_now,del_indexx); $
+        index := index + 1;
+      }*(index < len(Pool_prior))
+      Pool_prior := del(Pool_prior,del_index);
+      Pool_now := del(Pool_now,del_index); $
     exit_l_0_r__lb_emerg_rb_? -->
-      indexx := 0;
-      del_indexx := 0;
+      index := 0;
+      del_index := 0;
       {
         now_now := "";
-        now_now := Pool_now[indexx];
+        now_now := Pool_now[index];
         if (now_now == "emerg") {
-          del_indexx := indexx;
+          del_index := index;
         }
-        indexx := indexx + 1;
-      }*(indexx < len(Pool_prior))
-      Pool_prior := del(Pool_prior,del_indexx);
-      Pool_now := del(Pool_now,del_indexx); $
+        index := index + 1;
+      }*(index < len(Pool_prior))
+      Pool_prior := del(Pool_prior,del_index);
+      Pool_now := del(Pool_now,del_index); $
     exit_l_0_r__lb_img_acq_rb_? -->
-      indexx := 0;
-      del_indexx := 0;
+      index := 0;
+      del_index := 0;
       {
         now_now := "";
-        now_now := Pool_now[indexx];
+        now_now := Pool_now[index];
         if (now_now == "img_acq") {
-          del_indexx := indexx;
+          del_index := index;
         }
-        indexx := indexx + 1;
-      }*(indexx < len(Pool_prior))
-      Pool_prior := del(Pool_prior,del_indexx);
-      Pool_now := del(Pool_now,del_indexx); $
+        index := index + 1;
+      }*(index < len(Pool_prior))
+      Pool_prior := del(Pool_prior,del_index);
+      Pool_now := del(Pool_now,del_index); $
     exit_l_0_r__lb_pan_ctr_th_rb_? -->
-      indexx := 0;
-      del_indexx := 0;
+      index := 0;
+      del_index := 0;
       {
         now_now := "";
-        now_now := Pool_now[indexx];
+        now_now := Pool_now[index];
         if (now_now == "pan_ctr_th") {
-          del_indexx := indexx;
+          del_index := index;
         }
-        indexx := indexx + 1;
-      }*(indexx < len(Pool_prior))
-      Pool_prior := del(Pool_prior,del_indexx);
-      Pool_now := del(Pool_now,del_indexx); $
+        index := index + 1;
+      }*(index < len(Pool_prior))
+      Pool_prior := del(Pool_prior,del_index);
+      Pool_now := del(Pool_now,del_index); $
     exit_l_0_r__lb_velo_voter_rb_? -->
-      indexx := 0;
-      del_indexx := 0;
+      index := 0;
+      del_index := 0;
       {
         now_now := "";
-        now_now := Pool_now[indexx];
+        now_now := Pool_now[index];
         if (now_now == "velo_voter") {
-          del_indexx := indexx;
+          del_index := index;
         }
-        indexx := indexx + 1;
-      }*(indexx < len(Pool_prior))
-      Pool_prior := del(Pool_prior,del_indexx);
-      Pool_now := del(Pool_now,del_indexx);
+        index := index + 1;
+      }*(index < len(Pool_prior))
+      Pool_prior := del(Pool_prior,del_index);
+      Pool_now := del(Pool_now,del_index);
   }*
 end
 endmodule
@@ -1421,8 +1421,8 @@ endmodule
 
 module tran_event():
 begin
-  queue := [];
   event := "";
+  queue := [];
   {
     if (len(queue) == 0) {
       outputs_lb_bus0_rb__lb_event_rb_?event;
@@ -1439,6 +1439,7 @@ endmodule
 
 module busEventBuffer_tran_event():
 begin
+  event := "";
   queue := [];
   {
     if (len(queue) == 0) {
@@ -1630,7 +1631,6 @@ procedure BLOCK begin
 end
 
 begin
-  event := 0;
   {
     outputs_lb_camera_rb__lb_img_rb_?img -->
       @BLOCK;
