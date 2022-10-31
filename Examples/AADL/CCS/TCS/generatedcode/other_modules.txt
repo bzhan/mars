@@ -771,7 +771,7 @@ begin
       if (entered == 0) {
         c := 0;
         x0 := des_v - veh_v;
-        if (t % 0.007000000000000000145716771982051795930601656436920166015625 == 0) {
+        if (t % 0.007 == 0) {
           rtb_Sum := x0;
           rtb_IntegralGain := rtb_Sum * 1;
           rtb_Sum := rtb_Sum * 1;
@@ -783,7 +783,7 @@ begin
           } else {
             rtb_SumFdbk_0 := rtb_SumFdbk;
           }
-          rtb_IntegralGain := ((rtb_SumFdbk_0 - rtb_SumFdbk) * 1 + rtb_IntegralGain) * 0.007000000000000000145716771982051795930601656436920166015625 + Integrator_DSTATE;
+          rtb_IntegralGain := ((rtb_SumFdbk_0 - rtb_SumFdbk) * 1 + rtb_IntegralGain) * 0.007 + Integrator_DSTATE;
           rtb_Sum := rtb_Sum + rtb_IntegralGain;
           if (rtb_Sum > 3) {
             des_a := 3;

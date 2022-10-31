@@ -232,17 +232,17 @@ begin
         run_prior := -1;
         run_now := "";
         max_index := 0;
-        index := 0;
+        idx := 0;
         {
           now_prior := 0;
-          now_prior := Pool_prior[index];
+          now_prior := Pool_prior[idx];
           if (now_prior > run_prior) {
-            run_prior := Pool_prior[index];
-            run_now := Pool_now[index];
-            max_index := index;
+            run_prior := Pool_prior[idx];
+            run_now := Pool_now[idx];
+            max_index := idx;
           }
-          index := index + 1;
-        }*(index < len(Pool_prior))
+          idx := idx + 1;
+        }*(idx < len(Pool_prior))
         Pool_prior := del(Pool_prior,max_index);
         Pool_now := del(Pool_now,max_index);
         if (run_now == "PI_ctr") {
@@ -268,17 +268,17 @@ begin
         run_prior := -1;
         run_now := "";
         max_index := 0;
-        index := 0;
+        idx := 0;
         {
           now_prior := 0;
-          now_prior := Pool_prior[index];
+          now_prior := Pool_prior[idx];
           if (now_prior > run_prior) {
-            run_prior := Pool_prior[index];
-            run_now := Pool_now[index];
-            max_index := index;
+            run_prior := Pool_prior[idx];
+            run_now := Pool_now[idx];
+            max_index := idx;
           }
-          index := index + 1;
-        }*(index < len(Pool_prior))
+          idx := idx + 1;
+        }*(idx < len(Pool_prior))
         Pool_prior := del(Pool_prior,max_index);
         Pool_now := del(Pool_now,max_index);
         if (run_now == "PI_ctr") {
@@ -304,17 +304,17 @@ begin
         run_prior := -1;
         run_now := "";
         max_index := 0;
-        index := 0;
+        idx := 0;
         {
           now_prior := 0;
-          now_prior := Pool_prior[index];
+          now_prior := Pool_prior[idx];
           if (now_prior > run_prior) {
-            run_prior := Pool_prior[index];
-            run_now := Pool_now[index];
-            max_index := index;
+            run_prior := Pool_prior[idx];
+            run_now := Pool_now[idx];
+            max_index := idx;
           }
-          index := index + 1;
-        }*(index < len(Pool_prior))
+          idx := idx + 1;
+        }*(idx < len(Pool_prior))
         Pool_prior := del(Pool_prior,max_index);
         Pool_now := del(Pool_now,max_index);
         if (run_now == "PI_ctr") {
@@ -340,17 +340,17 @@ begin
         run_prior := -1;
         run_now := "";
         max_index := 0;
-        index := 0;
+        idx := 0;
         {
           now_prior := 0;
-          now_prior := Pool_prior[index];
+          now_prior := Pool_prior[idx];
           if (now_prior > run_prior) {
-            run_prior := Pool_prior[index];
-            run_now := Pool_now[index];
-            max_index := index;
+            run_prior := Pool_prior[idx];
+            run_now := Pool_now[idx];
+            max_index := idx;
           }
-          index := index + 1;
-        }*(index < len(Pool_prior))
+          idx := idx + 1;
+        }*(idx < len(Pool_prior))
         Pool_prior := del(Pool_prior,max_index);
         Pool_now := del(Pool_now,max_index);
         if (run_now == "PI_ctr") {
@@ -376,17 +376,17 @@ begin
         run_prior := -1;
         run_now := "";
         max_index := 0;
-        index := 0;
+        idx := 0;
         {
           now_prior := 0;
-          now_prior := Pool_prior[index];
+          now_prior := Pool_prior[idx];
           if (now_prior > run_prior) {
-            run_prior := Pool_prior[index];
-            run_now := Pool_now[index];
-            max_index := index;
+            run_prior := Pool_prior[idx];
+            run_now := Pool_now[idx];
+            max_index := idx;
           }
-          index := index + 1;
-        }*(index < len(Pool_prior))
+          idx := idx + 1;
+        }*(idx < len(Pool_prior))
         Pool_prior := del(Pool_prior,max_index);
         Pool_now := del(Pool_now,max_index);
         if (run_now == "PI_ctr") {
@@ -412,17 +412,17 @@ begin
         run_prior := -1;
         run_now := "";
         max_index := 0;
-        index := 0;
+        idx := 0;
         {
           now_prior := 0;
-          now_prior := Pool_prior[index];
+          now_prior := Pool_prior[idx];
           if (now_prior > run_prior) {
-            run_prior := Pool_prior[index];
-            run_now := Pool_now[index];
-            max_index := index;
+            run_prior := Pool_prior[idx];
+            run_now := Pool_now[idx];
+            max_index := idx;
           }
-          index := index + 1;
-        }*(index < len(Pool_prior))
+          idx := idx + 1;
+        }*(idx < len(Pool_prior))
         Pool_prior := del(Pool_prior,max_index);
         Pool_now := del(Pool_now,max_index);
         if (run_now == "PI_ctr") {
@@ -443,81 +443,81 @@ begin
         run_now := "";
       } $
     exit_l_0_r__lb_PI_ctr_rb_? -->
-      index := 0;
+      idx := 0;
       del_index := 0;
       {
         now_now := "";
-        now_now := Pool_now[index];
+        now_now := Pool_now[idx];
         if (now_now == "PI_ctr") {
-          del_index := index;
+          del_index := idx;
         }
-        index := index + 1;
-      }*(index < len(Pool_prior))
+        idx := idx + 1;
+      }*(idx < len(Pool_prior))
       Pool_prior := del(Pool_prior,del_index);
       Pool_now := del(Pool_now,del_index); $
     exit_l_0_r__lb_comp_obs_pos_rb_? -->
-      index := 0;
+      idx := 0;
       del_index := 0;
       {
         now_now := "";
-        now_now := Pool_now[index];
+        now_now := Pool_now[idx];
         if (now_now == "comp_obs_pos") {
-          del_index := index;
+          del_index := idx;
         }
-        index := index + 1;
-      }*(index < len(Pool_prior))
+        idx := idx + 1;
+      }*(idx < len(Pool_prior))
       Pool_prior := del(Pool_prior,del_index);
       Pool_now := del(Pool_now,del_index); $
     exit_l_0_r__lb_emerg_rb_? -->
-      index := 0;
+      idx := 0;
       del_index := 0;
       {
         now_now := "";
-        now_now := Pool_now[index];
+        now_now := Pool_now[idx];
         if (now_now == "emerg") {
-          del_index := index;
+          del_index := idx;
         }
-        index := index + 1;
-      }*(index < len(Pool_prior))
+        idx := idx + 1;
+      }*(idx < len(Pool_prior))
       Pool_prior := del(Pool_prior,del_index);
       Pool_now := del(Pool_now,del_index); $
     exit_l_0_r__lb_img_acq_rb_? -->
-      index := 0;
+      idx := 0;
       del_index := 0;
       {
         now_now := "";
-        now_now := Pool_now[index];
+        now_now := Pool_now[idx];
         if (now_now == "img_acq") {
-          del_index := index;
+          del_index := idx;
         }
-        index := index + 1;
-      }*(index < len(Pool_prior))
+        idx := idx + 1;
+      }*(idx < len(Pool_prior))
       Pool_prior := del(Pool_prior,del_index);
       Pool_now := del(Pool_now,del_index); $
     exit_l_0_r__lb_pan_ctr_th_rb_? -->
-      index := 0;
+      idx := 0;
       del_index := 0;
       {
         now_now := "";
-        now_now := Pool_now[index];
+        now_now := Pool_now[idx];
         if (now_now == "pan_ctr_th") {
-          del_index := index;
+          del_index := idx;
         }
-        index := index + 1;
-      }*(index < len(Pool_prior))
+        idx := idx + 1;
+      }*(idx < len(Pool_prior))
       Pool_prior := del(Pool_prior,del_index);
       Pool_now := del(Pool_now,del_index); $
     exit_l_0_r__lb_velo_voter_rb_? -->
-      index := 0;
+      idx := 0;
       del_index := 0;
       {
         now_now := "";
-        now_now := Pool_now[index];
+        now_now := Pool_now[idx];
         if (now_now == "velo_voter") {
-          del_index := index;
+          del_index := idx;
         }
-        index := index + 1;
-      }*(index < len(Pool_prior))
+        idx := idx + 1;
+      }*(idx < len(Pool_prior))
       Pool_prior := del(Pool_prior,del_index);
       Pool_now := del(Pool_now,del_index);
   }*
@@ -1573,7 +1573,7 @@ begin
       if (entered == 0) {
         c := 0;
         x0 := des_v - veh_v;
-        if (t % 0.007000000000000000145716771982051795930601656436920166015625 == 0) {
+        if (t % 0.007 == 0) {
           rtb_Sum := x0;
           rtb_IntegralGain := rtb_Sum * 1;
           rtb_Sum := rtb_Sum * 1;
@@ -1585,7 +1585,7 @@ begin
           } else {
             rtb_SumFdbk_0 := rtb_SumFdbk;
           }
-          rtb_IntegralGain := ((rtb_SumFdbk_0 - rtb_SumFdbk) * 1 + rtb_IntegralGain) * 0.007000000000000000145716771982051795930601656436920166015625 + Integrator_DSTATE;
+          rtb_IntegralGain := ((rtb_SumFdbk_0 - rtb_SumFdbk) * 1 + rtb_IntegralGain) * 0.007 + Integrator_DSTATE;
           rtb_Sum := rtb_Sum + rtb_IntegralGain;
           if (rtb_Sum > 3) {
             des_a := 3;

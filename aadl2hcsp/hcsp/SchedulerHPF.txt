@@ -28,17 +28,17 @@ free[sid][_tid]? -->
         run_prior := -1;
         run_now := "";
         max_index := 0;
-        index := 0;
+        idx := 0;
         {   
             now_prior := 0;
-            now_prior := Pool_prior[index];
+            now_prior := Pool_prior[idx];
             if (now_prior > run_prior) {
-                run_prior := Pool_prior[index];
-                run_now := Pool_now[index];
-                max_index := index;
+                run_prior := Pool_prior[idx];
+                run_now := Pool_now[idx];
+                max_index := idx;
             }
-            index := index + 1;
-        } * (index < len(Pool_prior))
+            idx := idx + 1;
+        } * (idx < len(Pool_prior))
 
         Pool_prior := del(Pool_prior, max_index);
         Pool_now := del(Pool_now, max_index);
@@ -48,16 +48,16 @@ free[sid][_tid]? -->
     }
 $
 exit[sid][_tid]? --> 
-    index := 0;
+    idx := 0;
     del_index := 0;
     {   
         now_now := "";
-        now_now := Pool_now[index];
+        now_now := Pool_now[idx];
         if (now_now == _tid) {
-            del_index := index;
+            del_index := idx;
         }
-        index := index + 1;
-    } * (index < len(Pool_prior))
+        idx := idx + 1;
+    } * (idx < len(Pool_prior))
     Pool_prior := del(Pool_prior, del_index);
     Pool_now := del(Pool_now, del_index);
 }*
