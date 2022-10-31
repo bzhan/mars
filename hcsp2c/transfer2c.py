@@ -315,7 +315,8 @@ def transferToCExpr(e: expr.Expr) -> str:
                         s1 = '(' + s1 + ')'
                     if cPriority(e.expr2) <= cPriority(e):
                         s2 = '(' + s2 + ')'
-                    return "%s == %s" % (s1, s2)
+                    return "equalInLimit(%s, %s)" % (s1, s2)
+                    # return "%s == %s" % (s1, s2)
         elif e.op == "!=":
             if isinstance(e.expr1, expr.AConst):
                 mid = e.expr1
@@ -332,7 +333,8 @@ def transferToCExpr(e: expr.Expr) -> str:
                         s1 = '(' + s1 + ')'
                     if cPriority(e.expr2) <= cPriority(e):
                         s2 = '(' + s2 + ')'
-                    return "%s != %s" % (s1, s2)
+                    return "!equalInLimit(%s, %s)" % (s1, s2)
+                    # return "%s != %s" % (s1, s2)
         else:
             s1, s2 = transferToCExpr(e.expr1), transferToCExpr(e.expr2)
             if cPriority(e.expr1) < cPriority(e):
@@ -818,6 +820,8 @@ def transferToC(info: hcsp.HCSPInfo, context: TypeContext) -> str:
                 choice_str += "if (midInt == %d) {\n%s\n}" % (i, indent(out_hps[i]))
             res += "h = step_size;\nis_comm = 0;\n"
             loop_cp = ""
+            if info.outputs:
+                loop_cp += outputVars()
             var_names = []
             exprs = []
             for var_name, e in eqs:

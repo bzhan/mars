@@ -21,6 +21,8 @@ extern int SIMULATE_REAL_TIME;
 #define false 0
 #define abs fabs
 
+int equalInLimit(double a, double b);
+
 // type: 0 -> input, 1 -> output
 typedef struct {
     int type; 

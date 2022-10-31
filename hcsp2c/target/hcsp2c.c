@@ -12,6 +12,7 @@
 
 // 1 for real-time simulation, 0 for as-fast-as-possible.
 int SIMULATE_REAL_TIME = 0;
+static double error_limit = 1e-6;
 
 #define PI 3.1415926
 #define G 9.8
@@ -21,6 +22,13 @@ int SIMULATE_REAL_TIME = 0;
 
 static long long tm_to_ns(struct timespec tm) {
     return tm.tv_sec * 1000000000 + tm.tv_nsec;
+}
+
+int equalInLimit(double a, double b) {
+    if ((a - b) > -error_limit && (a - b) < error_limit) {
+        return 1;
+    }
+    return 0;
 }
 
 String* strInit(char* input) {
@@ -490,10 +498,12 @@ void copyToChannel(Channel ch) {
 void input(int thread, Channel ch) {
     // Take the global lock, and set the channelInput state.
     pthread_mutex_lock(&mutex);
+
+    // printf("Input of thread %d start.\n", thread);
     channelInput[ch.channelNo] = thread;
     if (!ch.pos && channelTypes[ch.channelNo] != 0) {
-                printf("NULL Input: %d\n", thread);
-                fflush(stdout);
+        printf("NULL Input: %d\n", thread);
+        fflush(stdout);
     }
 
     if (channelOutput[ch.channelNo] != -1 &&
@@ -535,6 +545,7 @@ void input(int thread, Channel ch) {
     }
 
     pthread_mutex_unlock(&mutex);
+    // printf("Input of thread %d complete.\n", thread);
 }
 
 // ch!e
@@ -542,6 +553,8 @@ void input(int thread, Channel ch) {
 void output(int thread, Channel ch) {
     // Take the global lock, set the channelOutput state and channel content.
     pthread_mutex_lock(&mutex);
+
+    // printf("Output of thread %d start.\n", thread);
     channelOutput[ch.channelNo] = thread;
 
     if (!ch.pos && channelTypes[ch.channelNo] != 0) {
@@ -585,6 +598,7 @@ void output(int thread, Channel ch) {
     }
 
     pthread_mutex_unlock(&mutex);
+    // printf("Output of thread %d complete.\n", thread);
 }
 
 /*
@@ -597,6 +611,7 @@ void output(int thread, Channel ch) {
 int externalChoice(int thread, int nums, Channel* chs) {
     // Take the global lock
     pthread_mutex_lock(&mutex);
+    // printf("External Choice of thread %d start.\n", thread);
 
     int curChannel;
 
@@ -634,6 +649,7 @@ int externalChoice(int thread, int nums, Channel* chs) {
                     }
                 }
                 pthread_mutex_unlock(&mutex);  
+                // printf("External Choice of thread %d complete.\n", thread);
                 return i;
             }
         } else {
@@ -669,6 +685,7 @@ int externalChoice(int thread, int nums, Channel* chs) {
                     }
                 }
                 pthread_mutex_unlock(&mutex);  
+                // printf("External Choice of thread %d complete.\n", thread);
                 return i;
             }
         }
@@ -734,7 +751,8 @@ int externalChoice(int thread, int nums, Channel* chs) {
         pthread_cond_signal(&cond[channelInput[curChannel]]);
     }
 
-    pthread_mutex_unlock(&mutex);  
+    pthread_mutex_unlock(&mutex);
+    // printf("External Choice of thread %d complete.\n", thread);
     return match_index;
 }
 
@@ -751,7 +769,7 @@ int externalChoice(int thread, int nums, Channel* chs) {
 void interruptInit(int thread, int nums, Channel* chs) {
     // Take the global lock
     pthread_mutex_lock(&mutex);
-
+    // printf("Interrupt of thread %d start.\n", thread);
     int curChannel;
 
     for (int i = 0; i < nums; i++) {
@@ -869,6 +887,7 @@ int interruptPoll(int thread, double seconds, int nums, Channel* chs) {
     }
 
     pthread_mutex_unlock(&mutex);  
+    // printf("Interrupt of thread %d complete in channel %d.\n", thread, chs[match_index].channelNo);
     return match_index;
 }
 
@@ -893,6 +912,7 @@ void interruptClear(int thread, int nums, Channel* chs) {
     }
 
     pthread_mutex_unlock(&mutex);
+    // printf("Interrupt of thread %d complete.\n", thread);
     return;
 }
 
