@@ -1182,9 +1182,11 @@ class CmdVerifier:
                 #    {(D -> P') && (!D -> Q)} <x_dot = f(x) & D(x)> {Q}
                 # f(x) is linear in x. Assume u(.) solve the symbolic initial value problem u'(t) = f(u), u(0) = x
                 for var, diff in self.infos[pos].eqs_dict.items():
-                            d = degree(sympify(str(diff).replace('^', '**')), gen=symbols(var))
-                            if not d in {0,1}:
-                                raise AssertionError("{0} should be linear in {1} when using sln rule!".format(diff, var))
+                    if str(diff) != str(0):
+                    # The degree of 0 is negative infinity. For example, degree(0, x) -oo.
+                        d = degree(sympify(str(diff).replace('^', '**')), gen=symbols(var))
+                        if not d in {0,1}:
+                            raise AssertionError("{0} should be linear in {1} when using sln rule!".format(diff, var))
 
                 # Create a new variable to represent time
                 time_var = create_newvar('t', self.names)

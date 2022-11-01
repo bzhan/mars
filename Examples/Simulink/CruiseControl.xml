@@ -7,7 +7,7 @@
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.8</P>
+      <P Name="ComputedModelVersion">1.9</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -63,8 +63,8 @@
             <P Name="LoadSaveID" Class="char">4</P>
             <P Name="Extents" Class="double">[2911.0, 1459.0]</P>
             <P Name="ZoomFactor" Class="double">0.59999999999999987</P>
-            <P Name="Offset" Class="double">[-508.5739405912006, -13.330971322040511]</P>
-            <P Name="SceneRectInView" Class="double">[-508.5739405912006, -13.330971322040511, 1617.2222222222226, 810.55555555555577]</P>
+            <P Name="Offset" Class="double">[-508.5739405912006, -13.330971322040398]</P>
+            <P Name="SceneRectInView" Class="double">[-508.5739405912006, -13.330971322040398, 1617.2222222222226, 810.55555555555577]</P>
           </Object>
           <Object ObjectID="6">
             <P Name="IsActive" Class="logical">0</P>
@@ -117,9 +117,9 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">Lenovo</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Sun Oct 30 21:35:28 2022</P>
-      <P Name="RTWModifiedTimeStamp">589066523</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:8&gt;</P>
+      <P Name="LastModifiedDate">Mon Oct 31 00:37:29 2022</P>
+      <P Name="RTWModifiedTimeStamp">589068702</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:9&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -895,7 +895,7 @@
           </Array>
           <P Name="Name">Configuration</P>
           <P Name="CurrentDlgPage">Solver</P>
-          <P Name="ConfigPrmDlgPosition">[ 197, 68, 1097, 648 ]</P>
+          <P Name="ConfigPrmDlgPosition">[ 197, 70, 1097, 650 ]</P>
           <P Name="ExtraOptions"/>
         </Object>
       </Array>
@@ -1128,6 +1128,7 @@
           <P Name="screen">[1 1 3200 1200 1.25]</P>
           <P Name="viewObj">36</P>
           <P Name="visible">1</P>
+          <subviewS/>
           <P Name="ssIdHighWaterMark">34</P>
           <P Name="decomposition">CLUSTER_CHART</P>
           <P Name="updateMethod">CONTINUOUS</P>
@@ -1136,7 +1137,6 @@
           <P Name="saturateOnIntegerOverflow">1</P>
           <P Name="userSpecifiedStateTransitionExecutionOrder">1</P>
           <P Name="disableImplicitCasting">1</P>
-          <plantModelingInfo/>
           <P Name="actionLanguage">2</P>
           <Children>
             <state SSID="1">
@@ -1150,7 +1150,6 @@ du:
               <P Name="subviewer">36</P>
               <P Name="type">OR_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
-              <eml/>
             </state>
             <state SSID="3">
               <P Name="labelString">B22
@@ -1163,7 +1162,6 @@ du:
               <P Name="subviewer">36</P>
               <P Name="type">OR_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
-              <eml/>
             </state>
             <state SSID="12">
               <P Name="labelString">B11
@@ -1176,7 +1174,6 @@ du:
               <P Name="subviewer">36</P>
               <P Name="type">OR_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
-              <eml/>
             </state>
             <state SSID="13">
               <P Name="labelString">B12
@@ -1189,7 +1186,6 @@ du:
               <P Name="subviewer">36</P>
               <P Name="type">OR_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
-              <eml/>
             </state>
             <state SSID="19">
               <P Name="labelString">N
@@ -1202,7 +1198,6 @@ du:
               <P Name="subviewer">36</P>
               <P Name="type">OR_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
-              <eml/>
             </state>
             <state SSID="23">
               <P Name="labelString">A
@@ -1215,7 +1210,6 @@ du:
               <P Name="subviewer">36</P>
               <P Name="type">OR_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
-              <eml/>
             </state>
             <data SSID="9" name="x">
               <P Name="scope">LOCAL_DATA</P>
@@ -1344,7 +1338,7 @@ du:
             </transition>
             <transition SSID="15">
               <P Name="labelString">[18 &lt;= v &amp;&amp; v &lt;= 20 &amp;&amp; 0 &lt;= t &amp;&amp; t &lt;= 1.3]{t = 0}</P>
-              <P Name="labelPosition">[49.778 198.667 259.594 16]</P>
+              <P Name="labelPosition">[60.889 196.445 259.594 16]</P>
               <P Name="fontSize">12</P>
               <src>
                 <P Name="SSID">12</P>
@@ -1429,7 +1423,7 @@ du:
             </transition>
             <transition SSID="21">
               <P Name="labelString">[13 &lt;= v &amp;&amp; v &lt;= 15 &amp;&amp; -500 &lt;= x &amp;&amp; x &lt;= 500]{t = 0}</P>
-              <P Name="labelPosition">[20.704 370.665 285.609 16]</P>
+              <P Name="labelPosition">[36.815 370.665 285.609 16]</P>
               <P Name="fontSize">12</P>
               <src>
                 <P Name="SSID">19</P>
@@ -1493,7 +1487,7 @@ du:
             </transition>
             <transition SSID="25">
               <P Name="labelString">[-6 &lt;= v &amp;&amp; v &lt;= -5 &amp;&amp; -500 &lt;= x &amp;&amp; x &lt;= 500]{x = 0}</P>
-              <P Name="labelPosition">[21.78 543.534 282.906 16]</P>
+              <P Name="labelPosition">[33.447 542.978 282.906 16]</P>
               <P Name="fontSize">12</P>
               <src>
                 <P Name="SSID">23</P>

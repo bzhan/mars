@@ -1043,6 +1043,9 @@ class AdvancedHHLPyTest(unittest.TestCase):
     def testNonholoSimple(self):
         runFile(self, file="switched_systems/nonholo_simple.hhl")
 
+    def testCruiseControl(self):
+        runFile(self, file="switched_systems/cruise_translated_safety2.hhl")
+
 
 if __name__ == "__main__":
     unittest.main()

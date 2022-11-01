@@ -214,8 +214,10 @@ def toHcsp(e):
             return expr.BConst(e)
         else:
             return expr.AConst(e)
+    elif isinstance(e, float):
+        return expr.AConst(Decimal(str(e)))
     else:
-        assert False, "Unexpected expression: %s" % str(e)
+        assert False, "Unexpected expression: %s, type: %s" % (str(e), type(e))
 
 
 def solveODE(hp, names, time_var):
