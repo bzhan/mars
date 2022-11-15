@@ -848,7 +848,7 @@ class SimInfo:
         elif lname is None:
             pass
         else:
-            raise NotImplementedError
+            raise SimulatorException('Evaluating assignment %s := %s: not implemented' % (lname, val))
 
     def exec_step(self,infos):
         """Compute a single process for one step.
