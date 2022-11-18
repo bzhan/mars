@@ -1,0 +1,9 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Collin Goriely page 60".
+
+pre [(2+x)^2 + (-1+y)^2 <= 1/4];
+t := * (t >= 0);
+{x_dot = x^2 + 2*x*y + 3*y^2, y_dot = 2*y*(2*x + y), t_dot = -1 & t > 0} 
+  invariant
+    [x < y] {dbx}
+    [x + y < 0] {dbx};
+post [!(x > 0)];

@@ -1,0 +1,24 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Collision Avoidance Maneuver (II)".
+# 
+# Citation "Jiang Liu, Naijun Zhan, Hengjun Zhao. Computing Semi-algebraic Invariants for Polynomial Dynamical Systems".
+
+pre [x1 == xi1]
+    [x2 == xi2] 
+    [d1 == di1] 
+    [d2 == di2] 
+    [y1 == yi1] 
+    [y2 == yi2] 
+    [e1 == ei1] 
+    [e2 == ei2];
+t := * (t >= 0); 
+{x1_dot=d1, x2_dot=d2, 
+ d1_dot=-w1*d2, d2_dot=w1*d1, 
+ y1_dot=e1, y2_dot=e2, 
+ e1_dot=-w2*e2, e2_dot=w2*e1, 
+ t_dot = -1 & t > 0}
+invariant 
+    [w1*x2 + d1 - w1*xi2 - di1 == 0] 
+    [-w1*x1 + d2 + w1*xi1 - di2 == 0] 
+    [-w1*x1 + w1*x2 + d1 + d2 + w1*xi1 - w1*xi2 - di1 - di2 == 0] 
+    [d1^2 + d2^2 - di1^2 - di2^2 == 0];
+post [-w1*x1 + 3*w1*x2 + 3*d1 + d2 + w1*xi1 - 3*w1*xi2 - 3*di1 - di2 >= -d1^2];

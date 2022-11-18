@@ -1,0 +1,7 @@
+# ArchiveEntry "Benchmarks/Basic/Dynamics: Closed cases"
+
+pre [x >= 1] [y == 10] [z == -2];
+{x_dot = y, y_dot = z + y^2 - y & y > 0} 
+invariant 
+  [x >= 1];
+post [x >= 1] [y >= 0];

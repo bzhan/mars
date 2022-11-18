@@ -1,0 +1,7 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Man Maccallum Goriely Page 57".
+
+pre [x^2 + y^2 <= 1/4];
+t := * (t >= 0);
+{x_dot = -y+2*x^2*y, y_dot = y+2*x*y^2, t_dot = -1 & t > 0} 
+  invariant [2*x^2 < 1] {dbx};
+post [!(x > 3)];

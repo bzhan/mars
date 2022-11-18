@@ -1,0 +1,13 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Bhatia Szego Ex_2_4 page 68".
+# 
+# Description "Ex 2.4 Page 68".
+# Citation "Bhatia, N. P. and Szego, G. P.. Stability Theory of Dynamical Systems".
+
+pre [x^2 + (-1/2 + y)^2 < 1/24];
+t := * (t >= 0);
+{x_dot = -x + 2*x^3*y^2, y_dot = -y, t_dot = -1 &
+  t > 0 && x^2*y^2 < 1} 
+  invariant
+    [4*x*(1821+5601250*x) + 4827750*x*y + 125*(76794+(-45619)*x^3)*y^2
+      < 1375*(4891+3332*y)] {bc} {{maintain: wolfram}};
+post [!(x <= -2 || y <= -1)];

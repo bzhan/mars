@@ -1,0 +1,19 @@
+# ArchiveEntry "Benchmarks/Nonlinear/ZYLZCL Example C4".
+# 
+# Description "Example C4".
+# Citation "Yifan Zhang, Zhengfeng Yang, Wang Lin, Huibiao Zhu, Xin Chen, Xuandong Li. Safety Verification of Nonlinear Hybrid Systems Based on Bilinear Programming.".
+
+pre [-1 <= x1] [x1 <= 0]
+    [-1 <= x2] [x2 <= 0];
+t := * (t >= 0); 
+{x1_dot = -1 + x1^2 + x2^2, 
+ x2_dot = 5*(-1 + x1*x2),
+ t_dot = -1 
+  & t > 0 && 
+    -2 < x1 && x1 < 2 && 
+    -2 < x2 && x2 < 2} 
+invariant [22667*x1^2+x2*(257910+6221*x2)+x1*(141840+15973*x2) < 42786] {bc};
+post [!( 
+      1 <= x1 && x1 <= 2 && 
+      1 <= x2 && x2 <= 2 
+)];

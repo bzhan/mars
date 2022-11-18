@@ -1,0 +1,12 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Ferragut Giacomini 2010: Example 3"
+# 
+# Citation "Antoni Ferragut, Hector Giacomini: A New Algorithm for Finding Rational First Integrals of Polynomial Vector Fields. Qual. Theory Dyn. Syst. (2010)".
+
+pre [(x+3)^2+(y+3)^2<=1];
+t := * (t >= 0); 
+{x_dot = 3*x+y^2, y_dot = 5*y, t_dot = -1
+  & t > 0 && -6 < x && x < 6 && -6 < y && y < 6} 
+invariant
+ [63232*x^3 + x^2*((-66727)+176350*y) + 10*x*(42940+y*(55669+25688*y))
+ + 10*(808140 + y*(289690+9*y*(9466+1595*y))) < 0] {bc};
+post [x + y < -2];

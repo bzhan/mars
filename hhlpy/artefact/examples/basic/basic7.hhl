@@ -1,0 +1,17 @@
+# ArchiveEntry "Benchmarks/Basic/Static semantics correctness: Assignment 7"
+# 
+# Description "Overwrite assignment several times".
+
+pre [x >= 0] [y >= 1];
+x := x + 1; 
+{
+    { x := x + 1; }*
+    invariant [x >= 1] [y >= 1]; 
+} 
+++ 
+{ y := x + 1; }
+t := * (t >= 0);
+{t_dot=-1, y_dot = 2 & t > 0}
+  invariant [y >= 1]; 
+x := y;
+post [x >= 1];
