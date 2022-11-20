@@ -1,8 +1,0 @@
-
-# ArchiveEntry "Benchmarks/Basic/Static semantics correctness: Assignment 5"
-# 
-# Description "Overwrite with nondeterministic assignment".
-
-pre [x >= 0];
-x := x+1; x := *(x >= 1);
-post [x >= 1];
