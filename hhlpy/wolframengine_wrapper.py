@@ -19,7 +19,8 @@ session = None
 default_locations = [
     "C:\\Program Files\\Wolfram Research\\Wolfram Engine\\13.1\\WolframKernel.exe",
     "/Applications/Wolfram Engine.app/Contents/MacOS/WolframKernel",
-    "/usr/local/Wolfram/WolframEngine/13.1/Executables/WolframKernel"
+    "/usr/local/Wolfram/WolframEngine/13.1/Executables/WolframKernel",
+    "/usr/local/Wolfram/WolframEngine/13.0/Executables/WolframKernel"
 ]
 
 for loc in default_locations:
