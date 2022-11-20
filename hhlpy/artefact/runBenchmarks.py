@@ -18,6 +18,10 @@ def eval(name, filenames):
         title = "Basic Benchmarks"
     elif name == "nonlinear":
         title = "Nonlinear Benchmarks"
+    elif name == "simulink_stateflow":
+        title = "Simulink Stateflow Case Studys"
+    else:
+        raise NotImplementedError
 
     print(f"=== {title} ===")
     start = time.perf_counter()
@@ -65,7 +69,7 @@ if __name__ == "__main__":
     print("Starting Wolfram Engine.")
 
     with session:
-        example_categs = ["basic", "nonlinear"]
+        example_categs = ["basic", "nonlinear", "similink_stateflow"]
         for categ in example_categs:
             path = join(dirname(__file__), "examples", categ)
             file_names = natural_sort([f for f in listdir(path) if isfile(join(path, f))])
