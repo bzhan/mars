@@ -862,18 +862,8 @@ class NonlinearHHLPyTest(unittest.TestCase):
 
     # TODO:Nonlinear problem 99. No tactic offered.
 
-    # TODO:Nonlinear problem 100, result is false.
-    # def testNonlinear100(self):
-    #     runFile(self, file="nonlinear100.hhl")
-    #     # Nonlinear benchmark, problem 100
-    #     pre [x1 == 1/20] [x2 == 1/32] [sint==0] [cost==1]; /* t==0 initially */
-        #     t := 0;
-        #     {x1_dot=x2, x2_dot=-x2-(2+sint)*x1, sint_dot=cost, cost_dot=-sint,
-        #     t_dot = 1 & t < 10}
-        #     invariant [cost^2+sint^2>=1]
-        #             [cost^2+sint^2<=100000/99999]
-        #             [98*x1^2 + 24*x1*x2 + 24*x2*x1 + 55*x2^2 < 1]{dbx};
-        # post [98*x1^2 + 24*x1*x2 + 24*x2*x1 + 55*x2^2 < 1];
+    def testNonlinear100(self):
+        runFile(self, file="nonlinear100.hhl")
 
     # TODO: Nonlinear problem 101. No tactic. Post not implied by inv.
 
