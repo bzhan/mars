@@ -373,6 +373,7 @@ def start(port, openBrowser, http):
         Resource(OrderedDict([('/', HHLPyApplication)]))
     )
     try:
+        global computationProcess
         computationProcess = startComputationProcess()
         if http:
             startHttpProcess(port)
