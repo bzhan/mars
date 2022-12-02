@@ -39,7 +39,6 @@ export default {
           originField,
           originTheme,
           fixedHeightEditor,
-          // EditorView.lineWrapping,
           EditorView.updateListener.of((v) => {
             if (v.docChanged) {
               this.$emit('docChanged', v.state.doc.toString())
