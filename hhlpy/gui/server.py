@@ -116,7 +116,7 @@ def runCompute(code):
 
             # Append the expression ranges.
             for origin in vc.origins:
-                print("origin:", origin)
+                # print("origin:", origin)
                 if origin.isPre:
                     originMeta = hoare_triple.pre[origin.index].meta
                     to = originMeta.end_pos
@@ -280,7 +280,7 @@ class HHLPyApplication(WebSocketApplication):
     def on_message(self, message):
         try:
             if message != None:
-                print(message, flush=True)
+                # print(message, flush=True)
                 msg = json.loads(message)
                 # If the type of message received is "compute", 
                 # the message has a code field, which is the document in editor,
@@ -338,7 +338,7 @@ def checkComputationProcess():
     if ws is not None:
         try:
             result = computationOutputQueue.get(False)
-            print("out!", flush=True)
+            # print("out!", flush=True)
             ws.send(json.dumps(result))
         except Empty:
             pass
