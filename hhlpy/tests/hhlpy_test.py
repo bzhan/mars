@@ -921,9 +921,8 @@ class NonlinearHHLPyTest(unittest.TestCase):
     # TODO: Nonlinear problem 117. No invariants offered.
 
     # I took out this test because it was too slow -- Alex
-    # def testNonlinear118(self):
-    #     runFile(self, file="nonlinear118.hhl",
-    #               wolfram_engine=True)
+    def testNonlinear118(self):
+        runFile(self, file="nonlinear118.hhl")
 
     def testNonlinear119(self):
         runFile(self, file="nonlinear119.hhl")
@@ -937,8 +936,8 @@ class NonlinearHHLPyTest(unittest.TestCase):
     # TODO: Nonlinear problem 122, 123, 124. No invariants.
 
     # I took out this test because it was too slow -- Alex
-    # def testNonlinear125(self):
-    #     runFile(self, file="nonlinear125.hhl")
+    def testNonlinear125(self):
+        runFile(self, file="nonlinear125.hhl")
 
     def testNonlinear126(self):
         runFile(self, file="nonlinear126.hhl")

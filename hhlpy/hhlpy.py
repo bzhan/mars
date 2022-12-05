@@ -116,14 +116,28 @@ def compute_boundary(e):
     if isinstance(e, expr.RelExpr):
         if e.op in ['<', '>', '!=']:
             return expr.RelExpr("==", e.expr1, e.expr2)
+    
     elif isinstance(e, expr.LogicExpr):
         if e.op == '&&':
-            boundary1 = compute_boundary(e.exprs[0])
-            boundary2 = compute_boundary(e.exprs[1])
-            disj1 = expr.LogicExpr('&&', e.exprs[0], boundary2)
-            disj2 = expr.LogicExpr('&&', e.exprs[1], boundary1)
-            disj3 = expr.LogicExpr('&&', boundary1, boundary2)
-            return expr.list_disj(disj1, disj2, disj3)
+            conjs = expr.split_conj(e)
+            conj_boundarys = []
+            conj_closure = []
+            # Compute the boundary and closure for each conjuncts
+            for c in conjs:
+                conj_boundarys.append(compute_boundary(c))
+                conj_closure.append(compute_closure(c))
+            
+            boundarys = []
+            for i in range(len(conjs)):
+                # The boundary of ith conjunct. 
+                # Note that other conjuncts' boundaries may also be satisfied, 
+                # so here use closure of other conjuncts.
+                sub_boundarys = conj_closure.copy()
+                sub_boundarys[i] = conj_boundarys[i]    
+                sub_boundary = expr.list_conj(*sub_boundarys) 
+
+                boundarys.append(sub_boundary)
+            return expr.list_disj(*boundarys) 
         elif e.op == '||':
             boundary1 = compute_boundary(e.exprs[0])
             boundary2 = compute_boundary(e.exprs[1])
@@ -139,8 +153,8 @@ def compute_boundary(e):
     else:
         raise NotImplementedError
 
-def compute_closed_set(e):
-    """Compute the closed set for an open interval"""
+def compute_closure(e):
+    """Compute the closure for an open interval"""
     if isinstance(e, expr.RelExpr):
         if e.op == '<':
             return expr.RelExpr("<=", e.expr1, e.expr2)
@@ -153,11 +167,11 @@ def compute_closed_set(e):
 
     elif isinstance(e, expr.LogicExpr):
         if e.op == '&&':
-            return expr.LogicExpr('&&', compute_closed_set(e.exprs[0]), compute_closed_set(e.exprs[1]))
+            return expr.LogicExpr('&&', compute_closure(e.exprs[0]), compute_closure(e.exprs[1]))
         elif e.op == '||':
-            return expr.LogicExpr('||', compute_closed_set(e.exprs[0]), compute_closed_set(e.exprs[1]))
+            return expr.LogicExpr('||', compute_closure(e.exprs[0]), compute_closure(e.exprs[1]))
         elif e.op == '!':
-            return compute_closed_set(expr.neg_expr(e))
+            return compute_closure(expr.neg_expr(e))
         else:
             raise NotImplementedError
 
@@ -987,7 +1001,7 @@ class CmdVerifier:
                         # One semi-verification condition is closure of constraint -> differential of inv.
                         # (closure of constraint is not necessary because the differential is always a closed set.)
                         differential = compute_diff(dI_inv, eqs_dict=self.infos[sub_pos].eqs_dict, functions=self.functions)
-                        closureD = compute_closed_set(constraint)
+                        closureD = compute_closure(constraint)
                         vc = expr.imp(closureD, differential)
             
                         self.infos[sub_pos].vcs.append(Condition(expr=vc, 
@@ -1061,7 +1075,7 @@ class CmdVerifier:
 
                                 # closure of D -> e_lie_deriv == g * e
                                 # (closure of D is not necessary because "e_lie_deriv == g * e" is a closed set)
-                                closureD = compute_closed_set(constraint)
+                                closureD = compute_closure(constraint)
                                 vc = expr.imp(closureD, expr.RelExpr('==', e_lie_deriv, 
                                                                             expr.OpExpr('*', g, e)))
 
@@ -1091,7 +1105,7 @@ class CmdVerifier:
                                     # remain (e_lie_deriv - g * e) >= 0.
                                     vc_comp = expr.RelExpr('>=', remain, expr.AConst(0))
                                     vc_comps.append(vc_comp)
-                                closureD = compute_closed_set(constraint)
+                                closureD = compute_closure(constraint)
                                 vc = expr.imp(closureD, expr.list_disj(*vc_comps))
 
                                 self.infos[sub_pos].vcs.append(Condition(
@@ -1107,7 +1121,7 @@ class CmdVerifier:
                                 g = self.infos[sub_pos].dbx_cofactor
                                 assert self.is_polynomial(g, self.constant_names) is True
                                 
-                                closureD = compute_closed_set(constraint)
+                                closureD = compute_closure(constraint)
                                 vc = expr.imp(closureD, expr.RelExpr('>=', e_lie_deriv, 
                                                                             expr.OpExpr('*', self.infos[sub_pos].dbx_cofactor, e)))
                                 self.infos[sub_pos].vcs.append(Condition(
@@ -1152,7 +1166,7 @@ class CmdVerifier:
                         e_lie = compute_diff(e, eqs_dict=self.infos[sub_pos].eqs_dict, functions=self.functions)
 
                         # vc: closure of D && e == 0 -> e_lie > 0
-                        closureD = compute_closed_set(constraint)
+                        closureD = compute_closure(constraint)
                         vc = expr.imp(expr.LogicExpr('&&', closureD, 
                                                         expr.RelExpr('==', e, expr.AConst(0))),
                                     expr.RelExpr('>', e_lie, expr.AConst(0)))

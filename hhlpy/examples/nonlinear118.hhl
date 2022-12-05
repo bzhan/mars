@@ -3,8 +3,6 @@
 # Description "Example C9".
 # Citation "Yifan Zhang, Zhengfeng Yang, Wang Lin, Huibiao Zhu, Xin Chen, Xuandong Li. Safety Verification of Nonlinear Hybrid Systems Based on Bilinear Programming.".
 
-# It takes a very long time to prove.
-
 pre [0.99 <= x1] [x1 <= 1.01]
     [0.99 <= x2] [x2 <= 1.01]
     [0.99 <= x3] [x3 <= 1.01]
