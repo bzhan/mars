@@ -524,13 +524,13 @@ class BasicHHLPyTest(unittest.TestCase):
     def testBasic55(self):
         runFile(self, file="basic55.hhl",)
     
-    # TODO: Does this example correspond to problem 57 in basic benchmark?
-    def testBasic57(self):
-        runFile(self, file="basic57.hhl")
+    # # TODO: Does this example correspond to problem 57 in basic benchmark?
+    # def testBasic57(self):
+    #     runFile(self, file="basic57.hhl")
 
-    # TODO: Does this example correspond to problem 60 in basic benchmark?
-    def testBasic60(self):
-        runFile(self, file="basic60.hhl")
+    # # TODO: Does this example correspond to problem 60 in basic benchmark?
+    # def testBasic60(self):
+    #     runFile(self, file="basic60.hhl")
     
     # TODO: Basic benchmark, problem 56, 58 - 60, cannot be written into hcsp program.
 
@@ -974,6 +974,7 @@ class NonlinearHHLPyTest(unittest.TestCase):
 
     def testNonlinear141(self):
         runFile(self, file="nonlinear141.hhl")
+
 
 class SSHHLPyTest(unittest.TestCase):
 

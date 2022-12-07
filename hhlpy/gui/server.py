@@ -180,7 +180,7 @@ def runVerify(formula, code, solver):
     elif solver == "wolfram" and not found_wolfram:
         raise Exception("Wolfram Engine not found.")
     elif solver == "wolfram":
-        return wl_prove(formulaExpr)
+        return wl_prove(formulaExpr, functions=hoare_triple.functions)
     else:
         raise NotImplementedError
 
