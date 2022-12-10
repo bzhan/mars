@@ -219,16 +219,16 @@ def runComputationProcess(inputQueue, outputQueue):
                     formula=msg["formula"],
                     code=msg["code"],
                     solver=msg["solver"])
-            except Exception as e:
-                traceback.print_exc()
-                outputQueue.put({"error": str(e), "type": "error", "file": msg["file"]})
-        
-            outputQueue.put({
+                outputQueue.put({
                 "file": msg["file"],
                 "index": msg["index"], 
                 "formula": msg["formula"], 
                 "result": result, 
                 "type": "verified"})
+            except Exception as e:
+                traceback.print_exc()
+                outputQueue.put({"error": str(e), "type": "error", "file": msg["file"]})
+        
 
 # These queues are used to communicate between the two processes
 computationInputQueue = Queue()
