@@ -21,12 +21,16 @@ Note that you do not need to clone the repository.
 ```
 >>> git clone git@github.com:bzhan/mars.git
 ```
-* Install node modules
+* Install required packages:
+```
+>>> python -m pip install -r requirements.txt
+```
+* Install node modules:
 ```
 >>> cd hhlpy/gui
 >>> npm install
 ```
-* Run `npm run serve` to start HHLPy. Open `http://127.0.0.1:8000/` in your browser
+* Run `npm run serve` to start HHLPy. Open `http://127.0.0.1:8080/` in your browser.
 
 ### Install Wolfram Engine
 
