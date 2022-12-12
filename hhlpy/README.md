@@ -39,11 +39,10 @@ To be able to proof more verification conditions, install Wolfram Engine on your
 * Download Wolfram Engine and install it: https://www.wolfram.com/engine/
 * Get a license for Wolfram Engine and activate it.
 * If you use the standard installation path, HHLPy should be able to
-find it automatically; simply run `python -m hhlpy`.
-* If you see the message `Please install Wolfram Kernel ...`, you
+find it automatically. If you use a nonstandard installation path, you
 need to set the environment variable `WolframKernel` to the path of the file
 `WolframKernel` or `WolframKernel.exe` that comes with the Wolfram Engine
-installation. Then restart your terminal and run `python -m hhlpy`.
+installation.
 * If you see the line `Socket exception: Socket operation aborted.` in the terminal,
 you probably still need to activate your license. 
 
