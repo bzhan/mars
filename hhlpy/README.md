@@ -17,6 +17,7 @@ Note that you do not need to clone the repository.
   (If it doesn't, open `http://127.0.0.1:8000/` in your browser.)
   
 ### Install Using git
+* Install NodeJS: https://nodejs.org/en/.
 * Clone the library’s repository:
 ```
 >>> git clone git@github.com:bzhan/mars.git
