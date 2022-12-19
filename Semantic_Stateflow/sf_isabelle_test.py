@@ -44,12 +44,12 @@ class SFIsabelleTest(unittest.TestCase):
             self.assertEqual(translate_event(event), res)
     '''
     def testTranslate1(self):
-        filename = "Semantic_Stateflow/example_xml/InnerTrans.xml"
+        filename = "Semantic_Stateflow/test.xml"
         n = 2
         input_enent = "[\'\'\'\', \'\'\'\']"
         output_str = ""
         try:
-            jsonname  = "Semantic_Stateflow/example_xml/InnerTrans.json"
+            jsonname  = "./Semantic_Stateflow/test.json"
             with open(jsonname,'r',encoding='utf8')as fp:
                 json_data = json.load(fp)
                 for key in json_data.keys():
@@ -119,7 +119,7 @@ class SFIsabelleTest(unittest.TestCase):
         if output_str == "":
             str += ' ?s\"\n'
         else:
-            str += '\n (Status (Vals ?v1 ?v2 ?v3 (%s, ?o2)) (?I))\"\n' %output_str
+            str += '\n (Status (Vals ?v1 ?v2 ?v3 ?v4 (%s, ?o2)) (?I))\"\n' %output_str
         str += '  unfolding '
         cnt = len('  unfolding ')
         for mydef in def_list:
