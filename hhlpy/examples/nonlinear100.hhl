@@ -1,0 +1,15 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Damped Mathieu System".
+
+# Citation "James Kapinski, Jyotirmoy V. Deshmukh, Sriram Sankaranarayanan, and Nikos Arechiga. 2014. Simulation-guided Lyapunov analysis for hybrid dynamical systems. In Proceedings of the 17th International Conference on Hybrid systems: computation and control (HSCC '14). ACM, New York, NY, USA, 133-142. DOI=http://doi.org/10.1145/2562059.2562139".
+
+function LyapunovCandidate(x1, x2) = 98*x1^2 + 24*x1*x2 + 24*x2*x1 + 55*x2^2;
+
+pre [x1 == 1/20][x2 == 1/32][sint == 0][cost == 1];
+
+t := *(t >= 0);
+{x1_dot = x2, x2_dot = -x2-(2+sint)*x1, sint_dot = cost, cost_dot = -sint, t_dot = 1 & t > 0}
+    invariant [cost^2+sint^2<=100000/99999]
+              [cost^2+sint^2>=1]
+              [LyapunovCandidate(x1, x2) < 1];
+
+post [98*x1^2 + 24*x1*x2 + 24*x2*x1 + 55*x2^2 < 1];

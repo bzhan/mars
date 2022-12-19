@@ -9,7 +9,7 @@ import ast
 import math
 import random
 from decimal import Decimal
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 from scipy.integrate import solve_ivp
 from ss2hcsp.hcsp.expr import Expr, AVar, AConst, OpExpr, FunExpr, IfExpr, \
     ListExpr, DictExpr, ArrayIdxExpr, FieldNameExpr, BConst, LogicExpr, \
@@ -228,24 +228,29 @@ class SimInfo:
     or None if execution has reached the end.
 
     """
-    def __init__(self, name: str, hp: hcsp.HCSP, *, outputs=None,
+    def __init__(self, name: str, hp: hcsp.HCSP, *,
+                 outputs: Optional[List[hcsp.HCSPOutput]] = None,
                  procedures: Optional[Dict[str, hcsp.Procedure]] = None,
                  functions: Optional[Dict[str, hcsp.Function]] = None,
-                 pos="start", state=None):
+                 pos="start",
+                 state=None):
         """Initializes with starting position as the execution position."""
 
         # Name of the program
         assert isinstance(name, str)
-        self.name = name
+        self.name: str = name
 
         # Code for the program
+        self.hp: hcsp.HCSP
         if isinstance(hp, str):
             self.hp = parser.hp_parser.parse(hp)
         else:
             self.hp = hp
 
-        # List of output variables, None indicates output everything.
-        self.outputs = outputs
+        # List of output variables
+        self.outputs: List[hcsp.HCSPOutput] = []
+        if outputs is not None:
+            self.outputs = outputs
 
         # Dictionary of procedure declarations
         if procedures is None:
@@ -253,7 +258,7 @@ class SimInfo:
         assert isinstance(procedures, dict)
         for k, v in procedures.items():
             assert isinstance(k, str) and isinstance(v, hcsp.Procedure)
-        self.procedures = procedures
+        self.procedures: Dict[str, hcsp.Procedure] = procedures
 
         # Dictionary of function declarations
         if functions is None:
@@ -261,7 +266,7 @@ class SimInfo:
         assert isinstance(functions, dict)
         for k, v in functions.items():
             assert isinstance(k, str) and isinstance(v, hcsp.Function)
-        self.functions = functions
+        self.functions: Dict[str, hcsp.Function] = functions
     
         # Current position of execution
         if isinstance(pos, str):
@@ -328,8 +333,10 @@ class SimInfo:
                         return round(e1) % int(e2)
                     else:
                         return round(e1) % e2
+                elif expr.op == '^':
+                    return e1 ** e2
                 else:
-                    raise TypeError
+                    raise SimulatorException("Unrecognized operator %s" % expr.op)
 
         elif isinstance(expr, FunExpr):
             # Special functions
@@ -378,6 +385,11 @@ class SimInfo:
                 if len(a) == 0:
                     raise SimulatorException('When evaluating %s: argument is empty' % expr)
                 return a[1:]
+            elif expr.fun_name == "del":
+                a, b = args
+                assert isinstance(a, list)
+                del a[b]
+                return a
             elif expr.fun_name == "del0":
                 a, b = args
                 assert isinstance(a, list)
@@ -440,6 +452,8 @@ class SimInfo:
                 return random.randint(1, args[0])
             elif expr.fun_name == "zeros":
                 return np.zeros(tuple(args), dtype=int).tolist()
+            elif expr.fun_name == "pi":
+                return math.pi
 
             # Custom functions
             elif expr.fun_name in self.functions:
@@ -834,7 +848,7 @@ class SimInfo:
         elif lname is None:
             pass
         else:
-            raise NotImplementedError
+            raise SimulatorException('Evaluating assignment %s := %s: not implemented' % (lname, val))
 
     def exec_step(self,infos):
         """Compute a single process for one step.
@@ -1149,6 +1163,8 @@ class SimInfo:
                 
                 y0 = []
                 for var_name, _ in cur_hp.eqs:
+                    if not isinstance(self.state[var_name], (int, float)):
+                        raise SimulatorException('When executing %s, initial value is not a number' % cur_hp)
                     y0.append(self.state[var_name])
 
                 t_eval = [x for x in get_range(0, delay)]
@@ -1174,7 +1190,7 @@ class SimInfo:
         else:
             assert False
 
-def match_channel(out_ch, in_ch):
+def match_channel(out_ch: hcsp.Channel, in_ch: hcsp.Channel):
     """Matching between two channels.
     
     If there is no match, return None. Otherwise, return a pair of
@@ -1187,18 +1203,18 @@ def match_channel(out_ch, in_ch):
     inst_out, inst_in = dict(), dict()
     for out_arg, in_arg in zip(out_ch.args, in_ch.args):
         if isinstance(out_arg, AVar):
-            if isinstance(in_arg, (int, str)):
-                inst_out[out_arg.name] = in_arg
+            if isinstance(in_arg, AConst):
+                inst_out[out_arg.name] = in_arg.value
             elif isinstance(in_arg, AVar):
                 return None  # both sides are variables
             else:
                 raise TypeError
-        elif isinstance(out_arg, (int, str)):
-            if isinstance(in_arg, (int, str)):
+        elif isinstance(out_arg, AConst):
+            if isinstance(in_arg, AConst):
                 if out_arg != in_arg:
                     return None
             elif isinstance(in_arg, AVar):
-                inst_in[in_arg.name] = out_arg
+                inst_in[in_arg.name] = out_arg.value
             else:
                 raise TypeError
         else:
@@ -1260,7 +1276,7 @@ def extract_event(infos):
         return "deadlock"
 
 
-def exec_parallel(infos, *, num_io_events=None, num_steps=3000, num_show=None,
+def exec_parallel(infos: List[SimInfo], *, num_io_events=None, num_steps=3000, num_show=None,
                   show_interval=None, start_event=None, show_event_only=False, verbose=True):
     """Given a list of SimInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
@@ -1332,7 +1348,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=3000, num_show=None,
         if not show_event_only or new_event['type'] != 'step':
             res['trace'].append(new_event)
 
-    def log_time_series(info, time, state):
+    def log_time_series(info: SimInfo, time, state):
         """Log the given time series for program with the given name."""
         if info.name not in res['time_series']:
             return
@@ -1341,13 +1357,26 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=3000, num_show=None,
             "event": len(res['trace']),
             "state": dict()
         }
-        for k, v in state.items():
-            if info.outputs is None or any(k in output for output in info.outputs):
-                if isinstance(v, (int, float)):
-                    new_entry['state'][k] = v
-                elif isinstance(v, list):
-                    for i, val in enumerate(v):
-                        new_entry['state'][k+'['+str(i)+']'] = val
+        for output in info.outputs:
+            if output.expr is None:
+                if output.varname in state:
+                    v = state[output.varname]
+                    if isinstance(v, (int, float)):
+                        new_entry['state'][output.varname] = v
+                    elif isinstance(v, list):
+                        for i, val in enumerate(v):
+                            new_entry['state'][output.varname+'['+str(i)+']'] = val
+            else:
+                try:
+                    v = eval_expr(output.expr, state)
+                    if isinstance(v, (int, float)):
+                        new_entry['state'][output.varname] = v
+                    elif isinstance(v, list):
+                        for i, val in enumerate(v):
+                            new_entry['state'][output.varname+'['+str(i)+']'] = val
+                except SimulatorException:
+                    pass
+
         series = res['time_series'][info.name]
         if len(series) == 0 or new_entry != series[-1]:
             series.append(new_entry)
@@ -1480,7 +1509,65 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=3000, num_show=None,
     res['statemap'] = statemap
     return res
 
-def check_comms(infos):
+def get_comm_maps(comm_in_map,comm_out_map,hp,name):
+    for ch_name, direction in hcsp.get_comm_chs(hp):
+        # do not check channels with vars and number in args
+        hasvar = False
+        for arg in ch_name.args:
+            if(str(arg)[0] != '_' and str(arg) != 'run_now'):
+                if isinstance(arg, AVar):
+                    hasvar = True
+        if hasvar:
+            continue
+
+        if direction == '?':
+            if ch_name not in comm_in_map:
+                comm_in_map[ch_name] = []
+            comm_in_map[ch_name].append(name)
+        else:
+            if ch_name not in comm_out_map:
+                comm_out_map[ch_name] = []
+            comm_out_map[ch_name].append(name)
+    return comm_in_map,comm_out_map
+
+def instantation(comm_map_A, comm_map_B):
+    # instanation of comm_map_A with comm_map_B
+    new_map = {}
+    deletechs = []
+    for in_ch_name in comm_map_A.keys():
+        hasunderline = False
+        for i in range(len(in_ch_name.args)):
+            if str(in_ch_name.args[i])[0] == '_'  or str(in_ch_name.args[i]) == 'run_now':
+                hasunderline = True
+                arg_rank = i
+        if(hasunderline):
+            for out_ch_name in comm_map_B.keys():
+                samechannel = True
+                if in_ch_name.name != out_ch_name.name:
+                    continue
+                if len(in_ch_name.args) != len(out_ch_name.args):
+                    continue
+                for i in range(len(out_ch_name.args)):
+                    if i == arg_rank:
+                        continue
+                    if str(in_ch_name.args[i]) != str(out_ch_name.args[i]) \
+                            and str(in_ch_name.args[i])[0] != '_'  \
+                            and str(in_ch_name.args[i]) != 'run_now' \
+                            and str(out_ch_name.args[i])[0] != '_'\
+                            and str(out_ch_name.args[i]) != 'run_now':
+                        samechannel = False
+                if(samechannel):
+                    new_map[out_ch_name] = comm_map_B[out_ch_name]
+                    deletechs.append(in_ch_name)
+    instantedchs =[]
+    for k, v in new_map.items():
+        comm_map_A[k] = v
+        instantedchs.append(k)
+    for ch in list(set(deletechs)):
+        comm_map_A.pop(ch)
+    return comm_map_A,comm_map_B,instantedchs
+
+def check_comms(infos: List[hcsp.HCSPInfo]):
     """Given a list of HCSP infos, check for potential mismatch of
     communication channels.
 
@@ -1491,25 +1578,25 @@ def check_comms(infos):
     for info in infos:
         if info.hp.type == 'parallel':
             continue
-
-        for ch_name, direction in hcsp.get_comm_chs(info.hp):
-            if len(ch_name.args) > 0:  # do not check parameterized channels
-                continue
-            if direction == '?':
-                if ch_name not in comm_in_map:
-                    comm_in_map[ch_name] = []
-                comm_in_map[ch_name].append(info.name)
-            else:
-                if ch_name not in comm_out_map:
-                    comm_out_map[ch_name] = []
-                comm_out_map[ch_name].append(info.name)
+        comm_in_map, comm_out_map = get_comm_maps(comm_in_map,comm_out_map,info.hp,info.name)
+        if len(info.procedures) != 0:
+            for key, procedure in info.procedures.items():
+                comm_in_map, comm_out_map = get_comm_maps(comm_in_map,comm_out_map,procedure.hp,info.name)
+    
+    instantedchs=[]
+    comm_in_map,comm_out_map,chs=instantation(comm_in_map,comm_out_map)
+    instantedchs.extend(chs)
+    comm_out_map,comm_in_map,chs=instantation(comm_out_map,comm_in_map)
+    instantedchs.extend(chs)
+    instantedchs = list(set(instantedchs))
 
     for ch_name, hp_names in comm_in_map.items():
         if len(hp_names) >= 2:
             warnings.append("Warning: input %s used in more than one process: %s" % (ch_name, ', '.join(hp_names)))
         if ch_name not in comm_out_map:
             warnings.append("Warning: input channel %s has no corresponding output" % ch_name)
-        elif hp_names[0] in comm_out_map[ch_name]:
+        elif (hp_names[0] in comm_out_map[ch_name]) \
+            and (ch_name not in instantedchs):
             warnings.append("Warning: input and output channel %s in the same process" % ch_name)
 
     for ch_name, hp_names in comm_out_map.items():

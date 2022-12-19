@@ -12,13 +12,14 @@ from ss2hcsp.hcsp import hcsp
 class MatlabTest(unittest.TestCase):
     def testParseExpr(self):
         test_data = [
-            "0",
-            "[0,0,0,0,0]"
+            ("0", function.AConst(0)),
+            ("[0,0,0,0,0]", function.ListExpr(*([function.AConst(0)] * 5))),
+            ("pi / 3", function.OpExpr("/", function.FunExpr("pi"), function.AConst(3))),
         ]
 
-        for s in test_data:
+        for s, expected_expr in test_data:
             expr = parser.expr_parser.parse(s)
-            self.assertEqual(str(expr), s)
+            self.assertEqual(expr, expected_expr)
 
     def testParseCmd(self):
         test_data = [
@@ -94,6 +95,7 @@ class MatlabTest(unittest.TestCase):
             ("a % 2", "a % 2"),
             ("min(a,b)", "min(a,b)"),
             ("rand()", "uniform(0,1)"),
+            ("pi / 3", "pi / 3"),
         ]
 
         for s, res in test_data:

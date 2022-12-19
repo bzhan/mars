@@ -1,3 +1,11 @@
+
+
+from ss2hcsp.server.sequence_diagram import print_sequence_diagram
+from ss2hcsp.server.get_port_service import get_aadl_port_service, get_simulink_port_service
+from ss2hcsp.hcsp import hcsp
+from ss2hcsp.hcsp import pprint
+from ss2hcsp.hcsp import parser
+from ss2hcsp.hcsp import simulator
 from flask import Flask
 from flask import request
 import lark
@@ -10,12 +18,6 @@ import random
 
 import sys
 sys.path.append("..")
-from ss2hcsp.hcsp import simulator
-from ss2hcsp.hcsp import parser
-from ss2hcsp.hcsp import pprint
-from ss2hcsp.hcsp import hcsp
-from ss2hcsp.server.get_port_service import get_aadl_port_service, get_simulink_port_service
-from ss2hcsp.server.sequence_diagram import print_sequence_diagram
 
 app = Flask(__name__)
 
@@ -24,10 +26,12 @@ app = Flask(__name__)
 def hello_world():
     return "Hello, World!"
 
+
 def raise_error(err_str):
     return json.dumps({
         'error': err_str
     })
+
 
 @app.route('/parse_hcsp', methods=['POST'])
 def parse_hcsp():
@@ -58,11 +62,13 @@ def parse_hcsp():
             procs = dict()
             for proc in info.procedures:
                 procs[proc.name] = proc
-            sim_infos.append(simulator.SimInfo(name, hp, outputs=info.outputs, procedures=procs))
+            sim_infos.append(simulator.SimInfo(
+                name, hp, outputs=info.outputs, procedures=procs))
             lines, mapping = pprint.pprint_lines(hp, record_pos=True)
             json_procs = []
             for proc in info.procedures:
-                proc_lines, proc_mapping = pprint.pprint_lines(proc.hp, record_pos=True)
+                proc_lines, proc_mapping = pprint.pprint_lines(
+                    proc.hp, record_pos=True)
                 json_procs.append({
                     'name': proc.name,
                     'text': str(proc.hp),
@@ -72,7 +78,7 @@ def parse_hcsp():
             hcsp_info.append({
                 'name': name,
                 'text': str(hp),
-                'outputs': info.outputs,
+                'outputs': [output.toJson() for output in info.outputs],
                 'lines': lines,
                 'mapping': mapping,
                 'procedures': json_procs
@@ -85,6 +91,7 @@ def parse_hcsp():
         'warnings': warnings
     })
 
+
 @app.route('/run_hcsp', methods=['POST'])
 def run_hcsp():
     data = json.loads(request.get_data())
@@ -93,10 +100,12 @@ def run_hcsp():
     profile = False
 
     def convert_procs(procs):
-        return {proc['name']:hcsp.Procedure(proc['name'], proc['text'])
+        return {proc['name']: hcsp.Procedure(proc['name'], proc['text'])
                 for proc in procs}
 
-    infos = [simulator.SimInfo(info['name'], info['text'], outputs=info['outputs'],
+    infos = [simulator.SimInfo(info['name'], info['text'],
+                               outputs=[hcsp.outputFromJson(
+                                   output) for output in info['outputs']],
                                procedures=convert_procs(info['procedures']))
              for info in infos if 'parallel' not in info]
 
@@ -142,7 +151,6 @@ def run_hcsp():
         #
         # print("DONE!")
 
-
     except simulator.SimulatorException as e:
         return raise_error(e.error_msg)
 
@@ -181,6 +189,7 @@ def run_hcsp():
 
     return json.dumps(res)
 
+
 @app.route('/get_simulink_port', methods=['POST'])
 def get_simulink_port():
     simulink_code = request.get_data(as_text=True)
@@ -196,4 +205,4 @@ def get_AADL_port():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()

@@ -1,7 +1,7 @@
 %type: module
 
 module P():
-output start, lap, disp_cent;
+output disp_cent, start, lap;
 procedure exec_Chart begin
   Chart_done := 0;
   Chart_ret := 0;
@@ -166,41 +166,41 @@ begin
     Pulse_Generator2_tick := Pulse_Generator2_tick + 1;
     if (_tick % 10 == 0) {
       if (Signal_Builder_tick >= 0 && Signal_Builder_tick < 1) {
-        Signal_Builder_Signal_1 := 0.0 * (Signal_Builder_tick - 0) + 0.0;
+        start := 0.0 * (Signal_Builder_tick - 0) + 0.0;
       } else if (Signal_Builder_tick >= 1 && Signal_Builder_tick < 6) {
-        Signal_Builder_Signal_1 := 0.0 * (Signal_Builder_tick - 1) + 1.0;
+        start := 0.0 * (Signal_Builder_tick - 1) + 1.0;
       } else if (Signal_Builder_tick >= 6 && Signal_Builder_tick < 8) {
-        Signal_Builder_Signal_1 := 0.0 * (Signal_Builder_tick - 6) + 0.0;
+        start := 0.0 * (Signal_Builder_tick - 6) + 0.0;
       } else if (Signal_Builder_tick >= 8 && Signal_Builder_tick < 12) {
-        Signal_Builder_Signal_1 := 0.0 * (Signal_Builder_tick - 8) + 1.0;
+        start := 0.0 * (Signal_Builder_tick - 8) + 1.0;
       } else if (Signal_Builder_tick >= 12 && Signal_Builder_tick < 14) {
-        Signal_Builder_Signal_1 := 0.0 * (Signal_Builder_tick - 12) + 0.0;
+        start := 0.0 * (Signal_Builder_tick - 12) + 0.0;
       } else if (Signal_Builder_tick >= 14 && Signal_Builder_tick < 18) {
-        Signal_Builder_Signal_1 := 0.0 * (Signal_Builder_tick - 14) + 1.0;
+        start := 0.0 * (Signal_Builder_tick - 14) + 1.0;
       } else if (Signal_Builder_tick >= 18 && Signal_Builder_tick < 200) {
-        Signal_Builder_Signal_1 := 0.0 * (Signal_Builder_tick - 18) + 0.0;
+        start := 0.0 * (Signal_Builder_tick - 18) + 0.0;
       } else {
-        Signal_Builder_Signal_1 := 0.0;
+        start := 0.0;
       }
       Signal_Builder_tick := Signal_Builder_tick + 1;
     }
     if (_tick % 10 == 0) {
       if (Signal_Builder1_tick >= 0 && Signal_Builder1_tick < 10) {
-        Signal_Builder1_Signal_1 := 0.0 * (Signal_Builder1_tick - 0) + 0.0;
+        lap := 0.0 * (Signal_Builder1_tick - 0) + 0.0;
       } else if (Signal_Builder1_tick >= 10 && Signal_Builder1_tick < 11) {
-        Signal_Builder1_Signal_1 := 0.0 * (Signal_Builder1_tick - 10) + 1.0;
+        lap := 0.0 * (Signal_Builder1_tick - 10) + 1.0;
       } else if (Signal_Builder1_tick >= 11 && Signal_Builder1_tick < 12) {
-        Signal_Builder1_Signal_1 := 0.0 * (Signal_Builder1_tick - 11) + 0.0;
+        lap := 0.0 * (Signal_Builder1_tick - 11) + 0.0;
       } else if (Signal_Builder1_tick >= 12 && Signal_Builder1_tick < 13) {
-        Signal_Builder1_Signal_1 := 0.0 * (Signal_Builder1_tick - 12) + 1.0;
+        lap := 0.0 * (Signal_Builder1_tick - 12) + 1.0;
       } else if (Signal_Builder1_tick >= 13 && Signal_Builder1_tick < 200) {
-        Signal_Builder1_Signal_1 := 0.0 * (Signal_Builder1_tick - 13) + 0.0;
+        lap := 0.0 * (Signal_Builder1_tick - 13) + 0.0;
       } else {
-        Signal_Builder1_Signal_1 := 0.0;
+        lap := 0.0;
       }
       Signal_Builder1_tick := Signal_Builder1_tick + 1;
     }
-    x0 := push(push(Signal_Builder_Signal_1,Signal_Builder1_Signal_1),tick);
+    x0 := push(push(start,lap),tick);
     if (pre_x0[0] < 0 && x0[0] >= 0 || pre_x0[0] == 0 && x0[0] > 0) {
       ChartEL := push(ChartEL,"START");
       @exec_Chart;

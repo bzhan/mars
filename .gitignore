@@ -19,4 +19,13 @@ sequence_diagram.txt
 simulator_events.txt
 ss2hcsp/event_output.json
 ss2hcsp/import_path.txt
+hcsp2c/example/
+hcsp2c/target/*.out
+hcsp2c/target/*.c
+hcsp2c/target/*.h
+!hcsp2c/target/hcsp2c.c
+!hcsp2c/target/hcsp2c.h
+hcsp2c/output/*.out
+hcsp2c/hcsp2c_test.py
+hhlpy/gui/package-lock.json
 hhlpy/wolframpath.txt

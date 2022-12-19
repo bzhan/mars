@@ -1,7 +1,7 @@
 %type: module
 
 module P():
-output start, lap, disp_cent;
+output disp_cent, start, lap;
 procedure exec_Chart begin
   Chart_done := 0;
   Chart_ret := 0;

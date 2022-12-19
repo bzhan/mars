@@ -3,7 +3,7 @@
   <div class="verification-condition" :class="{outdated: outdated}">
     <div class="error" v-show="error">{{error}}</div>
     <div>{{vc_success_num + "/" + vc_num}}
-      <!-- <button @click="compute">Compute</button> -->
+      <button @click="compute">Compute</button>
       <button @click="verify">Verify</button>
       <button @click="cancel" :disabled="!computationProcessReady">Cancel</button>
     </div>
@@ -110,6 +110,9 @@ export default ({
       // Change the document in the editor into new_proof_methods
       this.editorView.dispatch(this.editorView.state.update({
         changes: {from: pms_start_pos, to: pms_end_pos, insert: "{{" + new_proof_methods + "}}"}}))
+      
+      // Update VC panels (including VC results) after changes are made in the editor. 
+      this.compute()
 
     },
 
@@ -236,6 +239,12 @@ export default ({
           console.error("Wrong result for the verification condition:", formula)
       }
     },
+    compute() {
+      // Send the doc in editor to server with type "compute".
+      let code = this.editorView.state.doc.toString();
+      this.websocketStore.send({file: this.file, code: code, type: "compute"})
+    },
+
     verify() {
       // Send the computed vc formula, the index i and the choosen solver to server.
       for (let i = 0; i < this.vc_infos.length; i++){

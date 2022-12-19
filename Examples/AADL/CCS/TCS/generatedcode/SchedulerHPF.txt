@@ -1,0 +1,66 @@
+%type: module
+module SchedulerHPF(sid):
+output prior, run_prior;
+begin
+Pool_prior := [];
+Pool_now := [];
+GetMaxList := [];
+prior := -1;
+run_now := "";
+run_prior := -1;
+{
+reqProcessor[sid][_tid]?prior -->
+    if (run_prior >= prior) {
+        Pool_prior := push(Pool_prior, prior);
+        Pool_now := push(Pool_now, _tid);
+    } else {
+        if (run_now != "") {
+            preempt[sid][run_now]!;
+        } 
+        run_now := _tid;
+        run_prior := prior;
+        run[sid][run_now]!;
+    }
+$
+free[sid][_tid]? -->
+    assert(_tid == run_now);
+    if (len(Pool_prior) > 0) {
+        run_prior := -1;
+        run_now := "";
+        max_index := 0;
+        idx := 0;
+        {   
+            now_prior := 0;
+            now_prior := Pool_prior[idx];
+            if (now_prior > run_prior) {
+                run_prior := Pool_prior[idx];
+                run_now := Pool_now[idx];
+                max_index := idx;
+            }
+            idx := idx + 1;
+        } * (idx < len(Pool_prior))
+
+        Pool_prior := del(Pool_prior, max_index);
+        Pool_now := del(Pool_now, max_index);
+        run[sid][run_now]!;
+    } else {
+        run_prior := -1; run_now := "";
+    }
+$
+exit[sid][_tid]? --> 
+    idx := 0;
+    del_index := 0;
+    {   
+        now_now := "";
+        now_now := Pool_now[idx];
+        if (now_now == _tid) {
+            del_index := idx;
+        }
+        idx := idx + 1;
+    } * (idx < len(Pool_prior))
+    Pool_prior := del(Pool_prior, del_index);
+    Pool_now := del(Pool_now, del_index);
+}*
+
+end
+endmodule

@@ -3,12 +3,8 @@
 import unittest
 
 from ss2hcsp.sl.sl_diagram import SL_Diagram
-from ss2hcsp.sf.sf_state import Junction, OR_State, AND_State
-from ss2hcsp.sf.sf_isabelle import translate_composition, translate_expr, translate_action, translate_actions, \
-    translate_event, translate_trans, translate_state, translate_junction_function, dfs_search_chart, \
-    translate_chart_info, translate_fe_info, translate_ge_info
-from ss2hcsp.matlab import function
-from ss2hcsp.matlab.parser import expr_parser, cond_parser, cmd_parser, event_parser
+from ss2hcsp.sf.sf_isabelle import translate_junction_function, dfs_search_chart, \
+    translate_fe_info, translate_ge_info
 
 
 class SFIsabelleTest(unittest.TestCase):
@@ -47,7 +43,7 @@ class SFIsabelleTest(unittest.TestCase):
         diagram = SL_Diagram(location=filename)
         diagram.parse_xml()
         diagram.add_line_name()
-        _, _, charts, _, _, _, _, _, _ = diagram.seperate_diagram()
+        charts = [block for block in diagram.blocks_dict.values() if block.type == "stateflow"]
         chart = charts[0]
         print(chart)
         print('\n')

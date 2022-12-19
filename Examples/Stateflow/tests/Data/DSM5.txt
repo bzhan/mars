@@ -41,6 +41,7 @@ begin
   }*
 end
 endmodule
+
 module data_ctrl():
 begin
   global_x := 1;
@@ -57,6 +58,7 @@ begin
   }*
 end
 endmodule
+
 system
 Chart() ||
 data_ctrl()

@@ -9,20 +9,15 @@ begin
   PHY_vehicle_imp_veh_s := 0;
   PHY_vehicle_imp_veh_v_l := 0;
   PHY_vehicle_imp_veh_v_w := 0;
-  PHY_vehicle_imp_veh_l_v := 0;
-  PHY_vehicle_imp_veh_w_v := 0;
+  a := 0.0;
   {
     inputs["PHY_vehicle_imp"]["veh_s"]!s -->
       PHY_vehicle_imp_veh_s := 1; $
     inputs["PHY_vehicle_imp"]["veh_v_l"]!v -->
       PHY_vehicle_imp_veh_v_l := 1; $
     inputs["PHY_vehicle_imp"]["veh_v_w"]!v -->
-      PHY_vehicle_imp_veh_v_w := 1; $
-    inputs["PHY_vehicle_imp"]["veh_l_v"]!veh_l_v -->
-      PHY_vehicle_imp_veh_l_v := 1; $
-    inputs["PHY_vehicle_imp"]["veh_w_v"]!veh_w_v -->
-      PHY_vehicle_imp_veh_w_v := 1;
-  }*(PHY_vehicle_imp_veh_s == 0 || PHY_vehicle_imp_veh_v_l == 0 || PHY_vehicle_imp_veh_v_w == 0 || PHY_vehicle_imp_veh_l_v == 0 || PHY_vehicle_imp_veh_w_v == 0)
+      PHY_vehicle_imp_veh_v_w := 1;
+  }*(PHY_vehicle_imp_veh_s == 0 || PHY_vehicle_imp_veh_v_l == 0 || PHY_vehicle_imp_veh_v_w == 0)
   outputs["PHY_vehicle_imp"]["veh_a"]?a;
   {
     {v_dot = a, s_dot = v & true} |> [] (
@@ -33,10 +28,6 @@ begin
       inputs["PHY_vehicle_imp"]["veh_v_l"]!v -->
         skip;,
       inputs["PHY_vehicle_imp"]["veh_v_w"]!v -->
-        skip;,
-      inputs["PHY_vehicle_imp"]["veh_l_v"]!veh_l_v -->
-        skip;,
-      inputs["PHY_vehicle_imp"]["veh_w_v"]!veh_w_v -->
         skip;
     )
   }*
@@ -90,7 +81,7 @@ output data;
 begin
   {
     inputs["PHY_vehicle_imp"]["veh_s"]?data;
-    outputs["gps"]["veh_pos"]!data;
+    outputs["GPS"]["veh_pos"]!data;
     wait(0.006);
   }*
 end
@@ -144,6 +135,7 @@ endmodule
 module EXE_img_acq():
 output image, new_image;
 begin
+  image := 0.0;
   skip;
   processing_state := 0;
   state := "wait";
@@ -204,6 +196,8 @@ endmodule
 module EXE_comp_obs_pos():
 output obs_pos_radar, proc_img, obs_pos;
 begin
+  obs_pos_radar := 0.0;
+  proc_img := 0.0;
   skip;
   x0 := 0;
   state := "wait";
@@ -265,7 +259,7 @@ end
 endmodule
 
 module EXE_emerg():
-output des_v, veh_v, obs_pos, veh_pos, cmd;
+output des_a, veh_v, obs_pos, veh_pos, cmd;
 procedure en_emerg_imp_state begin
   skip;
 end
@@ -430,13 +424,17 @@ procedure exec_emerg_imp begin
 end
 
 begin
+  des_a := 0.0;
+  veh_v := 0.0;
+  obs_pos := 0.0;
+  veh_pos := 0.0;
   @init_emerg_imp;
   state := "wait";
   prior := 2;
   {
     if (state == "wait") {
       dis["emerg"]?;
-      inputs["emerg"]["des_v"]?des_v;
+      inputs["emerg"]["des_a"]?des_a;
       inputs["emerg"]["veh_v"]?veh_v;
       inputs["emerg"]["obs_pos"]?obs_pos;
       inputs["emerg"]["veh_pos"]?veh_pos;
@@ -492,7 +490,7 @@ begin
       }
     } else {
       {t_dot = 1 & t < 0.005} |> [] (
-        unblock["emerg_imp"]? -->
+        unblock["emerg"]? -->
           state := "ready";
       )
       if (t == 0.005) {
@@ -506,6 +504,10 @@ endmodule
 module EXE_velo_voter():
 output wheel_v, laser_v, veh_v;
 begin
+  wheel_v := 0.0;
+  wheel_valid := -1.0;
+  laser_v := 0.0;
+  laser_valid := -1.0;
   x3 := 2;
   state := "wait";
   prior := 1;
@@ -588,7 +590,7 @@ end
 
 procedure during_pan_ctr_th_imp_update begin
   pan_ctr_th_imp_update_done := 0;
-  if (pan_ctr_th_impEL != [] && top(pan_ctr_th_impEL) == "inc") {
+  if (len(pan_ctr_th_impEL) != 0 && top(pan_ctr_th_impEL) == "inc") {
     skip;
     if (pan_ctr_th_imp_st == "pan_ctr_th_imp_update") {
       if (pan_ctr_th_imp_st == "pan_ctr_th_imp_update") {
@@ -602,7 +604,7 @@ procedure during_pan_ctr_th_imp_update begin
       pan_ctr_th_imp_update_done := pan_ctr_th_imp_ret;
     }
   }
-  if (pan_ctr_th_imp_st == "pan_ctr_th_imp_update" && pan_ctr_th_imp_update_done == 0 && pan_ctr_th_impEL != [] && top(pan_ctr_th_impEL) == "dec") {
+  if (pan_ctr_th_imp_st == "pan_ctr_th_imp_update" && pan_ctr_th_imp_update_done == 0 && len(pan_ctr_th_impEL) != 0 && top(pan_ctr_th_impEL) == "dec") {
     skip;
     if (pan_ctr_th_imp_st == "pan_ctr_th_imp_update") {
       if (pan_ctr_th_imp_st == "pan_ctr_th_imp_update") {
@@ -679,6 +681,7 @@ procedure exec_pan_ctr_th_imp begin
 end
 
 begin
+  event := " ";
   skip;
   @init_pan_ctr_th_imp;
   state := "wait";
@@ -704,9 +707,9 @@ begin
     } else {
       if (entered == 0) {
         c := 0;
-        EL := push(EL,event);
+        pan_ctr_th_impEL := push(pan_ctr_th_impEL,event);
         @exec_pan_ctr_th_imp;
-        EL := pop(EL);
+        pan_ctr_th_impEL := pop(pan_ctr_th_impEL);
         entered := 1;
       }
       if (entered == 1) {
@@ -739,6 +742,8 @@ endmodule
 module EXE_PI_ctr():
 output des_v, veh_v, des_a;
 begin
+  des_v := 0.0;
+  veh_v := 0.0;
   Integrator_DSTATE := 0;
   state := "wait";
   prior := 1;
@@ -766,7 +771,7 @@ begin
       if (entered == 0) {
         c := 0;
         x0 := des_v - veh_v;
-        if (t % 0.007000000000000000145716771982051795930601656436920166015625 == 0) {
+        if (t % 0.007 == 0) {
           rtb_Sum := x0;
           rtb_IntegralGain := rtb_Sum * 1;
           rtb_Sum := rtb_Sum * 1;
@@ -778,7 +783,7 @@ begin
           } else {
             rtb_SumFdbk_0 := rtb_SumFdbk;
           }
-          rtb_IntegralGain := ((rtb_SumFdbk_0 - rtb_SumFdbk) * 1 + rtb_IntegralGain) * 0.007000000000000000145716771982051795930601656436920166015625 + Integrator_DSTATE;
+          rtb_IntegralGain := ((rtb_SumFdbk_0 - rtb_SumFdbk) * 1 + rtb_IntegralGain) * 0.007 + Integrator_DSTATE;
           rtb_Sum := rtb_Sum + rtb_IntegralGain;
           if (rtb_Sum > 3) {
             des_a := 3;

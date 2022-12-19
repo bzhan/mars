@@ -36,13 +36,3 @@ class Sqrt(SL_Block):
         expr = self.get_expr()
         out_var = self.src_lines[0][0].name
         return {out_var: expr}
-
-    def get_var_map(self):
-        in_var = AVar(self.dest_lines[0].name)
-        if self.operator == "signedSqrt":
-            cond0 = RelExpr("<", in_var, AConst(0))
-            expr0 = OpExpr("-", FunExpr("sqrt", [FunExpr("abs", [in_var])]))
-            cond1 = cond0.neg()
-            expr1 = FunExpr("sqrt", [in_var])
-            out_var = self.src_lines[0][0].name
-            return {out_var: [(cond0, expr0), (cond1, expr1)]}

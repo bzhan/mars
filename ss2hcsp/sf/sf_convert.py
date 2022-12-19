@@ -1,12 +1,11 @@
 """Converting a Stateflow chart to HCSP process."""
 
-from ss2hcsp.sl import get_hcsp
+from ss2hcsp.sl import Continuous
 from ss2hcsp.hcsp.pprint import pprint
 from ss2hcsp.sf.sf_state import OR_State, AND_State, Junction, GraphicalFunction
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import optimize
-from ss2hcsp.hcsp.pprint import pprint
 from ss2hcsp.matlab import convert
 from ss2hcsp.matlab import function
 
@@ -111,7 +110,7 @@ class SFConvert:
         # the corresponding functions in convert, but with extra arguments.
         def convert_expr(e):
             return convert.convert_expr(e, arrays=self.data.keys(), procedures=self.procedures,
-                                        messages=self.messages,states=self.chart.all_states)
+                                        states=self.chart.all_states)
         self.convert_expr = convert_expr
 
         def convert_cmd(cmd, *, still_there=None):
@@ -488,7 +487,7 @@ class SFConvert:
                 for _, e in self.events.items():
                     if e.name == str(label.event.name):
                         conds.append(
-                            expr.conj(expr.RelExpr("!=", expr.AVar(self.chart.name+"EL"), expr.ListExpr()),
+                            expr.conj(expr.RelExpr("!=", expr.FunExpr("len",[expr.AVar(self.chart.name+"EL")]), expr.AConst(0)),
                                       expr.RelExpr("==", expr.FunExpr("top", [expr.AVar(self.chart.name+"EL")]), expr.AConst(label.event.name))))
             
             elif isinstance(label.event, function.TemporalEvent):
@@ -917,7 +916,7 @@ class SFConvert:
         for name, info in self.messages.items():
             if info.scope in ("LOCAL_DATA", "OUTPUT_DATA"):
                 mqueue_name = self.get_message_queue_name(name)
-                procs.append(hcsp.Assign(expr.AVar(name), expr.AConst({"data": info.data})))
+                procs.append(hcsp.Assign(expr.AVar(name), expr.DictExpr(("data", expr.AConst(info.data)))))
                 procs.append(hcsp.Assign(expr.AVar(mqueue_name), expr.ListExpr()))
             elif info.scope in ("INPUT_DATA"):
                 mqueue_name = self.get_message_queue_name_input(name)
@@ -1180,13 +1179,14 @@ def get_data_proc(comm_data):
     return hcsp.seq(procs)
 
 def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_final=False,
-                    debug_name=True):
+                    debug_name=False):
     """Full conversion function for Stateflow.
 
     diagram : SL_Diagram - input diagram.
     print_chart : bool - print parsed chart.
     print_before_simp : bool - print HCSP program before simplification.
     print_final : bool - print HCSP program after optimization.
+    debug_name : bool - print size of HCSP program before and after optimization.
 
     """
     # Initial stages
@@ -1246,7 +1246,11 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
 
     # Processes for continuous
     if continuous:
-        proc_map["Continuous"] = (dict(), get_hcsp.translate_continuous(continuous))
+        io_comms = []
+        for block in continuous:
+            assert isinstance(block, Continuous.constant.Constant)
+            io_comms.append((hcsp.OutputChannel("ch_" + block.src_lines[0][0].name + "_0", expr.AConst(block.value)), hcsp.Skip()))
+        proc_map["Continuous"] = (dict(), hcsp.Loop(hcsp.SelectComm(*io_comms)))
 
     # Processes for scope
     for scope in diagram.scopes:

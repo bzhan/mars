@@ -1,0 +1,17 @@
+%type: module
+module EventBuffer(send, out_port, recv, in_port):
+begin
+event := "";
+queue := [];
+{
+if (len(queue) == 0) {
+    outputs[send][out_port]?event;
+    queue := push(queue, event);
+} else {
+    outputs[send][out_port]?event --> queue := push(queue, event);
+    $
+    dis[recv][in_port]!bottom(queue) --> queue := get(queue);
+}
+}*
+end
+endmodule

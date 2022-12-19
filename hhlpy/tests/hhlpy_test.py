@@ -524,13 +524,13 @@ class BasicHHLPyTest(unittest.TestCase):
     def testBasic55(self):
         runFile(self, file="basic55.hhl",)
     
-    # TODO: Does this example correspond to problem 57 in basic benchmark?
-    def testBasic57(self):
-        runFile(self, file="basic57.hhl")
+    # # TODO: Does this example correspond to problem 57 in basic benchmark?
+    # def testBasic57(self):
+    #     runFile(self, file="basic57.hhl")
 
-    # TODO: Does this example correspond to problem 60 in basic benchmark?
-    def testBasic60(self):
-        runFile(self, file="basic60.hhl")
+    # # TODO: Does this example correspond to problem 60 in basic benchmark?
+    # def testBasic60(self):
+    #     runFile(self, file="basic60.hhl")
     
     # TODO: Basic benchmark, problem 56, 58 - 60, cannot be written into hcsp program.
 
@@ -862,18 +862,8 @@ class NonlinearHHLPyTest(unittest.TestCase):
 
     # TODO:Nonlinear problem 99. No tactic offered.
 
-    # TODO:Nonlinear problem 100, result is false.
-    # def testNonlinear100(self):
-    #     runFile(self, file="nonlinear100.hhl")
-    #     # Nonlinear benchmark, problem 100
-    #     pre [x1 == 1/20] [x2 == 1/32] [sint==0] [cost==1]; /* t==0 initially */
-        #     t := 0;
-        #     {x1_dot=x2, x2_dot=-x2-(2+sint)*x1, sint_dot=cost, cost_dot=-sint,
-        #     t_dot = 1 & t < 10}
-        #     invariant [cost^2+sint^2>=1]
-        #             [cost^2+sint^2<=100000/99999]
-        #             [98*x1^2 + 24*x1*x2 + 24*x2*x1 + 55*x2^2 < 1]{dbx};
-        # post [98*x1^2 + 24*x1*x2 + 24*x2*x1 + 55*x2^2 < 1];
+    def testNonlinear100(self):
+        runFile(self, file="nonlinear100.hhl")
 
     # TODO: Nonlinear problem 101. No tactic. Post not implied by inv.
 
@@ -931,9 +921,8 @@ class NonlinearHHLPyTest(unittest.TestCase):
     # TODO: Nonlinear problem 117. No invariants offered.
 
     # I took out this test because it was too slow -- Alex
-    # def testNonlinear118(self):
-    #     runFile(self, file="nonlinear118.hhl",
-    #               wolfram_engine=True)
+    def testNonlinear118(self):
+        runFile(self, file="nonlinear118.hhl")
 
     def testNonlinear119(self):
         runFile(self, file="nonlinear119.hhl")
@@ -947,8 +936,8 @@ class NonlinearHHLPyTest(unittest.TestCase):
     # TODO: Nonlinear problem 122, 123, 124. No invariants.
 
     # I took out this test because it was too slow -- Alex
-    # def testNonlinear125(self):
-    #     runFile(self, file="nonlinear125.hhl")
+    def testNonlinear125(self):
+        runFile(self, file="nonlinear125.hhl")
 
     def testNonlinear126(self):
         runFile(self, file="nonlinear126.hhl")
@@ -985,6 +974,7 @@ class NonlinearHHLPyTest(unittest.TestCase):
 
     def testNonlinear141(self):
         runFile(self, file="nonlinear141.hhl")
+
 
 class SSHHLPyTest(unittest.TestCase):
 
@@ -1039,6 +1029,12 @@ class AdvancedHHLPyTest(unittest.TestCase):
 
     def testWatertank2(self):
         runFile(self, file="water_tank_new_v2.hhl")
+
+    def testNonholoSimple(self):
+        runFile(self, file="switched_systems/nonholo_simple.hhl")
+
+    def testCruiseControl(self):
+        runFile(self, file="switched_systems/cruise_translated_safety2.hhl")
 
 
 if __name__ == "__main__":

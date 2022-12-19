@@ -82,10 +82,11 @@ export default {
     docChanged(content) {
       if (content !== null) {
         this.$refs.vcs.outdated = true;
-        // Compute VCSs
-        this.openFilesStore.files[this.file.name].content = content;
-        console.log("files:", this.openFilesStore.files)
-        this.websocketStore.send({code: content, type: "compute", file: this.file.name});
+        //  Disable the function that compute automatically when listening to docChange. This is because it reacts slowly when changes are made consecutively to large programs.
+        // // Compute VCSs
+        // this.openFilesStore.files[this.file.name].content = content;
+        // console.log("files:", this.openFilesStore.files)
+        // this.websocketStore.send({code: content, type: "compute", file: this.file.name});
       }
     }
   }

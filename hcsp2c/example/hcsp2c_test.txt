@@ -1,0 +1,2 @@
+P ::= e := 1.0; ch_a?x --> skip $ ch_b!e --> skip;
+Q ::= e := 2.0; ch_b?y --> skip $ ch_a!e --> skip;

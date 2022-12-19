@@ -1,0 +1,27 @@
+constants
+    r > 0;
+    a > 0;
+end
+
+pre [z^2 + y^2 + x^2 < r^2];
+{   
+    t := *(t >= 0);
+
+    if (z > 0) {
+        {x_dot = -x + a * y,
+        y_dot = -y - a * x,
+        z_dot = x * (-y - a * x) - y * (-x + a * y) &
+        z > 0} invariant [z^2 + y^2 + x^2 < r^2];
+    }
+    else if (z < 0){
+        {x_dot = -x - a * y,
+        y_dot = -y + a * x,
+        z_dot = x * (-y + a * x) - y * (-x - a * y) &
+        z < 0} invariant [z^2 + y^2 + x^2 < r^2];
+    }
+    else{
+        {x_dot = -x, y_dot = -y, z_dot = x * (-y) - y * (-x), t_dot = -1 & t > 0} 
+            invariant [z^2 + y^2 + x^2 < r^2];
+    }
+}* invariant [z^2 + y^2 + x^2 < r^2];
+post [z^2 + y^2 + x^2 < r^2];

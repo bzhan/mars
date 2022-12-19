@@ -114,7 +114,7 @@ class OpExpr(Expr):
     """Arithmetic operations."""
     def __init__(self, op_name, *exprs):
         super(OpExpr, self).__init__()
-        assert op_name in ['+', '-', '*', '/', '%']
+        assert op_name in ['+', '-', '*', '/', '%', '^']
         assert (op_name == '-' and len(exprs) == 1) or len(exprs) == 2
         self.op_name = op_name
         self.exprs = tuple(exprs)
@@ -151,6 +151,8 @@ class OpExpr(Expr):
             return 65
         elif self.op_name in ('*', '/', '%'):
             return 70
+        elif self.op_name == '^':
+            return 75
         else:
             raise NotImplementedError
 
@@ -173,7 +175,10 @@ class FunExpr(Expr):
         return "FunExpr(%s,%s)" % (repr(self.fun_name), ",".join(repr(expr) for expr in self.exprs))
 
     def __str__(self):
-        return "%s(%s)" % (self.fun_name, ",".join(str(expr) for expr in self.exprs))
+        if self.exprs:
+            return "%s(%s)" % (self.fun_name, ",".join(str(expr) for expr in self.exprs))
+        else:
+            return self.fun_name
 
     def __eq__(self, other):
         return isinstance(other, FunExpr) and self.fun_name == other.fun_name and \
