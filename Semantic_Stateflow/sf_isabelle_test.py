@@ -44,12 +44,12 @@ class SFIsabelleTest(unittest.TestCase):
             self.assertEqual(translate_event(event), res)
     '''
     def testTranslate1(self):
-        filename = "Semantic_Stateflow/example_xml/Messages/Messages2.xml"
+        filename = "Semantic_Stateflow/example_xml/InnerTrans.xml"
         n = 2
         input_enent = "[\'\'\'\', \'\'\'\']"
         output_str = ""
         try:
-            jsonname  = "./Semantic_Stateflow/LabeledDefaultTransition.json"
+            jsonname  = "Semantic_Stateflow/example_xml/InnerTrans.json"
             with open(jsonname,'r',encoding='utf8')as fp:
                 json_data = json.load(fp)
                 for key in json_data.keys():
