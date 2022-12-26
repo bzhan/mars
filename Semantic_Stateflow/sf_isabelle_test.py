@@ -65,7 +65,7 @@ class SFIsabelleTest(unittest.TestCase):
         diagram = SL_Diagram(location=filename)
         diagram.parse_xml()
         diagram.add_line_name()
-        _, _, charts, _, _, _, _, _, _ = diagram.seperate_diagram()
+        charts = [block for block in diagram.blocks_dict.values() if block.type == "stateflow"]
         chart = charts[0]
         print(chart)
         print('\n')

@@ -9,5 +9,5 @@ t := * (t >= 0);
  t_dot = -1
  & t > 0 && 5<x && x<35} 
 invariant 
-    [1961/13+x^2+1/8*y*(10+y)<=40*x];
-post [y <= 48];
+    [1961/13+x^2+1/8*y*(10+y)<=40*x]{{init: wolfram}};
+post [y <= 48]{{skip: wolfram}};

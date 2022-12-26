@@ -1,0 +1,173 @@
+# It does not work.
+
+constants
+    Qmax == 2;
+    g == 9.8;
+    pi == 3.14;
+    r == 0.18;
+    lb == 4.8;ub == 5.2;
+    LB == 4;
+    UB == 6;
+end
+
+pre [h == 4.5][cmd == 1];
+    h1 := h; h2 := h; h3 := h; h4 := h;
+    {
+        h0 := h;
+
+        t := 0;
+        if (cmd == 1){
+            {h_dot = Qmax - pi * r^2 * (2 * g * h)^(1/2), t_dot = 1 & t < 0.05 && h > 0}
+                invariant [cmd == 1]
+                          [h0 <= h4 + 0.1 * 1.1]
+                          [h0 >= 4]
+                          [h <= h0 + 2 * t]
+                          [h >= h0]
+                          [h <= h0 + 1.1 * t];
+        }
+        else {
+            {h_dot = - pi * r^2 * (2 * g * h)^(1/2), t_dot = 1 & t < 0.05 && h > 0}
+        }
+        if (h1 >= ub) { 
+            cmd := 0;
+        } else if (h1 <= lb) { 
+            cmd := 1; 
+        }
+        if (cmd == 1){
+            {h_dot = Qmax - pi * r^2 * (2 * g * h)^(1/2), t_dot = 1 & t < 0.05 && h > 0}
+                invariant [cmd == 1]
+                          [h <= h0 + 0.05 * 1.1 + 2 * t]
+                          [h >= 4]
+                          [h <= h0 + 0.05 * 1.1 + 1.1 * t];
+        }
+        else {
+            {h_dot = - pi * r^2 * (2 * g * h)^(1/2), t_dot = 1 & t < 0.05 && h > 0}
+        }
+        h1 := h;
+
+        t := 0;
+        if (cmd == 1){
+            {h_dot = Qmax - pi * r^2 * (2 * g * h)^(1/2), t_dot = 1 & t < 0.05 && h > 0}
+                invariant [cmd == 1]
+                          [h1 <= h0 + 0.1 * 1.1]
+                          [h1 >= 4]
+                          [h <= h1 + 2 * t]
+                          [h >= h1]
+                          [h <= h1 + 1.1 * t];
+        }
+        else {
+            {h_dot = - pi * r^2 * (2 * g * h)^(1/2), t_dot = 1 & t < 0.05 && h > 0}
+        }
+        if (h2 >= ub) { 
+            cmd := 0;
+        } else if (h2 <= lb) { 
+            cmd := 1; 
+        }
+        if (cmd == 1){
+            {h_dot = Qmax - pi * r^2 * (2 * g * h)^(1/2), t_dot = 1 & t < 0.05 && h > 0}
+                invariant [cmd == 1]
+                          [h <= h1 + 0.05 * 1.1 + 2 * t]
+                          [h >= 4]
+                          [h <= h1 + 0.05 * 1.1 + 1.1 * t];
+        }
+        else {
+            {h_dot = - pi * r^2 * (2 * g * h)^(1/2), t_dot = 1 & t < 0.05 && h > 0}
+        }
+        h2 := h;
+
+        t := 0;
+        if (cmd == 1){
+            {h_dot = Qmax - pi * r^2 * (2 * g * h)^(1/2), t_dot = 1 & t < 0.05 && h > 0}
+                invariant [cmd == 1]
+                          [h2 <= h1 + 0.1 * 1.1]
+                          [h2 >= 4]
+                          [h <= h2 + 2 * t]
+                          [h >= h2]
+                          [h <= h2 + 1.1 * t];
+        }
+        else {
+            {h_dot = - pi * r^2 * (2 * g * h)^(1/2), t_dot = 1 & t < 0.05 && h > 0}
+        }
+         if (h3 >= ub) { 
+            cmd := 0;
+        } else if (h3 <= lb) { 
+            cmd := 1; 
+        }
+        if (cmd == 1){
+            {h_dot = Qmax - pi * r^2 * (2 * g * h)^(1/2), t_dot = 1 & t < 0.05 && h > 0}
+                invariant [cmd == 1]
+                          [h <= h2 + 0.05 * 1.1 + 2 * t]
+                          [h >= 4]
+                          [h <= h2 + 0.05 * 1.1 + 1.1 * t];
+        }
+        else {
+            {h_dot = - pi * r^2 * (2 * g * h)^(1/2), t_dot = 1 & t < 0.05 && h > 0}
+        }
+        h3 := h;
+
+        t := 0;
+        if (cmd == 1){
+            {h_dot = Qmax - pi * r^2 * (2 * g * h)^(1/2), t_dot = 1 & t < 0.05 && h > 0}
+                invariant [cmd == 1]
+                          [h3 <= h2 + 0.1 * 1.1]
+                          [h3 >= 4]
+                          [h <= h3 + 2 * t]
+                          [h >= h3]
+                          [h <= h3 + 1.1 * t];
+        }
+        else {
+            {h_dot = - pi * r^2 * (2 * g * h)^(1/2), t_dot = 1 & t < 0.05 && h > 0}
+        }
+         if (h4 >= ub) { 
+            cmd := 0;
+        } else if (h4 <= lb) { 
+            cmd := 1; 
+        }
+        if (cmd == 1){
+            {h_dot = Qmax - pi * r^2 * (2 * g * h)^(1/2), t_dot = 1 & t < 0.05 && h > 0}
+                invariant [cmd == 1]
+                          [h <= h3 + 0.05 * 1.1 + 2 * t]
+                          [h >= 4]
+                          [h <= h3 + 0.05 * 1.1 + 1.1 * t];
+        }
+        else {
+            {h_dot = - pi * r^2 * (2 * g * h)^(1/2), t_dot = 1 & t < 0.05 && h > 0}
+        }
+        h4 := h;
+
+        t := 0;
+        if (cmd == 1){
+            {h_dot = Qmax - pi * r^2 * (2 * g * h)^(1/2), t_dot = 1 & t < 0.05 && h > 0}
+                invariant [cmd == 1]
+                          [h4 <= h3 + 0.1 * 1.1]
+                          [h4 >= 4]
+                          [h <= h4 + 2 * t]
+                          [h >= h4]
+                          [h <= h4 + 1.1 * t];
+        }
+        else {
+            {h_dot = - pi * r^2 * (2 * g * h)^(1/2), t_dot = 1 & t < 0.05 && h > 0}
+        }
+         if (h0 >= ub) { 
+            cmd := 0;
+        } else if (h0 <= lb) { 
+            cmd := 1; 
+        }
+        if (cmd == 1){
+            {h_dot = Qmax - pi * r^2 * (2 * g * h)^(1/2), t_dot = 1 & t < 0.05 && h > 0}
+                invariant [cmd == 1]
+                          [h0 < ub]
+                          [h4 - h0 <= 0.4 * 1.1]
+                          [h0 - h4 <= 0.4 * 1.2]
+                          [h <= h4 + 0.05 * 1.1 + 2 * t]
+                          [h >= 4]
+                          [h <= h4 + 0.05 * 1.1 + 1.1 * t];
+        }
+        else {
+            {h_dot = - pi * r^2 * (2 * g * h)^(1/2), t_dot = 1 & t < 0.05 && h > 0}
+        }
+    }* invariant [h4 - h0 <= 0.4 * 1.1]
+                 [h0 - h4 <= 0.4 * 1.2] 
+                 [cmd == 1 && h0 < ub && h >= 4 && h <= h4 + 0.1 * 1.1 && h4 <= ub + 0.4 * 1.1];
+
+post [h >= 4][h <= 6];

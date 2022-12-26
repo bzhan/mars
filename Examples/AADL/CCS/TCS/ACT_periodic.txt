@@ -1,6 +1,0 @@
-%type: module
-module ACT_periodic(tid, period):
-begin
-(dis[tid]!; wait(period))**
-end
-endmodule

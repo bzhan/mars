@@ -597,129 +597,129 @@ inductive sch_task_assn :: "estate \<Rightarrow> state \<Rightarrow> tid \<Right
 
 *)
 
-fun dispatch_assn' :: "tid \<Rightarrow> nat \<Rightarrow> state \<Rightarrow> estate tassn" where
-  "dispatch_assn' t 0 start_s tr \<longleftrightarrow> (emp\<^sub>t tr)"
+fun dispatch_assn' :: "tid \<Rightarrow> nat \<Rightarrow> real \<Rightarrow> state \<Rightarrow> estate tassn" where
+  "dispatch_assn' t 0 pd start_s tr \<longleftrightarrow> (emp\<^sub>t tr)"
   (* Case for finishing a period *)
-| "dispatch_assn' t (Suc k) start_s tr \<longleftrightarrow> 
-   wait_orig_assn (0.045-start_s (CHR ''t''))
+| "dispatch_assn' t (Suc k) pd start_s tr \<longleftrightarrow> 
+   wait_orig_assn (pd-start_s (CHR ''t''))
                   (\<lambda>t. EState (None, start_s(CHR ''t'' := start_s (CHR ''t'') + t))) ({}, {})
    (out_orig_assn (dispatch_ch t) 0 (EState (None, start_s(CHR ''t'' := 0))) 
-   (dispatch_assn' t k (start_s(CHR ''t'' := 0)))) tr"
+   (dispatch_assn' t k pd (start_s(CHR ''t'' := 0)))) tr"
 
 definition up_ent_c :: "nat \<Rightarrow> real \<Rightarrow> real" where
   "up_ent_c ent c = (if ent = 0 then 0 else c)"
 
-fun task_assn' :: "tid \<Rightarrow> nat \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate tassn" where
-  "task_assn' t 0 (Task st ent tp) start_s tr \<longleftrightarrow> (emp\<^sub>t tr) "
-| "task_assn' t (Suc k) (Task WAIT ent tp) start_s tr \<longleftrightarrow>
+fun task_assn' :: "tid \<Rightarrow> nat \<Rightarrow> real \<Rightarrow> real \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate tassn" where
+  "task_assn' t 0 pd pc (Task st ent tp) start_s tr \<longleftrightarrow> (emp\<^sub>t tr) "
+| "task_assn' t (Suc k) pd pc (Task WAIT ent tp) start_s tr \<longleftrightarrow>
    in_vassm_assn (dispatch_ch t) {0} (EState (Task WAIT ent tp, start_s))
-   (\<lambda>_ . task_assn' t k (Task READY 0 tp) (start_s(CHR ''t'' := 0))) tr"
-| "task_assn' t (Suc k) (Task READY ent tp) start_s tr \<longleftrightarrow>
+   (\<lambda>_ . task_assn' t k pd pc (Task READY 0 tp) (start_s(CHR ''t'' := 0))) tr"
+| "task_assn' t (Suc k) pd pc (Task READY ent tp) start_s tr \<longleftrightarrow>
    out_0assm_assn (req_ch t) tp 
-     (waitin_tguar'_vassm'_assn {0..<0.045-start_s (CHR ''t'')}
+     (waitin_tguar'_vassm'_assn {0..<pd-start_s (CHR ''t'')}
           (\<lambda>t . EState (Task READY ent tp, start_s(CHR ''t'' := start_s (CHR ''t'') + t)))
           ({}, {run_ch t}) (run_ch t) {0}
-     (\<lambda> v d'. task_assn' t k (Task RUNNING 1 tp)
+     (\<lambda> v d'. task_assn' t k pd pc (Task RUNNING 1 tp)
           (start_s(CHR ''t'' := start_s (CHR ''t'') + d',
                    CHR ''c'' := (up_ent_c ent (start_s (CHR ''c''))))))) tr \<or> 
    out_0assm_assn (req_ch t) tp 
-     (wait_orig_assn (0.045 - start_s (CHR ''t''))
+     (wait_orig_assn (pd - start_s (CHR ''t''))
           (\<lambda>t. EState (Task READY ent tp, start_s(CHR ''t'' := start_s (CHR ''t'') + t)))
           ({}, {run_ch t}) 
      (out_0assm_rdy_assn (exit_ch t) 0 ({exit_ch t},{run_ch t})
-     (task_assn' t k (Task WAIT ent tp) (start_s(CHR ''t'' := 0.045))))) tr \<or>
+     (task_assn' t k pd pc (Task WAIT ent tp) (start_s(CHR ''t'' := pd))))) tr \<or>
    out_0assm_assn (req_ch t) tp 
-     (wait_orig_assn (0.045 - start_s (CHR ''t''))
+     (wait_orig_assn (pd - start_s (CHR ''t''))
           (\<lambda>t. EState (Task READY ent tp, start_s(CHR ''t'' := start_s (CHR ''t'') + t)))
           ({}, {run_ch t}) 
      (in_0assm_rdy_assn (run_ch t) {0}  ({exit_ch t},{run_ch t})
-     (task_assn' t k (Task RUNNING 1 tp) (start_s(CHR ''t'' := 0.045,CHR ''c'' := up_ent_c ent (start_s (CHR ''c''))))))) tr"
-| "task_assn' t (Suc k) (Task RUNNING ent tp) start_s tr \<longleftrightarrow>
+     (task_assn' t k pd pc (Task RUNNING 1 tp) (start_s(CHR ''t'' := pd,CHR ''c'' := up_ent_c ent (start_s (CHR ''c''))))))) tr"
+| "task_assn' t (Suc k) pd pc (Task RUNNING ent tp) start_s tr \<longleftrightarrow>
    (if ent = 1 then
-   waitin_tguar'_vassm'_assn ({0..< 0.045 - start_s (CHR ''t'')} 
-                            \<inter> {0..< 0.01 - start_s (CHR ''c'')})
+   waitin_tguar'_vassm'_assn ({0..< pd - start_s (CHR ''t'')} 
+                            \<inter> {0..< pc - start_s (CHR ''c'')})
      (\<lambda>t. EState (Task RUNNING 1 tp, start_s(CHR ''t'' := start_s (CHR ''t'') + t,
                                              CHR ''c'' := start_s (CHR ''c'') + t)))
-     ({preempt_ch t}, {}) (preempt_ch t) {0} 
-   (\<lambda> v d. task_assn' t k (Task READY 1 tp)
+     ({}, {preempt_ch t}) (preempt_ch t) {0} 
+   (\<lambda> v d. task_assn' t k pd pc (Task READY 1 tp)
      (start_s(CHR ''t'' := start_s (CHR ''t'') + d,
               CHR ''c'' := start_s (CHR ''c'') + d))) tr
    \<or> 
-   wait_orig_assn (min (0.045-start_s (CHR ''t'')) (0.01-start_s (CHR ''c'')))
+   wait_orig_assn (min (pd-start_s (CHR ''t'')) (pc-start_s (CHR ''c'')))
      (\<lambda>t. EState (Task RUNNING 1 tp, start_s(CHR ''t'' := start_s (CHR ''t'') + t,
                                              CHR ''c'' := start_s (CHR ''c'') + t)))
-     ({preempt_ch t}, {}) 
-   (out_0assm_assn (free_ch t) 0 
-      (task_assn' t k (Task WAIT 1 tp) 
+     ({}, {preempt_ch t}) 
+   (out_0assm_srdy_assn (free_ch t) 0 ({free_ch t},{preempt_ch t})
+      (task_assn' t k pd pc (Task WAIT 1 tp) 
                (start_s(CHR ''t'' := start_s (CHR ''t'') + 
-                              (min (0.045-start_s (CHR ''t'')) (0.01-start_s (CHR ''c''))),
+                              (min (pd-start_s (CHR ''t'')) (pc-start_s (CHR ''c''))),
                         CHR ''c'' := start_s (CHR ''c'') + 
-                              (min (0.045-start_s (CHR ''t'')) (0.01-start_s (CHR ''c''))))))) tr
+                              (min (pd-start_s (CHR ''t'')) (pc-start_s (CHR ''c''))))))) tr
    else False)"
-| "task_assn' t n (Sch v va vb) start_s tr \<longleftrightarrow> False"
-| "task_assn' t n None start_s tr \<longleftrightarrow> False"
+| "task_assn' t n pd pc (Sch v va vb) start_s tr \<longleftrightarrow> False"
+| "task_assn' t n pd pc None start_s tr \<longleftrightarrow> False"
 
 
-fun task_dis_assn' :: "tid \<Rightarrow> nat \<Rightarrow> state \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate tassn" where
-  "task_dis_assn' t 0 dis_s (Task st ent tp) task_s tr \<longleftrightarrow> (emp\<^sub>t tr)"
-| "task_dis_assn' t (Suc k) dis_s (Task WAIT ent tp) task_s tr \<longleftrightarrow>
-   wait_orig_assn (0.045 - dis_s (CHR ''t'')) 
+fun task_dis_assn' :: "tid \<Rightarrow> nat \<Rightarrow> real \<Rightarrow> real \<Rightarrow> state \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate tassn" where
+  "task_dis_assn' t 0 pd pc dis_s (Task st ent tp) task_s tr \<longleftrightarrow> (emp\<^sub>t tr)"
+| "task_dis_assn' t (Suc k) pd pc dis_s (Task WAIT ent tp) task_s tr \<longleftrightarrow>
+   wait_orig_assn (pd - dis_s (CHR ''t'')) 
             (\<lambda>t. ParState (EState (Task WAIT ent tp, task_s))
                           (EState (None, dis_s(CHR ''t'' := dis_s (CHR ''t'') + t))))
                   ({}, {dispatch_ch t})
-   (task_dis_assn' t k (dis_s(CHR ''t'' := 0)) (Task READY 0 tp) (task_s(CHR ''t'' := 0)))tr"
-| "task_dis_assn' t (Suc k) dis_s (Task READY ent tp) task_s tr \<longleftrightarrow>
+   (task_dis_assn' t k pd pc (dis_s(CHR ''t'' := 0)) (Task READY 0 tp) (task_s(CHR ''t'' := 0)))tr"
+| "task_dis_assn' t (Suc k) pd pc dis_s (Task READY ent tp) task_s tr \<longleftrightarrow>
    out_0assm_assn (req_ch t) tp  
-   (waitin_tguar'_vassm'_assn {0..<0.045-task_s (CHR ''t'')} 
+   (waitin_tguar'_vassm'_assn {0..<pd-task_s (CHR ''t'')} 
            (\<lambda>t. ParState (EState (Task READY ent tp, task_s(CHR ''t'' := task_s (CHR ''t'') + t))) 
                          (EState (None, dis_s(CHR ''t'' := dis_s (CHR ''t'') + t)))) 
                   ({}, {run_ch t}) (run_ch t) {0}
-   (\<lambda> v d'. task_dis_assn' t k (dis_s(CHR ''t'' := dis_s (CHR ''t'') + d')) 
+   (\<lambda> v d'. task_dis_assn' t k pd pc (dis_s(CHR ''t'' := dis_s (CHR ''t'') + d')) 
                                (Task RUNNING 1 tp) 
            (task_s(CHR ''t'' := task_s (CHR ''t'') + d',
                    CHR ''c'' := up_ent_c ent (task_s (CHR ''c'')))))) tr \<or> 
    out_0assm_assn (req_ch t) tp  
-   (wait_orig_assn (0.045 - task_s (CHR ''t'')) 
+   (wait_orig_assn (pd - task_s (CHR ''t'')) 
            (\<lambda>t. ParState (EState (Task READY ent tp, task_s(CHR ''t'' := task_s (CHR ''t'') + t)))
                          (EState (None, dis_s(CHR ''t'' := dis_s (CHR ''t'') + t)))) 
                   ({}, {run_ch t}) 
    (out_0assm_rdy_assn (exit_ch t) 0 ({dispatch_ch t, exit_ch t}, {run_ch t})
-   (task_dis_assn' t k (dis_s(CHR ''t'' := dis_s (CHR ''t'') + 0.045-dis_s (CHR ''t''))) 
-                       (Task WAIT ent tp) (task_s(CHR ''t'' := 0.045))))) tr \<or>
+   (task_dis_assn' t k pd pc (dis_s(CHR ''t'' := dis_s (CHR ''t'') + pd-dis_s (CHR ''t''))) 
+                       (Task WAIT ent tp) (task_s(CHR ''t'' := pd))))) tr \<or>
    out_0assm_assn (req_ch t) tp  
-   (wait_orig_assn (0.045 - task_s (CHR ''t'')) 
+   (wait_orig_assn (pd - task_s (CHR ''t'')) 
            (\<lambda>t. ParState (EState (Task READY ent tp, task_s(CHR ''t'' := task_s (CHR ''t'') + t)))
                          (EState (None, dis_s(CHR ''t'' := dis_s (CHR ''t'') + t)))) 
                   ({}, {run_ch t}) 
    (in_0assm_rdy_assn (run_ch t) {0} ({dispatch_ch t, exit_ch t}, {run_ch t})
-   (task_dis_assn' t k (dis_s(CHR ''t'' := dis_s (CHR ''t'') + 0.045-task_s (CHR ''t''))) 
-                       (Task RUNNING 1 tp) (task_s(CHR ''t'' := 0.045,CHR ''c'' := up_ent_c ent (task_s (CHR ''c''))))))) tr"
-| "task_dis_assn' t (Suc k) dis_s (Task RUNNING ent tp) task_s tr \<longleftrightarrow>
+   (task_dis_assn' t k pd pc (dis_s(CHR ''t'' := dis_s (CHR ''t'') + pd-task_s (CHR ''t''))) 
+                       (Task RUNNING 1 tp) (task_s(CHR ''t'' := pd,CHR ''c'' := up_ent_c ent (task_s (CHR ''c''))))))) tr"
+| "task_dis_assn' t (Suc k) pd pc dis_s (Task RUNNING ent tp) task_s tr \<longleftrightarrow>
    (if ent = 1 then
-   waitin_tguar'_vassm'_assn ({0..< 0.045 - task_s (CHR ''t'')} \<inter> {0..< 0.01 - task_s (CHR ''c'')})
+   waitin_tguar'_vassm'_assn ({0..< pd - task_s (CHR ''t'')} \<inter> {0..< pc - task_s (CHR ''c'')})
      (\<lambda>t. ParState (EState (Task RUNNING 1 tp, task_s(CHR ''t'' := task_s (CHR ''t'') + t,
                                              CHR ''c'' := task_s (CHR ''c'') + t)))
                    (EState (None, dis_s(CHR ''t'' := dis_s (CHR ''t'') + t))))
-     ({preempt_ch t}, {}) (preempt_ch t) {0} 
-   (\<lambda> v d. task_dis_assn' t k (dis_s(CHR ''t'' := dis_s (CHR ''t'') + d)) (Task READY 1 tp)
+     ({}, {preempt_ch t}) (preempt_ch t) {0} 
+   (\<lambda> v d. task_dis_assn' t k pd pc (dis_s(CHR ''t'' := dis_s (CHR ''t'') + d)) (Task READY 1 tp)
      (task_s(CHR ''t'' := task_s (CHR ''t'') + d, CHR ''c'' := task_s (CHR ''c'') + d))) tr
    \<or>
-   wait_orig_assn (min (0.045-task_s (CHR ''t'')) (0.01-task_s (CHR ''c'')))
+   wait_orig_assn (min (pd-task_s (CHR ''t'')) (pc-task_s (CHR ''c'')))
      (\<lambda>t. ParState (EState (Task RUNNING 1 tp, task_s(CHR ''t'' := task_s (CHR ''t'') + t,
                                              CHR ''c'' := task_s (CHR ''c'') + t)))
                    (EState (None, dis_s(CHR ''t'' := dis_s (CHR ''t'') + t))))
-     ({preempt_ch t}, {}) 
-   (out_0assm_assn (free_ch t) 0
-      (task_dis_assn' t k  (dis_s(CHR ''t'' := dis_s (CHR ''t'') + 
-                   (min (0.045-task_s (CHR ''t'')) (0.01-task_s (CHR ''c''))))) 
+     ({}, {preempt_ch t}) 
+   (out_0assm_srdy_assn (free_ch t) 0 ({free_ch t}, {preempt_ch t})
+      (task_dis_assn' t k pd pc (dis_s(CHR ''t'' := dis_s (CHR ''t'') + 
+                   (min (pd-task_s (CHR ''t'')) (pc-task_s (CHR ''c''))))) 
                            (Task WAIT 1 tp)
                            (task_s(CHR ''t'' := task_s (CHR ''t'') + 
-                   (min (0.045-task_s (CHR ''t'')) (0.01-task_s (CHR ''c''))), 
+                   (min (pd-task_s (CHR ''t'')) (pc-task_s (CHR ''c''))), 
                            CHR ''c'' := task_s (CHR ''c'') + 
-                   (min (0.045-task_s (CHR ''t'')) (0.01-task_s (CHR ''c''))))))) tr
+                   (min (pd-task_s (CHR ''t'')) (pc-task_s (CHR ''c''))))))) tr
    else False)"
-| "task_dis_assn' t n dis_s (Sch v va vb) task_s tr \<longleftrightarrow> False"
-| "task_dis_assn' t n dis_s None task_s tr \<longleftrightarrow> False"
+| "task_dis_assn' t n pd pc dis_s (Sch v va vb) task_s tr \<longleftrightarrow> False"
+| "task_dis_assn' t n pd pc dis_s None task_s tr \<longleftrightarrow> False"
 
 thm task_assn'.induct
 thm task_assn'.simps
@@ -822,6 +822,115 @@ lemma combine_out_0assm_wait_orig_out_orig:
            apply(rule out_0assm_assn.intros(2))
             apply auto
            apply(cases rdy)
+           by auto
+         done
+       done
+     done
+   done
+
+lemma combine_out_0assm_srdy_wait_orig_out_orig:
+  assumes "dh \<notin> chs"
+   and "ch \<in> chs"
+ shows "combine_assn chs (out_0assm_srdy_assn dh v rdy' P) (wait_orig_assn d p rdy (out_orig_assn ch v' s Q))
+        \<Longrightarrow>\<^sub>t (out_0assm_srdy_assn dh v rdy'
+            (combine_assn chs P (wait_orig_assn d p rdy (out_orig_assn ch v' s Q))))"
+  apply(auto simp add:entails_tassn_def combine_assn_def)
+  subgoal for tr tr1 tr2
+    apply(cases rule: out_0assm_srdy_assn.cases[of dh v rdy' P tr1])
+      apply auto
+    subgoal for tr1'
+      apply(cases rule: wait_orig_assn.cases[of d p rdy "(out_orig_assn ch v' s Q)" tr2])
+        apply auto
+      subgoal
+        apply(cases rule: out_orig_assn.cases[of ch v' s Q tr2])
+          apply auto
+        subgoal for tr2'
+          using assms
+          apply(elim combine_blocks_unpairE1)
+            apply auto
+          apply(rule out_0assm_srdy_assn.intros(1))
+          by auto
+        subgoal for tr2' d
+          using assms
+          apply(elim combine_blocks_unpairE3)
+           apply auto
+          apply(rule out_0assm_srdy_assn.intros(1))
+          by auto
+        done
+      subgoal for tr2'
+        using assms
+          apply(elim combine_blocks_unpairE3)
+           apply auto
+          apply(rule out_0assm_srdy_assn.intros(1))
+          by auto
+        done
+      subgoal for d1 a b p1 tr1'
+        apply(cases rule: wait_orig_assn.cases[of d p rdy "(out_orig_assn ch v' s Q)" tr2])
+          apply auto
+        subgoal
+          apply(cases rule: out_orig_assn.cases[of ch v' s Q tr2])
+            apply auto
+          subgoal for tr2'
+            using assms
+            apply(auto elim:sync_elims)
+            done
+          subgoal for tr2' d2
+            apply(cases "\<not>compat_rdy (a, b) ({ch}, {})")
+            subgoal
+              by(auto elim:sync_elims)
+            subgoal
+           apply(cases "d1>d2")
+           subgoal 
+             apply(elim combine_blocks_waitE4)
+                apply auto
+             apply(rule out_0assm_srdy_assn.intros(2))
+             by auto
+           apply(cases "d2=d1")
+           subgoal 
+             apply simp
+             apply(elim combine_blocks_waitE2)
+              apply auto
+             apply(rule out_0assm_srdy_assn.intros(2))
+             by auto
+           apply(elim combine_blocks_waitE3)
+              apply auto
+           apply(rule out_0assm_srdy_assn.intros(2))
+           by auto
+         done
+       done
+     subgoal for tr2'
+       apply(cases "\<not>compat_rdy (a,b) rdy")
+            subgoal
+              by(auto elim:sync_elims)
+            subgoal
+           apply(cases "d1>d")
+           subgoal 
+             apply(elim combine_blocks_waitE4)
+                apply auto
+             apply(rule out_0assm_srdy_assn.intros(2))
+             apply auto
+              apply (cases rdy)
+              apply auto
+             apply (cases rdy)
+             by auto
+           apply(cases "d=d1")
+           subgoal 
+             apply simp
+             apply(elim combine_blocks_waitE2)
+              apply auto
+             apply(rule out_0assm_srdy_assn.intros(2))
+              apply auto
+              apply(cases rdy)
+              apply auto
+             apply (cases rdy)
+             by auto
+           apply(elim combine_blocks_waitE3)
+              apply auto
+           apply(rule out_0assm_srdy_assn.intros(2))
+            apply auto
+            apply(cases rdy)
+            apply auto
+             apply (cases rdy)
            by auto
          done
        done
@@ -1345,13 +1454,13 @@ lemma combine_wait_tguar'_vassm'_wait_orig2:
 
 
 lemma combine_task_dis':
-  "task_assn' t k task_es task_s tr1 \<Longrightarrow>
-   dispatch_assn' t' kk dis_s tr2 \<Longrightarrow>
+  "task_assn' t k pd pc task_es task_s tr1 \<Longrightarrow>
+   dispatch_assn' t' kk pd dis_s tr2 \<Longrightarrow>
    t \<in> tid_set \<Longrightarrow>
    t = t' \<Longrightarrow>
    task_s (CHR ''t'') = dis_s (CHR ''t'') \<Longrightarrow>
    combine_blocks {dispatch_ch t} tr1 tr2 tr \<Longrightarrow>
-   task_dis_assn' t k dis_s task_es task_s tr"
+   task_dis_assn' t k pd pc dis_s task_es task_s tr"
 proof(induction k arbitrary: kk task_es task_s dis_s tr1 tr2 tr)
   case 0
   note 0 = 0
@@ -1431,7 +1540,7 @@ next
                                 "(task_s(CHR ''t'' := task_s CHR ''t'' + d, CHR ''c'' := up_ent_c ent (task_s CHR ''c'')))"
                                 tr1 0 
                                 "(dis_s(CHR ''t'' := dis_s CHR ''t'' + d))" tr2 tr]
-                apply(subgoal_tac"dispatch_assn' t' 0 (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) tr2")
+                apply(subgoal_tac"dispatch_assn' t' 0 pd (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) tr2")
                 subgoal using pre(5) 
                   by fastforce
                 by auto
@@ -1462,10 +1571,10 @@ next
                 unfolding entails_tassn_def combine_assn_def
                 apply clarify
                 subgoal for tr tr1 tr2
-                  using pre(1)[of "(Task WAIT ent tp)" "(task_s(CHR ''t'' := 9 / 200))" tr1 0
-                              "(dis_s(CHR ''t'' := dis_s CHR ''t'' + 9 / 200 - task_s CHR ''t''))"
+                  using pre(1)[of "(Task WAIT ent tp)" "(task_s(CHR ''t'' := pd))" tr1 0
+                              "(dis_s(CHR ''t'' := dis_s CHR ''t'' + pd - task_s CHR ''t''))"
                                tr2 tr]
-                  apply(subgoal_tac "dispatch_assn' t' 0 (dis_s(CHR ''t'' := dis_s CHR ''t'' + 9 / 200 - task_s CHR ''t''))tr2")
+                  apply(subgoal_tac "dispatch_assn' t' 0 pd (dis_s(CHR ''t'' := dis_s CHR ''t'' + pd - task_s CHR ''t''))tr2")
                    subgoal using pre(5) by fastforce 
                   by auto
                 done
@@ -1495,10 +1604,10 @@ next
                 unfolding entails_tassn_def combine_assn_def
                 apply clarify
                 subgoal for tr tr1 tr2
-                  using pre(1)[of "(Task RUNNING (Suc 0) tp)" "(task_s(CHR ''t'' := 9 / 200, CHR ''c'' := up_ent_c ent (task_s CHR ''c'')))" tr1 0
-                              "(dis_s(CHR ''t'' := dis_s CHR ''t'' + 9 / 200 - task_s CHR ''t''))"
+                  using pre(1)[of "(Task RUNNING (Suc 0) tp)" "(task_s(CHR ''t'' := pd, CHR ''c'' := up_ent_c ent (task_s CHR ''c'')))" tr1 0
+                              "(dis_s(CHR ''t'' := dis_s CHR ''t'' + pd - task_s CHR ''t''))"
                                tr2 tr]
-                  apply(subgoal_tac "dispatch_assn' t' 0 (dis_s(CHR ''t'' := dis_s CHR ''t'' + 9 / 200 - task_s CHR ''t''))tr2")
+                  apply(subgoal_tac "dispatch_assn' t' 0 pd (dis_s(CHR ''t'' := dis_s CHR ''t'' + pd - task_s CHR ''t''))tr2")
                    subgoal using pre(5) by fastforce 
                   by auto
                 done
@@ -1530,7 +1639,7 @@ next
                                     "(task_s(CHR ''t'' := task_s CHR ''t'' + d, CHR ''c'' := task_s CHR ''c'' + d))" 
                                     tr1 0 "(dis_s(CHR ''t'' := dis_s CHR ''t'' + d))"
                                     tr2 tr]
-                    apply(subgoal_tac "dispatch_assn' t' 0 (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) tr2")
+                    apply(subgoal_tac "dispatch_assn' t' 0 pd (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) tr2")
                      subgoal using pre(5) by fastforce
                     by auto
                   done
@@ -1548,19 +1657,19 @@ next
                 apply(rule wait_orig_assn_tran)
                 subgoal 
                   apply(rule entails_tassn_trans)
-                   apply(rule combine_out_0assm_emp2)
+                   apply(rule combine_out_0assm_srdy_emp2)
                   subgoal using ch_dist pre(3) by auto
-                  apply(rule out_0assm_assn_tran)
+                  apply(rule out_0assm_srdy_assn_tran)
                   unfolding entails_tassn_def combine_assn_def
                   apply clarify
                   subgoal for tr tr1 tr2
                     using pre(1)[of "(Task WAIT (Suc 0) tp)" 
-                     "(task_s(CHR ''t'' :=task_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
-                              CHR ''c'' :=task_s CHR ''c'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))"
-                     tr1 0 "(dis_s (CHR ''t'' := dis_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))"
+                     "(task_s(CHR ''t'' :=task_s CHR ''t'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
+                              CHR ''c'' :=task_s CHR ''c'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))"
+                     tr1 0 "(dis_s (CHR ''t'' := dis_s CHR ''t'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))"
                         tr2 tr]
-                    apply(subgoal_tac "dispatch_assn' t' 0
-                       (dis_s (CHR ''t'' := dis_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))) tr2")
+                    apply(subgoal_tac "dispatch_assn' t' 0 pd 
+                       (dis_s (CHR ''t'' := dis_s CHR ''t'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))) tr2")
                      subgoal using pre(5) by fastforce
                     by auto
                   done
@@ -1629,10 +1738,10 @@ next
                 apply auto
                 subgoal for d tr tr1 tr2
                   thm pre(2)
-                  apply(subgoal_tac "dispatch_assn' t' (Suc kk) (\<lambda>a. if a = CHR ''t'' then dis_s CHR ''t'' + d else dis_s a) tr2")
+                  apply(subgoal_tac "dispatch_assn' t' (Suc kk) pd (\<lambda>a. if a = CHR ''t'' then dis_s CHR ''t'' + d else dis_s a) tr2")
                    prefer 2
                   subgoal apply auto
-                    apply(subgoal_tac "9 / 200 - dis_s CHR ''t'' - d = 9 / 200 - (dis_s CHR ''t'' + d)")
+                    apply(subgoal_tac "pd - dis_s CHR ''t'' - d = pd - (dis_s CHR ''t'' + d)")
                      apply auto
                     apply(subgoal_tac "(\<lambda>t'. EState (estate.None,
              \<lambda>a. if a = CHR ''t'' then dis_s CHR ''t'' + (t' + d) else dis_s a))
@@ -1683,10 +1792,10 @@ next
                 apply auto
                 subgoal for tr tr1 tr2
                   thm pre(2)
-                  apply(subgoal_tac "dispatch_assn' t' (Suc kk) (\<lambda>a. if a = CHR ''t'' then 9 / 200 else dis_s a) tr2")
+                  apply(subgoal_tac "dispatch_assn' t' (Suc kk) pd (\<lambda>a. if a = CHR ''t'' then pd else dis_s a) tr2")
                    prefer 2 
                   subgoal apply auto
-                    apply(subgoal_tac " (\<lambda>a. if a = CHR ''t'' then 9 / 200 else dis_s a)(CHR ''t'' := 0) = (\<lambda>a. if a = CHR ''t'' then 0 else dis_s a)")
+                    apply(subgoal_tac " (\<lambda>a. if a = CHR ''t'' then pd else dis_s a)(CHR ''t'' := 0) = (\<lambda>a. if a = CHR ''t'' then 0 else dis_s a)")
                      apply auto
                     apply(rule wait_orig_assn.intros(1))
                     by auto
@@ -1728,10 +1837,10 @@ next
                 apply auto
                 subgoal for tr tr1 tr2
                   thm pre(2)
-                  apply(subgoal_tac "dispatch_assn' t' (Suc kk) (\<lambda>a. if a = CHR ''t'' then 9 / 200 else dis_s a) tr2")
+                  apply(subgoal_tac "dispatch_assn' t' (Suc kk) pd (\<lambda>a. if a = CHR ''t'' then pd else dis_s a) tr2")
                    prefer 2 
                   subgoal apply auto
-                    apply(subgoal_tac " (\<lambda>a. if a = CHR ''t'' then 9 / 200 else dis_s a)(CHR ''t'' := 0) = (\<lambda>a. if a = CHR ''t'' then 0 else dis_s a)")
+                    apply(subgoal_tac " (\<lambda>a. if a = CHR ''t'' then pd else dis_s a)(CHR ''t'' := 0) = (\<lambda>a. if a = CHR ''t'' then 0 else dis_s a)")
                      apply auto
                     apply(rule wait_orig_assn.intros(1))
                     by auto
@@ -1771,10 +1880,10 @@ next
               unfolding combine_assn_def entails_tassn_def
               apply auto
               subgoal for d tr tr1 tr2
-                apply(subgoal_tac "dispatch_assn' t' (Suc kk) (\<lambda>a. if a = CHR ''t'' then dis_s CHR ''t'' + d else dis_s a) tr2")
+                apply(subgoal_tac "dispatch_assn' t' (Suc kk) pd (\<lambda>a. if a = CHR ''t'' then dis_s CHR ''t'' + d else dis_s a) tr2")
                  prefer 2
                 subgoal apply auto
-                  apply(subgoal_tac "(9 / 200 - dis_s CHR ''t'' - d) =( 9 / 200 - (dis_s CHR ''t'' + d))")
+                  apply(subgoal_tac "(pd - dis_s CHR ''t'' - d) =( pd - (dis_s CHR ''t'' + d))")
                    apply auto
                   apply(subgoal_tac "(\<lambda>t'. EState (estate.None,
              \<lambda>a. if a = CHR ''t'' then dis_s CHR ''t'' + (t' + d) else dis_s a)) = 
@@ -1811,43 +1920,43 @@ next
               apply auto
               apply(rule wait_orig_assn_tran)
               apply(rule entails_tassn_trans)
-               apply(rule combine_out_0assm_wait_orig_out_orig)
+               apply(rule combine_out_0assm_srdy_wait_orig_out_orig)
               subgoal using pre ch_dist by auto
               subgoal by auto
-              apply(rule out_0assm_assn_tran)
+              apply(rule out_0assm_srdy_assn_tran)
               unfolding combine_assn_def entails_tassn_def
               apply auto
               subgoal for tr tr1 tr2
-                apply(subgoal_tac "dispatch_assn' t' (Suc kk) (\<lambda>a. if a = CHR ''t''
+                apply(subgoal_tac "dispatch_assn' t' (Suc kk) pd (\<lambda>a. if a = CHR ''t''
           then dis_s CHR ''t'' +
-               min (9 / 200 - dis_s CHR ''t'') (1 / 100 - task_s CHR ''c'')
+               min (pd - dis_s CHR ''t'') (pc - task_s CHR ''c'')
           else dis_s a) tr2")
                  prefer 2
                  subgoal
-                apply(subgoal_tac "(9 / 200 - dis_s CHR ''t'' -
-      min (9 / 200 - dis_s CHR ''t'') (1 / 100 - task_s CHR ''c'')) = (9 / 200 -
-      (dis_s CHR ''t'' + min (9 / 200 - dis_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))")
+                apply(subgoal_tac "(pd - dis_s CHR ''t'' -
+      min (pd - dis_s CHR ''t'') (pc - task_s CHR ''c'')) = (pd -
+      (dis_s CHR ''t'' + min (pd - dis_s CHR ''t'') (pc - task_s CHR ''c'')))")
                     apply auto
                    apply(subgoal_tac "(\<lambda>t. EState
            (estate.None,
             \<lambda>a. if a = CHR ''t''
                 then dis_s CHR ''t'' +
-                     (t + min (9 / 200 - dis_s CHR ''t'') (1 / 100 - task_s CHR ''c''))
+                     (t + min (pd - dis_s CHR ''t'') (pc - task_s CHR ''c''))
                 else dis_s a)) = (\<lambda>t. EState
            (estate.None,
             (\<lambda>a. if a = CHR ''t''
                  then dis_s CHR ''t'' +
-                      min (9 / 200 - dis_s CHR ''t'') (1 / 100 - task_s CHR ''c'')
+                      min (pd - dis_s CHR ''t'') (pc - task_s CHR ''c'')
                  else dis_s a)
             (CHR ''t'' :=
                dis_s CHR ''t'' +
-               min (9 / 200 - dis_s CHR ''t'') (1 / 100 - task_s CHR ''c'') +
+               min (pd - dis_s CHR ''t'') (pc - task_s CHR ''c'') +
                t)))")
                     apply auto
                     apply(subgoal_tac "(\<lambda>a. if a = CHR ''t'' then 0 else dis_s a) =
             (\<lambda>a. if a = CHR ''t''
                then dis_s CHR ''t'' +
-                    min (9 / 200 - dis_s CHR ''t'') (1 / 100 - task_s CHR ''c'')
+                    min (pd - dis_s CHR ''t'') (pc - task_s CHR ''c'')
                else dis_s a)
           (CHR ''t'' := 0)")
                      apply auto
@@ -2177,36 +2286,36 @@ inductive io_out0_out0 :: "cname \<Rightarrow> real \<Rightarrow> cname \<Righta
 
 
 
-fun tdsch1' :: "nat \<Rightarrow> nat \<Rightarrow> state \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate tassn" where
-  "tdsch1' 0 0 dis_s (Task st ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> (emp\<^sub>t tr)"
-| "tdsch1' 0 (Suc kk) dis_s (Task st ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> 
-   waitin_assms'_assn UNIV (\<lambda> t. EState(Sch p rn rp, s)) ({},{req_ch 1,req_ch 2,free_ch 1,free_ch 2,exit_ch 1,exit_ch 2})
-   (req_ch 2) {1} (\<lambda> v d. if (v\<le>rp) then tdsch1' 0 kk dis_s (Task st ent tp) task_s (sched_push 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v))
-                                     else if rn \<noteq> -1 then out_0assm_assn (preempt_ch rn) 0 (out_0assm_assn (run_ch 2) 0 
-                                         (tdsch1' 0 kk dis_s (Task st ent tp) task_s (sched_assign 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v))))
+fun tdsch1' :: "nat \<Rightarrow> nat \<Rightarrow> real \<Rightarrow> real \<Rightarrow> state \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate tassn" where
+  "tdsch1' 0 0 pd pc dis_s (Task st ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> (emp\<^sub>t tr)"
+| "tdsch1' 0 (Suc kk) pd pc dis_s (Task st ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> 
+   in_0orig_vassm'_assn 
+   (req_ch 2) {1} (\<lambda> v . if (v\<le>rp) then tdsch1' 0 kk pd pc dis_s (Task st ent tp) task_s (sched_push 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v))
+                                     else if rn \<noteq> -1 then \<up>(rn \<noteq> 1) \<and>\<^sub>t out_0assm_assn (preempt_ch rn) 0 (out_0assm_assn (run_ch 2) 0 
+                                         (tdsch1' 0 kk pd pc dis_s (Task st ent tp) task_s (sched_assign 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v))))
                                             else out_0assm_assn (run_ch 2) 0 
-                                         (tdsch1' 0 kk dis_s (Task st ent tp) task_s (sched_assign 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v)))) tr
- \<or> waitin_assms'_assn UNIV (\<lambda> t. EState(Sch p rn rp, s)) ({},{req_ch 1,req_ch 2,free_ch 1,free_ch 2,exit_ch 1,exit_ch 2})
-   (free_ch 2) {0} (\<lambda> v d. if length p > 0 then out_0assm_assn (run_ch (run_now (sched_get_max (Sch p rn rp) s))) 0 
-                                          (tdsch1' 0 kk dis_s (Task st ent tp) task_s (sched_get_max (Sch p rn rp) s) s)
+                                         (tdsch1' 0 kk pd pc dis_s (Task st ent tp) task_s (sched_assign 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v)))) tr
+ \<or> in_0orig_vassm'_assn
+   (free_ch 2) {0} (\<lambda> v . if length p > 0 then out_0assm_assn (run_ch (run_now (sched_get_max (Sch p rn rp) s))) 0 
+                                          (tdsch1' 0 kk pd pc dis_s (Task st ent tp) task_s (sched_get_max (Sch p rn rp) s) s)
                                             else 
-                                          (tdsch1' 0 kk dis_s (Task st ent tp) task_s (sched_clear (Sch p rn rp) s) s)) tr
- \<or> waitin_assms'_assn UNIV (\<lambda> t. EState(Sch p rn rp, s)) ({},{req_ch 1,req_ch 2,free_ch 1,free_ch 2,exit_ch 1,exit_ch 2})
-   (exit_ch 2) {0} (\<lambda> v d. tdsch1' 0 kk dis_s (Task st ent tp) task_s (sched_del_proc 2 (Sch p rn rp) s) s) tr"
-| "tdsch1' (Suc k) 0 dis_s (Task WAIT ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> 
-   (tdsch1' k 0 (dis_s(CHR ''t'' := 0)) (Task READY 0 tp) (task_s(CHR ''t'' := 0)) (Sch p rn rp) s) tr"
-| "tdsch1' (Suc k) 0 dis_s (Task READY ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> False"
-| "tdsch1' (Suc k) 0 dis_s (Task RUNNING ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> False"
-| "tdsch1' (Suc k) (Suc kk) dis_s (Task WAIT ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> 
- wait_orig_assn (0.045 - dis_s CHR ''t'')
+                                          (tdsch1' 0 kk pd pc dis_s (Task st ent tp) task_s (sched_clear (Sch p rn rp) s) s)) tr
+ \<or> in_0orig_vassm'_assn
+   (exit_ch 2) {0} (\<lambda> v . tdsch1' 0 kk pd pc dis_s (Task st ent tp) task_s (sched_del_proc 2 (Sch p rn rp) s) s) tr"
+| "tdsch1' (Suc k) 0 pd pc dis_s (Task WAIT ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> 
+   (tdsch1' k 0 pd pc (dis_s(CHR ''t'' := 0)) (Task READY 0 tp) (task_s(CHR ''t'' := 0)) (Sch p rn rp) s) tr"
+| "tdsch1' (Suc k) 0 pd pc dis_s (Task READY ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> False"
+| "tdsch1' (Suc k) 0 pd pc dis_s (Task RUNNING ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> False"
+| "tdsch1' (Suc k) (Suc kk) pd pc dis_s (Task WAIT ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> 
+ wait_orig_assn (pd - dis_s CHR ''t'')
      (\<lambda>t. ParState
            (ParState (EState (Task WAIT ent tp, task_s))
              (EState
                (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))
            (EState (Sch p rn rp, s)))
      ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, dispatch_ch 1})
-     (tdsch1' (k) (Suc kk) (dis_s(CHR ''t'' := 0)) (Task READY 0 tp) (task_s(CHR ''t'' := 0)) (Sch p rn rp) s) tr \<or>
- waitin_assms'_assn {..(0.045 - dis_s CHR ''t'')}
+     (tdsch1' (k) (Suc kk) pd pc (dis_s(CHR ''t'' := 0)) (Task READY 0 tp) (task_s(CHR ''t'' := 0)) (Sch p rn rp) s) tr \<or>
+ waitin_tguar'_vassm'_assn {..<(pd - dis_s CHR ''t'')}
      (\<lambda>t. ParState
                  (ParState (EState (Task WAIT ent tp, task_s))
          
@@ -2214,12 +2323,12 @@ fun tdsch1' :: "nat \<Rightarrow> nat \<Rightarrow> state \<Rightarrow> estate \
                      (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))
                  (EState (Sch p rn rp, s)))
      ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, dispatch_ch 1}) (req_ch 2) {1}
-     (\<lambda> v d. if (v\<le>rp) then tdsch1' (Suc k) kk (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) (Task WAIT ent tp) (task_s) (sched_push 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v))
+     (\<lambda> v d. if (v\<le>rp) then tdsch1' (Suc k) kk pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) (Task WAIT ent tp) (task_s) (sched_push 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v))
                                      else if rn \<noteq> -1 then out_0assm_assn (preempt_ch rn) 0 (out_0assm_assn (run_ch 2) 0 
-                                         (tdsch1' (Suc k) kk (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) (Task WAIT ent tp) (task_s) (sched_assign 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v))))                                         
+                                         (tdsch1' (Suc k) kk pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) (Task WAIT ent tp) (task_s) (sched_assign 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v))))                                         
                                                      else out_0assm_assn (run_ch 2) 0 
-                                         (tdsch1' (Suc k) kk (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) (Task WAIT ent tp) (task_s) (sched_assign 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v)))) tr \<or>
- waitin_assms'_assn {..(0.045 - dis_s CHR ''t'')}
+                                         (tdsch1' (Suc k) kk pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) (Task WAIT ent tp) (task_s) (sched_assign 2 (Sch p rn rp) (s(CHR ''p'' := v))) (s(CHR ''p'' := v)))) tr \<or>
+ waitin_tguar'_vassm'_assn {..<(pd - dis_s CHR ''t'')}
      (\<lambda>t. ParState
                  (ParState (EState (Task WAIT ent tp, task_s))
          
@@ -2228,9 +2337,9 @@ fun tdsch1' :: "nat \<Rightarrow> nat \<Rightarrow> state \<Rightarrow> estate \
                  (EState (Sch p rn rp, s)))
      ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, dispatch_ch 1}) (free_ch 2) {0}
      (\<lambda> v d. if length p > 0 then out_0assm_assn (run_ch (run_now (sched_get_max (Sch p rn rp) s))) 0 
-                                 (tdsch1' (Suc k) kk (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) (Task WAIT ent tp) (task_s) (sched_get_max (Sch p rn rp) s) s)
-                             else tdsch1' (Suc k) kk (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) (Task WAIT ent tp) (task_s) (sched_get_max (Sch p rn rp) s) s) tr \<or>
- waitin_assms'_assn {..(0.045 - dis_s CHR ''t'')}
+                                 (tdsch1' (Suc k) kk pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) (Task WAIT ent tp) (task_s) (sched_get_max (Sch p rn rp) s) s)
+                             else tdsch1' (Suc k) kk pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) (Task WAIT ent tp) (task_s) (sched_get_max (Sch p rn rp) s) s) tr \<or>
+ waitin_tguar'_vassm'_assn {..<(pd - dis_s CHR ''t'')}
      (\<lambda>t. ParState
                  (ParState (EState (Task WAIT ent tp, task_s))
          
@@ -2238,82 +2347,82 @@ fun tdsch1' :: "nat \<Rightarrow> nat \<Rightarrow> state \<Rightarrow> estate \
                      (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))
                  (EState (Sch p rn rp, s)))
      ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, dispatch_ch 1}) (exit_ch 2) {0}
-     (\<lambda> v d. tdsch1' (Suc k) kk (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) (Task WAIT ent tp) task_s (Sch (del_proc p 2) rn rp) s) tr"
-| "tdsch1' (Suc k) (Suc kk) dis_s (Task READY ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> 
+     (\<lambda> v d. tdsch1' (Suc k) kk pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) (Task WAIT ent tp) task_s (Sch (del_proc p 2) rn rp) s) tr"
+| "tdsch1' (Suc k) (Suc kk) pd pc dis_s (Task READY ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> 
       (if rn \<noteq> -1 then out_0assm_assn (preempt_ch rn) 0 
-            (tdsch1' k kk dis_s (Task RUNNING (Suc 0) 2)
+            (tdsch1' k kk pd pc dis_s (Task RUNNING (Suc 0) tp)
              (task_s(CHR ''c'' := up_ent_c ent (task_s CHR ''c''))) (Sch p 1 2) (s(CHR ''p'' := 2)))
-       else tdsch1' k kk dis_s (Task RUNNING (Suc 0) 2)
+       else tdsch1' k kk pd pc dis_s (Task RUNNING (Suc 0) tp)
              (task_s(CHR ''c'' := up_ent_c ent (task_s CHR ''c''))) (Sch p 1 2) (s(CHR ''p'' := 2))) tr \<or>
-      in_0orig_vassm_assn (req_ch 2) {1} (\<lambda> v. if v \<le> rp then (tdsch1' (Suc k) kk dis_s (Task READY ent tp) task_s (Sch (p @ [(1, 2)]) rn rp)(s(CHR ''p'' := 1))) 
-                                                         else if rn \<noteq> -1 then (out_0assm_assn (preempt_ch rn) 0 (out_0assm_assn (run_ch 2) 0 (tdsch1' (Suc k) kk dis_s (Task READY ent 2) task_s (Sch p 2 1) (s(CHR ''p'' := 1))))) 
-                                                                        else (out_0assm_assn (run_ch 2) 0 (tdsch1' (Suc k) kk dis_s (Task READY ent 2) task_s (Sch p 2 1) (s(CHR ''p'' := 1))))) tr \<or> 
-      in_0orig_vassm_assn (free_ch 2) {0} (\<lambda> v. if length p > 0 then out_0assm_assn (run_ch (run_now (sched_get_max (Sch p rn rp) s))) 0 
-                                                                  (tdsch1' (Suc k) kk dis_s (Task READY ent tp) task_s (sched_get_max (Sch p rn rp) s) s)
+      in_0orig_vassm'_assn (req_ch 2) {1} (\<lambda> v. if v \<le> rp then (tdsch1' (Suc k) kk pd pc dis_s (Task READY ent tp) task_s (Sch (p @ [(1, 2)]) rn rp)(s(CHR ''p'' := 1))) 
+                                                         else if rn \<noteq> -1 then (out_0assm_assn (preempt_ch rn) 0 (out_0assm_assn (run_ch 2) 0 (tdsch1' (Suc k) kk pd pc dis_s (Task READY ent tp) task_s (Sch p 2 1) (s(CHR ''p'' := 1))))) 
+                                                                        else (out_0assm_assn (run_ch 2) 0 (tdsch1' (Suc k) kk pd pc dis_s (Task READY ent tp) task_s (Sch p 2 1) (s(CHR ''p'' := 1))))) tr \<or> 
+      in_0orig_vassm'_assn (free_ch 2) {0} (\<lambda> v. if length p > 0 then out_0assm_assn (run_ch (run_now (sched_get_max (Sch p rn rp) s))) 0 
+                                                                  (tdsch1' (Suc k) kk pd pc dis_s (Task READY ent tp) task_s (sched_get_max (Sch p rn rp) s) s)
                                                                 else 
-                                                                  (tdsch1' (Suc k) kk dis_s (Task READY ent tp) task_s (sched_clear (Sch p rn rp) s) s)) tr \<or>
-      in_0orig_vassm_assn (exit_ch 2) {0} (\<lambda> v. tdsch1' (Suc k) kk dis_s (Task READY ent tp) task_s (Sch (del_proc p 2) rn rp) s) tr"
-|"tdsch1' (Suc k) (Suc kk) dis_s (Task RUNNING ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> 
-                               waitin_tguar'_vassm'_assn {0..min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')} 
+                                                                  (tdsch1' (Suc k) kk pd pc dis_s (Task READY ent tp) task_s (sched_clear (Sch p rn rp) s) s)) tr \<or>
+      in_0orig_vassm'_assn (exit_ch 2) {0} (\<lambda> v. tdsch1' (Suc k) kk pd pc dis_s (Task READY ent tp) task_s (Sch (del_proc p 2) rn rp) s) tr"
+|"tdsch1' (Suc k) (Suc kk) pd pc dis_s (Task RUNNING ent tp) task_s (Sch p rn rp) s tr \<longleftrightarrow> 
+                               waitin_tguar'_vassm'_assn {..min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')} 
                                         (\<lambda>t. ParState
-                                                  (ParState (EState (Task RUNNING (Suc 0) 2, task_s
+                                                  (ParState (EState (Task RUNNING ent tp, task_s
                                                                       (CHR ''t'' := task_s CHR ''t'' + t,
                                                                        CHR ''c'' := task_s CHR ''c'' + t)))
                                                             (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))
                                                   (EState (Sch p rn rp, s)))
-                                        ({preempt_ch 1},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})
+                                        ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, preempt_ch 1})
                                         (req_ch 2) {1} 
-                                  (\<lambda> v d. tdsch1' (Suc k) kk (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) (Task RUNNING ent tp) 
+                                  (\<lambda> v d. tdsch1' (Suc k) kk pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) (Task RUNNING ent tp) 
                                         (task_s(CHR ''t'' := task_s CHR ''t'' + d,
                                                 CHR ''c'' := task_s CHR ''c'' + d)) 
                                         (Sch (p @ [(1, 2)]) 1 2) (s(CHR ''p'' := 1))) tr \<or>
-                               waitin_tguar'_vassm'_assn {0..min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')} 
+                               waitin_tguar'_vassm'_assn {..min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')} 
                                         (\<lambda>t. ParState
-                                                  (ParState (EState (Task RUNNING (Suc 0) 2, task_s
+                                                  (ParState (EState (Task RUNNING ent tp, task_s
                                                                       (CHR ''t'' := task_s CHR ''t'' + t,
                                                                        CHR ''c'' := task_s CHR ''c'' + t)))
                                                             (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))
                                                   (EState (Sch p rn rp, s)))
-                                        ({preempt_ch 1},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})
+                                        ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, preempt_ch 1})
                                         (free_ch 2) {0} 
                                   (\<lambda> v d. true\<^sub>A ) tr \<or>
-                               waitin_tguar'_vassm'_assn {0..min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')} 
+                               waitin_tguar'_vassm'_assn {..min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')} 
                                         (\<lambda>t. ParState
-                                                  (ParState (EState (Task RUNNING (Suc 0) 2, task_s
+                                                  (ParState (EState (Task RUNNING ent tp, task_s
                                                                       (CHR ''t'' := task_s CHR ''t'' + t,
                                                                        CHR ''c'' := task_s CHR ''c'' + t)))
                                                             (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))
                                                   (EState (Sch p rn rp, s)))
-                                        ({preempt_ch 1},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})
+                                        ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, preempt_ch 1})
                                         (exit_ch 2) {0} 
-                                  (\<lambda> v d. tdsch1' (Suc k) kk (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) (Task RUNNING ent tp) 
+                                  (\<lambda> v d. tdsch1' (Suc k) kk pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) (Task RUNNING ent tp) 
                                         (task_s(CHR ''t'' := task_s CHR ''t'' + d,
                                                 CHR ''c'' := task_s CHR ''c'' + d)) 
                                         (Sch (del_proc p 2) rn rp) s) tr \<or>
-                               wait_orig_assn (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))
+                               wait_orig_assn (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))
                                      (\<lambda>t. ParState
-                                           (ParState (EState (Task RUNNING (Suc 0) 2, task_s(CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
+                                           (ParState (EState (Task RUNNING ent tp, task_s(CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                              (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))
                                            (EState (Sch p rn rp, s)))
-                                     ({preempt_ch 1}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})
+                                     ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, preempt_ch 1})
                                      (if length p > 0 then out_0assm_assn (run_ch (run_now (sched_get_max (Sch p rn rp) s))) 0 
-                                                 (tdsch1' k kk (dis_s(CHR ''t'' := dis_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
+                                                 (tdsch1' k kk pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
                                                                (Task WAIT ent tp)
                                                                (task_s
-                                                                (CHR ''t'' := task_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
-                                                                 CHR ''c'' := task_s CHR ''c'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))) 
+                                                                (CHR ''t'' := task_s CHR ''t'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
+                                                                 CHR ''c'' := task_s CHR ''c'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))) 
                                                                (sched_get_max (Sch p rn rp) s) s)
                                                       else 
-                                                 (tdsch1' k kk (dis_s(CHR ''t'' := dis_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
+                                                 (tdsch1' k kk pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
                                                                (Task WAIT ent tp) 
                                                                (task_s
-                                                                (CHR ''t'' := task_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
-                                                                 CHR ''c'' := task_s CHR ''c'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))) 
+                                                                (CHR ''t'' := task_s CHR ''t'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
+                                                                 CHR ''c'' := task_s CHR ''c'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))) 
                                                                 (sched_clear (Sch p rn rp) s) s)) tr"
-|  "tdsch1' k kk dis_s (Sch p rn rp) task_s schs s tr \<longleftrightarrow> False"
-|  "tdsch1' k kk dis_s None task_s schs s tr \<longleftrightarrow> False"
-|  "tdsch1' k kk dis_s task_es task_s (Task st ent tp) s tr \<longleftrightarrow> False"
-|  "tdsch1' k kk dis_s task_es task_s None s tr \<longleftrightarrow> False"
+|  "tdsch1' k kk pd pc dis_s (Sch p rn rp) task_s schs s tr \<longleftrightarrow> False"
+|  "tdsch1' k kk pd pc dis_s None task_s schs s tr \<longleftrightarrow> False"
+|  "tdsch1' k kk pd pc dis_s task_es task_s (Task st ent tp) s tr \<longleftrightarrow> False"
+|  "tdsch1' k kk pd pc dis_s task_es task_s None s tr \<longleftrightarrow> False"
 
 thm tdsch1'.simps
 
@@ -2917,13 +3026,13 @@ definition propc :: "nat \<Rightarrow> estate \<Rightarrow> estate \<Rightarrow>
 
 
 lemma combine_taskdis_sch1':
-  "task_dis_assn' 1 k dis_s task_es task_s tr1 \<Longrightarrow>
+  "task_dis_assn' 1 k pd pc dis_s task_es task_s tr1 \<Longrightarrow>
    sched_assn' kk schs s tr2 \<Longrightarrow>
    task_prior task_es = 2 \<Longrightarrow>
    propc k task_es schs \<Longrightarrow>
    proper schs \<Longrightarrow>
    combine_blocks {req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1} tr1 tr2 tr \<Longrightarrow>
-   tdsch1' k kk dis_s task_es task_s schs s tr"
+   tdsch1' k kk pd pc dis_s task_es task_s schs s tr"
   thm nat_less_induct 
   thm less_induct
     proof(induction " k+kk"  arbitrary: k kk task_es task_s dis_s schs s tr1 tr2 tr rule: less_induct)
@@ -2973,7 +3082,7 @@ lemma combine_taskdis_sch1':
                 apply(rule entails_tassn_trans)
                  apply(rule combine_emp_waitin_assms'2)
                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
-                apply(rule waitin_assms'_assn_tran)
+                apply(rule in_0orig_vassm'_assn_tran)
                 apply clarify
                 apply simp
                 apply(rule conjI)
@@ -2993,9 +3102,13 @@ lemma combine_taskdis_sch1':
                   subgoal apply clarify
                     apply(rule entails_tassn_trans)
                      apply(rule combine_emp_out_0assm3)
+                    apply(rule entails_tassn_conj)
+                    subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
+                    apply auto
                     apply(rule out_0assm_assn_tran)
                     apply(rule entails_tassn_trans)
-                     apply(rule combine_emp_out_0assm3)
+                     apply(rule combine_emp_out_0assm2)
+                    subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
                     apply(rule out_0assm_assn_tran)
                     unfolding entails_tassn_def combine_assn_def
                     apply clarify
@@ -3020,7 +3133,8 @@ lemma combine_taskdis_sch1':
                     done
                   apply clarify
                   apply(rule entails_tassn_trans)
-                   apply(rule combine_emp_out_0assm3)
+                   apply(rule combine_emp_out_0assm2)
+                  subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
                   apply(rule out_0assm_assn_tran)
                   unfolding entails_tassn_def combine_assn_def
                   apply clarify
@@ -3052,14 +3166,23 @@ lemma combine_taskdis_sch1':
                 apply(rule entails_tassn_trans)
                  apply(rule combine_emp_waitin_assms'2)
                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
-                apply(rule waitin_assms'_assn_tran)
-                subgoal for v d
+                apply(rule in_0orig_vassm'_assn_tran)
+                subgoal for v 
                   apply clarify
                   apply simp
                   apply(rule conjI)
                   subgoal apply clarify
                     apply(rule entails_tassn_trans)
-                     apply(rule combine_emp_out_0assm3)
+                     apply(rule combine_emp_out_0assm2)
+                    thm pre
+                    subgoal using pre(4,5) properl_p5[of p] unfolding proper_def properp_def
+                      apply(cases "get_max p")
+                      subgoal for a b
+                        apply(subgoal_tac "b \<noteq> 1")
+                        subgoal
+                          by (auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
+                        by auto
+                      done
                     apply(rule out_0assm_assn_tran)
                     unfolding entails_tassn_def combine_assn_def
                     apply auto
@@ -3102,7 +3225,7 @@ lemma combine_taskdis_sch1':
                 apply(rule entails_tassn_trans)
                  apply(rule combine_emp_waitin_assms'2)
                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
-                apply(rule waitin_assms'_assn_tran)
+                apply(rule in_0orig_vassm'_assn_tran)
                 apply auto
                 unfolding entails_tassn_def combine_assn_def
                  apply auto
@@ -3188,7 +3311,7 @@ lemma combine_taskdis_sch1':
                  apply(rule pre(5))
                 apply(rule entails_tassn_trans)
                  apply(rule combine_wait_orig_emp5)
-                apply(rule combine_out_0assm_emp1)
+                apply(rule combine_out_0assm_srdy_emp1)
                 by auto
               done
             done
@@ -3233,11 +3356,11 @@ lemma combine_taskdis_sch1':
                     done
                   apply(erule disjE)
                   subgoal 
-                    apply(cases rule: wait_orig_assn.cases[of "(45 / 10 ^ 3 - dis_s CHR ''t'')"
+                    apply(cases rule: wait_orig_assn.cases[of "(pd - dis_s CHR ''t'')"
                                                                "(\<lambda>t. ParState (EState (Task WAIT ent tp, task_s))
                                                                      (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
                                                                "({}, {dispatch_ch 1})"
-                                                               "(task_dis_assn' 1 k' (dis_s(CHR ''t'' := 0)) (Task READY 0 tp)
+                                                               "(task_dis_assn' 1 k' pd pc (dis_s(CHR ''t'' := 0)) (Task READY 0 tp)
                                                                    (task_s(CHR ''t'' := 0)))"
                                                                tr1])
                       apply simp
@@ -3277,7 +3400,7 @@ lemma combine_taskdis_sch1':
                             apply simp
                             apply(rule disjI2)
                             apply(rule disjI1)
-                            apply(rule waitin_assms'_assn.intros(1))
+                            apply(rule waitin_tguar'_vassm'_assn.intros(1))
                             subgoal by auto
                             subgoal by auto
                             apply(cases "1\<le>rp")
@@ -3351,7 +3474,7 @@ lemma combine_taskdis_sch1':
                         subgoal for v d tr2'
                           using pre(7)
                           apply(simp del: tdsch1'.simps)
-                          apply(cases "(45 / 10 ^ 3 - dis_s CHR ''t'')<d")
+                          apply(cases "(pd - dis_s CHR ''t'')<d")
                           subgoal
                             apply(elim combine_blocks_waitE3)
                             subgoal by auto
@@ -3377,7 +3500,7 @@ lemma combine_taskdis_sch1':
                                                                          (sched_assn' kk'
                                                                            (sched_assign 2 (Sch p rn rp) (s(CHR ''p'' := v)))
                                                                            (s(CHR ''p'' := v))))
-                                                                   (WaitBlk (d - (9 / 200 - dis_s CHR ''t'')) (\<lambda>t. EState (Sch p rn rp, s))
+                                                                   (WaitBlk (d - (pd - dis_s CHR ''t'')) (\<lambda>t. EState (Sch p rn rp, s))
                                                                    ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) # InBlock (req_ch 2) 1 # tr2')")
                                      prefer 2
                                   subgoal 
@@ -3390,7 +3513,7 @@ lemma combine_taskdis_sch1':
                                   apply(rule wait_orig_assn.intros(2))
                                    prefer 2 subgoal by auto
                                   using pre(1)[of k' "(Suc kk')" "(dis_s(CHR ''t'' := 0))" "(Task READY 0 tp)"
-                                               "(task_s(CHR ''t'' := 0))" tr1' "(Sch p rn rp)" s "(WaitBlk (d - (9 / 200 - dis_s CHR ''t'')) (\<lambda>t. EState (Sch p rn rp, s))
+                                               "(task_s(CHR ''t'' := 0))" tr1' "(Sch p rn rp)" s "(WaitBlk (d - (pd - dis_s CHR ''t'')) (\<lambda>t. EState (Sch p rn rp, s))
                                                  ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) #
                                                 InBlock (req_ch 2) 1 # tr2')" tr']
                                   using pre(4,5,6,12)[unfolded pre(10,11)] 
@@ -3398,7 +3521,7 @@ lemma combine_taskdis_sch1':
                                   unfolding propc_def proper_def properp_def 
                                   by auto
                                 done
-                          apply(cases "d<(45 / 10 ^ 3 - dis_s CHR ''t'')")
+                          apply(cases "d<(pd - dis_s CHR ''t'')")
                           subgoal
                             apply(elim combine_blocks_waitE4)
                             subgoal by auto
@@ -3411,13 +3534,13 @@ lemma combine_taskdis_sch1':
                                 apply simp
                                 apply(rule disjI2)
                                 apply(rule disjI1)
-                                apply(rule waitin_assms'_assn.intros(2))
+                                apply(rule waitin_tguar'_vassm'_assn.intros(2))
                                 subgoal by auto
                                 subgoal by auto
                                 subgoal by auto
-                                apply(subgoal_tac "task_dis_assn' 1 (Suc k') (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) (Task WAIT ent tp)
+                                apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) (Task WAIT ent tp)
                                                    (task_s)
-                                                   (WaitBlk (9 / 200 - dis_s CHR ''t'' - d)
+                                                   (WaitBlk (pd - dis_s CHR ''t'' - d)
                                                  (\<lambda>t. ParState (EState (Task WAIT ent tp, task_s))
                                                        (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d)))))
                                                  ({}, {dispatch_ch 1}) #
@@ -3425,7 +3548,7 @@ lemma combine_taskdis_sch1':
                                  prefer 2
                                 subgoal premises pre'
                                 proof -
-                                  have a1: "(9 / 200 - (dis_s CHR ''t'' + d)) = (9 / 200 - dis_s CHR ''t'' - d)"
+                                  have a1: "(pd - (dis_s CHR ''t'' + d)) = (pd - dis_s CHR ''t'' - d)"
                                     by auto
                                   have a2: "\<And>t. dis_s CHR ''t'' + d + t = dis_s CHR ''t'' + (t + d)"
                                     by auto
@@ -3441,7 +3564,7 @@ lemma combine_taskdis_sch1':
                                   apply auto
                                   using pre(1)[of "(Suc k')" kk' "(dis_s(CHR ''t'' := dis_s CHR ''t'' + d))" "(Task WAIT ent tp)"
                                                   "(task_s)" 
-                                                  "(WaitBlk (9 / 200 - dis_s CHR ''t'' - d)
+                                                  "(WaitBlk (pd - dis_s CHR ''t'' - d)
                                                    (\<lambda>t. ParState (EState (Task WAIT ent tp, task_s))
                                                          (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d)))))
                                                    ({}, {dispatch_ch 1}) #
@@ -3546,13 +3669,13 @@ lemma combine_taskdis_sch1':
                               apply simp
                               apply(rule disjI2)
                               apply(rule disjI1)
-                            apply(rule waitin_assms'_assn.intros(3))
+                            apply(rule waitin_tguar'_vassm'_assn.intros(3))
                             by auto
                           done
                           subgoal for d v tr2'
                           using pre(7)
                           apply(simp del: tdsch1'.simps)
-                          apply(cases "(45 / 10 ^ 3 - dis_s CHR ''t'')<d")
+                          apply(cases "(pd - dis_s CHR ''t'')<d")
                           subgoal
                             apply(elim combine_blocks_waitE3)
                             subgoal by auto
@@ -3578,7 +3701,7 @@ lemma combine_taskdis_sch1':
                                                                          (sched_assn' kk'
                                                                            (sched_assign 2 (Sch p rn rp) (s(CHR ''p'' := v)))
                                                                            (s(CHR ''p'' := v))))
-                                                                   (WaitBlk (d - (9 / 200 - dis_s CHR ''t'')) (\<lambda>t. EState (Sch p rn rp, s))
+                                                                   (WaitBlk (d - (pd - dis_s CHR ''t'')) (\<lambda>t. EState (Sch p rn rp, s))
                                                                    ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) # InBlock (req_ch 2) v # tr2')")
                                      prefer 2
                                   subgoal 
@@ -3587,7 +3710,7 @@ lemma combine_taskdis_sch1':
                                   apply(rule wait_orig_assn.intros(2))
                                    prefer 2 subgoal by auto
                                   using pre(1)[of k' "(Suc kk')" "(dis_s(CHR ''t'' := 0))" "(Task READY 0 tp)"
-                                               "(task_s(CHR ''t'' := 0))" tr1' "(Sch p rn rp)" s "(WaitBlk (d - (9 / 200 - dis_s CHR ''t'')) (\<lambda>t. EState (Sch p rn rp, s))
+                                               "(task_s(CHR ''t'' := 0))" tr1' "(Sch p rn rp)" s "(WaitBlk (d - (pd - dis_s CHR ''t'')) (\<lambda>t. EState (Sch p rn rp, s))
                                                  ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) #
                                                 InBlock (req_ch 2) v # tr2')" tr']
                                   using pre(4,5,6,12)[unfolded pre(10,11)] 
@@ -3595,7 +3718,7 @@ lemma combine_taskdis_sch1':
                                   unfolding propc_def proper_def properp_def 
                                   by auto
                                 done
-                          apply(cases "d<(45 / 10 ^ 3 - dis_s CHR ''t'')")
+                          apply(cases "d<(pd - dis_s CHR ''t'')")
                           subgoal
                             apply(elim combine_blocks_waitE4)
                             subgoal by auto
@@ -3608,7 +3731,7 @@ lemma combine_taskdis_sch1':
                                 apply simp
                                 apply(rule disjI2)
                                 apply(rule disjI1)
-                                apply(rule waitin_assms'_assn.intros(4))
+                                apply(rule waitin_tguar'_vassm'_assn.intros(4))
                                 by auto
                               done
                             done
@@ -3658,7 +3781,7 @@ lemma combine_taskdis_sch1':
                                 {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) = ({},
                                 {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, dispatch_ch 1})"
                           by auto
-                        have b:"(45 / 10 ^ 3 - dis_s CHR ''t'') = (9 / 200 - dis_s CHR ''t'')" by auto
+                        have b:"(pd - dis_s CHR ''t'') = (pd - dis_s CHR ''t'')" by auto
                         show ?thesis
                           apply(subst a)
                           apply(subst b)
@@ -3676,11 +3799,11 @@ lemma combine_taskdis_sch1':
                       done
                     apply(erule disjE)
                     subgoal
-                      apply(cases rule: wait_orig_assn.cases[of "(45 / 10 ^ 3 - dis_s CHR ''t'')"
+                      apply(cases rule: wait_orig_assn.cases[of "(pd - dis_s CHR ''t'')"
                                        "(\<lambda>t. ParState (EState (Task WAIT ent tp, task_s))
                                              (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
                                        "({}, {dispatch_ch 1})"
-                                       "(task_dis_assn' 1 k' (dis_s(CHR ''t'' := 0)) (Task READY 0 tp)
+                                       "(task_dis_assn' 1 k' pd pc (dis_s(CHR ''t'' := 0)) (Task READY 0 tp)
                                          (task_s(CHR ''t'' := 0)))"
                                        tr1])
                         apply simp
@@ -3710,7 +3833,7 @@ lemma combine_taskdis_sch1':
                           apply(elim combine_blocks_unpairE3')
                           subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                           apply simp
-                          apply (rule waitin_assms'_assn.intros(1))
+                          apply (rule waitin_tguar'_vassm'_assn.intros(1))
                           subgoal by auto
                           subgoal by auto
                           subgoal for tr'
@@ -3768,7 +3891,7 @@ lemma combine_taskdis_sch1':
                         subgoal for v d tr2'
                           using pre(7)
                           apply(simp del: tdsch1'.simps)
-                          apply(cases "(9 / 200 - dis_s CHR ''t'')<d")
+                          apply(cases "(pd - dis_s CHR ''t'')<d")
                           subgoal
                             apply(elim combine_blocks_waitE3)
                             subgoal by auto
@@ -3780,7 +3903,7 @@ lemma combine_taskdis_sch1':
                               apply(rule wait_orig_assn.intros(2))
                                apply auto
                               apply(rule pre(1)[of k' "(Suc kk')" "(dis_s(CHR ''t'' := 0))" "(Task READY 0 tp)"
-                                         "(task_s(CHR ''t'' := 0))" tr1' "(Sch p rn rp)" s "(WaitBlk (d - (9 / 200 - dis_s CHR ''t'')) (\<lambda>t. EState (Sch p rn rp, s))
+                                         "(task_s(CHR ''t'' := 0))" tr1' "(Sch p rn rp)" s "(WaitBlk (d - (pd - dis_s CHR ''t'')) (\<lambda>t. EState (Sch p rn rp, s))
                                            ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) #
                                           InBlock (free_ch 2) 0 # tr2')" tr'])
                               subgoal by auto
@@ -3799,7 +3922,7 @@ lemma combine_taskdis_sch1':
                               subgoal by auto
                               done
                             done
-                          apply(cases "(9 / 200 - dis_s CHR ''t'')>d")
+                          apply(cases "(pd - dis_s CHR ''t'')>d")
                           subgoal
                             apply(elim combine_blocks_waitE4)
                             subgoal by auto
@@ -3813,12 +3936,12 @@ lemma combine_taskdis_sch1':
                             subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                             apply auto
                             subgoal for tr'
-                              apply(rule waitin_assms'_assn.intros(2))
+                              apply(rule waitin_tguar'_vassm'_assn.intros(2))
                               subgoal by auto
                               subgoal by auto
                               subgoal by auto
-                              apply(subgoal_tac "task_dis_assn' 1 (Suc k') (dis_s(CHR ''t'' := dis_s CHR ''t'' + d))
-                                           (Task WAIT ent tp) task_s (WaitBlk (9 / 200 - dis_s CHR ''t'' - d)
+                              apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d))
+                                           (Task WAIT ent tp) task_s (WaitBlk (pd - dis_s CHR ''t'' - d)
                                                (\<lambda>t. ParState (EState (Task WAIT ent tp, task_s))
                                                      (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d)))))
                                                ({}, {dispatch_ch 1}) #
@@ -3826,7 +3949,7 @@ lemma combine_taskdis_sch1':
                                prefer 2
                               subgoal premises pre'
                                 proof-
-                                have a1:"(9 / 200 - (dis_s CHR ''t'' + d)) = (9 / 200 - dis_s CHR ''t'' - d)"
+                                have a1:"(pd - (dis_s CHR ''t'' + d)) = (pd - dis_s CHR ''t'' - d)"
                                   by auto
                                 have a2:"(\<lambda>t. ParState (EState (Task WAIT ent tp, task_s))
              (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + d + t)))) = 
@@ -3879,7 +4002,7 @@ lemma combine_taskdis_sch1':
                             subgoal
                               apply simp
                               subgoal 
-                                apply(rule pre(1)[of "(Suc k')" kk' "(dis_s(CHR ''t'' := dis_s CHR ''t'' + d))" "(Task WAIT ent tp)" task_s "(WaitBlk (9 / 200 - dis_s CHR ''t'' - d)
+                                apply(rule pre(1)[of "(Suc k')" kk' "(dis_s(CHR ''t'' := dis_s CHR ''t'' + d))" "(Task WAIT ent tp)" task_s "(WaitBlk (pd - dis_s CHR ''t'' - d)
                                                            (\<lambda>t. ParState (EState (Task WAIT ent tp, task_s))
                                                                  (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d)))))
                                                            ({}, {dispatch_ch 1}) #
@@ -3929,13 +4052,14 @@ lemma combine_taskdis_sch1':
                           apply(elim combine_blocks_unpairE3')
                           subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                           apply simp
-                          apply (rule waitin_assms'_assn.intros(3))
+                          apply (rule waitin_tguar'_vassm'_assn.intros(3))
+                          subgoal by auto
                           subgoal by auto
                           done
                       subgoal for d v tr2'
                           using pre(7)
                           apply(simp del: tdsch1'.simps)
-                          apply(cases "(9 / 200 - dis_s CHR ''t'')<d")
+                          apply(cases "(pd - dis_s CHR ''t'')<d")
                           subgoal
                             apply(elim combine_blocks_waitE3)
                             subgoal by auto
@@ -3947,7 +4071,7 @@ lemma combine_taskdis_sch1':
                               apply(rule wait_orig_assn.intros(2))
                                apply auto
                               apply(rule pre(1)[of k' "(Suc kk')" "(dis_s(CHR ''t'' := 0))" "(Task READY 0 tp)"
-                                         "(task_s(CHR ''t'' := 0))" tr1' "(Sch p rn rp)" s "(WaitBlk (d - (9 / 200 - dis_s CHR ''t'')) (\<lambda>t. EState (Sch p rn rp, s))
+                                         "(task_s(CHR ''t'' := 0))" tr1' "(Sch p rn rp)" s "(WaitBlk (d - (pd - dis_s CHR ''t'')) (\<lambda>t. EState (Sch p rn rp, s))
                                            ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) #
                                           InBlock (free_ch 2) v # tr2')" tr'])
                               subgoal by auto
@@ -3966,7 +4090,7 @@ lemma combine_taskdis_sch1':
                               subgoal by auto
                               done
                             done
-                          apply(cases "(9 / 200 - dis_s CHR ''t'')>d")
+                          apply(cases "(pd - dis_s CHR ''t'')>d")
                           subgoal
                             apply(elim combine_blocks_waitE4)
                             subgoal by auto
@@ -3980,7 +4104,8 @@ lemma combine_taskdis_sch1':
                             subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                             apply auto
                             subgoal for tr'
-                              apply(rule waitin_assms'_assn.intros(4))
+                              apply(rule waitin_tguar'_vassm'_assn.intros(4))
+                              subgoal by auto
                               subgoal by auto
                               subgoal by auto
                               done
@@ -4032,7 +4157,7 @@ lemma combine_taskdis_sch1':
                                 {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) = ({},
                                 {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2, dispatch_ch 1})"
                           by auto
-                        have b:"(45 / 10 ^ 3 - dis_s CHR ''t'') = (9 / 200 - dis_s CHR ''t'')" by auto
+                        have b:"(pd - dis_s CHR ''t'') = (pd - dis_s CHR ''t'')" by auto
                         show ?thesis
                           apply(subst a)
                           apply(subst b)
@@ -4049,11 +4174,11 @@ lemma combine_taskdis_sch1':
                       qed
                       done
                     subgoal
-                      apply(cases rule: wait_orig_assn.cases[of "(45 / 10 ^ 3 - dis_s CHR ''t'')"
+                      apply(cases rule: wait_orig_assn.cases[of "(pd - dis_s CHR ''t'')"
                                        "(\<lambda>t. ParState (EState (Task WAIT ent tp, task_s))
                                              (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
                                        "({}, {dispatch_ch 1})"
-                                       "(task_dis_assn' 1 k' (dis_s(CHR ''t'' := 0)) (Task READY 0 tp)
+                                       "(task_dis_assn' 1 k' pd pc (dis_s(CHR ''t'' := 0)) (Task READY 0 tp)
                                          (task_s(CHR ''t'' := 0)))"
                                        tr1])
                         apply simp
@@ -4079,7 +4204,7 @@ lemma combine_taskdis_sch1':
                           apply(elim combine_blocks_unpairE3')
                           subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                           apply simp
-                          apply(rule waitin_assms'_assn.intros(1))
+                          apply(rule waitin_tguar'_vassm'_assn.intros(1))
                             apply auto
                           subgoal for tr'
                             apply(rule pre(1)[of "(Suc k')" kk' dis_s "(Task WAIT ent tp)" task_s tr1 "(Sch (del_proc p 2) rn rp)" s tr2' tr'])
@@ -4095,7 +4220,7 @@ lemma combine_taskdis_sch1':
                         subgoal for v d tr2'
                           using pre(7)
                           apply (simp del: tdsch1'.simps)
-                          apply(cases "(9 / 200 - dis_s CHR ''t'')<d")
+                          apply(cases "(pd - dis_s CHR ''t'')<d")
                           subgoal
                             apply(elim combine_blocks_waitE3)
                             subgoal by auto
@@ -4107,7 +4232,7 @@ lemma combine_taskdis_sch1':
                               apply(rule wait_orig_assn.intros(2))
                                apply auto
                               apply(rule pre(1)[of k' "(Suc kk')" "(dis_s(CHR ''t'' := 0))" "(Task READY 0 tp)"
-                                   "(task_s(CHR ''t'' := 0))" tr1'  "(Sch p rn rp)" s "(WaitBlk (d - (9 / 200 - dis_s CHR ''t'')) (\<lambda>t. EState (Sch p rn rp, s))
+                                   "(task_s(CHR ''t'' := 0))" tr1'  "(Sch p rn rp)" s "(WaitBlk (d - (pd - dis_s CHR ''t'')) (\<lambda>t. EState (Sch p rn rp, s))
                                      ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) #
                                     InBlock (exit_ch 2) 0 # tr2')" tr'])
                               subgoal by auto
@@ -4123,7 +4248,7 @@ lemma combine_taskdis_sch1':
                               subgoal by auto
                               done
                             done
-                          apply(cases "(9 / 200 - dis_s CHR ''t'')>d")
+                          apply(cases "(pd - dis_s CHR ''t'')>d")
                           subgoal
                             apply(elim combine_blocks_waitE4)
                             subgoal by auto
@@ -4135,10 +4260,10 @@ lemma combine_taskdis_sch1':
                             subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                             apply auto
                             subgoal for tr'
-                              apply(rule waitin_assms'_assn.intros(2))
+                              apply(rule waitin_tguar'_vassm'_assn.intros(2))
                                  apply auto
                               apply(rule pre(1)[of "(Suc k')" kk' "(dis_s(CHR ''t'' := dis_s CHR ''t'' + d))" "(Task WAIT ent tp)"
-                                                   task_s "(WaitBlk (9 / 200 - dis_s CHR ''t'' - d)
+                                                   task_s "(WaitBlk (pd - dis_s CHR ''t'' - d)
                                                      (\<lambda>t. ParState (EState (Task WAIT ent tp, task_s))
                                                            (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d)))))
                                                      ({}, {dispatch_ch 1}) #
@@ -4146,7 +4271,7 @@ lemma combine_taskdis_sch1':
                               subgoal by auto
                               subgoal premises pre'
                                 proof-
-                                have a1:"(9 / 200 - (dis_s CHR ''t'' + d)) = (9 / 200 - dis_s CHR ''t'' - d)"
+                                have a1:"(pd - (dis_s CHR ''t'' + d)) = (pd - dis_s CHR ''t'' - d)"
                                   by auto
                                 have a2:"(\<lambda>t. ParState (EState (Task WAIT ent tp, task_s))
            (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + d + t)))) = 
@@ -4200,12 +4325,12 @@ lemma combine_taskdis_sch1':
                           apply(elim combine_blocks_unpairE3')
                           subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                           apply simp
-                          apply(rule waitin_assms'_assn.intros(3))
+                          apply(rule waitin_tguar'_vassm'_assn.intros(3))
                             by auto
                         subgoal for d v tr2'
                           using pre(7)
                           apply (simp del: tdsch1'.simps)
-                          apply(cases "(9 / 200 - dis_s CHR ''t'')<d")
+                          apply(cases "(pd - dis_s CHR ''t'')<d")
                           subgoal
                             apply(elim combine_blocks_waitE3)
                             subgoal by auto
@@ -4217,7 +4342,7 @@ lemma combine_taskdis_sch1':
                               apply(rule wait_orig_assn.intros(2))
                                apply auto
                               apply(rule pre(1)[of k' "(Suc kk')" "(dis_s(CHR ''t'' := 0))" "(Task READY 0 tp)"
-                                   "(task_s(CHR ''t'' := 0))" tr1'  "(Sch p rn rp)" s "(WaitBlk (d - (9 / 200 - dis_s CHR ''t'')) (\<lambda>t. EState (Sch p rn rp, s))
+                                   "(task_s(CHR ''t'' := 0))" tr1'  "(Sch p rn rp)" s "(WaitBlk (d - (pd - dis_s CHR ''t'')) (\<lambda>t. EState (Sch p rn rp, s))
                                      ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) #
                                     InBlock (exit_ch 2) v # tr2')" tr'])
                               subgoal by auto
@@ -4233,7 +4358,7 @@ lemma combine_taskdis_sch1':
                               subgoal by auto
                               done
                             done
-                          apply(cases "(9 / 200 - dis_s CHR ''t'')>d")
+                          apply(cases "(pd - dis_s CHR ''t'')>d")
                           subgoal
                             apply(elim combine_blocks_waitE4)
                             subgoal by auto
@@ -4245,7 +4370,7 @@ lemma combine_taskdis_sch1':
                             subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                             apply auto
                             subgoal for tr'
-                              apply(rule waitin_assms'_assn.intros(4))
+                              apply(rule waitin_tguar'_vassm'_assn.intros(4))
                                  by auto
                                done
                           apply simp
@@ -4353,7 +4478,7 @@ lemma combine_taskdis_sch1':
                        apply(rule entails_tassn_trans)
                         apply(rule combine_out_0assm_waitin_assm'2)
                        subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
-                       apply(rule in_0orig_vassm_assn_tran)
+                       apply(rule in_0orig_vassm'_assn_tran)
                        apply(subgoal_tac "rp<2 \<and> rn\<noteq>1")
                         prefer 2
                        subgoal using pre(4,5,6,8,9,10,11,12)
@@ -4364,7 +4489,7 @@ lemma combine_taskdis_sch1':
                          unfolding combine_assn_def entails_tassn_def
                          apply clarify
                          subgoal for tr tr1 tr2
-                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') dis_s ((Task READY ent 2)) task_s tr1")
+                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc dis_s ((Task READY ent 2)) task_s tr1")
                             prefer 2 
                            subgoal using pre by auto
                            apply auto
@@ -4394,7 +4519,7 @@ lemma combine_taskdis_sch1':
                          unfolding combine_assn_def entails_tassn_def
                          apply clarify
                          subgoal for tr tr1 tr2
-                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') dis_s ((Task READY ent 2)) task_s tr1")
+                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc dis_s ((Task READY ent 2)) task_s tr1")
                             prefer 2 
                            subgoal using pre by auto
                            apply auto
@@ -4414,7 +4539,7 @@ lemma combine_taskdis_sch1':
                          unfolding combine_assn_def entails_tassn_def
                          apply clarify
                          subgoal for tr tr1 tr2
-                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') dis_s ((Task READY ent 2)) task_s tr1")
+                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc dis_s ((Task READY ent 2)) task_s tr1")
                             prefer 2 
                            subgoal using pre by auto
                            apply auto
@@ -4446,7 +4571,7 @@ lemma combine_taskdis_sch1':
                        apply(rule entails_tassn_trans)
                         apply(rule combine_out_0assm_waitin_assm'2)
                        subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
-                       apply(rule in_0orig_vassm_assn_tran)
+                       apply(rule in_0orig_vassm'_assn_tran)
                        apply(simp del:fun_upd_apply)
                        apply(cases "p \<noteq> []")
                        subgoal
@@ -4461,7 +4586,7 @@ lemma combine_taskdis_sch1':
                          unfolding combine_assn_def entails_tassn_def
                          apply clarify
                          subgoal for tr tr1 tr2
-                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') dis_s ((Task READY ent 2)) task_s tr1")
+                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc dis_s ((Task READY ent 2)) task_s tr1")
                             prefer 2 
                            subgoal using pre by auto
                            apply auto
@@ -4477,7 +4602,7 @@ lemma combine_taskdis_sch1':
                        unfolding combine_assn_def entails_tassn_def
                          apply clarify
                          subgoal for tr tr1 tr2
-                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') dis_s ((Task READY ent 2)) task_s tr1")
+                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc dis_s ((Task READY ent 2)) task_s tr1")
                             prefer 2 
                            subgoal using pre by auto
                            apply auto
@@ -4508,12 +4633,12 @@ lemma combine_taskdis_sch1':
                          apply(rule entails_tassn_trans)
                           apply(rule combine_out_0assm_waitin_assm'2)
                          subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
-                         apply(rule in_0orig_vassm_assn_tran)
+                         apply(rule in_0orig_vassm'_assn_tran)
                          apply (simp del:fun_upd_apply)
                          unfolding combine_assn_def entails_tassn_def
                          apply clarify
                          subgoal for tr tr1 tr2
-                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') dis_s ((Task READY ent 2)) task_s tr1")
+                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc dis_s ((Task READY ent 2)) task_s tr1")
                             prefer 2 
                            subgoal using pre by auto
                            apply auto
@@ -4582,7 +4707,7 @@ lemma combine_taskdis_sch1':
                          apply(rule entails_tassn_trans)
                           apply(rule combine_out_0assm_waitin_assm'2)
                          subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
-                         apply(rule in_0orig_vassm_assn_tran)
+                         apply(rule in_0orig_vassm'_assn_tran)
                          apply(subgoal_tac "rp<2 \<and> rn\<noteq>1")
                         prefer 2
                        subgoal using pre(4,5,6,8,9,10,11,12)
@@ -4593,7 +4718,7 @@ lemma combine_taskdis_sch1':
                          unfolding combine_assn_def entails_tassn_def
                          apply clarify
                          subgoal for tr tr1 tr2
-                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') dis_s ((Task READY ent 2)) task_s tr1")
+                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc dis_s ((Task READY ent 2)) task_s tr1")
                             prefer 2 
                            subgoal using pre by auto
                            apply auto
@@ -4623,7 +4748,7 @@ lemma combine_taskdis_sch1':
                          unfolding combine_assn_def entails_tassn_def
                          apply clarify
                          subgoal for tr tr1 tr2
-                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') dis_s ((Task READY ent 2)) task_s tr1")
+                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc dis_s ((Task READY ent 2)) task_s tr1")
                             prefer 2 
                            subgoal using pre by auto
                            apply auto
@@ -4643,7 +4768,7 @@ lemma combine_taskdis_sch1':
                          unfolding combine_assn_def entails_tassn_def
                          apply clarify
                          subgoal for tr tr1 tr2
-                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') dis_s ((Task READY ent 2)) task_s tr1")
+                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc dis_s ((Task READY ent 2)) task_s tr1")
                             prefer 2 
                            subgoal using pre by auto
                            apply auto
@@ -4675,7 +4800,7 @@ lemma combine_taskdis_sch1':
                        apply(rule entails_tassn_trans)
                         apply(rule combine_out_0assm_waitin_assm'2)
                        subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
-                       apply(rule in_0orig_vassm_assn_tran)
+                       apply(rule in_0orig_vassm'_assn_tran)
                        apply(simp del:fun_upd_apply)
                        apply(cases "p \<noteq> []")
                        subgoal
@@ -4690,7 +4815,7 @@ lemma combine_taskdis_sch1':
                          unfolding combine_assn_def entails_tassn_def
                          apply clarify
                          subgoal for tr tr1 tr2
-                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') dis_s ((Task READY ent 2)) task_s tr1")
+                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc dis_s ((Task READY ent 2)) task_s tr1")
                             prefer 2 
                            subgoal using pre by auto
                            apply auto
@@ -4706,7 +4831,7 @@ lemma combine_taskdis_sch1':
                        unfolding combine_assn_def entails_tassn_def
                          apply clarify
                          subgoal for tr tr1 tr2
-                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') dis_s ((Task READY ent 2)) task_s tr1")
+                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc dis_s ((Task READY ent 2)) task_s tr1")
                             prefer 2 
                            subgoal using pre by auto
                            apply auto
@@ -4737,12 +4862,12 @@ lemma combine_taskdis_sch1':
                          apply(rule entails_tassn_trans)
                           apply(rule combine_out_0assm_waitin_assm'2)
                          subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
-                         apply(rule in_0orig_vassm_assn_tran)
+                         apply(rule in_0orig_vassm'_assn_tran)
                          apply (simp del:fun_upd_apply)
                          unfolding combine_assn_def entails_tassn_def
                          apply clarify
                          subgoal for tr tr1 tr2
-                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') dis_s ((Task READY ent 2)) task_s tr1")
+                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc dis_s ((Task READY ent 2)) task_s tr1")
                             prefer 2 
                            subgoal using pre by auto
                            apply auto
@@ -4794,7 +4919,7 @@ lemma combine_taskdis_sch1':
                          unfolding combine_assn_def entails_tassn_def
                          apply clarify
                          subgoal for tr tr1 tr2
-                           apply(subgoal_tac "9 / 200 = task_s CHR ''t''")
+                           apply(subgoal_tac "pd = task_s CHR ''t''")
                             apply (auto del: fun_upd_apply)
                            using pre(1)[of "k'" kk' dis_s "(Task RUNNING (Suc 0) 2)" "(task_s(CHR ''c'' := up_ent_c ent (task_s CHR ''c'')))" tr1 "(Sch p 1 2)" "(s(CHR ''p'' := 2))" tr2 tr]
                            using pre(4,5,6,12)[unfolded pre(10,11)] properl_p1 
@@ -4812,7 +4937,7 @@ lemma combine_taskdis_sch1':
                        unfolding combine_assn_def entails_tassn_def
                          apply clarify
                          subgoal for tr tr1 tr2
-                           apply(subgoal_tac "9 / 200 = task_s CHR ''t''")
+                           apply(subgoal_tac "pd = task_s CHR ''t''")
                             apply (auto del: fun_upd_apply)
                            using pre(1)[of "k'" kk' dis_s "(Task RUNNING (Suc 0) 2)" "(task_s(CHR ''c'' := up_ent_c ent (task_s CHR ''c'')))" tr1 "(Sch p 1 2)" "(s(CHR ''p'' := 2))" tr2 tr]
                            using pre(4,5,6,12)[unfolded pre(10,11)] properl_p1 
@@ -4832,7 +4957,7 @@ lemma combine_taskdis_sch1':
                          apply(rule entails_tassn_trans)
                           apply(rule combine_out_0assm_waitin_assm'2)
                          subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
-                         apply(rule in_0orig_vassm_assn_tran)
+                         apply(rule in_0orig_vassm'_assn_tran)
                          apply(subgoal_tac "rp<2 \<and> rn\<noteq>1")
                         prefer 2
                        subgoal using pre(4,5,6,8,9,10,11,12)
@@ -4843,7 +4968,7 @@ lemma combine_taskdis_sch1':
                          unfolding combine_assn_def entails_tassn_def
                          apply clarify
                          subgoal for tr tr1 tr2
-                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') dis_s ((Task READY ent 2)) task_s tr1")
+                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc dis_s ((Task READY ent 2)) task_s tr1")
                             prefer 2 
                            subgoal using pre by auto
                            apply auto
@@ -4873,7 +4998,7 @@ lemma combine_taskdis_sch1':
                          unfolding combine_assn_def entails_tassn_def
                          apply clarify
                          subgoal for tr tr1 tr2
-                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') dis_s ((Task READY ent 2)) task_s tr1")
+                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc dis_s ((Task READY ent 2)) task_s tr1")
                             prefer 2 
                            subgoal using pre by auto
                            apply auto
@@ -4893,7 +5018,7 @@ lemma combine_taskdis_sch1':
                          unfolding combine_assn_def entails_tassn_def
                          apply clarify
                          subgoal for tr tr1 tr2
-                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') dis_s ((Task READY ent 2)) task_s tr1")
+                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc dis_s ((Task READY ent 2)) task_s tr1")
                             prefer 2 
                            subgoal using pre by auto
                            apply auto
@@ -4925,7 +5050,7 @@ lemma combine_taskdis_sch1':
                        apply(rule entails_tassn_trans)
                         apply(rule combine_out_0assm_waitin_assm'2)
                        subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
-                       apply(rule in_0orig_vassm_assn_tran)
+                       apply(rule in_0orig_vassm'_assn_tran)
                        apply(simp del:fun_upd_apply)
                        apply(cases "p \<noteq> []")
                        subgoal
@@ -4940,7 +5065,7 @@ lemma combine_taskdis_sch1':
                          unfolding combine_assn_def entails_tassn_def
                          apply clarify
                          subgoal for tr tr1 tr2
-                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') dis_s ((Task READY ent 2)) task_s tr1")
+                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc dis_s ((Task READY ent 2)) task_s tr1")
                             prefer 2 
                            subgoal using pre by auto
                            apply auto
@@ -4956,7 +5081,7 @@ lemma combine_taskdis_sch1':
                        unfolding combine_assn_def entails_tassn_def
                          apply clarify
                          subgoal for tr tr1 tr2
-                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') dis_s ((Task READY ent 2)) task_s tr1")
+                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc dis_s ((Task READY ent 2)) task_s tr1")
                             prefer 2 
                            subgoal using pre by auto
                            apply auto
@@ -4987,12 +5112,12 @@ lemma combine_taskdis_sch1':
                          apply(rule entails_tassn_trans)
                           apply(rule combine_out_0assm_waitin_assm'2)
                          subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
-                         apply(rule in_0orig_vassm_assn_tran)
+                         apply(rule in_0orig_vassm'_assn_tran)
                          apply (simp del:fun_upd_apply)
                          unfolding combine_assn_def entails_tassn_def
                          apply clarify
                          subgoal for tr tr1 tr2
-                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') dis_s ((Task READY ent 2)) task_s tr1")
+                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc dis_s ((Task READY ent 2)) task_s tr1")
                             prefer 2 
                            subgoal using pre by auto
                            apply auto
@@ -5027,14 +5152,14 @@ lemma combine_taskdis_sch1':
                        by auto
                      apply(erule disjE)
                      subgoal
-                       apply(cases rule:waitin_tguar'_vassm'_assn.cases[of "{0..<min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')}"
+                       apply(cases rule:waitin_tguar'_vassm'_assn.cases[of "{0..<min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')}"
                            "(\<lambda>t. ParState
                                  (EState
                                    (Task RUNNING (Suc 0) 2, task_s
                                     (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                  (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
-                           "({preempt_ch 1}, {})" "(preempt_ch 1)" "{0}"
-                           "(\<lambda>v d. task_dis_assn' 1 k' (dis_s(CHR ''t'' := dis_s CHR ''t'' + d))
+                           "({}, {preempt_ch 1})" "(preempt_ch 1)" "{0}"
+                           "(\<lambda>v d. task_dis_assn' 1 k' pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d))
                                    (Task READY (Suc 0) 2)
                                    (task_s
                                     (CHR ''t'' := task_s CHR ''t'' + d, CHR ''c'' := task_s CHR ''c'' + d)))"
@@ -5164,9 +5289,9 @@ lemma combine_taskdis_sch1':
                                                         (CHR ''t'' := task_s CHR ''t'' + (t + d2),
                                                          CHR ''c'' := task_s CHR ''c'' + (t + d2))))
                                                      (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))
-                                               ({preempt_ch 1}, {}) #
+                                               ({}, {preempt_ch 1}) #
                                               InBlock (preempt_ch 1) 0 # tr1')" "(Sch (p @ [(1, 2)]) 1 2)" "(s(CHR ''p'' := 1))" tr2' tr']
-                             apply(subgoal_tac "task_dis_assn' 1 (Suc k') (dis_s(CHR ''t'' := dis_s CHR ''t'' + d2))
+                             apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d2))
                                                  (Task RUNNING (Suc 0) 2)
                                                  (task_s(CHR ''t'' := task_s CHR ''t'' + d2, CHR ''c'' := task_s CHR ''c'' + d2))
                                                  (WaitBlk (d1 - d2)
@@ -5176,7 +5301,7 @@ lemma combine_taskdis_sch1':
                                                             (CHR ''t'' := task_s CHR ''t'' + (t + d2),
                                                              CHR ''c'' := task_s CHR ''c'' + (t + d2))))
                                                          (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))
-                                                   ({preempt_ch 1}, {}) #
+                                                   ({}, {preempt_ch 1}) #
                                                   InBlock (preempt_ch 1) 0 # tr1')")
                               prefer 2
                              subgoal premises pre'
@@ -5242,7 +5367,7 @@ lemma combine_taskdis_sch1':
                            using pre(1)[of "(Suc k')" kk' "(dis_s(CHR ''t'' := dis_s CHR ''t'' + d2))"
                                              "(Task RUNNING (Suc 0) 2)""(task_s(CHR ''t'' := task_s CHR ''t'' + d2, CHR ''c'' := task_s CHR ''c'' + d2))"
                                              "(InBlock (preempt_ch 1) 0 # tr1')" "(Sch (p @ [(1, 2)]) 1 2)" "(s(CHR ''p'' := 1))" tr2' tr']
-                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') (dis_s(CHR ''t'' := dis_s CHR ''t'' + d2))
+                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d2))
                                                  (Task RUNNING (Suc 0) 2)
                                                  (task_s(CHR ''t'' := task_s CHR ''t'' + d2, CHR ''c'' := task_s CHR ''c'' + d2))
                                                  (InBlock (preempt_ch 1) 0 # tr1') ")
@@ -5433,9 +5558,9 @@ lemma combine_taskdis_sch1':
                                                         (CHR ''t'' := task_s CHR ''t'' + (t + d2),
                                                          CHR ''c'' := task_s CHR ''c'' + (t + d2))))
                                                      (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))
-                                               ({preempt_ch 1}, {}) #
+                                               ({}, {preempt_ch 1}) #
                                               InBlock (preempt_ch 1) v1 # tr1')" "(Sch (p @ [(1, 2)]) 1 2)" "(s(CHR ''p'' := 1))" tr2' tr']
-                             apply(subgoal_tac "task_dis_assn' 1 (Suc k') (dis_s(CHR ''t'' := dis_s CHR ''t'' + d2))
+                             apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d2))
                                                  (Task RUNNING (Suc 0) 2)
                                                  (task_s(CHR ''t'' := task_s CHR ''t'' + d2, CHR ''c'' := task_s CHR ''c'' + d2))
                                                  (WaitBlk (d1 - d2)
@@ -5445,7 +5570,7 @@ lemma combine_taskdis_sch1':
                                                             (CHR ''t'' := task_s CHR ''t'' + (t + d2),
                                                              CHR ''c'' := task_s CHR ''c'' + (t + d2))))
                                                          (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))
-                                                   ({preempt_ch 1}, {}) #
+                                                   ({}, {preempt_ch 1}) #
                                                   InBlock (preempt_ch 1) v1 # tr1')")
                               prefer 2
                              subgoal premises pre'
@@ -5511,7 +5636,7 @@ lemma combine_taskdis_sch1':
                            using pre(1)[of "(Suc k')" kk' "(dis_s(CHR ''t'' := dis_s CHR ''t'' + d2))"
                                              "(Task RUNNING (Suc 0) 2)""(task_s(CHR ''t'' := task_s CHR ''t'' + d2, CHR ''c'' := task_s CHR ''c'' + d2))"
                                              "(InBlock (preempt_ch 1) v1 # tr1')" "(Sch (p @ [(1, 2)]) 1 2)" "(s(CHR ''p'' := 1))" tr2' tr']
-                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') (dis_s(CHR ''t'' := dis_s CHR ''t'' + d2))
+                           apply(subgoal_tac "task_dis_assn' 1 (Suc k') pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d2))
                                                  (Task RUNNING (Suc 0) 2)
                                                  (task_s(CHR ''t'' := task_s CHR ''t'' + d2, CHR ''c'' := task_s CHR ''c'' + d2))
                                                  (InBlock (preempt_ch 1) v1 # tr1') ")
@@ -5592,14 +5717,14 @@ lemma combine_taskdis_sch1':
                      apply(simp only: tdsch1'.simps)
                      apply(rule disjI2)
                      apply(rule disjI1)
-                     apply(cases rule:waitin_tguar'_vassm'_assn.cases[of "{0..<min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')}"
+                     apply(cases rule:waitin_tguar'_vassm'_assn.cases[of "{0..<min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')}"
                            "(\<lambda>t. ParState
                                  (EState
                                    (Task RUNNING (Suc 0) 2, task_s
                                     (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                  (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
-                           "({preempt_ch 1}, {})" "(preempt_ch 1)" "{0}"
-                           "(\<lambda>v d. task_dis_assn' 1 k' (dis_s(CHR ''t'' := dis_s CHR ''t'' + d))
+                           "({}, {preempt_ch 1})" "(preempt_ch 1)" "{0}"
+                           "(\<lambda>v d. task_dis_assn' 1 k' pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d))
                                    (Task READY (Suc 0) 2)
                                    (task_s
                                     (CHR ''t'' := task_s CHR ''t'' + d, CHR ''c'' := task_s CHR ''c'' + d)))"
@@ -5853,14 +5978,14 @@ lemma combine_taskdis_sch1':
                        apply(rule disjI2)
                        apply(rule disjI2)
                        apply(rule disjI1)
-                       apply(cases rule:waitin_tguar'_vassm'_assn.cases[of "{0..<min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')}"
+                       apply(cases rule:waitin_tguar'_vassm'_assn.cases[of "{0..<min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')}"
                            "(\<lambda>t. ParState
                                  (EState
                                    (Task RUNNING (Suc 0) 2, task_s
                                     (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                  (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
-                           "({preempt_ch 1}, {})" "(preempt_ch 1)" "{0}"
-                           "(\<lambda>v d. task_dis_assn' 1 k' (dis_s(CHR ''t'' := dis_s CHR ''t'' + d))
+                           "({}, {preempt_ch 1})" "(preempt_ch 1)" "{0}"
+                           "(\<lambda>v d. task_dis_assn' 1 k' pd pc (dis_s(CHR ''t'' := dis_s CHR ''t'' + d))
                                    (Task READY (Suc 0) 2)
                                    (task_s
                                     (CHR ''t'' := task_s CHR ''t'' + d, CHR ''c'' := task_s CHR ''c'' + d)))"
@@ -5920,7 +6045,7 @@ lemma combine_taskdis_sch1':
                                                                (Task RUNNING (Suc 0) 2, task_s
                                                                 (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                                              (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))
-                                                       ({preempt_ch 1}, {}) #
+                                                       ({}, {preempt_ch 1}) #
                                                       InBlock (preempt_ch 1) 0 # tr1')"
                                                  "(Sch (del_proc p 2) rn rp)" "s" tr2' tr'])
                              using pre properl_p4 unfolding proper_def properp_def propc_def
@@ -5957,7 +6082,7 @@ lemma combine_taskdis_sch1':
                                                           (CHR ''t'' := task_s CHR ''t'' + (t + d2),
                                                            CHR ''c'' := task_s CHR ''c'' + (t + d2))))
                                                        (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))
-                                                 ({preempt_ch 1}, {}) #
+                                                 ({}, {preempt_ch 1}) #
                                                 InBlock (preempt_ch 1) 0 # tr1')"
                                                  "(Sch (del_proc p 2) rn rp)" "s" tr2' tr'])
                                subgoal by auto
@@ -6108,7 +6233,7 @@ lemma combine_taskdis_sch1':
                                                                (Task RUNNING (Suc 0) 2, task_s
                                                                 (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                                              (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))
-                                                       ({preempt_ch 1}, {}) #
+                                                       ({}, {preempt_ch 1}) #
                                                       InBlock (preempt_ch 1) v1 # tr1')"
                                                  "(Sch (del_proc p 2) rn rp)" "s" tr2' tr'])
                              using pre properl_p4 unfolding proper_def properp_def propc_def
@@ -6145,7 +6270,7 @@ lemma combine_taskdis_sch1':
                                                           (CHR ''t'' := task_s CHR ''t'' + (t + d2),
                                                            CHR ''c'' := task_s CHR ''c'' + (t + d2))))
                                                        (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))
-                                                 ({preempt_ch 1}, {}) #
+                                                 ({}, {preempt_ch 1}) #
                                                 InBlock (preempt_ch 1) v1 # tr1')"
                                                  "(Sch (del_proc p 2) rn rp)" "s" tr2' tr'])
                                subgoal by auto
@@ -6247,43 +6372,43 @@ lemma combine_taskdis_sch1':
                    apply(simp del:tdsch1'.simps)
                    apply(erule disjE)
                    subgoal
-                     apply(cases rule: wait_orig_assn.cases[of "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"
+                     apply(cases rule: wait_orig_assn.cases[of "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"
                                                                "(\<lambda>t. ParState
                                                                      (EState
                                                                        (Task RUNNING (Suc 0) 2, task_s
                                                                         (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                                                      (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
-                                                               "({preempt_ch 1}, {})"
-                                                               "(out_0assm_assn (free_ch 1) 0
-                                                                 (task_dis_assn' 1 k'
+                                                               "({}, {preempt_ch 1})"
+                                                               "(out_0assm_srdy_assn (free_ch 1) 0 ({free_ch 1}, {preempt_ch 1})
+                                                                 (task_dis_assn' 1 k' pd pc
                                                                    (dis_s
                                                                     (CHR ''t'' :=
                                                                        dis_s CHR ''t'' +
-                                                                       min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
+                                                                       min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
                                                                    (Task WAIT (Suc 0) 2)
                                                                    (task_s
                                                                     (CHR ''t'' :=
                                                                        task_s CHR ''t'' +
-                                                                       min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
+                                                                       min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
                                                                      CHR ''c'' :=
                                                                        task_s CHR ''c'' +
-                                                                       min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))))" tr1])
+                                                                       min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))))" tr1])
                        apply simp
                      subgoal
-                       apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
-                                       "(task_dis_assn' 1 k'
+                       apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
+                                       "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
                                              dis_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
                                          (Task WAIT (Suc 0) 2)
                                          (task_s
                                           (CHR ''t'' :=
                                              task_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
                                            CHR ''c'' :=
                                              task_s CHR ''c'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))))"tr1])
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))))"tr1])
                          apply simp
                        subgoal for tr1'
                          apply(cases rule: waitin_assms'_assn.cases[of UNIV "(\<lambda>t. EState (Sch p rn rp, s))"
@@ -6355,20 +6480,20 @@ lemma combine_taskdis_sch1':
                          done
                        done
                      subgoal for tr1'
-                     apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
-                                       "(task_dis_assn' 1 k'
+                     apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
+                                       "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
                                              dis_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
                                          (Task WAIT (Suc 0) 2)
                                          (task_s
                                           (CHR ''t'' :=
                                              task_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
                                            CHR ''c'' :=
                                              task_s CHR ''c'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))))" tr1'])
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))))" tr1'])
                          apply simp
                        subgoal for tr1''
                          apply(cases rule: waitin_assms'_assn.cases[of UNIV "(\<lambda>t. EState (Sch p rn rp, s))"
@@ -6393,21 +6518,21 @@ lemma combine_taskdis_sch1':
                            by (auto elim!: sync_elims)
                          subgoal for v2 d2 tr2'
                            apply (simp del: tdsch1'.simps)
-                           apply(cases "d2 < (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                           apply(cases "d2 < (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                            subgoal
                              apply(elim combine_blocks_waitE4)
                              subgoal by auto
                              subgoal by auto
                              subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                              by (auto elim!: sync_elims)
-                           apply(cases "d2 > (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                           apply(cases "d2 > (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                            subgoal
                              apply(elim combine_blocks_waitE3)
                              subgoal by auto
                              subgoal by auto
                              subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                              by (auto elim!: sync_elims)
-                           apply(cases "d2 = (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                           apply(cases "d2 = (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                            subgoal
                              apply simp
                              apply(elim combine_blocks_waitE2)
@@ -6420,21 +6545,21 @@ lemma combine_taskdis_sch1':
                            by (auto elim!: sync_elims)
                          subgoal for d2 v2 tr2'
                            apply (simp del: tdsch1'.simps)
-                           apply(cases "d2 < (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                           apply(cases "d2 < (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                            subgoal
                              apply(elim combine_blocks_waitE4)
                              subgoal by auto
                              subgoal by auto
                              subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                              by (auto elim!: sync_elims)
-                           apply(cases "d2 > (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                           apply(cases "d2 > (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                            subgoal
                              apply(elim combine_blocks_waitE3)
                              subgoal by auto
                              subgoal by auto
                              subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                              by (auto elim!: sync_elims)
-                           apply(cases "d2 = (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                           apply(cases "d2 = (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                            subgoal
                              apply simp
                              apply(elim combine_blocks_waitE2)
@@ -6466,23 +6591,23 @@ lemma combine_taskdis_sch1':
                            by (auto elim!: sync_elims)
                          subgoal for v2 d2 tr2'
                            apply (simp del: tdsch1'.simps)
-                           apply(cases "d2 < (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                           apply(cases "d2 < (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                            subgoal
                              apply(elim combine_blocks_waitE4)
                              subgoal by auto
                              subgoal by auto
                              subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                              by (auto elim!: sync_elims)
-                           apply(cases "d2 > (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                           apply(cases "d2 > (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                            subgoal
-                             apply(elim combine_blocks_waitE3[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"])
+                             apply(elim combine_blocks_waitE3[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"])
                              subgoal by auto
                              subgoal by auto
                              subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                              apply(elim combine_blocks_waitE1)
                              apply(cases rdy1)
                              by auto
-                           apply(cases "d2 = (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                           apply(cases "d2 = (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                            subgoal
                              apply(simp del: tdsch1'.simps)
                              apply(elim combine_blocks_waitE2)
@@ -6494,23 +6619,23 @@ lemma combine_taskdis_sch1':
                            by (auto elim!: sync_elims)
                          subgoal for d2 v2 tr2'
                            apply (simp del: tdsch1'.simps)
-                           apply(cases "d2 < (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                           apply(cases "d2 < (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                            subgoal
                              apply(elim combine_blocks_waitE4)
                              subgoal by auto
                              subgoal by auto
                              subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                              by (auto elim!: sync_elims)
-                           apply(cases "d2 > (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                           apply(cases "d2 > (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                            subgoal
-                             apply(elim combine_blocks_waitE3[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"])
+                             apply(elim combine_blocks_waitE3[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"])
                              subgoal by auto
                              subgoal by auto
                              subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                              apply(elim combine_blocks_waitE1)
                              apply(cases rdy1)
                              by auto
-                           apply(cases "d2 = (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                           apply(cases "d2 = (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                            subgoal
                              apply(simp del: tdsch1'.simps)
                              apply(elim combine_blocks_waitE2)
@@ -6522,43 +6647,43 @@ lemma combine_taskdis_sch1':
                      done
                    apply(erule disjE)
                    subgoal
-                     apply(cases rule:wait_orig_assn.cases[of "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"
+                     apply(cases rule:wait_orig_assn.cases[of "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"
                                    "(\<lambda>t. ParState
                                          (EState
                                            (Task RUNNING (Suc 0) 2, task_s
                                             (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                          (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
-                                   "({preempt_ch 1}, {})"
-                                   "(out_0assm_assn (free_ch 1) 0
-                                     (task_dis_assn' 1 k'
+                                   "({}, {preempt_ch 1})"
+                                   "(out_0assm_srdy_assn (free_ch 1) 0 ({free_ch 1}, {preempt_ch 1})
+                                     (task_dis_assn' 1 k' pd pc
                                        (dis_s
                                         (CHR ''t'' :=
                                            dis_s CHR ''t'' +
-                                           min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
+                                           min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
                                        (Task WAIT (Suc 0) 2)
                                        (task_s
                                         (CHR ''t'' :=
                                            task_s CHR ''t'' +
-                                           min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
+                                           min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
                                          CHR ''c'' :=
                                            task_s CHR ''c'' +
-                                           min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))))" tr1])
+                                           min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))))" tr1])
                        apply simp
                      subgoal
-                       apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
-                                       "(task_dis_assn' 1 k'
+                       apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
+                                       "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
                                              dis_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
                                          (Task WAIT (Suc 0) 2)
                                          (task_s
                                           (CHR ''t'' :=
                                              task_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
                                            CHR ''c'' :=
                                              task_s CHR ''c'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))))" tr1])
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))))" tr1])
                          apply simp
                        subgoal for tr1'
                          apply(cases rule:waitin_assms'_assn.cases[of UNIV "(\<lambda>t. EState (Sch p rn rp, s))"
@@ -6685,20 +6810,20 @@ lemma combine_taskdis_sch1':
                          done
                        done
                      subgoal for tr1'
-                       apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
-                                       "(task_dis_assn' 1 k'
+                       apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
+                                       "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
                                              dis_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
                                          (Task WAIT (Suc 0) 2)
                                          (task_s
                                           (CHR ''t'' :=
                                              task_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
                                            CHR ''c'' :=
                                              task_s CHR ''c'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))))" tr1'])
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))))" tr1'])
                          apply simp
                        subgoal for tr1''
                          apply(cases rule:waitin_assms'_assn.cases[of UNIV "(\<lambda>t. EState (Sch p rn rp, s))"
@@ -6741,14 +6866,14 @@ lemma combine_taskdis_sch1':
                            subgoal using pre unfolding proper_def propc_def properp_def by auto
                            apply (simp only: tdsch1'.simps)
                            apply(rule disjI1)
-                           apply(cases "d2>(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                           apply(cases "d2>(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                            subgoal
                              apply(elim combine_blocks_waitE3)
                              subgoal by auto
                              subgoal by auto
                              subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                              by (auto elim!: sync_elims)
-                           apply(cases "d2<(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                           apply(cases "d2<(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                            subgoal
                              apply(elim combine_blocks_waitE4)
                              subgoal by auto
@@ -6763,21 +6888,21 @@ lemma combine_taskdis_sch1':
                                   apply auto
                                apply(rule pre(1)[of "(Suc k')" kk' "(dis_s(CHR ''t'' := dis_s CHR ''t'' + d2))" "(Task RUNNING (Suc 0) 2)"
                                                "(task_s(CHR ''t'' := task_s CHR ''t'' + d2, CHR ''c'' := task_s CHR ''c'' + d2))"
-                                               "(WaitBlk (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'') - d2)
+                                               "(WaitBlk (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'') - d2)
                                                  (\<lambda>t. ParState
                                                        (EState
                                                          (Task RUNNING (Suc 0) 2, task_s
                                                           (CHR ''t'' := task_s CHR ''t'' + (t + d2),
                                                            CHR ''c'' := task_s CHR ''c'' + (t + d2))))
                                                        (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))
-                                                 ({preempt_ch 1}, {}) #
+                                                 ({}, {preempt_ch 1}) #
                                                 OutBlock (free_ch 1) 0 # tr1'')"
                                                 "(Sch (p @ [(1, 2)]) 1 2)" "(s(CHR ''p'' := 1))" tr2' tr'])
                                subgoal by auto
                                subgoal premises pre' 
                                  apply simp
                                  apply(rule disjI2)
-                                 apply(subgoal_tac "(min (9 / 200 - (task_s CHR ''t'' + d2)) (1 / 100 - (task_s CHR ''c'' + d2))) = (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'') - d2)")
+                                 apply(subgoal_tac "(min (pd - (task_s CHR ''t'' + d2)) (pc - (task_s CHR ''c'' + d2))) = (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'') - d2)")
                                  apply(subgoal_tac "(\<lambda>t. ParState
                                                      (EState
                                                        (Task RUNNING (Suc 0) 2, task_s
@@ -6792,7 +6917,7 @@ lemma combine_taskdis_sch1':
                                                      (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))")
                                   apply auto
                                   apply(rule wait_orig_assn.intros(2))
-                                   apply(rule out_0assm_assn.intros(1))
+                                   apply(rule out_0assm_srdy_assn.intros(1))
                                  subgoal using pre' by auto
                                  subgoal using pre' by auto
                                  apply(rule ext)
@@ -6805,7 +6930,7 @@ lemma combine_taskdis_sch1':
                                subgoal  by auto
                                done
                              done
-                           apply(cases "d2 = (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                           apply(cases "d2 = (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                            subgoal apply auto
                              apply(elim combine_blocks_waitE2)
                              subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
@@ -6819,31 +6944,31 @@ lemma combine_taskdis_sch1':
                                   apply auto
                                apply(rule pre(1)[of "(Suc k')" kk' "(dis_s
                                           (CHR ''t'' :=dis_s CHR ''t'' +
-                                           min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))" 
+                                           min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))" 
                                          "(Task RUNNING (Suc 0) 2)"
                                          "(task_s
                                           (CHR ''t'' :=
                                              task_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
                                            CHR ''c'' :=
                                              task_s CHR ''c'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))"
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))"
                                                "OutBlock (free_ch 1) 0 # tr1''"
                                                 "(Sch (p @ [(1, 2)]) 1 2)" "(s(CHR ''p'' := 1))" tr2' tr'])
                                subgoal by auto
                                subgoal premises pre'
                                  apply simp
                                  apply(rule disjI2)
-                                 apply(subgoal_tac"(min (9 / 200 -
+                                 apply(subgoal_tac"(min (pd -
                                          (task_s CHR ''t'' +
-                                          min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
-                                     (1 / 100 -
+                                          min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
+                                     (pc -
                                       (task_s CHR ''c'' +
-                                       min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))) = 0")
+                                       min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))) = 0")
                                   apply auto
                                  apply(rule wait_orig_assn.intros(1))
                                   apply auto
-                                 apply(rule out_0assm_assn.intros(1))
+                                 apply(rule out_0assm_srdy_assn.intros(1))
                                  using pre' by auto
                                subgoal by auto
                                subgoal by auto
@@ -6872,14 +6997,14 @@ lemma combine_taskdis_sch1':
                            subgoal using pre unfolding proper_def propc_def properp_def by auto
                            apply (simp only: tdsch1'.simps)
                            apply(rule disjI1)
-                           apply(cases "d2>(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                           apply(cases "d2>(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                            subgoal
                              apply(elim combine_blocks_waitE3)
                              subgoal by auto
                              subgoal by auto
                              subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                              by (auto elim!: sync_elims)
-                           apply(cases "d2<(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                           apply(cases "d2<(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                            subgoal
                              apply(elim combine_blocks_waitE4)
                              subgoal by auto
@@ -6893,7 +7018,7 @@ lemma combine_taskdis_sch1':
                                apply(rule waitin_tguar'_vassm'_assn.intros(4))
                              by auto
                            done
-                         apply(cases "d2=(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                         apply(cases "d2=(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                          subgoal
                            apply auto
                            apply(elim combine_blocks_waitE2)
@@ -6951,10 +7076,10 @@ lemma combine_taskdis_sch1':
                          subgoal using pre unfolding proper_def propc_def properp_def by auto
                          apply (simp only: tdsch1'.simps)
                          apply(rule disjI1)
-                         apply(cases "d2>(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                         apply(cases "d2>(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                          subgoal
                            apply(elim combine_blocks_waitE3[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}"
-                                                              "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"])
+                                                              "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"])
                            subgoal by auto
                            subgoal by auto
                            subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
@@ -6962,10 +7087,10 @@ lemma combine_taskdis_sch1':
                            apply(elim combine_blocks_waitE1)
                            apply(cases rdy1)
                            by auto
-                         apply(cases "d2<(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                         apply(cases "d2<(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                          subgoal
                            apply(elim combine_blocks_waitE4[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}"
-                                                              "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"])
+                                                              "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"])
                            subgoal by auto
                            subgoal by auto
                            subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
@@ -6978,21 +7103,21 @@ lemma combine_taskdis_sch1':
                                 apply auto
                              apply(rule pre(1)[of "(Suc k')" kk' "(dis_s(CHR ''t'' := dis_s CHR ''t'' + d2))" "(Task RUNNING (Suc 0) 2)"
                                                "(task_s(CHR ''t'' := task_s CHR ''t'' + d2, CHR ''c'' := task_s CHR ''c'' + d2))"
-                                               "(WaitBlk (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'') - d2)
+                                               "(WaitBlk (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'') - d2)
                                                  (\<lambda>t. ParState
                                                        (EState
                                                          (Task RUNNING (Suc 0) 2, task_s
                                                           (CHR ''t'' := task_s CHR ''t'' + (t + d2),
                                                            CHR ''c'' := task_s CHR ''c'' + (t + d2))))
                                                        (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))
-                                                 ({preempt_ch 1}, {}) #
+                                                 ({}, {preempt_ch 1}) #
                                                 WaitBlk d1 p1 rdy1 # tr1'')"
                                                 "(Sch (p @ [(1, 2)]) 1 2)" "(s(CHR ''p'' := 1))" tr2' tr'])
                                subgoal by auto
                                subgoal premises pre' 
                                  apply simp
                                  apply(rule disjI2)
-                                 apply(subgoal_tac "(min (9 / 200 - (task_s CHR ''t'' + d2)) (1 / 100 - (task_s CHR ''c'' + d2))) = (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'') - d2)")
+                                 apply(subgoal_tac "(min (pd - (task_s CHR ''t'' + d2)) (pc - (task_s CHR ''c'' + d2))) = (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'') - d2)")
                                  apply(subgoal_tac "(\<lambda>t. ParState
                                                      (EState
                                                        (Task RUNNING (Suc 0) 2, task_s
@@ -7007,7 +7132,8 @@ lemma combine_taskdis_sch1':
                                                      (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))")
                                   apply auto
                                   apply(rule wait_orig_assn.intros(2))
-                                   apply(rule out_0assm_assn.intros(2))
+                                   apply(rule out_0assm_srdy_assn.intros(2))
+                                 subgoal using pre' by auto
                                  subgoal using pre' by auto
                                  subgoal using pre' by auto
                                  subgoal using pre' by auto
@@ -7021,7 +7147,7 @@ lemma combine_taskdis_sch1':
                                subgoal  by auto
                                done
                              done
-                           apply(cases "d2 = (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                           apply(cases "d2 = (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                            subgoal apply auto
                              apply(elim combine_blocks_waitE2)
                              subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
@@ -7034,31 +7160,31 @@ lemma combine_taskdis_sch1':
                                   apply auto
                                apply(rule pre(1)[of "(Suc k')" kk' "(dis_s
                                           (CHR ''t'' :=dis_s CHR ''t'' +
-                                           min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))" 
+                                           min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))" 
                                          "(Task RUNNING (Suc 0) 2)"
                                          "(task_s
                                           (CHR ''t'' :=
                                              task_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
                                            CHR ''c'' :=
                                              task_s CHR ''c'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))"
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))"
                                                "(WaitBlk d1 p1 rdy1 # tr1'')"
                                                 "(Sch (p @ [(1, 2)]) 1 2)" "(s(CHR ''p'' := 1))" tr2' tr'])
                                subgoal by auto
                                subgoal premises pre'
                                  apply simp
                                  apply(rule disjI2)
-                                 apply(subgoal_tac"(min (9 / 200 -
+                                 apply(subgoal_tac"(min (pd -
                                          (task_s CHR ''t'' +
-                                          min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
-                                     (1 / 100 -
+                                          min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
+                                     (pc -
                                       (task_s CHR ''c'' +
-                                       min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))) = 0")
+                                       min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))) = 0")
                                   apply auto
                                  apply(rule wait_orig_assn.intros(1))
                                   apply auto
-                                 apply(rule out_0assm_assn.intros(2))
+                                 apply(rule out_0assm_srdy_assn.intros(2))
                                  using pre' by auto
                                subgoal by auto
                                subgoal by auto
@@ -7087,10 +7213,10 @@ lemma combine_taskdis_sch1':
                          subgoal using pre unfolding proper_def propc_def properp_def by auto
                          apply (simp only: tdsch1'.simps)
                          apply(rule disjI1)
-                         apply(cases "d2>(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                         apply(cases "d2>(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                          subgoal
                            apply(elim combine_blocks_waitE3[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}"
-                                                              "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"])
+                                                              "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"])
                            subgoal by auto
                            subgoal by auto
                            subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
@@ -7098,10 +7224,10 @@ lemma combine_taskdis_sch1':
                            apply(elim combine_blocks_waitE1)
                            apply(cases rdy1)
                            by auto
-                         apply(cases "d2<(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                         apply(cases "d2<(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                          subgoal
                            apply(elim combine_blocks_waitE4[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}"
-                                                              "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"])
+                                                              "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"])
                            subgoal by auto
                            subgoal by auto
                            subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
@@ -7113,7 +7239,7 @@ lemma combine_taskdis_sch1':
                              apply(rule waitin_tguar'_vassm'_assn.intros(4))
                                 by auto
                               done
-                           apply(cases "d2 = (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                           apply(cases "d2 = (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                            subgoal apply auto
                              apply(elim combine_blocks_waitE2)
                              subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
@@ -7131,43 +7257,43 @@ lemma combine_taskdis_sch1':
                         done
                       apply(erule disjE)
                       subgoal
-                        apply(cases rule: wait_orig_assn.cases[of "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"
+                        apply(cases rule: wait_orig_assn.cases[of "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"
                                           "(\<lambda>t. ParState
                                                  (EState
                                                    (Task RUNNING (Suc 0) 2, task_s
                                                     (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                                  (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
-                                           "({preempt_ch 1}, {})"
-                                           "(out_0assm_assn (free_ch 1) 0
-                                             (task_dis_assn' 1 k'
+                                           "({}, {preempt_ch 1})"
+                                           "(out_0assm_srdy_assn (free_ch 1) 0 ({free_ch 1}, {preempt_ch 1})
+                                             (task_dis_assn' 1 k' pd pc
                                                (dis_s
                                                 (CHR ''t'' :=
                                                    dis_s CHR ''t'' +
-                                                   min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
+                                                   min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
                                                (Task WAIT (Suc 0) 2)
                                                (task_s
                                                 (CHR ''t'' :=
                                                    task_s CHR ''t'' +
-                                                   min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
+                                                   min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
                                                  CHR ''c'' :=
                                                    task_s CHR ''c'' +
-                                                   min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))))" tr1])
+                                                   min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))))" tr1])
                           apply simp
                         subgoal
-                          apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
-                                       "(task_dis_assn' 1 k'
+                          apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
+                                       "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
                                              dis_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
                                          (Task WAIT (Suc 0) 2)
                                          (task_s
                                           (CHR ''t'' :=
                                              task_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
                                            CHR ''c'' :=
                                              task_s CHR ''c'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))))" tr1])
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))))" tr1])
                          apply simp
                           subgoal for tr1'
                             apply(cases rule: waitin_assms'_assn.cases[of UNIV "(\<lambda>t. EState (Sch p rn rp, s))"
@@ -7220,11 +7346,11 @@ lemma combine_taskdis_sch1':
                                   done
                                 subgoal for k''
                                   apply simp
-                                  apply(cases rule: wait_orig_assn.cases[of "(9 / 200 - dis_s CHR ''t'')"
+                                  apply(cases rule: wait_orig_assn.cases[of "(pd - dis_s CHR ''t'')"
                                                        "(\<lambda>t. ParState (EState (Task WAIT (Suc 0) 2, task_s))
                                                              (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
                                                        "({}, {dispatch_ch 1})"
-                                                       "(task_dis_assn' 1 k'' (dis_s(CHR ''t'' := 0)) (Task READY 0 2)
+                                                       "(task_dis_assn' 1 k'' pd pc (dis_s(CHR ''t'' := 0)) (Task READY 0 2)
                                                          (task_s(CHR ''t'' := 0)))"
                                                        tr1' ])
                                     apply simp
@@ -7246,17 +7372,24 @@ lemma combine_taskdis_sch1':
                                         subgoal for tr'
                                           apply simp
                                           apply(rule out_0assm_assn.intros(1))
-                                          apply(rule pre(1)[of "(Suc 0)" kk' dis_s "(Task WAIT (Suc 0) 2)" task_s "[]" "(case get_max p of (prior, t) \<Rightarrow> Sch (del_proc p t) t prior)" s tr2'' tr'])
-                                          subgoal by auto
-                                          subgoal apply auto
-                                            apply(rule wait_orig_assn.intros(1))
-                                            by(auto simp add: emp_assn_def)
-                                          subgoal by auto
-                                          subgoal by auto
-                                          subgoal using pre properl_p5[of p] unfolding propc_def unfolding proper_def  apply(cases "get_max p") by auto
-                                          subgoal using pre properl_p5[of p] properl_p4[of p] unfolding proper_def 
+                                          subgoal premises pre'
+                                          proof-
+                                            have a:"(dis_s CHR ''t'') = pd" using pre' by auto
+                                            then show ?thesis
+                                              apply(subst a)
+                                              apply(rule pre(1)[of "(Suc 0)" kk' dis_s "(Task WAIT (Suc 0) 2)" task_s "[]" "(case get_max p of (prior, t) \<Rightarrow> Sch (del_proc p t) t prior)" s tr2'' tr'])
+                                              subgoal by auto
+                                              subgoal apply auto
+                                                apply(rule wait_orig_assn.intros(1))
+                                                by(auto simp add: emp_assn_def)
+                                              subgoal using pre' by auto
+                                              subgoal by auto
+                                              subgoal using pre pre' properl_p5[of p] unfolding propc_def unfolding proper_def  apply(cases "get_max p") by auto
+                                              subgoal using pre pre' properl_p5[of p] properl_p4[of p] unfolding proper_def 
                                             apply(cases "get_max p") by auto
-                                          subgoal by auto
+                                              subgoal using pre' by auto
+                                              done
+                                          qed
                                           done
                                         done
                                       subgoal
@@ -7281,20 +7414,28 @@ lemma combine_taskdis_sch1':
                                         apply(rule out_0assm_assn_tran)
                                         unfolding entails_tassn_def combine_assn_def
                                         apply auto
+                                        thm pre'
                                         subgoal for Tr Tr1 Tr2
-                                          apply(rule pre(1)[of "(Suc (Suc k'''))"  kk' dis_s "(Task WAIT (Suc 0) 2)" task_s Tr1 
+                                          subgoal premises pre''
+                                          proof-
+                                            have a:"(dis_s CHR ''t'') = pd" using pre' by auto
+                                            then show ?thesis
+                                              apply(subst a)
+                                              apply(rule pre(1)[of "(Suc (Suc k'''))"  kk' dis_s "(Task WAIT (Suc 0) 2)" task_s Tr1 
                                                 "(case get_max p of (prior, t) \<Rightarrow> Sch (del_proc p t) t prior)" s Tr2 Tr])
-                                          subgoal using pre' by auto
-                                          subgoal apply auto
-                                            apply(rule wait_orig_assn.intros(1))
-                                            using pre' by auto
-                                          subgoal by auto
-                                          subgoal by auto
-                                          subgoal using pre pre' properl_p5[of p] unfolding propc_def proper_def apply(cases "get_max p") by auto
-                                          subgoal using pre pre' properl_p5[of p] properl_p4[of p] unfolding propc_def proper_def apply(cases "get_max p") by auto
-                                          subgoal by auto
-                                          done
-                                        done
+                                              subgoal using pre' by auto
+                                              subgoal apply auto
+                                                apply(rule wait_orig_assn.intros(1))
+                                                using pre' pre'' by auto
+                                              subgoal using pre'' by auto
+                                              subgoal by auto
+                                              subgoal using pre pre' properl_p5[of p] unfolding propc_def proper_def apply(cases "get_max p") by auto
+                                              subgoal using pre pre' properl_p5[of p] properl_p4[of p] unfolding propc_def proper_def apply(cases "get_max p") by auto
+                                              subgoal using pre'' by auto
+                                              done
+                                          qed
+                                      done
+                                    done
                                       apply(erule disjE)
                                       subgoal premises pre'
                                         thm pre'
@@ -7313,19 +7454,26 @@ lemma combine_taskdis_sch1':
                                         unfolding entails_tassn_def combine_assn_def
                                         apply auto
                                         subgoal for Tr Tr1 Tr2
-                                          apply(rule pre(1)[of "(Suc (Suc k'''))"  kk' dis_s "(Task WAIT (Suc 0) 2)" task_s Tr1 
+                                          subgoal premises pre''
+                                          proof-
+                                            have a:"(dis_s CHR ''t'') = pd" using pre' by auto
+                                            then show ?thesis
+                                              apply(subst a)
+                                              apply(rule pre(1)[of "(Suc (Suc k'''))"  kk' dis_s "(Task WAIT (Suc 0) 2)" task_s Tr1 
                                                 "(case get_max p of (prior, t) \<Rightarrow> Sch (del_proc p t) t prior)" s Tr2 Tr])
-                                          subgoal using pre' by auto
-                                          subgoal apply auto
-                                            apply(rule wait_orig_assn.intros(1))
-                                            using pre' by auto
-                                          subgoal by auto
-                                          subgoal by auto
-                                          subgoal using pre pre' properl_p5[of p] unfolding propc_def proper_def apply(cases "get_max p") by auto
-                                          subgoal using pre pre' properl_p5[of p] properl_p4[of p] unfolding propc_def proper_def apply(cases "get_max p") by auto
-                                          subgoal by auto
-                                          done
-                                        done
+                                              subgoal using pre' by auto
+                                              subgoal apply auto 
+                                                apply(rule wait_orig_assn.intros(1))
+                                                using pre' pre'' by auto
+                                              subgoal using pre'' by auto
+                                              subgoal by auto
+                                              subgoal using pre pre' properl_p5[of p] unfolding propc_def proper_def apply(cases "get_max p") by auto
+                                              subgoal using pre pre' properl_p5[of p] properl_p4[of p] unfolding propc_def proper_def apply(cases "get_max p") by auto
+                                              subgoal using pre'' by auto
+                                              done
+                                          qed
+                                      done
+                                    done
                                       subgoal premises pre'
                                         thm pre'
                                         apply(rule combine_blocks_assn)
@@ -7343,21 +7491,28 @@ lemma combine_taskdis_sch1':
                                         unfolding entails_tassn_def combine_assn_def
                                         apply auto
                                         subgoal for Tr Tr1 Tr2
+                                          subgoal premises pre''
+                                          proof-
+                                            have a:"(dis_s CHR ''t'') = pd" using pre' by auto
+                                            then show ?thesis
+                                              apply(subst a)
                                           apply(rule pre(1)[of "(Suc (Suc k'''))"  kk' dis_s "(Task WAIT (Suc 0) 2)" task_s Tr1 
                                                 "(case get_max p of (prior, t) \<Rightarrow> Sch (del_proc p t) t prior)" s Tr2 Tr])
                                           subgoal using pre' by auto
                                           subgoal apply auto
                                             apply(rule wait_orig_assn.intros(1))
-                                            using pre' by auto
-                                          subgoal by auto
+                                            using pre' pre'' by auto
+                                          subgoal using pre'' by auto
                                           subgoal by auto
                                           subgoal using pre pre' properl_p5[of p] unfolding propc_def proper_def apply(cases "get_max p") by auto
                                           subgoal using pre pre' properl_p5[of p] properl_p4[of p] unfolding propc_def proper_def apply(cases "get_max p") by auto
-                                          subgoal by auto
+                                          subgoal using pre'' by auto
                                           done
+                                      qed
                                         done
                                       done
                                     done
+                                  done
                                   subgoal premises pre' for tr1''
                                     thm pre'
                                     apply(rule combine_blocks_assn)
@@ -7435,20 +7590,20 @@ lemma combine_taskdis_sch1':
                             done
                           done
                         subgoal for tr1'
-                          apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
-                                       "(task_dis_assn' 1 k'
+                          apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
+                                       "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
                                              dis_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
                                          (Task WAIT (Suc 0) 2)
                                          (task_s
                                           (CHR ''t'' :=
                                              task_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
                                            CHR ''c'' :=
                                              task_s CHR ''c'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))))" tr1'])
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))))" tr1'])
                          apply simp
                           subgoal for tr1''
                             apply(cases rule: waitin_assms'_assn.cases[of UNIV "(\<lambda>t. EState (Sch p rn rp, s))"
@@ -7465,7 +7620,7 @@ lemma combine_taskdis_sch1':
                               by (auto elim!: sync_elims)
                             subgoal for v2 d2 tr2'
                               apply (simp del: tdsch1'.simps)
-                              apply(cases "d2>(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2>(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply(elim combine_blocks_waitE3)
                                 subgoal by auto
@@ -7473,7 +7628,7 @@ lemma combine_taskdis_sch1':
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                                 apply (simp del: tdsch1'.simps)
                                 by (auto elim!: sync_elims)
-                              apply(cases "d2<(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2<(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply(elim combine_blocks_waitE4)
                                 subgoal by auto
@@ -7510,10 +7665,10 @@ lemma combine_taskdis_sch1':
                                     subgoal for tr''
                                       apply simp
                                       apply(rule out_0assm_assn.intros(1))
-                                      apply(rule pre(1)[of 0 kk' "(dis_s(CHR ''t'' := dis_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))" "(Task WAIT (Suc 0) 2)" 
+                                      apply(rule pre(1)[of 0 kk' "(dis_s(CHR ''t'' := dis_s CHR ''t'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))" "(Task WAIT (Suc 0) 2)" 
                                             "(task_s
-                                              (CHR ''t'' := task_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
-                                               CHR ''c'' := task_s CHR ''c'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))" 
+                                              (CHR ''t'' := task_s CHR ''t'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
+                                               CHR ''c'' := task_s CHR ''c'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))" 
                                             "[]" "(case get_max p of (prior, t) \<Rightarrow> Sch (del_proc p t) t prior)" s tr2'' tr''])
                                       subgoal by auto
                                       subgoal by (auto simp add: emp_assn_def)
@@ -7530,16 +7685,16 @@ lemma combine_taskdis_sch1':
                                   done
                                 subgoal for k''
                                   apply simp
-                                  apply(cases rule: wait_orig_assn.cases[of "(9 / 200 - (dis_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))"
+                                  apply(cases rule: wait_orig_assn.cases[of "(pd - (dis_s CHR ''t'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))"
                                                            "(\<lambda>t. ParState
                                                                  (EState
                                                                    (Task WAIT (Suc 0) 2, task_s
-                                                                    (CHR ''t'' := task_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
-                                                                     CHR ''c'' := task_s CHR ''c'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))))
-                                                                 (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'') + t))))"
+                                                                    (CHR ''t'' := task_s CHR ''t'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
+                                                                     CHR ''c'' := task_s CHR ''c'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))))
+                                                                 (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'') + t))))"
                                                            "({}, {dispatch_ch 1})"
-                                                           "(task_dis_assn' 1 k'' (dis_s(CHR ''t'' := 0)) (Task READY 0 2)
-                                                             (task_s(CHR ''c'' := task_s CHR ''c'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''), CHR ''t'' := 0)))"
+                                                           "(task_dis_assn' 1 k'' pd pc (dis_s(CHR ''t'' := 0)) (Task READY 0 2)
+                                                             (task_s(CHR ''c'' := task_s CHR ''c'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''), CHR ''t'' := 0)))"
                                                            tr1'' ])
                                     apply simp
                                   subgoal
@@ -7560,15 +7715,13 @@ lemma combine_taskdis_sch1':
                                         subgoal for tr''
                                           apply simp
                                           apply(rule out_0assm_assn.intros(1))
-                                          apply(rule pre(1)[of "(Suc 0)" kk' "(dis_s(CHR ''t'' := dis_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))" "(Task WAIT (Suc 0) 2)" 
+                                          apply(rule pre(1)[of "(Suc 0)" kk' "(dis_s(CHR ''t'' := pd))" "(Task WAIT (Suc 0) 2)" 
                                                               "(task_s
-                                                                    (CHR ''t'' := task_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
-                                                                     CHR ''c'' := task_s CHR ''c'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))" 
+                                                                    (CHR ''t'' := task_s CHR ''t'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
+                                                                     CHR ''c'' := task_s CHR ''c'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))" 
                                                               "[]" "(case get_max p of (prior, t) \<Rightarrow> Sch (del_proc p t) t prior)" s tr2'' tr''])
                                           subgoal by auto
-                                          subgoal apply auto
-                                            apply(rule wait_orig_assn.intros(1))
-                                            by(auto simp add: emp_assn_def)
+                                          subgoal by auto                                
                                           subgoal by auto
                                           subgoal by auto
                                           subgoal using pre properl_p5[of p] unfolding propc_def unfolding proper_def  apply(cases "get_max p") by auto
@@ -7600,10 +7753,10 @@ lemma combine_taskdis_sch1':
                                         unfolding entails_tassn_def combine_assn_def
                                         apply auto
                                         subgoal for Tr Tr1 Tr2
-                                          apply(rule pre(1)[of "(Suc (Suc k'''))"  kk' "(dis_s(CHR ''t'' := dis_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))" "(Task WAIT (Suc 0) 2)" 
+                                          apply(rule pre(1)[of "(Suc (Suc k'''))"  kk' "(dis_s(CHR ''t'' := pd))" "(Task WAIT (Suc 0) 2)" 
                                                                 "(task_s
-                                                                      (CHR ''t'' := task_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
-                                                                       CHR ''c'' := task_s CHR ''c'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))" Tr1 
+                                                                      (CHR ''t'' := task_s CHR ''t'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
+                                                                       CHR ''c'' := task_s CHR ''c'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))" Tr1 
                                                 "(case get_max p of (prior, t) \<Rightarrow> Sch (del_proc p t) t prior)" s Tr2 Tr])
                                           subgoal using pre' by auto
                                           subgoal apply auto
@@ -7634,10 +7787,10 @@ lemma combine_taskdis_sch1':
                                         unfolding entails_tassn_def combine_assn_def
                                         apply auto
                                         subgoal for Tr Tr1 Tr2
-                                          apply(rule pre(1)[of "(Suc (Suc k'''))"  kk' "(dis_s(CHR ''t'' := dis_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))" "(Task WAIT (Suc 0) 2)" 
+                                          apply(rule pre(1)[of "(Suc (Suc k'''))"  kk' "(dis_s(CHR ''t'' := pd))" "(Task WAIT (Suc 0) 2)" 
                                                                 "(task_s
-                                                                      (CHR ''t'' := task_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
-                                                                       CHR ''c'' := task_s CHR ''c'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))" Tr1 
+                                                                      (CHR ''t'' := task_s CHR ''t'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
+                                                                       CHR ''c'' := task_s CHR ''c'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))" Tr1 
                                                 "(case get_max p of (prior, t) \<Rightarrow> Sch (del_proc p t) t prior)" s Tr2 Tr])
                                           subgoal using pre' by auto
                                           subgoal apply auto
@@ -7667,10 +7820,10 @@ lemma combine_taskdis_sch1':
                                         unfolding entails_tassn_def combine_assn_def
                                         apply auto
                                         subgoal for Tr Tr1 Tr2
-                                          apply(rule pre(1)[of "(Suc (Suc k'''))"  kk' "(dis_s(CHR ''t'' := dis_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))" "(Task WAIT (Suc 0) 2)" 
+                                          apply(rule pre(1)[of "(Suc (Suc k'''))"  kk' "(dis_s(CHR ''t'' := pd))" "(Task WAIT (Suc 0) 2)" 
                                                                 "(task_s
-                                                                      (CHR ''t'' := task_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
-                                                                       CHR ''c'' := task_s CHR ''c'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))" Tr1 
+                                                                      (CHR ''t'' := task_s CHR ''t'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
+                                                                       CHR ''c'' := task_s CHR ''c'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))" Tr1 
                                                 "(case get_max p of (prior, t) \<Rightarrow> Sch (del_proc p t) t prior)" s Tr2 Tr])
                                           subgoal using pre' by auto
                                           subgoal apply auto
@@ -7702,10 +7855,10 @@ lemma combine_taskdis_sch1':
                                     unfolding entails_tassn_def combine_assn_def
                                     apply auto
                                     subgoal for Tr Tr1 Tr2
-                                      apply(rule pre(1)[of "(Suc k'')" kk' "(dis_s(CHR ''t'' := dis_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))" "(Task WAIT (Suc 0) 2)" 
+                                      apply(rule pre(1)[of "(Suc k'')" kk' "(dis_s(CHR ''t'' := dis_s CHR ''t'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))" "(Task WAIT (Suc 0) 2)" 
                                                           "(task_s
-                                                                (CHR ''t'' := task_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
-                                                                 CHR ''c'' := task_s CHR ''c'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))" Tr1 
+                                                                (CHR ''t'' := task_s CHR ''t'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
+                                                                 CHR ''c'' := task_s CHR ''c'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))" Tr1 
                                             "(case get_max p of (prior, t) \<Rightarrow> Sch (del_proc p t) t prior)" s Tr2 Tr])
                                       subgoal using pre' by auto
                                       subgoal by auto
@@ -7721,10 +7874,10 @@ lemma combine_taskdis_sch1':
                               subgoal for tr'
                                 apply(rule wait_orig_assn.intros(2))
                                  apply auto
-                                apply(rule pre(1)[of k' kk' "(dis_s(CHR ''t'' := dis_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))" "(Task WAIT (Suc 0) 2)" 
+                                apply(rule pre(1)[of k' kk' "(dis_s(CHR ''t'' := dis_s CHR ''t'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))" "(Task WAIT (Suc 0) 2)" 
                                                     "(task_s
-                                                          (CHR ''t'' := task_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
-                                                           CHR ''c'' := task_s CHR ''c'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))" tr1'' "(Sch [] (- 1) (- 1))" s tr2' tr'])
+                                                          (CHR ''t'' := task_s CHR ''t'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
+                                                           CHR ''c'' := task_s CHR ''c'' + min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))" tr1'' "(Sch [] (- 1) (- 1))" s tr2' tr'])
                                 using pre
                                 by (auto simp add:proper_def propc_def properp_def)
                               done
@@ -7733,7 +7886,7 @@ lemma combine_taskdis_sch1':
                               by (auto elim!: sync_elims)
                             subgoal for d2 v2 tr2'
                               apply (simp del: tdsch1'.simps)
-                              apply(cases "d2>(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2>(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply(elim combine_blocks_waitE3)
                                 subgoal by auto
@@ -7741,7 +7894,7 @@ lemma combine_taskdis_sch1':
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                                 apply (simp del: tdsch1'.simps)
                                 by (auto elim!: sync_elims)
-                              apply(cases "d2<(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2<(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply(elim combine_blocks_waitE4)
                                 subgoal by auto
@@ -7770,9 +7923,9 @@ lemma combine_taskdis_sch1':
                               by (auto elim!: sync_elims)
                             subgoal for v2 d2 tr2'
                               apply (simp del: tdsch1'.simps)
-                              apply(cases "d2>(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2>(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
-                                apply(elim combine_blocks_waitE3[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"])
+                                apply(elim combine_blocks_waitE3[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"])
                                 subgoal by auto
                                 subgoal by auto
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
@@ -7780,7 +7933,7 @@ lemma combine_taskdis_sch1':
                                 apply(elim combine_blocks_waitE1)
                                 apply(cases rdy)
                                 by auto
-                              apply(cases "d2<(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2<(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply(elim combine_blocks_waitE4)
                                 subgoal by auto
@@ -7797,9 +7950,9 @@ lemma combine_taskdis_sch1':
                               by (auto elim!: sync_elims)
                             subgoal for d2 v2 tr2'
                               apply (simp del: tdsch1'.simps)
-                              apply(cases "d2>(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2>(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
-                                apply(elim combine_blocks_waitE3[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"])
+                                apply(elim combine_blocks_waitE3[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"])
                                 subgoal by auto
                                 subgoal by auto
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
@@ -7807,7 +7960,7 @@ lemma combine_taskdis_sch1':
                                 apply(elim combine_blocks_waitE1)
                                 apply(cases rdy)
                                 by auto
-                              apply(cases "d2<(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2<(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply(elim combine_blocks_waitE4)
                                 subgoal by auto
@@ -7824,43 +7977,43 @@ lemma combine_taskdis_sch1':
                         done
                       apply(erule disjE)
                       subgoal
-                        apply(cases rule: wait_orig_assn.cases[of "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"
+                        apply(cases rule: wait_orig_assn.cases[of "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"
                                           "(\<lambda>t. ParState
                                                  (EState
                                                    (Task RUNNING (Suc 0) 2, task_s
                                                     (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                                  (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
-                                           "({preempt_ch 1}, {})"
-                                           "(out_0assm_assn (free_ch 1) 0
-                                             (task_dis_assn' 1 k'
+                                           "({}, {preempt_ch 1})"
+                                           "(out_0assm_srdy_assn (free_ch 1) 0 ({free_ch 1}, {preempt_ch 1})
+                                             (task_dis_assn' 1 k' pd pc
                                                (dis_s
                                                 (CHR ''t'' :=
                                                    dis_s CHR ''t'' +
-                                                   min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
+                                                   min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
                                                (Task WAIT (Suc 0) 2)
                                                (task_s
                                                 (CHR ''t'' :=
                                                    task_s CHR ''t'' +
-                                                   min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
+                                                   min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
                                                  CHR ''c'' :=
                                                    task_s CHR ''c'' +
-                                                   min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))))" tr1])
+                                                   min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))))" tr1])
                           apply simp
                         subgoal
-                          apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
-                                       "(task_dis_assn' 1 k'
+                          apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
+                                       "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
                                              dis_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
                                          (Task WAIT (Suc 0) 2)
                                          (task_s
                                           (CHR ''t'' :=
                                              task_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
                                            CHR ''c'' :=
                                              task_s CHR ''c'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))))" tr1])
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))))" tr1])
                          apply simp
                           subgoal for tr1'
                             apply(cases rule: waitin_assms'_assn.cases[of UNIV "(\<lambda>t. EState (Sch p rn rp, s))"
@@ -7942,20 +8095,20 @@ lemma combine_taskdis_sch1':
                             done
                           done
                         subgoal for tr1'
-                          apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
-                                       "(task_dis_assn' 1 k'
+                          apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
+                                       "(task_dis_assn' 1 k' pd pc 
                                          (dis_s
                                           (CHR ''t'' :=
                                              dis_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
                                          (Task WAIT (Suc 0) 2)
                                          (task_s
                                           (CHR ''t'' :=
                                              task_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
                                            CHR ''c'' :=
                                              task_s CHR ''c'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))))" tr1'])
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))))" tr1'])
                          apply simp
                           subgoal for tr1''
                             apply(cases rule: waitin_assms'_assn.cases[of UNIV "(\<lambda>t. EState (Sch p rn rp, s))"
@@ -7979,7 +8132,7 @@ lemma combine_taskdis_sch1':
                               by(auto simp add:true_assn_def)
                             subgoal for v2 d2 tr2'
                               apply(simp del: tdsch1'.simps)
-                              apply(cases "d2 > (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 > (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply(elim combine_blocks_waitE3)
                                 subgoal by auto
@@ -7987,7 +8140,7 @@ lemma combine_taskdis_sch1':
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                                 apply simp
                                 by (auto elim!: sync_elims)
-                              apply(cases "d2 < (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 < (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal  
                                 apply(elim combine_blocks_waitE4)
                                 subgoal by auto
@@ -8002,7 +8155,7 @@ lemma combine_taskdis_sch1':
                                 apply(rule waitin_tguar'_vassm'_assn.intros(2))
                                    apply auto
                                 by(auto simp add: true_assn_def)
-                              apply(cases "d2 = (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 = (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal 
                                 apply (simp only: tdsch1'.simps)
                                 apply(rule disjI2)
@@ -8028,7 +8181,7 @@ lemma combine_taskdis_sch1':
                                 by auto
                             subgoal for d2 v2 tr2'
                               apply(simp del: tdsch1'.simps)
-                              apply(cases "d2 > (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 > (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply(elim combine_blocks_waitE3)
                                 subgoal by auto
@@ -8036,7 +8189,7 @@ lemma combine_taskdis_sch1':
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                                 apply simp
                                 by (auto elim!: sync_elims)
-                              apply(cases "d2 < (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 < (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal  
                                 apply(elim combine_blocks_waitE4)
                                 subgoal by auto
@@ -8050,7 +8203,7 @@ lemma combine_taskdis_sch1':
                                 apply auto
                                 apply(rule waitin_tguar'_vassm'_assn.intros(4))
                                 by auto
-                              apply(cases "d2 = (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 = (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal 
                                 apply (simp only: tdsch1'.simps)
                                 apply(rule disjI2)
@@ -8087,9 +8240,9 @@ lemma combine_taskdis_sch1':
                               by(auto simp add:true_assn_def)
                             subgoal for v2 d2 tr2'
                               apply(simp del: tdsch1'.simps)
-                              apply(cases "d2 > (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 > (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
-                                apply(elim combine_blocks_waitE3[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"])
+                                apply(elim combine_blocks_waitE3[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"])
                                 subgoal by auto
                                 subgoal by auto
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
@@ -8097,9 +8250,9 @@ lemma combine_taskdis_sch1':
                                 apply(elim combine_blocks_waitE1)
                                 apply(cases rdy1)
                                 by auto
-                              apply(cases "d2 < (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 < (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
-                                apply(elim combine_blocks_waitE4[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"])
+                                apply(elim combine_blocks_waitE4[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"])
                                 subgoal by auto
                                 subgoal by auto
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
@@ -8112,7 +8265,7 @@ lemma combine_taskdis_sch1':
                                 apply(rule waitin_tguar'_vassm'_assn.intros(2))
                                    apply auto
                                 by (auto simp add:true_assn_def) 
-                              apply(cases "d2 = (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 = (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply (simp only: tdsch1'.simps)
                                 apply(rule disjI2)
@@ -8137,9 +8290,9 @@ lemma combine_taskdis_sch1':
                                 by auto
                             subgoal for d2 v2 tr2'
                               apply(simp del: tdsch1'.simps)
-                              apply(cases "d2 > (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 > (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
-                                apply(elim combine_blocks_waitE3[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"])
+                                apply(elim combine_blocks_waitE3[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"])
                                 subgoal by auto
                                 subgoal by auto
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
@@ -8147,9 +8300,9 @@ lemma combine_taskdis_sch1':
                                 apply(elim combine_blocks_waitE1)
                                 apply(cases rdy1)
                                 by auto
-                              apply(cases "d2 < (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 < (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
-                                apply(elim combine_blocks_waitE4[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"])
+                                apply(elim combine_blocks_waitE4[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"])
                                 subgoal by auto
                                 subgoal by auto
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
@@ -8161,7 +8314,7 @@ lemma combine_taskdis_sch1':
                                 apply auto
                                 apply(rule waitin_tguar'_vassm'_assn.intros(4))
                                 by auto
-                              apply(cases "d2 = (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 = (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply (simp only: tdsch1'.simps)
                                 apply(rule disjI2)
@@ -8179,43 +8332,43 @@ lemma combine_taskdis_sch1':
                         done
                       apply(erule disjE)
                       subgoal
-                        apply(cases rule: wait_orig_assn.cases[of "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"
+                        apply(cases rule: wait_orig_assn.cases[of "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"
                                           "(\<lambda>t. ParState
                                                  (EState
                                                    (Task RUNNING (Suc 0) 2, task_s
                                                     (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                                  (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
-                                           "({preempt_ch 1}, {})"
-                                           "(out_0assm_assn (free_ch 1) 0
-                                             (task_dis_assn' 1 k'
+                                           "({}, {preempt_ch 1})"
+                                           "(out_0assm_srdy_assn (free_ch 1) 0 ({free_ch 1}, {preempt_ch 1})
+                                             (task_dis_assn' 1 k' pd pc
                                                (dis_s
                                                 (CHR ''t'' :=
                                                    dis_s CHR ''t'' +
-                                                   min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
+                                                   min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
                                                (Task WAIT (Suc 0) 2)
                                                (task_s
                                                 (CHR ''t'' :=
                                                    task_s CHR ''t'' +
-                                                   min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
+                                                   min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
                                                  CHR ''c'' :=
                                                    task_s CHR ''c'' +
-                                                   min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))))" tr1])
+                                                   min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))))" tr1])
                           apply simp
                         subgoal
-                          apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
-                                       "(task_dis_assn' 1 k'
+                          apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
+                                       "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
                                              dis_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
                                          (Task WAIT (Suc 0) 2)
                                          (task_s
                                           (CHR ''t'' :=
                                              task_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
                                            CHR ''c'' :=
                                              task_s CHR ''c'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))))" tr1])
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))))" tr1])
                          apply simp
                           subgoal for tr1'
                             apply(cases rule: waitin_assms'_assn.cases[of UNIV "(\<lambda>t. EState (Sch p rn rp, s))"
@@ -8271,20 +8424,20 @@ lemma combine_taskdis_sch1':
                             done
                           done
                         subgoal for tr1'
-                          apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
-                                       "(task_dis_assn' 1 k'
+                          apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
+                                       "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
                                              dis_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
                                          (Task WAIT (Suc 0) 2)
                                          (task_s
                                           (CHR ''t'' :=
                                              task_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
                                            CHR ''c'' :=
                                              task_s CHR ''c'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))))" tr1'])
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))))" tr1'])
                          apply simp
                           subgoal for tr1''
                             apply(cases rule: waitin_assms'_assn.cases[of UNIV "(\<lambda>t. EState (Sch p rn rp, s))"
@@ -8298,7 +8451,7 @@ lemma combine_taskdis_sch1':
                               by (auto elim!: sync_elims)
                             subgoal for v2 d2 tr2'
                               apply(simp del: tdsch1'.simps)
-                              apply(cases "d2 > (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 > (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal 
                                 apply(elim combine_blocks_waitE3)
                                 subgoal by auto
@@ -8306,7 +8459,7 @@ lemma combine_taskdis_sch1':
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                                 apply simp
                                 by (auto elim!: sync_elims)
-                              apply(cases "d2 < (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 < (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply(elim combine_blocks_waitE4)
                                 subgoal by auto
@@ -8314,7 +8467,7 @@ lemma combine_taskdis_sch1':
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                                 apply simp
                                 by (auto elim!: sync_elims)
-                              apply(cases "d2 = (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 = (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply simp
                                 apply(elim combine_blocks_waitE2)
@@ -8331,7 +8484,7 @@ lemma combine_taskdis_sch1':
                               by (auto elim!: sync_elims)
                             subgoal for d2 v2 tr2'
                               apply(simp del: tdsch1'.simps)
-                              apply(cases "d2 > (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 > (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal 
                                 apply(elim combine_blocks_waitE3)
                                 subgoal by auto
@@ -8339,7 +8492,7 @@ lemma combine_taskdis_sch1':
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                                 apply simp
                                 by (auto elim!: sync_elims)
-                              apply(cases "d2 < (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 < (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply(elim combine_blocks_waitE4)
                                 subgoal by auto
@@ -8347,7 +8500,7 @@ lemma combine_taskdis_sch1':
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                                 apply simp
                                 by (auto elim!: sync_elims)
-                              apply(cases "d2 = (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 = (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply simp
                                 apply(elim combine_blocks_waitE2)
@@ -8372,9 +8525,9 @@ lemma combine_taskdis_sch1':
                               by (auto elim!: sync_elims)
                             subgoal for v2 d2 tr2'
                               apply(simp del: tdsch1'.simps)
-                              apply(cases "d2 > (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 > (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal 
-                                apply(elim combine_blocks_waitE3[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"])
+                                apply(elim combine_blocks_waitE3[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"])
                                 subgoal by auto
                                 subgoal by auto
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
@@ -8382,15 +8535,15 @@ lemma combine_taskdis_sch1':
                                 apply(elim combine_blocks_waitE1)
                                 apply(cases rdy1)
                                 by auto
-                              apply(cases "d2 < (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 < (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
-                                apply(elim combine_blocks_waitE4[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"])
+                                apply(elim combine_blocks_waitE4[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"])
                                 subgoal by auto
                                 subgoal by auto
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                                 apply simp
                                 by (auto elim!: sync_elims)
-                              apply(cases "d2 = (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 = (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply simp
                                 apply(elim combine_blocks_waitE2)
@@ -8402,9 +8555,9 @@ lemma combine_taskdis_sch1':
                               by (auto elim!: sync_elims)
                             subgoal for d2 v2 tr2'
                               apply(simp del: tdsch1'.simps)
-                              apply(cases "d2 > (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 > (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal 
-                                apply(elim combine_blocks_waitE3[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"])
+                                apply(elim combine_blocks_waitE3[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"])
                                 subgoal by auto
                                 subgoal by auto
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
@@ -8412,15 +8565,15 @@ lemma combine_taskdis_sch1':
                                 apply(elim combine_blocks_waitE1)
                                 apply(cases rdy1)
                                 by auto
-                              apply(cases "d2 < (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 < (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
-                                apply(elim combine_blocks_waitE4[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"])
+                                apply(elim combine_blocks_waitE4[of "{req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1}" "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"])
                                 subgoal by auto
                                 subgoal by auto
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                                 apply simp
                                 by (auto elim!: sync_elims)
-                              apply(cases "d2 = (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2 = (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply simp
                                 apply(elim combine_blocks_waitE2)
@@ -8431,43 +8584,43 @@ lemma combine_taskdis_sch1':
                           done
                         done
                       subgoal
-                        apply(cases rule: wait_orig_assn.cases[of "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"
+                        apply(cases rule: wait_orig_assn.cases[of "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"
                                           "(\<lambda>t. ParState
                                                  (EState
                                                    (Task RUNNING (Suc 0) 2, task_s
                                                     (CHR ''t'' := task_s CHR ''t'' + t, CHR ''c'' := task_s CHR ''c'' + t)))
                                                  (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + t))))"
-                                           "({preempt_ch 1}, {})"
-                                           "(out_0assm_assn (free_ch 1) 0
-                                             (task_dis_assn' 1 k'
+                                           "({}, {preempt_ch 1})"
+                                           "(out_0assm_srdy_assn (free_ch 1) 0 ({free_ch 1}, {preempt_ch 1})
+                                             (task_dis_assn' 1 k' pd pc
                                                (dis_s
                                                 (CHR ''t'' :=
                                                    dis_s CHR ''t'' +
-                                                   min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
+                                                   min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
                                                (Task WAIT (Suc 0) 2)
                                                (task_s
                                                 (CHR ''t'' :=
                                                    task_s CHR ''t'' +
-                                                   min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
+                                                   min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
                                                  CHR ''c'' :=
                                                    task_s CHR ''c'' +
-                                                   min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))))" tr1])
+                                                   min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))))" tr1])
                           apply simp
                         subgoal
-                          apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
-                                       "(task_dis_assn' 1 k'
+                          apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
+                                       "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
                                              dis_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
                                          (Task WAIT (Suc 0) 2)
                                          (task_s
                                           (CHR ''t'' :=
                                              task_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
                                            CHR ''c'' :=
                                              task_s CHR ''c'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))))" tr1])
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))))" tr1])
                          apply simp
                           subgoal for tr1'
                             apply(cases rule: waitin_assms'_assn.cases[of UNIV "(\<lambda>t. EState (Sch p rn rp, s))"
@@ -8565,20 +8718,20 @@ lemma combine_taskdis_sch1':
                             done
                           done
                         subgoal for tr1'
-                          apply(cases rule: out_0assm_assn.cases[of "(free_ch 1)" 0
-                                       "(task_dis_assn' 1 k'
+                          apply(cases rule: out_0assm_srdy_assn.cases[of "(free_ch 1)" 0 "({free_ch 1}, {preempt_ch 1})"
+                                       "(task_dis_assn' 1 k' pd pc
                                          (dis_s
                                           (CHR ''t'' :=
                                              dis_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
                                          (Task WAIT (Suc 0) 2)
                                          (task_s
                                           (CHR ''t'' :=
                                              task_s CHR ''t'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''),
                                            CHR ''c'' :=
                                              task_s CHR ''c'' +
-                                             min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))))" tr1'])
+                                             min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))))" tr1'])
                          apply simp
                           subgoal for tr1''
                             apply(cases rule: waitin_assms'_assn.cases[of UNIV "(\<lambda>t. EState (Sch p rn rp, s))"
@@ -8609,14 +8762,14 @@ lemma combine_taskdis_sch1':
                                prefer 2
                               subgoal using pre unfolding proper_def propc_def properp_def by auto
                               apply(simp del: tdsch1'.simps)
-                              apply(cases "d2>(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2>(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply(elim combine_blocks_waitE3)
                                 subgoal by auto
                                 subgoal by auto
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                                 by (auto elim!: sync_elims)
-                              apply(cases "d2<(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2<(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply(elim combine_blocks_waitE4)
                                 subgoal by auto
@@ -8635,22 +8788,22 @@ lemma combine_taskdis_sch1':
                                   apply(rule pre(1)[of "(Suc k')" kk' "(dis_s(CHR ''t'' := dis_s CHR ''t'' + d2))"
                                                   "(Task RUNNING (Suc 0) 2)"
                                                   "(task_s(CHR ''t'' := task_s CHR ''t'' + d2, CHR ''c'' := task_s CHR ''c'' + d2))"
-                                                  "(WaitBlk (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'') - d2)
+                                                  "(WaitBlk (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'') - d2)
                                                      (\<lambda>t. ParState
                                                            (EState
                                                              (Task RUNNING (Suc 0) 2, task_s
                                                               (CHR ''t'' := task_s CHR ''t'' + (t + d2),
                                                                CHR ''c'' := task_s CHR ''c'' + (t + d2))))
                                                            (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))
-                                                     ({preempt_ch 1}, {}) #
+                                                     ({}, {preempt_ch 1}) #
                                                     OutBlock (free_ch 1) 0 # tr1'')"
                                                    "(Sch (del_proc p 2) 1 2)" s tr2' tr'])
                                   subgoal by auto
                                   subgoal premises pre'
                                     apply simp
                                     apply(rule disjI2)
-                                    apply(subgoal_tac"(min (9 / 200 - (task_s CHR ''t'' + d2)) (1 / 100 - (task_s CHR ''c'' + d2))) 
-                                                    = (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'') - d2)")
+                                    apply(subgoal_tac"(min (pd - (task_s CHR ''t'' + d2)) (pc - (task_s CHR ''c'' + d2))) 
+                                                    = (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'') - d2)")
                                     apply(subgoal_tac"(\<lambda>t. ParState
                                                        (EState
                                                          (Task RUNNING (Suc 0) 2, task_s
@@ -8665,7 +8818,7 @@ lemma combine_taskdis_sch1':
                                                        (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))")
                                       apply simp
                                       apply(rule wait_orig_assn.intros(2))
-                                       apply(rule out_0assm_assn.intros(1))
+                                       apply(rule out_0assm_srdy_assn.intros(1))
                                     subgoal using pre' by auto
                                     subgoal using pre' by auto
                                     subgoal apply(rule ext) by auto
@@ -8677,7 +8830,7 @@ lemma combine_taskdis_sch1':
                                   subgoal by auto
                                   done
                                 done
-                              apply(cases "d2=(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2=(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply (simp only: tdsch1'.simps)
                                 apply(rule disjI2)
@@ -8698,15 +8851,15 @@ lemma combine_taskdis_sch1':
                                   subgoal premises pre'
                                     apply simp
                                     apply(rule disjI2)
-                                    apply(subgoal_tac "(min (9 / 200 -
+                                    apply(subgoal_tac "(min (pd -
                                                        (task_s CHR ''t'' +
-                                                        min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
-                                                   (1 / 100 -
+                                                        min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
+                                                   (pc -
                                                     (task_s CHR ''c'' +
-                                                     min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))) = 0")
+                                                     min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))) = 0")
                                      apply auto
                                     apply(rule wait_orig_assn.intros(1))
-                                     apply(rule out_0assm_assn.intros(1))
+                                     apply(rule out_0assm_srdy_assn.intros(1))
                                     using pre' by auto
                                   subgoal by auto
                                   subgoal by auto
@@ -8734,14 +8887,14 @@ lemma combine_taskdis_sch1':
                                prefer 2
                               subgoal using pre unfolding proper_def propc_def properp_def by auto
                               apply(simp del: tdsch1'.simps)
-                              apply(cases "d2>(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2>(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply(elim combine_blocks_waitE3)
                                 subgoal by auto
                                 subgoal by auto
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
                                 by (auto elim!: sync_elims)
-                              apply(cases "d2<(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2<(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply(elim combine_blocks_waitE4)
                                 subgoal by auto
@@ -8756,7 +8909,7 @@ lemma combine_taskdis_sch1':
                                 apply auto
                                 apply(rule waitin_tguar'_vassm'_assn.intros(4))
                                 by auto
-                              apply(cases "d2=(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2=(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply (simp only: tdsch1'.simps)
                                 apply(rule disjI2)
@@ -8803,9 +8956,9 @@ lemma combine_taskdis_sch1':
                                prefer 2
                               subgoal using pre unfolding proper_def propc_def properp_def by auto
                               apply(simp del: tdsch1'.simps)
-                              apply(cases "d2>(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2>(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
-                                apply(elim combine_blocks_waitE3[where ?d1.0 = "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"])
+                                apply(elim combine_blocks_waitE3[where ?d1.0 = "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"])
                                 subgoal by auto
                                 subgoal by auto
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
@@ -8813,9 +8966,9 @@ lemma combine_taskdis_sch1':
                                 apply(elim combine_blocks_waitE1)
                                 apply(cases rdy1)
                                 by auto
-                              apply(cases "d2<(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2<(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
-                                apply(elim combine_blocks_waitE4[where ?d1.0 = "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"])
+                                apply(elim combine_blocks_waitE4[where ?d1.0 = "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"])
                                 subgoal by auto
                                 subgoal by auto
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
@@ -8829,22 +8982,22 @@ lemma combine_taskdis_sch1':
                                 apply(rule waitin_tguar'_vassm'_assn.intros(2))
                                    apply auto
                                 subgoal for tr'
-                                  apply(rule pre(1)[where ?tr1.0 = "(WaitBlk (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'') - d2)
+                                  apply(rule pre(1)[where ?tr1.0 = "(WaitBlk (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'') - d2)
                                                                      (\<lambda>t. ParState
                                                                            (EState
                                                                              (Task RUNNING (Suc 0) 2, task_s
                                                                               (CHR ''t'' := task_s CHR ''t'' + (t + d2),
                                                                                CHR ''c'' := task_s CHR ''c'' + (t + d2))))
                                                                            (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))
-                                                                     ({preempt_ch 1}, {}) #
+                                                                     ({}, {preempt_ch 1}) #
                                                                     WaitBlk d1 p1 rdy1 # tr1'')"
                                                      and ?tr2.0 = tr2' and ?tr = tr'])
                                   subgoal by auto
                                   subgoal premises pre'
                                     apply simp
                                     apply(rule disjI2)
-                                    apply(subgoal_tac"(min (9 / 200 - (task_s CHR ''t'' + d2)) (1 / 100 - (task_s CHR ''c'' + d2)))
-                                                    = (min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'') - d2)")
+                                    apply(subgoal_tac"(min (pd - (task_s CHR ''t'' + d2)) (pc - (task_s CHR ''c'' + d2)))
+                                                    = (min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'') - d2)")
                                     apply(subgoal_tac"(\<lambda>t. ParState
                                                        (EState
                                                          (Task RUNNING (Suc 0) 2, task_s
@@ -8859,7 +9012,8 @@ lemma combine_taskdis_sch1':
                                                        (EState (estate.None, dis_s(CHR ''t'' := dis_s CHR ''t'' + (t + d2)))))")
                                     apply auto
                                     apply(rule wait_orig_assn.intros(2))
-                                    apply(rule out_0assm_assn.intros(2))
+                                    apply(rule out_0assm_srdy_assn.intros(2))
+                                    subgoal using pre' by auto
                                     subgoal using pre' by auto
                                     subgoal using pre' by auto
                                     subgoal using pre' by auto
@@ -8871,7 +9025,7 @@ lemma combine_taskdis_sch1':
                                   subgoal by auto
                                   done
                                 done
-                              apply(cases "d2=(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2=(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply (simp only: tdsch1'.simps)
                                 apply(rule disjI2)
@@ -8891,15 +9045,15 @@ lemma combine_taskdis_sch1':
                                   subgoal premises pre'
                                     apply simp
                                     apply(rule disjI2)
-                                    apply(subgoal_tac"(min (9 / 200 -
+                                    apply(subgoal_tac"(min (pd -
                                                        (task_s CHR ''t'' +
-                                                        min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))
-                                                   (1 / 100 -
+                                                        min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))
+                                                   (pc -
                                                     (task_s CHR ''c'' +
-                                                     min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))) = 0")
+                                                     min (pd - task_s CHR ''t'') (pc - task_s CHR ''c'')))) = 0")
                                      apply auto
                                     apply(rule wait_orig_assn.intros(1))
-                                     apply(rule out_0assm_assn.intros(2))
+                                     apply(rule out_0assm_srdy_assn.intros(2))
                                     using pre' by auto
                                   subgoal by auto
                                   subgoal by auto
@@ -8927,9 +9081,9 @@ lemma combine_taskdis_sch1':
                                prefer 2
                               subgoal using pre unfolding proper_def propc_def properp_def by auto
                               apply(simp del: tdsch1'.simps)
-                              apply(cases "d2>(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2>(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
-                                apply(elim combine_blocks_waitE3[where ?d1.0 = "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"])
+                                apply(elim combine_blocks_waitE3[where ?d1.0 = "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"])
                                 subgoal by auto
                                 subgoal by auto
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
@@ -8937,9 +9091,9 @@ lemma combine_taskdis_sch1':
                                 apply(elim combine_blocks_waitE1)
                                 apply(cases rdy1)
                                 by auto
-                              apply(cases "d2<(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2<(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
-                                apply(elim combine_blocks_waitE4[where ?d1.0 = "(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))"])
+                                apply(elim combine_blocks_waitE4[where ?d1.0 = "(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))"])
                                 subgoal by auto
                                 subgoal by auto
                                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def dispatch_ch_def)
@@ -8952,7 +9106,7 @@ lemma combine_taskdis_sch1':
                                 apply auto
                                 apply(rule waitin_tguar'_vassm'_assn.intros(4))
                                 by auto
-                              apply(cases "d2=(min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))")
+                              apply(cases "d2=(min (pd - task_s CHR ''t'') (pc - task_s CHR ''c''))")
                               subgoal
                                 apply (simp only: tdsch1'.simps)
                                 apply(rule disjI2)

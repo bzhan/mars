@@ -1,0 +1,326 @@
+{
+    "vehicle_imp": {
+        "display": ["v", "s", "a"],
+        "input": {"veh_a": {"var": "a", "val": 0.0}},
+        "output": {
+            "veh_s": "s",
+            "veh_v_l": "v",
+            "veh_v_w": "v"
+        },
+        "category": "abstract",
+        "impl": "Simulink",
+        "discrete_computation": "./Examples/AADL/CCS/Simulink/vehicle_imp.xml"
+    },
+    "camera": {
+        "display": ["img"],
+        "output": {"img": "img"},
+        "period": "200ms",
+        "compute_execution_time": "20ms..50ms",
+        "category": "device",
+        "impl": "HCSP",
+        "discrete_computation": "{ outputs[\"camera\"][\"img\"]!-1; wait(0.2); }*"
+    },
+    "radar": {
+        "display": ["obs_pos_radar"],
+        "output": {"obs_pos_radar": "obs_pos_radar"},
+        "period": "10ms",
+        "compute_execution_time": "6ms..8ms",
+        "category": "device",
+        "impl": "HCSP",
+        "discrete_computation": "t := 0; data := 0.0; { if (t < 10) { data := 0.0; } else if (t < 20) { slope := (55 - 35) / (20 - 10); data := 35 + slope * (t - 10); } else { data := 0.0; } outputs[\"radar\"][\"obs_pos_radar\"]!data; wait(0.01); t := t + 0.01; }*"
+    },
+    "actuator": {
+        "display": ["cmd"],
+        "input": {"cmd": {"var": "cmd", "val": 0.0}},
+        "output": {"veh_a": "veh_a"},
+        "period": "2ms",
+        "category": "device",
+        "impl": "HCSP",
+        "discrete_computation": "{ inputs[\"actuator\"][\"cmd\"]?cmd; outputs[\"PHY_vehicle_imp\"][\"veh_a\"]!cmd; wait(0.002); }*"
+    },
+    "GPS": {
+        "display": ["data"],
+        "input": {"veh_s": {"var": "data", "val": 0.0}},
+        "output": {"veh_pos": "data"},
+        "period": "6ms",
+        "category": "device",
+        "impl": "HCSP",
+        "discrete_computation": "{ inputs[\"PHY_vehicle_imp\"][\"veh_s\"]?data; outputs[\"GPS\"][\"veh_pos\"]!data; wait(0.006); }*"
+    },
+    "laser": {
+        "display": [],
+        "input": {"veh_l_v": {"var": "veh_l_v", "val": 0.0}},
+        "output": {"laser_valid": "laser_valid", "laser_v": "laser_v"},
+        "period": "10ms",
+        "compute_execution_time": "6ms..9ms",
+        "category": "device",
+        "impl": "HCSP",
+        "discrete_computation": "{ inputs[\"PHY_vehicle_imp\"][\"veh_v_l\"]?data; t := 0; {t_dot = 1 & t < 0.01} |> [] (outputs[\"laser\"][\"laser_valid\"]!1.0 --> {error := 0; x := data + error; outputs[\"laser\"][\"laser_v\"]!(data+error);}) {t_dot = 1 & t < 0.01} }*"
+    },
+    "wheel": {
+        "display": [],
+        "input": {
+            "veh_v_w": {"var": "veh_v_w", "val": 0.0},
+            "veh_w_v": "veh_w_v"
+        },
+        "output": {"wheel_valid": "wheel_valid", "wheel_v": "wheel_v"},
+        "period": "10ms",
+        "compute_execution_time": "6ms..9ms",
+        "category": "device",
+        "impl": "HCSP",
+        "discrete_computation": "{ inputs[\"PHY_vehicle_imp\"][\"veh_v_w\"]?data; t := 0; {t_dot = 1 & t < 0.01} |> [] (outputs[\"wheel\"][\"wheel_valid\"]!1.0 --> {error := 0; x := data + error; outputs[\"wheel\"][\"wheel_v\"]!(data+error);}) {t_dot = 1 & t < 0.01} }*"
+    },
+    "user_panel": {
+        "display": [],
+        "input": {},
+        "output": {"event": "event"},
+        "category": "device",
+        "impl": "HCSP",
+        "discrete_computation": "outputs[\"user_panel\"][\"event\"]!\"inc\"; wait(0.5); outputs[\"user_panel\"][\"event\"]!\"inc\"; wait(0.5); outputs[\"user_panel\"][\"event\"]!\"inc\"; wait(29); outputs[\"user_panel\"][\"event\"]!\"dec\"; outputs[\"user_panel\"][\"event\"]!\"dec\";"
+    },
+    "img_acq": {
+        "display": ["image", "new_image"],
+        "input": {"img": {"var": "image", "val": 0.0}},
+        "output": {"proc_img": "new_image"},
+        "initialization": "",
+        "dispatch_protocol": "periodic",
+        "period": "45ms",
+        "deadline": "45ms",
+        "compute_execution_time": "10ms",
+        "priority": 1,
+        "category": "thread",
+        "impl": "Simulink",
+        "discrete_computation": "./Examples/AADL/CCS/Simulink/img_acq_imp.xml"
+    },
+    "comp_obs_pos": {
+        "display": ["obs_pos_radar", "proc_img", "obs_pos"],
+        "input": {
+            "obs_pos_radar": {"var": "obs_pos_radar", "val": 0.0},
+            "proc_img": {"var": "proc_img", "val": 0.0}
+        },
+        "initialization": "",
+        "output": {"obs_pos": "obs_pos"},
+        "dispatch_protocol": "periodic",
+        "period": "97ms",
+        "deadline": "97ms",
+        "compute_execution_time": "20ms",
+        "priority": 1,
+        "category": "thread",
+        "impl": "Simulink",
+        "discrete_computation": "./Examples/AADL/CCS/Simulink/comp_obs_pos_imp.xml"
+    },
+    "emerg": {
+        "display": [
+            "des_a",
+            "veh_v",
+            "obs_pos",
+            "veh_pos",
+            "cmd"
+        ],
+        "input": {
+            "des_a": {"var": "des_a", "val": 0.0},
+            "veh_v": {"var": "veh_v", "val": 0.0},
+            "obs_pos": {"var": "obs_pos", "val": 0.0},
+            "veh_pos": {"var": "veh_pos", "val": 0.0}
+        },
+        "output": {"cmd": "cmd"},
+        "dispatch_protocol": "periodic",
+        "period": "5ms",
+        "deadline": "5ms",
+        "compute_execution_time": "1ms",
+        "priority": 2,
+        "category": "thread",
+        "impl": "Stateflow",
+        "discrete_computation": "./Examples/AADL/CCS/Simulink/emerg_imp.xml"
+    },
+    "velo_voter": {
+        "display": ["wheel_v", "laser_v", "veh_v"],
+        "input": {
+            "wheel_v": {"var": "wheel_v", "val": 0.0},
+            "wheel_valid": {"var": "wheel_valid", "val": -1.0},
+            "laser_v": {"var": "laser_v", "val": 0.0},
+            "laser_valid": {"var": "laser_valid", "val": -1.0}
+        },
+        "output": {"veh_v": "veh_v"},
+        "dispatch_protocol": "periodic",
+        "period": "8ms",
+        "deadline": "8ms",
+        "compute_execution_time": "1ms",
+        "priority": 1,
+        "category": "thread",
+        "impl": "Simulink",
+        "discrete_computation": "./Examples/AADL/CCS/Simulink/velo_voter_imp.xml"
+    },
+    "pan_ctr_th": {
+        "display": ["des_v"],
+        "event_input": {"event": {"var": "event", "val": " "}},
+        "input": {"event": {"var": "event", "val": " "}},
+        "initialization": "",
+        "priority": 0,
+        "output": {"des_v": "des_v"},
+        "dispatch_protocol": "aperiodic",
+        "compute_execution_time": "10ms",
+        "deadline": "100ms",
+        "category": "thread",
+        "impl": "Stateflow",
+        "discrete_computation": "./Examples/AADL/CCS/Simulink/pan_ctr_th_imp.xml"
+    },
+    "tran_img": {
+        "type": "data",
+        "init_value": 0.0,
+        "bus": "bus0",
+        "source": "camera",
+        "source_port": "img",
+        "target": ["img_acq"],
+        "target_port": ["img"],
+        "category": "connection"
+    },
+    "tran_obs_pos_radar": {
+        "type": "data",
+        "init_value": 0.0,
+        "bus": "bus0",
+        "source": "radar",
+        "source_port": "obs_pos_radar",
+        "target": ["comp_obs_pos"],
+        "target_port": ["obs_pos_radar"],
+        "category": "connection"
+    },
+    "tran_cmd": {
+        "type": "data",
+        "init_value": 0.0,
+        "bus": "bus1",
+        "source": "emerg",
+        "source_port": "cmd",
+        "target": ["actuator"],
+        "target_port": ["cmd"],
+        "category": "connection"
+    },
+    "tran_veh_pos": {
+        "type": "data",
+        "init_value": 0.0,
+        "bus": "bus0",
+        "source": "GPS",
+        "source_port": "veh_pos",
+        "target": ["emerg"],
+        "target_port": ["veh_pos"],
+        "category": "connection"
+    },
+    "tran_laser_valid": {
+        "type": "data",
+        "init_value": 0.0,
+        "bus": "bus0",
+        "source": "laser",
+        "source_port": "laser_valid",
+        "target": ["velo_voter"],
+        "target_port": ["laser_valid"],
+        "category": "connection"
+    },
+    "tran_laser_v": {
+        "type": "data",
+        "init_value": 0.0,
+        "bus": "bus0",
+        "source": "laser",
+        "source_port": "laser_v",
+        "target": ["velo_voter"],
+        "target_port": ["laser_v"],
+        "category": "connection"
+    },
+    "tran_wheel_valid": {
+        "type": "data",
+        "init_value": 0.0,
+        "bus": "bus0",
+        "source": "wheel",
+        "source_port": "wheel_valid",
+        "target": ["velo_voter"],
+        "target_port": ["wheel_valid"],
+        "category": "connection"
+    },
+    "tran_wheel_v": {
+        "type": "data",
+        "init_value": 0.0,
+        "bus": "bus0",
+        "source": "wheel",
+        "source_port": "wheel_v",
+        "target": ["velo_voter"],
+        "target_port": ["wheel_v"],
+        "category": "connection"
+    },
+    "tran_event": {
+        "type": "event",
+        "init_value": 0.0,
+        "bus": "bus0",
+        "source": "user_panel",
+        "source_port": "event",
+        "target": ["pan_ctr_th"],
+        "target_port": ["event"],
+        "category": "connection"
+    },
+    "tran_des_v": {
+        "type": "data",
+        "init_value": 0.0,
+        "source": "pan_ctr_th",
+        "source_port": "des_v",
+        "target": ["PI_ctr"],
+        "target_port": ["des_v"],
+        "category": "connection"
+    },
+    "tran_proc_img": {
+        "type": "data",
+        "init_value": 0.0,
+        "source": "img_acq",
+        "source_port": "proc_img",
+        "target": ["comp_obs_pos"],
+        "target_port": ["proc_img"],
+        "category": "connection"
+    },
+    "tran_obs_pos": {
+        "type": "data",
+        "init_value": 0.0,
+        "source": "comp_obs_pos",
+        "source_port": "obs_pos",
+        "target": ["emerg"],
+        "target_port": ["obs_pos"],
+        "category": "connection"
+    },
+    "tran_veh_v": {
+        "type": "data",
+        "init_value": 0.0,
+        "source": "velo_voter",
+        "source_port": "veh_v",
+        "target": ["emerg", "PI_ctr"],
+        "target_port": ["veh_v", "veh_v"],
+        "category": "connection"
+    },
+    "tran_des_a": {
+        "type": "data",
+        "init_value": 0.0,
+        "source": "PI_ctr",
+        "source_port": "des_a",
+        "target": ["emerg"],
+        "target_port": ["des_a"],
+        "category": "connection"
+    },
+    "PI_ctr": {
+        "display": ["des_v", "veh_v", "des_a"],
+        "input": {
+            "des_v": {"var": "des_v", "val": 0.0},
+            "veh_v": {"var": "veh_v", "val": 0.0}
+        },
+        "output": {"des_a": "des_a"},
+        "dispatch_protocol": "periodic",
+        "period": "7ms",
+        "deadline": "7ms",
+        "compute_execution_time": "1ms",
+        "priority": 1,
+        "category": "thread",
+        "impl": "Simulink",
+        "discrete_computation": "./Examples/AADL/CCS/Simulink/PI_ctr_imp.xml"
+    },
+    "cpu": {
+        "rq_bus": "bus0",
+        "scheduling_protocol": "rms",
+        "category": "processor"
+    },
+    "bus0": {"latency": "3ms", "category": "bus"},
+    "bus1": {"latency": "3ms", "category": "bus"}
+}

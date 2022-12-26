@@ -1,0 +1,143 @@
+constants
+    accelerate == 0;
+    ebrakeact == 1;
+    ebrakefull == 2;
+    normalPI == 3;
+    sbrakeact == 4;
+    sbrakefull == 5;
+    eps > 0;
+    del > 0;
+    del <= 11;
+    del < eps - 0.1;
+end
+
+pre [v^2 < del^2];
+
+    mode:=normalPI; 
+    t:=0; x:=0;
+
+{
+    if (mode == ebrakeact) {
+        if (15 <= v && v <= 40 && t == 2.5) {
+            mode:=ebrakefull;
+        }
+        ++
+        if (15 <= v && v <= 16 && 0 <= t && t <= 2.5) {
+            t := 0;
+            mode:=sbrakeact;
+        }
+        ++ mode := mode;
+    }
+    else if (mode == ebrakefull) {
+        if (15 <= v && v <= 16 && t == 2.5) {
+            t := 0;
+            mode := sbrakeact;
+        } 
+        ++ mode := mode;
+    }
+    else if (mode == sbrakeact){
+        if (18 <= v && v <= 20 && 0 <= t && t <= 1.3) {
+            t := 0;
+            mode := ebrakeact;
+        } 
+        ++
+        if (5 <= v && v <= 20 && t == 1.3) {
+            mode:=sbrakefull;
+        }
+        ++
+        if (5 <= v && v <= 11 && 0 <= t && t <= 1.3) {
+            x := 0;
+            mode:=normalPI;
+        }
+        ++
+        mode := mode;
+    }
+    else if (mode == sbrakefull){
+        if (18 <= v && v <= 20 && t == 1.3) {
+            t:=0;
+            mode:=ebrakeact;
+        }
+        ++
+        if (5 <= v && v <= 11 && t == 1.3) {
+            x:=0;
+            mode:=normalPI;
+        }
+        ++
+        mode := mode;
+    }
+    else if (mode == normalPI) {
+        if (13 <= v && v <= 15 && -500 <= x && x <= 500) {
+            t:=0;
+            mode:=sbrakeact;
+        } 
+        ++
+        if (-15 <= v && v <= -14 && -500 <= x && x <= 500 ){
+            mode:=accelerate;
+        }
+        ++
+        mode:=mode;
+    }
+    
+    else if (mode == accelerate) {
+        if (-6 <= v && v <= -5 && -500 <= x && x <= 500) {
+            x:=0;
+            mode:=normalPI;
+        }
+        ++
+        mode:=mode;
+    }
+
+
+    t0 := *(t0 >= 0);
+    if (mode == ebrakeact) {
+        {
+            v_dot = -t - 2.5,
+            x_dot = 0,
+            t_dot = 1,
+            t0_dot = -1 &
+            15 < v && v < 40 && 0 < t && t < 2.5 && t0 > 0
+        }
+            invariant [false];
+    }
+    else if (mode == ebrakefull) {
+        {v_dot = -5, x_dot = 0, t_dot = 0, t0_dot = -1 & 15 < v && v < 40 && t0 > 0}
+            invariant [false];
+    }
+    
+    else if (mode == sbrakeact) {
+        {
+            v_dot=-t - 1.2,
+            x_dot=0,
+            t_dot=0.5,
+            t0_dot = -1 &
+            5 < v && v < 20 && 0 < t && t < 1.3 && t0 > 0
+        } invariant [false];
+    }
+    
+    else if (mode == sbrakefull) {
+        {v_dot=-2.5, x_dot=0, t_dot=0, t0_dot=-1 & 5 < v && v < 20 && t0 > 0}
+         invariant [false];
+    }
+    
+    else if (mode == normalPI) {
+        {
+            v_dot=(-0.001) * x - 0.052 * v,
+            x_dot=v,
+            t_dot=0,
+            t0_dot=-1 &
+            -15 < v && v < 15 && -500 < x && x < 500 && t0 > 0
+        } invariant 
+            [mode == normalPI]
+            [5751144245182635/4611686018427387904*x*v+160500813937299/562949953421312*v^2+3764410446424383/9223372036854775808*x^2 < 160500813937299/562949953421312*del^2];
+    }
+    
+    else if (mode == accelerate) {
+        {v_dot=1.5, x_dot=0, t_dot=0, t0_dot = -1 & -20 < v && v < -5 && t0 > 0}
+            invariant [false];
+    }
+    
+}* invariant 
+    [mode == normalPI]
+    [mode == normalPI -> 5751144245182635/4611686018427387904*x*v+160500813937299/562949953421312*v^2+3764410446424383/9223372036854775808*x^2 < 160500813937299/562949953421312*del^2];
+
+post [v^2 < eps^2];

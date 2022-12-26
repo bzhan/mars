@@ -1,5 +1,5 @@
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp.expr import true_expr, AConst
+from ss2hcsp.hcsp.expr import AConst
 
 
 class Constant(SL_Block):
@@ -20,8 +20,3 @@ class Constant(SL_Block):
     def get_var_subst(self):
         out_var = self.src_lines[0][0].name
         return {out_var: AConst(self.value)}
-
-    def get_var_map(self):
-        out_var = self.src_lines[0][0].name
-        expr = AConst(self.value)
-        return {out_var: [(true_expr, expr)]}

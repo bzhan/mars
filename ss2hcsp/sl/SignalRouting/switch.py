@@ -37,12 +37,3 @@ class Switch(SL_Block):
         expr = self.get_expr()
         out_var = self.src_lines[0][0].name
         return {out_var: expr}
-
-    def get_var_map(self):
-        in_vars = [AVar(line.name) for line in self.dest_lines]
-        cond0 = RelExpr(self.relation, in_vars[1], AConst(self.threshold))
-        expr0 = in_vars[0]
-        cond2 = cond0.neg()
-        expr2 = in_vars[2]
-        out_var = self.src_lines[0][0].name
-        return {out_var: [(cond0, expr0), (cond2, expr2)]}

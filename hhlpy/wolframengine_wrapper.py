@@ -9,7 +9,6 @@ from wolframclient.language.expression import WLFunction, WLSymbol
 from wolframclient.exception import WolframKernelException
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import hcsp
-import platform
 
 # logging.basicConfig(level=logging.DEBUG)
 found_wolfram = False
@@ -19,7 +18,8 @@ session = None
 default_locations = [
     "C:\\Program Files\\Wolfram Research\\Wolfram Engine\\13.1\\WolframKernel.exe",
     "/Applications/Wolfram Engine.app/Contents/MacOS/WolframKernel",
-    "/usr/local/Wolfram/WolframEngine/13.1/Executables/WolframKernel"
+    "/usr/local/Wolfram/WolframEngine/13.1/Executables/WolframKernel",
+    "/usr/local/Wolfram/WolframEngine/13.0/Executables/WolframKernel"
 ]
 
 for loc in default_locations:
@@ -214,8 +214,10 @@ def toHcsp(e):
             return expr.BConst(e)
         else:
             return expr.AConst(e)
+    elif isinstance(e, float):
+        return expr.AConst(Decimal(str(e)))
     else:
-        assert False, "Unexpected expression: %s" % str(e)
+        assert False, "Unexpected expression: %s, type: %s" % (str(e), type(e))
 
 
 def solveODE(hp, names, time_var):
@@ -322,8 +324,10 @@ def wl_prove(e, functions=dict()):
     if not found_wolfram:
         return False
 
-    vars = e.get_vars()
     wl_expr = toWLexpr(e, functions)
+    # Substitue all functions in e because functions may contains other variables.
+    # For example, e is safe(x), where safe(x) = x^2 < p^2, variables of which are {x, p}
+    vars = expr.subst_all_funcs(e, funcs=functions).get_vars()
     wl_vars = {toWLexpr(expr.AVar(var), functions) for var in vars}
 
     # wl_vars cannot be empty when using FindInstance function.
@@ -357,7 +361,7 @@ def wl_simplify(e, functions=dict()):
 
 def wl_polynomial_div(p, q, constants, functions=dict()):
     """Compute the quotient and remainder of polynomial p and q"""
-    vars = q.get_vars().difference(constants)
+    vars = expr.subst_all_funcs(q, functions).get_vars().difference(constants)
     # Sort the vars to get the same results everytime,
     # because result of PolynomialReduce depends on the sort of vars but set has no sort.
     vars_list = [var for var in vars]
@@ -385,7 +389,7 @@ def wl_polynomial_div(p, q, constants, functions=dict()):
 
 def wl_is_polynomial(e, constants=set(), functions=dict()):
     """Verify whether the given expression is a polynomial"""
-    vars = e.get_vars().difference(constants)
+    vars = expr.subst_all_funcs(e, functions).get_vars().difference(constants)
     vars = {toWLexpr(expr.AVar(var), functions) for var in vars}
 
     e = toWLexpr(e, functions)

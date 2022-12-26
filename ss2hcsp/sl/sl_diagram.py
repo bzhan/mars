@@ -1,21 +1,23 @@
 """Simulink diagrams."""
 
+from typing import Dict
 import lark
 from decimal import Decimal
 
-from ss2hcsp.sl.sl_line import SL_Line
-from ss2hcsp.sl.sl_block import get_gcd
-from ss2hcsp.matlab import function, convert
+from ss2hcsp.sl.sl_line import SL_Line, unknownLine
+from ss2hcsp.sl.sl_block import get_gcd, SL_Block
+from ss2hcsp.matlab import convert
 from ss2hcsp.matlab import function
 from ss2hcsp.matlab.parser import expr_parser, function_parser, \
     transition_parser, func_sig_parser, state_op_parser
-from ss2hcsp.matlab import convert
 from ss2hcsp.sl.Continuous.clock import Clock
 from ss2hcsp.sl.port import Port
 from ss2hcsp.sl.Continuous.integrator import Integrator
 from ss2hcsp.sl.Continuous.constant import Constant
 from ss2hcsp.sl.Continuous.signalBuilder import SignalBuilder
 from ss2hcsp.sl.Continuous.source import Sine
+from ss2hcsp.sl.Continuous.fcn import Fcn
+from ss2hcsp.sl.Continuous.transferfcn import TransferFcn
 from ss2hcsp.sl.MathOperations.product import Product
 from ss2hcsp.sl.MathOperations.bias import Bias
 from ss2hcsp.sl.MathOperations.gain import Gain
@@ -39,11 +41,12 @@ from ss2hcsp.sf.sf_chart import SF_Chart
 from ss2hcsp.sf.sf_transition import Transition
 from ss2hcsp.sf.sf_message import SF_Message,SF_Data
 from ss2hcsp.sf.sf_event import SF_Event
-from ss2hcsp.sl.discrete_buffer import Discrete_Buffer
 from ss2hcsp.sl.mux.mux import Mux
+from ss2hcsp.sl.mux.selector import Selector
+from ss2hcsp.sl.connector import From, Goto
 from ss2hcsp.sl.DataStore.DataStore import DataStoreMemory, DataStoreRead
-from xml.dom.minidom import parse, Element
-from xml.dom.minicompat import NodeList
+from xml.dom import minidom
+from xml.dom import minicompat
 import operator
 
 
@@ -69,7 +72,7 @@ def parse_value(value, default=None):
 
 def replace_spaces(name):
     """Replace spaces and newlines in name with underscores."""
-    return name.strip().replace(' ', '_').replace('\n', '_')
+    return name.strip().replace(' ', '_').replace('\n', '_').replace('(', '_').replace(')', '_').replace('/', '_')
 
 def get_attribute_value(block, attribute, name=None):
     for node in block.getElementsByTagName("P"):
@@ -79,15 +82,24 @@ def get_attribute_value(block, attribute, name=None):
                     return node.childNodes[0].data
     return None
 
+def get_field_attribute_value(block, attribute):
+    for node in block.getElementsByTagName("Field"):
+        if node.getAttribute("Name") == attribute:
+            return node.childNodes[0].data
+    return None
+
 
 class SL_Diagram:
     """Represents a Simulink diagram."""
     def __init__(self, location=""):
         # Dictionary of blocks indexed by name
-        self.blocks_dict = dict()
+        self.blocks_dict: Dict[str, SL_Block] = dict()
 
-        # Dictionary of STATEFLOW parameters indexed by name
+        # Dictionary of Stateflow parameters indexed by name
         self.chart_parameters = dict()
+
+        # Dictionary of constants
+        self.constants = dict()
 
         # XML data structure
         self.model = None
@@ -95,21 +107,16 @@ class SL_Diagram:
         # Name of the diagram, set by parse_xml
         self.name = None
 
-        # Variables that needs to display
-        self.outputs = list()
-
         # Different parts of the diagram
         self.continuous_blocks = list()
         self.discrete_blocks = list()
         self.scopes = list()
         self.dsms = list()
-
-        self.others = list()
         
         # Parsed model of the XML file
         if location:
             with open(location) as f:
-                self.model = parse(f)
+                self.model = minidom.parse(f)
 
     def parse_stateflow_xml(self):
         """Parse stateflow charts from XML."""
@@ -133,10 +140,11 @@ class SL_Diagram:
             Returns a dictionary mapping transitions IDs to transition objects.
             
             """
-            assert isinstance(blocks, NodeList)
+            assert isinstance(blocks, minicompat.NodeList)
 
             tran_dict = dict()
             for block in blocks:
+                assert isinstance(block, minidom.Node)
                 if block.nodeName == "transition":
                     # Obtain transition ID, label, execution order
                     tran_ssid = block.getAttribute("SSID")
@@ -180,7 +188,7 @@ class SL_Diagram:
             _functions : list of Function objects.
             
             """
-            assert isinstance(block, Element)
+            assert isinstance(block, minidom.Element)
 
             children = [child for child in block.childNodes if child.nodeName == "Children"]
             if not children:
@@ -210,19 +218,10 @@ class SL_Diagram:
                         fun_script = get_attribute_value(child, "script")
                         if fun_script:
                             # Has script, directly use parser for matlab functions
-                            fun_name=function_parser.parse(fun_script).name
-                            hp= convert.convert_cmd(function_parser.parse(fun_script).cmd)
-                            ru=function_parser.parse(fun_script).return_var
-                            exprs=function.ListExpr(function_parser.parse(fun_script).params) if function_parser.parse(fun_script).params is not None else None
-                            fun_type="MATLAB_FUNCTION"
-                            if isinstance(ru,(function.Var,function.FunctionCall)):
-                                return_var=ru
-                            elif isinstance(ru,tuple):
-                                return_var=function.ListExpr(*ru)
+                            fun_name = function_parser.parse(fun_script).name
                             _functions.append(function_parser.parse(fun_script))
-                            # _functions.append(Function(fun_name,exprs,ru,hp,None,fun_type))
                         else:
-                            fun_type="GRAPHICAL_FUNCTION"
+                            # Otherwise, this is a graphical function
                             children = [c for c in child.childNodes if c.nodeName == "Children"]
                             assert len(children) == 1
                             sub_trans = get_transitions(children[0].childNodes)
@@ -239,11 +238,8 @@ class SL_Diagram:
                             for state in  sub_junctions:
                                 state.father = chart_state1
                                 chart_state1.children.append(state)
-                            # _states.append(chart_state1)
-                            hp=None
                             graph_fun = GraphicalFunction(fun_name, fun_params, fun_return, sub_trans, sub_junctions)
                             _functions.append(graph_fun)
-                            # _functions.append(Function(fun_name,fun_params,fun_return,hp,chart_state1,fun_type))
 
                     elif state_type in ("AND_STATE", "OR_STATE"):
                         # Extract AND- and OR-states
@@ -441,6 +437,14 @@ class SL_Diagram:
 
         system = self.model.getElementsByTagName("System")[0]
 
+        workspace = self.model.getElementsByTagName("ModelWorkspace")
+        if workspace:
+            matstructs = workspace[0].getElementsByTagName("MATStruct")
+            for struct in matstructs:
+                name = get_field_attribute_value(struct, "Name")
+                value = float(get_field_attribute_value(struct, "Value"))
+                self.constants[name] = value
+
         # Add blocks
         blocks = [child for child in system.childNodes if child.nodeName == "Block"]
 
@@ -511,7 +515,7 @@ class SL_Diagram:
                 block_type = get_attribute_value(block, "SourceType")
                 if block_type and block_type.startswith("PID"):
                     controller = get_attribute_value(block, "Controller")
-                    st = eval(get_attribute_value(block, "SampleTime"))
+                    st = Decimal(str(eval(get_attribute_value(block, "SampleTime"))))
                     assert get_attribute_value(block, "IntegratorMethod") == "Backward Euler"
                     assert get_attribute_value(block, "FilterMethod") == "Forward Euler"
                     assert get_attribute_value(block, "AntiWindupMode") == "back-calculation"
@@ -558,7 +562,7 @@ class SL_Diagram:
                 self.add_block(Product(name=block_name, dest_spec=dest_spec, st=sample_time))
             elif block_type == "Gain":
                 factor = get_attribute_value(block, "Gain")
-                factor = eval(factor) if factor else 1
+                factor = expr_parser.parse(factor) if factor else function.AConst(1)
                 self.add_block(Gain(name=block_name, factor=factor, st=sample_time))
             elif block_type == "Sin":
                 amplitude = parse_value(get_attribute_value(block, "Amplitude"), default=1)
@@ -615,9 +619,28 @@ class SL_Diagram:
                         if get_attribute_value(block=child, attribute="DstBlock", name=block_name):
                             name = get_attribute_value(block=child, attribute="Name")
                             assert name is not None, "Scope output line is not named"
-                            self.outputs.append(name)
                             num_dest += 1
                 self.add_block(Scope(name=block_name, num_dest=num_dest, st=sample_time))
+            elif block_type == "TriggerPort":
+                # Currently don't need to do anything
+                # TODO: figure out role of this block
+                pass
+            elif block_type == "From":
+                tag = get_attribute_value(block, "GotoTag")
+                self.add_block(From(name=block_name, tag=tag))
+            elif block_type == "Goto":
+                tag = get_attribute_value(block, "GotoTag")
+                self.add_block(Goto(name=block_name, tag=tag))
+            elif block_type == "Fcn":
+                expr = expr_parser.parse(get_attribute_value(block, "Expr"))
+                self.add_block(Fcn(name=block_name, expr=expr))
+            elif block_type == "Selector":
+                inputPortWidth = int(get_attribute_value(block, "InputPortWidth"))
+                indices = expr_parser.parse(get_attribute_value(block, "Indices"))
+                self.add_block(Selector(name=block_name, width=inputPortWidth, indices=indices))
+            elif block_type == "TransferFcn":
+                denom = expr_parser.parse(get_attribute_value(block, "Denominator"))
+                self.add_block(TransferFcn(name=block_name, denom=denom))
             elif block_type == "SubSystem":
                 subsystem = block.getElementsByTagName("System")[0]
 
@@ -787,6 +810,8 @@ class SL_Diagram:
                 subsystem.diagram.model = block
                 subsystem.diagram.parse_xml(default_SampleTimes)
                 self.add_block(subsystem)
+            else:
+                raise NotImplementedError("Unhandled block type: %s" % block_type)
 
         # Add lines
         lines = [child for child in system.childNodes if child.nodeName == "Line"]
@@ -817,18 +842,12 @@ class SL_Diagram:
                     self.add_line(src=src_block, dest=dest_block, src_port=src_port, dest_port=dest_port,
                                   name=line_name, ch_name=ch_name)
 
-        # The line name should keep consistent with the corresponding signals
-        # if its src_block is a Signal Builder.
-        for block in self.blocks_dict.values():
-            if block.type == "signalBuilder":
-                block.rename_src_lines()
-
-    def add_block(self, block):
+    def add_block(self, block: SL_Block) -> None:
         """Add given block to the diagram."""
         assert block.name not in self.blocks_dict
         self.blocks_dict[block.name] = block
 
-    def add_line(self, src, dest, src_port, dest_port, *, name="?", ch_name="?"):
+    def add_line(self, src: str, dest: str, src_port: int, dest_port: int, *, name="?", ch_name="?") -> None:
         """Add given line to the diagram."""
         line = SL_Line(src, dest, src_port, dest_port, name=name, ch_name=ch_name)
         src_block = self.blocks_dict[line.src]
@@ -840,6 +859,7 @@ class SL_Diagram:
 
     def __str__(self):
         result = ""
+        result += "\n".join("%s = %s" % (k, v) for k, v in self.constants.items())
         result += "\n".join(str(block) for block in self.blocks_dict.values())
         return result
 
@@ -854,12 +874,6 @@ class SL_Diagram:
 
     def add_line_name(self):
         """Give each group of lines a name."""
-
-        # Set names of out-going lines from Signal Builders as the correspoding signals
-        for block in self.blocks_dict.values():
-            if isinstance(block, SignalBuilder):
-                block.rename_src_lines()
-
         num_lines = 0
         for block in self.blocks_dict.values():
             # Give name to the group of lines containing each
@@ -1008,7 +1022,7 @@ class SL_Diagram:
 
                     # Delete the old line (input_line) from src_block
                     assert src_block is not None, "delete_subsystems: src_block not found."
-                    src_block.src_lines[input_line.src_port][input_line.branch] = None
+                    src_block.src_lines[input_line.src_port][input_line.branch] = unknownLine
 
                     # Get the corresponding input port in the subsystem
                     port = input_ports[port_id]
@@ -1020,9 +1034,9 @@ class SL_Diagram:
                                                  src_port=input_line.src_port, dest_port=port_line.dest_port)
                         new_input_line.name = input_line.name
                         # Delete the old line (port_line) and add a new one
-                        dest_block.add_dest(port_id=port_line.dest_port, sl_line=new_input_line)
+                        dest_block.add_dest(port_line.dest_port, new_input_line)
                         # Add a new line for src_block
-                        src_block.add_src(port_id=input_line.src_port, sl_line=new_input_line)
+                        src_block.add_src(input_line.src_port, new_input_line)
 
                 # For each output line, find what is the destination
                 # (in the current diagram or in other diagrams), and make
@@ -1035,7 +1049,7 @@ class SL_Diagram:
                     src_block = subsystem.blocks_dict[port_line.src]
 
                     # Delete the old line (port_line) from src_block
-                    src_block.src_lines[port_line.src_port][port_line.branch] = None
+                    src_block.src_lines[port_line.src_port][port_line.branch] = unknownLine
                     for output_line in block.src_lines[port_id]:
                         dest_block = None
                         if output_line.dest in self.blocks_dict:
@@ -1052,9 +1066,9 @@ class SL_Diagram:
                                                   src_port=port_line.src_port, dest_port=output_line.dest_port)
                         new_output_line.name = output_line.name
                         # Delete the old line (output_line) and add a new one
-                        dest_block.add_dest(port_id=output_line.dest_port, sl_line=new_output_line)
+                        dest_block.add_dest(output_line.dest_port, new_output_line)
                         # Add a new line for src_block
-                        src_block.add_src(port_id=port_line.src_port, sl_line=new_output_line)
+                        src_block.add_src(port_line.src_port, new_output_line)
 
         # Delete all the subsystems
         for name in subsystems:
@@ -1064,6 +1078,41 @@ class SL_Diagram:
         for block in blocks_in_subsystems:
             assert block.name not in self.blocks_dict, "Repeated block name %s" % block.name
             self.blocks_dict[block.name] = block
+
+    def connect_goto(self):
+        """Connect from blocks with goto blocks."""
+        from_blocks = dict()
+        goto_blocks = dict()
+        for _, block in self.blocks_dict.items():
+            if block.type == "from":
+                from_blocks[block.tag] = block
+            if block.type == "goto":
+                goto_blocks[block.tag] = block
+
+        for tag, from_block in from_blocks.items():
+            # For each from-block, find the corresponding goto block, the
+            # destination of from-block, and source of goto-block
+            goto_block = goto_blocks[tag]
+            goto_line = goto_block.dest_lines[0]
+            src_goto_block = self.blocks_dict[goto_line.src]
+
+            from_line = from_block.src_lines[0][0]
+            dest_from_block = self.blocks_dict[from_line.dest]
+
+            src_goto_block.src_lines[goto_line.src_port][goto_line.branch] = unknownLine
+
+            new_input_line = SL_Line(src=src_goto_block.name, dest=dest_from_block.name,
+                                     src_port=goto_line.src_port, dest_port=from_line.dest_port)
+            new_input_line.branch = goto_line.branch
+            new_input_line.name = goto_line.name
+
+            # Delete the old line (port_line) and add a new one
+            dest_from_block.add_dest(from_line.dest_port, new_input_line)
+            # Add a new line for src_block
+            src_goto_block.add_src(goto_line.src_port, new_input_line)
+
+            del self.blocks_dict[from_block.name]
+            del self.blocks_dict[goto_block.name]
 
     def separate_diagram(self):
         """Separate the diagram into the different parts, and stored in the
@@ -1083,136 +1132,3 @@ class SL_Diagram:
                 self.dsms.append(block)
             else:
                 assert False, "block: %s" % type(block)
-
-    def seperate_diagram(self):
-        """Seperate a diagram into discrete and continuous subdiagrams."""
-        # delete in and out-ports
-        blocks_dict = {name: block for name, block in self.blocks_dict.items()
-                       if block.type not in ['in_port', 'out_port']}
-        # Get stateflow charts and then delete them from block_dict
-        sf_charts = [block for block in blocks_dict.values() if block.type == "stateflow"]
-        for name in [block.name for block in sf_charts]:
-            del blocks_dict[name]
-
-        # Data store memory
-        dataStoreMemorys = [block for block in blocks_dict.values() if block.type == "DataStoreMemory"]
-        for name in [block.name for block in dataStoreMemorys]:
-            del blocks_dict[name]
-
-        # Data store read
-        dataStoreReads = [block for block in blocks_dict.values() if block.type == "DataStoreRead"]
-        for name in [block.name for block in dataStoreReads]:
-            del blocks_dict[name]
-
-        clocks=[block for block in blocks_dict.values() if block.type == "clock"]
-        for name in [block.name for block in clocks]:
-            del blocks_dict[name]
-
-        muxs = [block for block in blocks_dict.values() if block.type == "mux"]
-        for name in [block.name for block in muxs]:
-            del blocks_dict[name]
-        # Get buffers and then delete them from block_dict
-        buffers = [block for block in blocks_dict.values() if block.type == "discrete_buffer"]
-        for name in [block.name for block in buffers]:
-            del blocks_dict[name]
-        discretePulseGenerator=[block for block in blocks_dict.values() if block.type == "DiscretePulseGenerator"]
-        for name in [block.name for block in discretePulseGenerator]:
-            del blocks_dict[name]  
-        # Seperating: search SCC by BFS
-        discrete_subdiagrams = []
-        continuous_subdiagrams = []
-        while blocks_dict:
-            _, block = blocks_dict.popitem()
-            scc = [block]
-            bs = [block]
-            while bs:
-                b = bs.pop(-1)
-                for src_line in b.src_lines:
-                    for line in src_line:
-                        dest_name = line.dest
-                        if dest_name in blocks_dict and blocks_dict[dest_name].is_continuous == block.is_continuous:
-                            bs.append(blocks_dict[dest_name])
-                            scc.append(blocks_dict[dest_name])
-                            del blocks_dict[dest_name]
-                for dest_line in b.dest_lines:
-                    if dest_line !=None:
-                        src_name = dest_line.src
-                        if src_name in blocks_dict and blocks_dict[src_name].is_continuous == block.is_continuous:
-                            bs.append(blocks_dict[src_name])
-                            scc.append(blocks_dict[src_name])
-                            del blocks_dict[src_name]
-            if block.is_continuous:
-                continuous_subdiagrams.append(scc)
-            else:
-                discrete_subdiagrams.append(scc)
-
-        # Sort discrete blocks
-        # discrete_subdiagrams_sorted = []
-        # for scc in discrete_subdiagrams:
-        #     scc_dict = {block.name: block for block in scc}
-        #     sorted_scc = []
-        #     while scc_dict:
-        #         delete_blocks = []
-        #         for block in scc_dict.values():
-        #             src_set = set()
-        #             for dest_line in block.dest_lines:
-        #                 if dest_line !=None:
-        #                     src_set.add(dest_line.src)
-        #             if src_set.isdisjoint(set(scc_dict.keys())):
-        #                 sorted_scc.append(block)
-        #                 delete_blocks.append(block.name)
-        #         for block_name in delete_blocks:
-        #             del scc_dict[block_name]
-        #     discrete_subdiagrams_sorted.append(sorted_scc)
-
-        return discrete_subdiagrams, continuous_subdiagrams, sf_charts, buffers, \
-            discretePulseGenerator, muxs, dataStoreMemorys, dataStoreReads, clocks
-
-    def add_buffers(self):
-        buffers = []
-        for block in self.blocks_dict.values():
-            if block.type in {"stateflow", "unit_delay"}:
-                for port_id in range(len(block.dest_lines)):
-                    line = block.dest_lines[port_id]
-                    src_block = self.blocks_dict[line.src]
-                    if not src_block.is_continuous:
-                        if src_block.st == block.st:
-                            continue
-                        buffer = Discrete_Buffer(in_st=src_block.st, out_st=block.st)
-                        buffers.append(buffer)
-                        # Link src_block to buffer
-                        line.dest = buffer.name
-                        line.dest_port = 0
-                        assert buffer.dest_lines == [None]
-                        buffer.dest_lines = [line]
-                        # Link buffer to block
-                        line = SL_Line(src=buffer.name, dest=block.name, src_port=0, dest_port=port_id)
-                        line.branch = 0
-                        assert buffer.src_lines == [[]]
-                        buffer.src_lines = [[line]]
-                        block.dest_lines[port_id] = line
-                
-                for branch_list in block.src_lines:
-                    for branch in branch_list:
-                        dest_block = self.blocks_dict[branch.dest]
-                        if not dest_block.is_continuous:
-                            if block.st == dest_block.st:
-                                continue
-                            buffer = Discrete_Buffer(in_st=block.st, out_st=dest_block.st)
-                            buffers.append(buffer)
-                            # Link buffer to dest_block
-                            line = SL_Line(src=buffer.name, dest=dest_block.name,
-                                           src_port=0, dest_port=branch.dest_port)
-                            line.branch = 0
-                            assert buffer.src_lines == [[]]
-                            buffer.src_lines = [[line]]
-                            dest_block.dest_lines[line.dest_port] = line
-                            # Link block to buffer
-                            branch.dest = buffer.name
-                            branch.dest_port = 0
-                            assert buffer.dest_lines == [None]
-                            buffer.dest_lines = [branch]
-        for buffer in buffers:
-            self.add_block(buffer)
-        # Reset buffer number to 0
-        Discrete_Buffer.num = 0

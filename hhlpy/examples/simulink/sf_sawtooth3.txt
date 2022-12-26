@@ -3,9 +3,9 @@
 module Chart():
 begin
   ChartEL := [];
-  x := 0;
+  x := 1;
   Chart_st := "Chart_All";
-  t := 0;
+  t := 1;
   Chart_All_st := "Chart_All_A";
   y := 1;
   {
@@ -41,6 +41,7 @@ begin
   }*
 end
 endmodule
+
 system
 Chart()
 endsystem

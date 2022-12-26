@@ -9,5 +9,5 @@ t := * (t >= 0);
  t_dot = -1
  & t > 0 && 5<x && x<35} 
 invariant 
-    [5133+8*((-40)+x)*x>=4*y*(10+y)];
-post [y <= 48];
+    [5133+8*((-40)+x)*x>=4*y*(10+y)]{{init: wolfram}};
+post [y <= 48]{{skip: wolfram}};

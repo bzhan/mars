@@ -1,633 +1,473 @@
-"""Convert AADL model (in JSON format) to HCSP programs."""
+# New version of translator from JSON to HCSP
 
-import json
+import os
 
-from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, RelExpr, LogicExpr, BConst, conj, NegExpr, TimesExpr
-from ss2hcsp.hcsp.hcsp import Var, Sequence, InputChannel, OutputChannel, Loop, Wait, \
-    SelectComm, Assign, ODE_Comm, Condition, Parallel, HCSPProcess, Skip, ITE
+from ss2hcsp.hcsp import expr
+from ss2hcsp.hcsp import hcsp
+from ss2hcsp.hcsp import module
+from ss2hcsp.hcsp import parser
+from ss2hcsp.hcsp import pprint
+from ss2hcsp.sl.sl_diagram import SL_Diagram
+from ss2hcsp.sl.get_hcsp import translate_discrete
+from aadl2hcsp.get_modules import get_continuous_module, get_databuffer_module, get_bus_module
+from ss2hcsp.sf import sf_convert
 
-from ss2hcsp.hcsp.parser import hp_parser
+
+def time_str_to_num(time_str):
+    if time_str[-2:] == 'ms':
+        return int(time_str[:-2]) / 1000.0
+    else:
+        raise NotImplementedError
 
 
-def createStructure(dic):
-    process = HCSPProcess()
+thread_template = """
+module EXE(sid, name, max_c, DL, priority):
+begin
+@INIT;
+state := "wait"; prior := priority;
+{
+    if (state == "wait"){
+        @INPUT;
+        t := 0; entered := 0; state := "ready";
+    }else if (state == "ready"){
+        reqProcessor[sid][name]!prior;
+        {t_dot = 1 & t < DL} |> [] (run[sid][name]? --> state := "running";)
+        if(t == DL && state == "ready") {
+            exit[sid][name]! --> state := "wait";
+            $
+            run[sid][name]? --> state := "running";
+        }
+    }else{
+        if(entered == 0) {
+            c := 0;
+            @DISCRETE_COMPUTATION;
+            entered := 1;
+        }
+        if(entered == 1) {
+            {t_dot = 1, c_dot = 1 & c < max_c && t < DL} |> []
+            (preempt[sid][name]? --> state := "ready";)
+            if(state == "running") {
+                if (c == max_c){
+                    @OUTPUT;
+                    {
+                    preempt[sid][name]? --> state := "wait"; 
+                    $ 
+                    free[sid][name]! --> state := "wait";
+                    }
+                }else{
+                    preempt[sid][name]? --> state := "wait"; 
+                    $ 
+                    free[sid][name]! --> state := "wait";
+                }
+            }
+        }
+    }
+}*
+end
+endmodule
+"""
 
-    for category in dic.values():
-        if len(category['components']) > 0:
-            hps = []
-            for com in category['components']:
-                hps.append(Var(com['name']))
+thread_with_bus_template = """
+module EXE(sid, name, max_c, DL, priority, bus):
+begin
+@INIT;
+state := "wait"; prior := priority;
+{
+    if (state == "wait"){
+        @INPUT;
+        t := 0; entered := 0; state := "ready";
+    }else if (state == "ready"){
+        reqProcessor[sid][name]!prior;
+        {t_dot = 1 & t < DL} |> [] (run[sid][name]? --> state := "running";)
+        if(t == DL && state == "ready") {
+            exit[sid][name]! --> state := "wait";
+            $
+            run[sid][name]? --> state := "running";
+        }
+    }else if (state == "running"){
+        if(entered == 0) {
+            c := 0;
+            @DISCRETE_COMPUTATION;
+            entered := 1;
+        }
+        if(entered == 1) {
+            {t_dot = 1, c_dot = 1 & c < max_c && t < DL} |> []
+            (preempt[sid][name]? --> state := "ready";)
+            if(state == "running") {
+                    if (c == max_c){ 
+                        reqBus[name]! --> {@OUTPUT; {preempt[sid][name]? --> state := "wait"; $ free[sid][name]! --> state := "wait";}}
+                        $
+                        block[name]? --> {preempt[sid][name]? --> state := "await"; $ free[sid][name]! --> state := "await";}
+                    }else{
+                        preempt[sid][name]? --> state := "wait"; 
+                        $
+                        free[sid][name]! --> state := "wait";
+                    }
+            }
+        }
+    }else{
+        {t_dot = 1 & t < 0.005} |> [] (unblock["emerg"]? --> state := "ready";)
+        if(t == 0.005) {state := "wait";}
+    }
+}*
+end
+endmodule
+"""
 
-            if len(category['connections']) >0:
-                hps.append(Var('Comms_' + category['name']))
 
-            if len(category['category']) == 'Process':
-                hps.append(Var('SCHEDULE_' + category['name']))
+def translate_thread(name, info, bus=None):
+    """Translate to HCSP module for threads."""
+    max_c = time_str_to_num(info['compute_execution_time'])
+    DL = time_str_to_num(info['deadline'])
+    priority = info['priority']
+    args = [expr.AConst(0),
+            expr.AConst(name),
+            expr.AConst(max_c),
+            expr.AConst(DL),
+            expr.AConst(priority)]
+    if bus:
+        mod = parser.module_parser.parse(thread_with_bus_template)
+        args.append(expr.AConst(bus))
+    else:
+        mod = parser.module_parser.parse(thread_template)
+    mod_inst = module.HCSPModuleInst("EXE" + name, "EXE", args)
+    hp_info = mod_inst.generateInst(mod)
 
-            if len(hps) > 1:
-                hp2 = Parallel(*hps)
+    # Input procedure
+    def get_input(port, var_name):
+        return hcsp.InputChannel(hcsp.Channel("inputs", (expr.AConst(name), expr.AConst(port))), var_name)
+
+    def get_event_input(event_port, event_val):
+        return (hcsp.InputChannel(hcsp.Channel("dis", (expr.AConst(name), expr.AConst(event_port))), "event"),
+                hcsp.Skip())
+
+    if info['dispatch_protocol'] == 'periodic':
+        input_dis = hcsp.InputChannel(
+            hcsp.Channel("dis", (expr.AConst(name),)))
+        inputs = [get_input(port, port_info['var'])
+                  for port, port_info in info['input'].items()]
+        input_hp = hcsp.Sequence(*([input_dis] + inputs))
+    elif info['dispatch_protocol'] == 'aperiodic':
+        io_comms = [get_event_input(event_port, event_val)
+                    for event_port, event_val in info['event_input'].items()]
+        input_hp = hcsp.SelectComm(
+            *io_comms) if len(io_comms) >= 2 else io_comms[0][0]
+    else:
+        raise NotImplementedError
+
+    # Output procedure
+    def get_output(port, var_name):
+        return hcsp.OutputChannel(hcsp.Channel("outputs", (expr.AConst(name), expr.AConst(port))),
+                                  hcsp.AVar(var_name))
+    outputs = [get_output(port, var_name)
+               for port, var_name in info['output'].items()]
+
+    # Discrete Computation: convert from Simulink diagram to HCSP
+    def get_discrete_computation(location):
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.add_line_name()
+        _init_hps, _procedures, _output_hps, _update_hps, _ =\
+            translate_discrete(list(diagram.blocks_dict.values()), None)
+        if len(_init_hps) >= 2:
+            _init_hps = hcsp.Sequence(*_init_hps)
+        elif len(_init_hps) == 1:
+            _init_hps = _init_hps[0]
+        else:
+            _init_hps = ""
+        _procedures = [hcsp.Procedure(name=_name, hp=_hcsp)
+                       for _name, _hcsp in _procedures]
+        _hps = [_hcsp for _hcsp in _output_hps + _update_hps]
+        if len(_hps) >= 2:
+            _hps = hcsp.Sequence(*_hps)
+        elif len(_hps) == 1:
+            _hps = _hps[0]
+        else:
+            _hps = hcsp.Skip()
+        return _init_hps, _procedures, _hps
+
+    # Convert from Stateflow diagram to HCSP
+    def get_stateflow_computation(location):
+        diagram = SL_Diagram(location=location)
+        diagram.parse_xml()
+        diagram.add_line_name()
+        charts = [block for block in diagram.blocks_dict.values() if block.type == "stateflow"]
+        assert len(charts) == 1
+        converter = sf_convert.SFConvert(charts[0], chart_parameters=diagram.chart_parameters[charts[0].name],
+                                         translate_io=False)
+        _init_hp = hcsp.Var(converter.init_name(charts[0].name))
+        _dis_comp = hcsp.Var(converter.exec_name(charts[0].name))
+        _procedures = converter.get_procs()
+        procs = []
+        for _name, _hp in _procedures.items():
+            procs.append(hcsp.Procedure(_name, _hp))
+
+        return _init_hp, procs, _dis_comp
+
+    initializations = list()
+    for port_name, port_val in info['input'].items():
+        initializations.append(hcsp.Assign(
+            var_name=port_val['var'], expr=hcsp.AConst(port_val['val'])))
+    if 'initialization' in info.keys():
+        initializations.append(parser.hp_parser.parse(info['initialization']))
+    if info['impl'] == "Simulink":
+        init_hp, procedures, dis_comp = \
+            get_discrete_computation(location=info['discrete_computation'])
+        if init_hp:
+            initializations.append(init_hp)
+    elif info['impl'] == "Stateflow":
+        init_hp, procedures, dis_comp = \
+            get_stateflow_computation(location=info['discrete_computation'])
+        initializations.append(init_hp)
+    else:
+        raise NotImplementedError
+
+    inst = {
+        "INIT": hcsp.Sequence(*initializations) if initializations else hcsp.Skip(),
+        "INPUT": input_hp,
+        "DISCRETE_COMPUTATION": hcsp.Sequence(parser.hp_parser.parse("%s_impEL := push(%s_impEL, event);"%(name,name),),
+                                              dis_comp,
+                                              parser.hp_parser.parse("%s_impEL := pop(%s_impEL);"%(name,name)))
+        if "event_input" in info else dis_comp,
+        "OUTPUT": hcsp.Sequence(*outputs)
+    }
+    hp = hcsp.HCSP_subst(hp_info.hp, inst)
+    return module.HCSPModule(name="EXE_" + name, code=hp, procedures=procedures,
+                             outputs=info["display"])
+
+
+def translate_device(name, info):
+    """Translate to HCSP module for devices."""
+    if info['impl'] == 'HCSP':
+        hp = parser.hp_parser.parse(info['discrete_computation'])
+        # new_mod = module.HCSPModule("DEVICE_" + name, [], [], hp)
+        new_mod = module.HCSPModule(
+            name="DEVICE_" + name, code=hp, outputs=info['display'])
+        return new_mod
+
+    elif info['impl'] == 'Channel':
+        # Input procedure
+        def get_input(port, var_name):
+            return hcsp.InputChannel(hcsp.Channel("inputs", (expr.AConst(name), expr.AConst(port))), var_name)
+        inputs = [get_input(port, port_info['var'])
+                  for port, port_info in info['input'].items()]
+
+        # Output procedure
+        def get_output(port, var_name):
+            return hcsp.OutputChannel(hcsp.Channel("outputs", (expr.AConst(name), expr.AConst(port))), hcsp.AVar(var_name))
+        outputs = [get_output(port, var_name)
+                   for port, var_name in info['output'].items()]
+
+        # Wait
+        delay = time_str_to_num(info['period'])
+        wait_hp = hcsp.Wait(expr.AConst(delay))
+
+        hp = hcsp.Loop(hcsp.Sequence(*(inputs + outputs + [wait_hp])))
+        return module.HCSPModule(name="DEVICE_" + name, code=hp, outputs=info['display'])
+
+    else:
+        raise NotImplementedError
+
+
+def translate_abstract(name, info):
+    """Translate to HCSP module for abstract components (plants)"""
+    if info['impl'] == 'Simulink':
+        diagram = SL_Diagram(location=info['discrete_computation'])
+        _ = diagram.parse_xml()
+        diagram.add_line_name()
+
+        # get ports {port_name: port_type}
+        ports = dict()
+        inputvalues= dict()
+        for port_name, var_dict in info["input"].items():
+            assert port_name not in ports
+            ports[port_name] = (var_dict['var'], "in data")
+            inputvalues[port_name] = (var_dict['var'], var_dict['val'])
+        for port_name, var_name in info["output"].items():
+            assert port_name not in ports
+            ports[port_name] = (var_name, "out data")
+        return get_continuous_module(name="PHY_"+name,
+                                     ports=ports,
+                                     inputvalues= inputvalues,
+                                     continuous_diagram=list(diagram.blocks_dict.values()),
+                                     outputs=info['display'])
+
+    else:
+        raise NotImplementedError
+
+
+def translate_bus(name, info, json_info):
+    latency = time_str_to_num(info['latency'])
+    thread_ports = dict()
+    device_ports = dict()
+    for _info in json_info.values():
+        if _info['category'] == "connection" and ('bus' in _info.keys()):
+            if _info['category'] == "connection" and _info['bus'] == name:
+                source = _info['source']
+                source_port = _info['source_port']
+                _type = "out " + _info['type']
+                if json_info[source]['category'] == "thread":
+                    if source not in thread_ports:
+                        thread_ports[source] = {source_port: _type}
+                    else:
+                        assert source_port not in thread_ports[source]
+                        thread_ports[source][source_port] = _type
+                elif json_info[source]['category'] == "device":
+                    if source not in device_ports:
+                        device_ports[source] = {source_port: _type}
+                    else:
+                        assert source_port not in device_ports[source]
+                        device_ports[source][source_port] = _type
+    return get_bus_module(name, thread_ports, device_ports, latency)
+
+
+def translate_system(json_info):
+    """Construct description of the system"""
+    # Construct the components
+    component_mod_insts = [module.HCSPModuleInst(
+        "scheduler", "SchedulerHPF", [expr.AConst(0)])]
+    for name, info in json_info.items():
+        if info['category'] == 'thread':
+            if info['dispatch_protocol'] == 'periodic':
+                component_mod_insts.append(module.HCSPModuleInst("ACT_" + name, "ACT_periodic", [
+                    expr.AConst(name), expr.AConst(
+                        time_str_to_num(info['period']))
+                ]))
+            component_mod_insts.append(
+                module.HCSPModuleInst(name, "EXE_" + name, []))
+
+        elif info['category'] == 'device':
+            component_mod_insts.append(
+                module.HCSPModuleInst(name, "DEVICE_" + name, []))
+
+        elif info['category'] == 'abstract':
+            component_mod_insts.append(
+                module.HCSPModuleInst(name, "PHY_" + name, []))
+
+        elif info['category'] == 'connection':
+            source = info['source']
+            source_port = info['source_port']
+            targets = info['target']
+            target_ports = info['target_port']
+            assert len(targets) == len(target_ports)
+
+            if 'bus' in info.keys():
+                source = info['bus']
+            args = [expr.AConst(source), expr.AConst(source_port)]
+
+            for target, target_port in zip(targets, target_ports):
+                args.append(expr.AConst(target))
+                args.append(expr.AConst(target_port))
+            if info['type'] == "data":
+                args.append(expr.AConst(info['init_value']))
+                component_mod_insts.append(module.HCSPModuleInst(
+                    name, "DataBuffer"+str(len(targets)), args))
+                # if info['bus']:
+                #     component_mod_insts.append(module.HCSPModuleInst("busDataBuffer_"+name,
+                #                                                      "DataBuffer"+str(len(targets)),
+                #                                                      [expr.AConst(info['source']),
+                #                                                       expr.AConst(source_port),
+                #                                                       expr.AConst(source),
+                #                                                       expr.AConst(source_port),
+                #                                                       expr.AConst(0)]))
+            elif info['type'] == "event":
+                assert len(targets) == 1
+                component_mod_insts.append(
+                    module.HCSPModuleInst(name, "EventBuffer", args))
+                if info['bus']:
+                    component_mod_insts.append(module.HCSPModuleInst("busEventBuffer_"+name, "BusEventBuffer",
+                                                                     [expr.AConst(info['source']),
+                                                                      expr.AConst(
+                                                                          source_port),
+                                                                      expr.AConst(
+                                                                          source),
+                                                                      expr.AConst(source_port)]))
             else:
-                hp2 = hps[0]
-
-            process.add(category['name'], hp2)
-
-            # If name and name_impl does not agree, add new definition
-            for com in category['components']:
-                if 'name_impl' in com:
-                    hp2 = Var(com['name_impl'])
-                    process.add(com['name'], hp2)
-
-    return process
-
-def createConnections(dic):
-    process = HCSPProcess()
-
-    for category in dic.values():
-        if len(category['connections']) > 0:
-            hps = []
-            for com in category['connections']:
-                if len(com['source'].strip().split('.')) == 2:
-                    hp_in = InputChannel(com['source'].strip().replace('.','_'), 'x')
-                elif len(com['source'].strip().split('.')) > 2:
-                    hp_in = InputChannel('_'.join([com['source'].strip().split('.')[0], com['source'].strip().split('.')[-1]]), 'x')
-                else:
-                    hp_in = InputChannel(category['name'].strip() + '_' + com['source'].strip(), 'x')
-
-                if len(com['destination'].strip().split('.')) == 2:
-                    hp_out = OutputChannel(com['destination'].strip().replace('.','_'), AVar('x'))
-                elif len(com['destination'].strip().split('.')) > 2:
-                    hp_out = OutputChannel('_'.join([com['destination'].strip().split('.')[0], com['destination'].strip().split('.')[-1]]), AVar('x'))
-                else:
-                    hp_out = OutputChannel(category['name'].strip() + '_' + com['destination'].strip(), AVar('x'))
-
-                hp = Loop(Sequence(*[hp_in,hp_out]))
-                hps.append(hp)
-
-            if len(hps) > 1:
-                sub_comm, hp2=[],[]
-                for i in range(len(hps)):
-                   sub_comm.append((category['name']+'_Conn_'+str(i), hps[i]))
-                   hp2.append(Var(category['name']+'_Conn_'+str(i)))
-                process.add('Comms_'+ category['name'] , Parallel(*hp2))
-                for (name, hp) in sub_comm:
-                    process.add(name,hp)
-            else:
-                process.add('Comms_'+category['name'], hps[0])
-
-    return process
-
-class Abstract:
-    def __init__(self, abstract, annex= False, sim=False):
-        self.abstract_name = abstract['name']
-        self.abstract_featureIn = []
-        self.abstract_featureOut = []
-        self.sim = sim
-        self.annex = annex
-
-        for feature in abstract['features']:
-            if feature['type'].lower() == 'dataport':
-                if feature['direction'].lower() == 'out':
-                    self.abstract_featureOut.append(feature['name'])
-                else:
-                    self.abstract_featureIn.append(feature['name'])
-
-        self.lines = HCSPProcess()
-        self._createAbstract()
-
-    def _createAbstract(self):
-        out_hp, in_hp = [],[]
-        for feature in self.abstract_featureOut:
-            out_hp.append(OutputChannel(self.abstract_name + '_' + feature, AVar(str(feature))))
-
-        for feature in self.abstract_featureIn:
-            in_hp.append(InputChannel(self.abstract_name + '_' + feature, str(feature)))
-
-        if len(out_hp) >= 2:
-            out_hp = Sequence(*out_hp)
+                raise NotImplementedError
+        elif info['category'] == 'bus':
+            component_mod_insts.append(
+                module.HCSPModuleInst(name, "Bus_"+name, []))
+        elif info['category'] == 'processor':
+            continue
         else:
-            out_hp = out_hp[0]
-
-        if len(in_hp) >= 2:
-            in_hp = Sequence(*in_hp)
-        else:
-            in_hp = in_hp[0]
-
-        init_hp = Sequence(Assign('boxTemp', AConst(73.0)),
-                           Assign('q', AConst(73.0)),
-                           out_hp, in_hp)
-
-       # if self.sim:
-       #    hps.extend(self.sim)
-
-        eqs = [('boxTemp',  TimesExpr(['*', '*'], [AConst(-0.026), PlusExpr(['+','-'], [AVar('boxTemp'), AVar('q')])])),
-               ('q', AVar('heatCommand'))]
-
-        constraint = BConst(True)
-        io_comms = [(in_hp, Skip()), (out_hp, Skip())]
-
-        hps = Loop(ODE_Comm(eqs, constraint, io_comms))
-
-
-        self.lines.add(self.abstract_name, Sequence(init_hp, hps))
-
-
-class Process:
-    def __init__(self, process, threadlines, protocol='HPF'):
-        self.threadlines = threadlines
-        self.protocol = protocol
-        self.process_name = process['name']
-
-        self.lines = HCSPProcess()
-        self._createSchedule()
-        self._createQueue()
-
-    def _createSchedule(self):
-        if self.protocol == 'HPF':
-            hps = [Assign('run_now', AConst(0)),
-                   Assign('run_prior', AConst(0)),
-                   Assign('ready_num', AConst(0))]
-
-            hps2 = []
-            for thread in self.threadlines:
-                hps2.append(self._preemptPriority(thread))
-            hps2.append(self._freeActionPriority())
-
-        elif self.protocol == 'FIFO':
-            hps = [Assign('run_now', AConst(0)),
-                   Assign('ready_num', AConst(0))]
-
-            hps2 = []
-            for thread in self.threadlines:
-                hps2.append(self._noPreemptSequence(thread))
-            hps2.append(self._freeActionSequence())
-
-
-        hps2 = SelectComm(*hps2)
-        hps.append(Loop(hps2))
-        hps = Sequence(*hps)
-        self.lines.add('SCHEDULE_' + self.process_name, hps)
-
-    def _preemptPriority(self, thread):
-        hps = []
-        hps_con = InputChannel('tran_'+str(thread), 'prior')  # insert variable
-        con1= RelExpr('<', AVar('run_prior'), AVar('prior'))
-        con2= RelExpr('>', AVar('run_prior'), AVar('prior'))
-        con_hp1 = Sequence(self._BusyProcess(),
-                           Assign('run_now', AConst('"'+str(thread)+'"')),
-                           Assign('run_prior', AVar('prior')),
-                           OutputChannel('run_' + str(thread)))  # insert output
-
-        con_hp2 = Sequence(OutputChannel('insert_' + str(thread), AVar('prior')),
-                           Assign('ready_num', PlusExpr(['+','+'], [AVar('ready_num'), AConst(1)])))
-
-        hps.append(Condition(con1, con_hp1))
-        hps.append(Condition(con2, con_hp2))
-
-        return (hps_con ,Sequence(*hps))
-
-    def _noPreemptSequence(self, thread):
-        hps_con = InputChannel('tran_' + str(thread)) # insert variable
-        hps = [OutputChannel('insert_' + str(thread)),
-               Assign('ready_num', PlusExpr(['+','+'], [AVar('ready_num'), AConst(1)]))]
-
-        return (hps_con, Sequence(*hps))
-
-    def _freeActionPriority(self):
-        hps = []
-        hps_con= InputChannel('free')  # insert variable
-        con1 = RelExpr('>', AVar('ready_num'), AConst(0))
-        con2 = RelExpr('==', AVar('ready_num'), AConst(0))
-        con_hp1 = Sequence(OutputChannel('change_' + self.process_name),
-                           InputChannel('ch_run_' + self.process_name, 'run_now'),
-                           InputChannel('ch_prior_' + self.process_name, 'run_prior'),
-                           self._RunProcess(),
-                           Assign('ready_num', PlusExpr(['+','-'], [AVar('ready_num'), AConst(1)])))
-
-        con_hp2 = Sequence(Assign('run_now', AConst(0)),
-                           Assign('run_prior', AConst(0)))
-
-        hps.append(Condition(con1, con_hp1))
-        hps.append(Condition(con2, con_hp2))
-
-        return (hps_con, Sequence(*hps))
-
-    def _freeActionSequence(self):
-        hps = []
-        hps_con = InputChannel('free') # insert variable
-        con1 = RelExpr('>', AVar('ready_num'), AConst(0))
-        con2 = RelExpr('==', AVar('ready_num'), AConst(0))
-        con_hp1 = Sequence(OutputChannel('change_' + self.process_name),
-                           InputChannel('ch_run_' + self.process_name, 'run_now'),
-                           self._RunProcess(),
-                           Assign('ready_num', PlusExpr(['+','-'], [AVar('ready_num'), AConst(1)])))
-
-        con_hp2 = Assign('run_now', AConst(0))
-
-        hps.append(Condition(con1, con_hp1))
-        hps.append(Condition(con2, con_hp2))
-
-        return (hps_con, Sequence(*hps))
-
-
-    def _BusyProcess(self):
-        hps = []
-        for thread in self.threadlines:
-            con = RelExpr('==', AVar('run_now'), AConst('"'+str(thread)+'"'))
-            con_hp = OutputChannel('busy_'+str(thread))  # insert output
-            hps.append(Condition(con, con_hp))
-
-        if len(hps) >= 2:
-            hps = Sequence(*hps)
-        else:
-            hps = hps[0]
-
-        return hps
-
-    def _RunProcess(self):
-        hps = []
-        for thread in self.threadlines:
-            con = RelExpr('==', AVar('run_now'), AConst('"'+str(thread)+'"'))
-            con_hp = OutputChannel('run_'+str(thread))  # insert output
-            hps.append(Condition(con,con_hp))
-
-        if len(hps) >= 2:
-            hps = Sequence(*hps)
-        else:
-            hps = hps[0]
-
-        return hps
-
-    def _createQueue(self):
-        self.thread_num = len(self.threadlines)
-        if self.protocol == 'HPF':
-            hps = []
-            for i in range(self.thread_num):
-                hps.append(Assign('q_' + str(i), AConst(0)))
-                hps.append(Assign('p_' + str(i), AConst(0)))
-            hps2 = []
-            for thread in self.threadlines:
-                hps2.append(self._insertPriority(thread))
-            hps2.append(self._changeActionPriority())
-
-        elif self.protocol == 'FIFO':
-            hps = []
-            for i in range(self.thread_num):
-                hps.append(Assign('q_' + str(i), AConst(0)))
-            hps2 = []
-            for thread in self.threadlines:
-                hps2.append(self._insertTail(thread))
-            hps2.append(self._changeActionHead())
-
-        if len(hps2) >= 2:
-            hps2 = SelectComm(*hps2)
-        else:
-            hps2 = hps2[0]
-
-        hps.append(Loop(hps2))
-        hps = Sequence(*hps)
-
-        self.lines.add('QUEUE_' + self.process_name, hps)
-
-    def _insertPriority(self, thread):
-        hps = []
-        hps_con = InputChannel('insert_' + str(thread), 'prior')  # insert variable
-        con_tmp = Sequence(Assign('q_'+str(0), AConst('"'+str(thread)+'"')),
-                           Assign('p_'+str(0), AVar('prior')))
-        for i in range(self.thread_num-1):
-            con1 = RelExpr('<', AVar('p_'+str(i)), AVar('prior'))
-            con2 = RelExpr('>', AVar('p_'+str(i)), AVar('prior'))
-            con_hp1 = Sequence(Assign('q_'+str(i+1), AVar('q_'+str(i))),
-                               Assign('p_'+str(i+1), AVar('p_'+str(i))),
-                               con_tmp)  # insert output
-
-            con_hp2 = Sequence(Assign('q_'+str(i+1), AConst('"'+str(thread)+'"')),
-                               Assign('p_'+str(i+1), AVar('prior')))
-
-            con_tmp = Sequence(Condition(con1, con_hp1),
-                               Condition(con2, con_hp2))
-        hps.append(con_tmp)
-
-        if len(hps) >= 2:
-            hps = Sequence(*hps)
-        else:
-            hps = hps[0]
-
-        return (hps_con, hps)
-
-    def _insertTail(self, thread):
-        hps = []
-        hps_con = InputChannel('insert_' + str(thread))  # insert variable
-        con_tmp = Assign('q_' + str(self.thread_num-1), AConst('"'+str(thread)+'"'))
-        for i in range(self.thread_num-2, -1, -1):
-            con1 = RelExpr('!=', AVar('q_' + str(i)), AConst(0))
-            con2 = RelExpr('==', AVar('q_' + str(i)), AConst(0))
-            con_hp1 = con_tmp  # insert output
-            con_hp2 = Assign('q_' + str(i), AConst('"'+str(thread)+'"'))
-
-            con_tmp = Sequence(Condition(con1, con_hp1),
-                               Condition(con2, con_hp2))
-        hps.append(con_tmp)
-
-        if len(hps) >=2:
-            hps=Sequence(*hps)
-        else:
-            hps=hps[0]
-
-        return (hps_con, hps)
-
-
-
-    def _changeActionPriority(self):
-        hps = []
-        hps_con = InputChannel('change_' + self.process_name) # insert variable
-        hps.append(OutputChannel('ch_run_' + self.process_name,AVar('q_0')))
-        hps.append(OutputChannel('ch_prior_' + self.process_name, AVar('p_0')))
-
-        for i in range(self.thread_num-1):
-            hps.append(Assign('q_' + str(i), AVar('q_' + str(i + 1))))
-            hps.append(Assign('p_' + str(i), AVar('p_' + str(i + 1))))
-
-        hps.append(Assign('q_' + str(self.thread_num-1), AConst(0)))
-        hps.append(Assign('p_' + str(self.thread_num-1), AConst(0)))
-
-        return (hps_con, Sequence(*hps))
-
-    def _changeActionHead(self):
-        hps = []
-        hps_con = InputChannel('change_' + self.process_name)  # insert variable
-        hps.append(OutputChannel('ch_run_' + self.process_name, AVar('q_0')))
-
-        for i in range(self.thread_num - 1):
-            hps.append(Assign('q_' + str(i), AVar('q_' + str(i + 1))))
-
-        hps.append(Assign('q_' + str(self.thread_num - 1), AConst(0)))
-
-        return (hps_con, Sequence(*hps))
-
-
-
-
-
-class Thread:
-    def __init__(self, thread, annex=False, sim=False):
-        self.thread_name = thread['name']
-
-        # Default parameters
-        self.thread_protocol = 'Periodic'
-        self.thread_priority = '1'
-        self.thread_deadline = '1000'
-        self.thread_period = '1000'
-        self.thread_max_time = '5'
-        self.thread_min_time = '1'
-        self.thread_featureIn = []
-        self.thread_featureOut = []
-        self.annex = annex
-        self.sim = sim
-
-        if self.annex:
-            self.annex_block = thread['Annex']
-
-        if self.sim:
-            self.sim_block = thread['Sim']
-
-        if len(thread['opas']) > 0:
-            for opa in thread['opas']:
-                if opa['name'] == 'Thread_Properties.Dispatch_Protocol':
-                    if opa['value'] == 'Periodic':
-                        self.thread_protocol = 'Periodic'
-
-                elif opa['name'] == 'Thread_Properties.Priority':
-                    self.thread_priority = opa['value']
-
-                elif opa['name'] == 'Timing_Properties.Deadline':
-                    self.thread_deadline = opa['value']
-
-                elif opa['name'] == 'Timing_Properties.Period':
-                    self.thread_period = opa['value']
-
-                elif opa['name'] == 'Timing_Properties.Compute_Execution_Time':
-                    self.thread_min_time = opa['value'][0]
-                    self.thread_max_time = opa['value'][1]
-
-        ## change time unit from ms to s
-
-        self.thread_min_time = 0.001*int(self.thread_min_time)
-        self.thread_max_time = 0.001*int(self.thread_max_time)
-        self.thread_deadline = 0.001*int(self.thread_deadline)
-        self.thread_period = 0.001*int(self.thread_period)
-
-        for feature in thread['features']:
-            if feature['type'].lower() == 'dataport':
-                if feature['direction'].lower() == 'out':
-                    self.thread_featureOut.append(feature['name'])
-                else:
-                    self.thread_featureIn.append(feature['name'])
-
-        # Create the process
-        self.lines = HCSPProcess()
-        self._createThread()
-
-
-    def _createThread(self):
-        hps = Parallel(Var('ACT_' + self.thread_name),
-                       Var('DIS_' + self.thread_name),
-                       Var('COM_' + self.thread_name))
-        self.lines.add(self.thread_name, hps)
-
-        if self.thread_protocol == 'Periodic':
-            act_hps = Sequence(OutputChannel('act_' + self.thread_name),
-                               Wait(AConst(self.thread_period)))# insert output
-            self.lines.add('ACT_' + self.thread_name, Loop(act_hps))
-
-            dis_hps = [InputChannel('act_' + self.thread_name),  # insert variable
-                       OutputChannel('dis_' + self.thread_name)]  # insert output
-
-            for feature in self.thread_featureIn:
-                dis_hps.append(InputChannel(self.thread_name + '_' + feature, feature))
-
-            for feature in self.thread_featureIn:
-                dis_hps.append(OutputChannel('input_' + self.thread_name + '_' + feature, AVar(feature))) # insert output, was AVar(self.thread_featureIn)
-
-            dis_hps.append(SelectComm((InputChannel('complete_' + self.thread_name),Skip()), # insert variable
-                                       (InputChannel('exit_' + self.thread_name),Skip()))) # insert variable
-
-            dis_hps = Sequence(*dis_hps)
-            self.lines.add('DIS_' + self.thread_name, Loop(dis_hps))
-
-
-        com_hps = (Parallel(*[Var('Init_' + self.thread_name),
-                              Var('Ready_' + self.thread_name),
-                              Var('Running_' + self.thread_name),
-                              Var('Await_' + self.thread_name)]))
-
-        self.lines.add('COM_' + self.thread_name, com_hps)
-        self._createInit()
-        self._createReady()
-        self._createAwait()
-        self._createRunning()
-
-    def _createInit(self):
-        com_init = Loop(Sequence(InputChannel('dis_' + self.thread_name),  # insert variable
-                            Assign('t', AConst(0)),
-                            OutputChannel('init_' + self.thread_name, AVar('t'))))
-
-        self.lines.add('Init_' + self.thread_name, com_init)
-
-    def _createReady(self):
-        com_ready = []
-        com_ready.append(Assign('prior', AConst(int(self.thread_priority))))
-        hps = SelectComm((InputChannel('init_'+self.thread_name, 't'), Skip()),
-                          (InputChannel('preempt_'+self.thread_name, 't'), Skip()),
-                          (InputChannel('unblock_'+self.thread_name, 't'), Skip()))
-
-        com_ready.append(hps)
-        com_ready.append(OutputChannel('tran_'+self.thread_name, AVar('prior')))
-
-        eqs = [('t', AConst(1))]
-        constraint = RelExpr('<', AVar('t'), AConst(self.thread_deadline))
-        io_comms = [(InputChannel('run_'+self.thread_name),  # insert variable
-                     OutputChannel('resume_'+self.thread_name, AVar('t')))]
-        com_ready.append(ODE_Comm(eqs,constraint,io_comms))
-        con = RelExpr('==', AVar('t'), AConst(self.thread_deadline))
-        con_hp = OutputChannel('exit_'+self.thread_name)  # insert output
-        com_ready.append(Condition(con, con_hp))
-
-        com_ready = Loop(Sequence(*com_ready))
-        self.lines.add('Ready_' + self.thread_name, com_ready)
-
-    def _createAwait(self):
-        com_await = [InputChannel('block_' + self.thread_name, 't')]
-        com_await.append(OutputChannel('applyResource_' + self.thread_name))
-        eqs = [('t', AConst(1))]
-        constraint = RelExpr('<', AVar('t'), AConst(self.thread_deadline))
-        io_comms = [(InputChannel('haveResource_' + self.thread_name),  # insert variable
-                     OutputChannel('unblock_' + self.thread_name, AVar('t')))]
-
-        com_await.append(ODE_Comm(eqs, constraint, io_comms))
-        con = RelExpr('==', AVar('t'), AConst(self.thread_deadline))
-        con_hp = OutputChannel('exit_' + self.thread_name)  # insert output
-        com_await.append(Condition(con, con_hp))
-
-        com_await = Loop(Sequence(*com_await))
-        self.lines.add('Await_' + self.thread_name, com_await)
-
-    def _createRunning(self):
-        FlagSet = Assign('InitFlag', AConst(0))
-        hps=[]
-        hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(0)), Assign('c', AConst(0))))
-        hps.append(InputChannel('resume_' + self.thread_name, 't'))
-
-        if self.annex:
-            busy_io = (InputChannel('busy_' + self.thread_name),
-                       Sequence(OutputChannel('preempt_' + self.thread_name, AVar('t')), Assign('InitFlag', AConst(0))))
-            hps.append(Condition(RelExpr('==', AVar('c'), AConst(0)), SelectComm(self._Discrete_Annex(),busy_io)))
-
-            con_hp=[]
-            eqs = [('t', AConst(1)), ('c', AConst(1))]
-            constraint_1 = RelExpr('<', AVar('t'), AConst(self.thread_deadline))
-            constraint_2 = RelExpr('<', AVar('c'), AConst(self.thread_max_time))
-            constraint_3 = BConst(False)
-            constraint = conj(constraint_1, constraint_2, constraint_3)
-            in1 = InputChannel('busy_' + self.thread_name)  # insert variable
-            out1 = OutputChannel('preempt_' + self.thread_name, AVar('t'))
-
-            in2 = InputChannel('needResource_' + self.thread_name)  # insert variable
-            out2 = OutputChannel('block_' + self.thread_name, AVar('t'))
-
-            io_comms = [(in1, out1), (in2, out2)]
-            con_hp.append(ODE_Comm(eqs, constraint, io_comms))
-
-            constraint_4 = RelExpr('<', AVar('c'), AConst(int(self.thread_min_time)))
-            con_hp.append(Condition(conj(BConst(True), constraint_4), Wait(PlusExpr(['+','-'], [AConst(int(self.thread_min_time)), AVar('c')]))))
-
-            con_hp.append(OutputChannel('free'))  # insert output
-
-            con1 = RelExpr('<', AVar('t'), AConst(int(self.thread_deadline)))
-            con_hp1 = [OutputChannel('complete_' + self.thread_name)]
-            for feature in self.thread_featureOut:
-                    con_hp1.append(OutputChannel(self.thread_name + '_' + feature, AVar(str(feature))))
-            con_hp1.append(Assign('InitFlag', AConst(0)))  # insert output
-            con_hp1=Sequence(*con_hp1)
-            con_hp.append(Condition(con1, con_hp1))
-
-            con2 = RelExpr('==', AVar('t'), AConst(int(self.thread_deadline)))
-            con_hp2 = Sequence(OutputChannel('exit_' + self.thread_name),
-                               Assign('InitFlag', AConst(0)))# insert output
-            con_hp.append(Condition(con2, con_hp2))
-
-            hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(1)), Sequence(*con_hp)))
-
-        com_running = Sequence(FlagSet, Loop(Sequence(*hps)))
-
-        self.lines.add('Running_' + self.thread_name, com_running)
-
-
-    def _Discrete_Annex(self):
-        hps= []
-        io_hps = InputChannel('input_' + self.thread_name + '_' + self.thread_featureIn[0], self.thread_featureIn[0])
-        for feature in self.thread_featureIn[1:]:
-            hps.append(InputChannel('input_' + self.thread_name + '_' + feature, str(feature)))
-        if self.annex:
-            state, trans = self.annex_block['state'], self.annex_block['trans']
-            for s in state.keys():
-                if 'INITIAL' in state[s] or 'initial' in state[s]:
-                    now_state = s
-                    next_state = trans[s]['distination']
-                    hps.extend([hp_parser.parse(hp) for hp in trans[s]['content']])
+            raise NotImplementedError
+
+    return component_mod_insts
+
+
+def translate_aadl_from_json(jsoninfo, output):
+    mods = list()
+    dataBuffers = dict()  # {recv_num: databuffer}
+    buses = list()
+    for name, content in jsoninfo.items():
+        if content['category'] == 'thread':
+            mod = translate_thread(name, content)
+            for _content in jsoninfo.values():
+                if _content['category'] == "connection" and _content['source'] == name and ('bus' in _content.keys()):
+                    mod = translate_thread(name, content, _content['bus'])
                     break
-
-            while 'FINAL' not in state[now_state] and 'final' not in state[now_state]:
-                now_state = next_state
-                next_state = trans[s]['distination']
-                hps.extend([hp_parser.parse(hp) for hp in trans[s]['content']])
-
-        #hps.append(Wait(AConst(5)))
-        #hps.append(OutputChannel('need_Resource_' + self.thread_name))
-        #hps.append(Wait(AConst(5)))
-
-        #for feature in self.thread_featureOut:
-            #hps.append(OutputChannel(self.thread_name + '_' + feature, AVar(str(feature))))
-
-        hps.append(Assign('InitFlag', AConst(1)))
-
-        if len(hps) >= 2:
-            hps = Sequence(*hps)
+            mods.append(mod)
+        elif content['category'] == 'device':
+            mod = translate_device(name, content)
+            mods.append(mod)
+        elif content['category'] == 'abstract':
+            mod = translate_abstract(name, content)
+            mods.append(mod)
+        elif content['category'] == "connection":
+            if content['type'] == 'data':
+                recv_num = len(content['target'])
+                if recv_num not in dataBuffers:
+                    dataBuffers[recv_num] = get_databuffer_module(recv_num)
+        elif content['category'] == "bus":
+            bus = translate_bus(name, content, jsoninfo)
+            buses.append(bus)
+        elif content['category'] == "processor":
+            # processor use for change protocal, remain to be done
+            continue
         else:
-            hps = hps[0]
+            raise NotImplementedError
 
-        return (io_hps, hps)
+    # Copy files that are the same for each system
+    def copy_file(filename):
+        with open(os.path.join("./aadl2hcsp/hcsp", filename), 'r') as f1:
+            with open(os.path.join(output, filename), 'w') as f2:
+                f2.write(f1.read())
 
-def convert_AADL(json_file):
-    out = HCSPProcess()
+    copy_file("ACT_aperiodic.txt")
+    copy_file("ACT_periodic.txt")
+    copy_file("BusEventBuffer.txt")
+    copy_file("EventBuffer.txt")
+    copy_file("SchedulerHPF.txt")
 
-    with open(json_file, 'r') as f:
-        dic = json.load(f)
+    # Generate files that are different for each system
+    with open(os.path.join(output, 'other_modules.txt'), 'w') as f:
+        f.write("%type: module\n\n")
+        for mod in mods:
+            f.write(mod.export())
+            f.write('\n\n')
 
-    out.extend(createStructure(dic))
-    out.extend(createConnections(dic))
+    with open(os.path.join(output, 'DataBuffer.txt'), 'w') as f:
+        f.write("%type: module\n\n")
+        for dataBuffer in dataBuffers.values():
+            f.write(dataBuffer.export())
+            f.write('\n\n')
 
-    for category in dic.values():
-        if category['category'] == 'process' and len(category['components']) > 0:
-            threadlines = []
-            for com in category['components']:
-                if com['category'] == 'thread':
-                    threadlines.append(com['name'])
-            out.extend(Process(category, threadlines).lines)
+    with open(os.path.join(output, 'Bus.txt'), 'w') as f:
+        f.write("%type: module\n\n")
+        for bus in buses:
+            f.write(bus.export())
+            f.write('\n\n')
 
-        elif category['category'] == 'thread':
-            annex_flag, sim_flag = False, False
-            if 'Annex' in category.keys():
-                annex_flag = True
-            if 'Sim' in category.keys():
-                sim_flag = True
-            out.extend(Thread(category, annex=annex_flag, sim=sim_flag).lines)
-
-        elif category['category'] == 'abstract':
-            annex_flag, sim_flag = False, False
-            if 'Annex' in category.keys():
-                annex_flag = True
-            if 'Sim' in category.keys():
-                sim_flag = True
-            out.extend(Abstract(category, annex=annex_flag, sim=sim_flag).lines)
-
-    return out
+    with open(os.path.join(output, 'system.txt'), 'w') as f:
+        f.write("%type: module\n")
+        f.write("import other_modules\n")
+        f.write("import SchedulerHPF\n")
+        f.write("import ACT_periodic\n")
+        f.write("import ACT_aperiodic\n")
+        f.write("import DataBuffer\n")
+        f.write("import EventBuffer\n")
+        f.write("import Bus\n")
+        f.write("import BusEventBuffer\n\n")
+        f.write("system\n\n")
+        f.write(str(module.HCSPSystem(translate_system(jsoninfo))))
+        f.write("\n\nendsystem")

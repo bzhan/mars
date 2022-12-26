@@ -1,0 +1,34 @@
+%type: module
+
+module DataBuffer1(send,out_port,recv0,in_port0,init_value):
+begin
+  x := 0;
+  data := init_value;
+  {
+    {x_dot = 0 & true} |> [] (
+      outputs[send][out_port]?data -->
+        skip;,
+      inputs[recv0][in_port0]!data -->
+        skip;
+    )
+  }*
+end
+endmodule
+
+module DataBuffer2(send,out_port,recv0,in_port0,recv1,in_port1,init_value):
+begin
+  x := 0;
+  data := init_value;
+  {
+    {x_dot = 0 & true} |> [] (
+      outputs[send][out_port]?data -->
+        skip;,
+      inputs[recv0][in_port0]!data -->
+        skip;,
+      inputs[recv1][in_port1]!data -->
+        skip;
+    )
+  }*
+end
+endmodule
+

@@ -3,7 +3,7 @@
   <div class="verification-condition" :class="{outdated: outdated}">
     <div class="error" v-show="error">{{error}}</div>
     <div>{{vc_success_num + "/" + vc_num}}
-      <!-- <button @click="compute">Compute</button> -->
+      <button @click="compute">Compute</button>
       <button @click="verify">Verify</button>
       <button @click="cancel" :disabled="!computationProcessReady">Cancel</button>
     </div>
@@ -21,6 +21,7 @@
               <li>show: {{ vc_info.show }}</li>
             </ul> 
             <!-- vc_info.solver is also changed by using v-model -->
+            <span class="vc-label" v-show="vc_info.label != 'None'">{{ vc_info.label + ": " }}</span>
             <select v-model="vc_info.solver" @change="changeSolver(vc_info.index, vc_info.solver)" class="vc-button" v-show="!outdated">
                 <option value="z3">Z3</option>
                 <option value="wolfram">Wolfram Engine</option>
@@ -28,7 +29,9 @@
 
             <span class="vc-icon">
                 <v-icon name="check-circle" style="fill:green" v-show="vc_info.result === true" scale="1.5"></v-icon>
+                <span v-show="vc_info.result === true" style="color:green">correct</span>
                 <v-icon name="times-circle" style="fill:red" v-show="vc_info.result === false" scale="1.5"></v-icon>
+                <span v-show="vc_info.result === false" style="color:red">wrong</span>
             </span>
 
         </li>
@@ -107,6 +110,9 @@ export default ({
       // Change the document in the editor into new_proof_methods
       this.editorView.dispatch(this.editorView.state.update({
         changes: {from: pms_start_pos, to: pms_end_pos, insert: "{{" + new_proof_methods + "}}"}}))
+      
+      // Update VC panels (including VC results) after changes are made in the editor. 
+      this.compute()
 
     },
 
@@ -233,6 +239,12 @@ export default ({
           console.error("Wrong result for the verification condition:", formula)
       }
     },
+    compute() {
+      // Send the doc in editor to server with type "compute".
+      let code = this.editorView.state.doc.toString();
+      this.websocketStore.send({file: this.file, code: code, type: "compute"})
+    },
+
     verify() {
       // Send the computed vc formula, the index i and the choosen solver to server.
       for (let i = 0; i < this.vc_infos.length; i++){
@@ -292,6 +304,10 @@ export default ({
   font-family: Avenir, Helvetica, Arial, sans-serif;
   font-size: smaller;
   cursor: pointer;
+}
+
+.vc-label {
+  font-size: smaller
 }
 
 .vc-icon {

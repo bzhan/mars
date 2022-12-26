@@ -1,0 +1,51 @@
+%type: module
+import other_modules
+import SchedulerHPF
+import ACT_periodic
+import ACT_aperiodic
+import DataBuffer
+import EventBuffer
+import Bus
+import BusEventBuffer
+
+system
+
+scheduler = SchedulerHPF($0) ||
+vehicle_imp = PHY_vehicle_imp() ||
+camera = DEVICE_camera() ||
+radar = DEVICE_radar() ||
+actuator = DEVICE_actuator() ||
+GPS = DEVICE_GPS() ||
+laser = DEVICE_laser() ||
+wheel = DEVICE_wheel() ||
+user_panel = DEVICE_user_panel() ||
+ACT_img_acq = ACT_periodic($"img_acq", $0.045) ||
+img_acq = EXE_img_acq() ||
+ACT_comp_obs_pos = ACT_periodic($"comp_obs_pos", $0.097) ||
+comp_obs_pos = EXE_comp_obs_pos() ||
+ACT_emerg = ACT_periodic($"emerg", $0.005) ||
+emerg = EXE_emerg() ||
+ACT_velo_voter = ACT_periodic($"velo_voter", $0.008) ||
+velo_voter = EXE_velo_voter() ||
+pan_ctr_th = EXE_pan_ctr_th() ||
+tran_img = DataBuffer1($"bus0", $"img", $"img_acq", $"img", $0.0) ||
+tran_obs_pos_radar = DataBuffer1($"bus0", $"obs_pos_radar", $"comp_obs_pos", $"obs_pos_radar", $0.0) ||
+tran_cmd = DataBuffer1($"bus1", $"cmd", $"actuator", $"cmd", $0.0) ||
+tran_veh_pos = DataBuffer1($"bus0", $"veh_pos", $"emerg", $"veh_pos", $0.0) ||
+tran_laser_valid = DataBuffer1($"bus0", $"laser_valid", $"velo_voter", $"laser_valid", $0.0) ||
+tran_laser_v = DataBuffer1($"bus0", $"laser_v", $"velo_voter", $"laser_v", $0.0) ||
+tran_wheel_valid = DataBuffer1($"bus0", $"wheel_valid", $"velo_voter", $"wheel_valid", $0.0) ||
+tran_wheel_v = DataBuffer1($"bus0", $"wheel_v", $"velo_voter", $"wheel_v", $0.0) ||
+tran_event = EventBuffer($"bus0", $"event", $"pan_ctr_th", $"event") ||
+busEventBuffer_tran_event = BusEventBuffer($"user_panel", $"event", $"bus0", $"event") ||
+tran_des_v = DataBuffer1($"pan_ctr_th", $"des_v", $"PI_ctr", $"des_v", $0.0) ||
+tran_proc_img = DataBuffer1($"img_acq", $"proc_img", $"comp_obs_pos", $"proc_img", $0.0) ||
+tran_obs_pos = DataBuffer1($"comp_obs_pos", $"obs_pos", $"emerg", $"obs_pos", $0.0) ||
+tran_veh_v = DataBuffer2($"velo_voter", $"veh_v", $"emerg", $"veh_v", $"PI_ctr", $"veh_v", $0.0) ||
+tran_des_a = DataBuffer1($"PI_ctr", $"des_a", $"emerg", $"des_a", $0.0) ||
+ACT_PI_ctr = ACT_periodic($"PI_ctr", $0.007) ||
+PI_ctr = EXE_PI_ctr() ||
+bus0 = Bus_bus0() ||
+bus1 = Bus_bus1()
+
+endsystem

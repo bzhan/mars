@@ -1,18 +1,19 @@
 """Conversion from Matlab functions to HCSP."""
 
+from typing import Tuple
 from ss2hcsp.matlab import function
 from ss2hcsp.hcsp import expr, hcsp
 from ss2hcsp.sf.sf_state import GraphicalFunction
 
 
-def subtract_one(e):
+def subtract_one(e: expr.Expr) -> expr.Expr:
     assert isinstance(e, expr.Expr)
     if isinstance(e, expr.AConst):
         return expr.AConst(e.value - 1)
     else:
         return expr.OpExpr("-", e, expr.AConst(1))
 
-def convert_expr(e, *, procedures=None, arrays=None, messages=None,states=None):
+def convert_expr(e: function.Expr, *, procedures=None, arrays=None, states=None) -> Tuple[hcsp.HCSP, expr.Expr]:
     """Convert a Matlab expression to HCSP.
 
     Since there are possibly functions that should be evaluated,
@@ -54,7 +55,7 @@ def convert_expr(e, *, procedures=None, arrays=None, messages=None,states=None):
                 else:
                     raise NotImplementedError("Function rand: argument not supported")
             elif e.fun_name == "enter":
-                if  isinstance(e.exprs[0],function.DirectName) == 1:
+                if isinstance(e.exprs[0], function.DirectName) == 1:
                     p_state=e.exprs[0].exprs[0]
                     d_state=e.exprs[0].exprs[-1]
                     d_state_name=""
@@ -65,8 +66,10 @@ def convert_expr(e, *, procedures=None, arrays=None, messages=None,states=None):
                         if  state.name == str(p_state):
                             p_state_name=state.whole_name
                     return expr.RelExpr("==",expr.AVar(p_state_name+"_st"),expr.AConst(d_state_name))
+                else:
+                    raise NotImplementedError
             elif e.fun_name == "in":
-                if  isinstance(e.exprs[0],function.DirectName) == 1:
+                if isinstance(e.exprs[0], function.DirectName) == 1:
                     p_state=e.exprs[0].exprs[0]
                     d_state=e.exprs[0].exprs[-1]
                     d_state_name=""
@@ -77,8 +80,10 @@ def convert_expr(e, *, procedures=None, arrays=None, messages=None,states=None):
                         if  state.name == str(p_state):
                             p_state_name=state.whole_name
                     return expr.RelExpr("==",expr.AVar(p_state_name+"_st"),expr.AConst(d_state_name))
+                else:
+                    raise NotImplementedError
             elif e.fun_name == "exit":
-                if  isinstance(e.exprs[0],function.DirectName) == 1:
+                if isinstance(e.exprs[0],function.DirectName) == 1:
                     p_state=e.exprs[0].exprs[0]
                     d_state=e.exprs[0].exprs[-1]
                     d_state_name=""
@@ -88,9 +93,9 @@ def convert_expr(e, *, procedures=None, arrays=None, messages=None,states=None):
                             d_state_name=state.whole_name
                         if  state.name == str(p_state):
                             p_state_name=state.whole_name
-                    return expr.RelExpr("==",expr.AVar(p_state_name+"_st"),expr.AConst(""))
-
-
+                    return expr.RelExpr("==", expr.AVar(p_state_name+"_st"),expr.AConst(""))
+                else:
+                    raise NotImplementedError
             elif e.fun_name in arrays:
                 # Subtract one since indexing in Matlab is 1-based while indexing
                 # in HCSP is 0-based.
@@ -100,6 +105,8 @@ def convert_expr(e, *, procedures=None, arrays=None, messages=None,states=None):
                     return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(e.fun_name),subtract_one(rec(e.exprs[0]))),subtract_one(rec(e.exprs[1])))
                 elif len(e.exprs) == 3:
                     return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(e.fun_name),subtract_one(rec(e.exprs[0]))),subtract_one(rec(e.exprs[1]))),subtract_one(rec(e.exprs[2])))
+                else:
+                    raise NotImplementedError
             elif procedures is not None and e.fun_name in procedures:
                 proc = procedures[e.fun_name]
                 if isinstance(proc, GraphicalFunction):
@@ -107,19 +114,22 @@ def convert_expr(e, *, procedures=None, arrays=None, messages=None,states=None):
                         for index in range(0,len(e.exprs)):
                             pre_acts.append(hcsp.Assign(expr.AVar(proc.params[index]),rec(e.exprs[index])))
                     pre_acts.append(hcsp.Var(e.fun_name))
-                    if isinstance(proc.return_var,str):
+                    if isinstance(proc.return_var, str):
                         pre_acts.append(hcsp.Assign(expr.AVar(e.fun_name+"_"+proc.return_var),expr.AVar(proc.return_var)))
                         return expr.AVar(str(e.fun_name)+"_"+proc.return_var)
-                    elif isinstance(proc.return_var,tuple):
-                        return expr.ListExpr(*( expr.AVar(arg) for arg in proc.return_var))
+                    elif isinstance(proc.return_var, tuple):
+                        return expr.ListExpr(*(expr.AVar(arg) for arg in proc.return_var))
+                    else:
+                        raise NotImplementedError
                 else:
-                  
                     cmd,params=proc.instantiate(e.exprs)
                     pre_acts.append(hcsp.seq([convert_cmd(params, procedures=procedures, arrays=arrays),convert_cmd(cmd, procedures=procedures, arrays=arrays)]))
-                    if isinstance(proc.return_var,str):
+                    if isinstance(proc.return_var, str):
                         return expr.AVar(proc.return_var)
-                    elif isinstance(proc.return_var,tuple):
-                        return expr.ListExpr(*( expr.AVar(arg) for arg in proc.return_var))
+                    elif isinstance(proc.return_var, tuple):
+                        return expr.ListExpr(*(expr.AVar(arg) for arg in proc.return_var))
+                    else:
+                        raise NotImplementedError
             else:
                 return expr.FunExpr(e.fun_name, [rec(ex) for ex in e.exprs])
         elif isinstance(e, function.BConst):
@@ -132,7 +142,7 @@ def convert_expr(e, *, procedures=None, arrays=None, messages=None,states=None):
             op_name = {"&&":"&&", "||":"||", "-->":"->", "<-->":"<->", "~":"!"}[e.op_name]
             return expr.LogicExpr(op_name, *exprs)
         elif isinstance(e, function.RelExpr):
-                return expr.RelExpr(e.op, rec(e.expr1), rec(e.expr2))
+            return expr.RelExpr(e.op, rec(e.expr1), rec(e.expr2))
         else:
             raise NotImplementedError("Unrecognized matlab expression: %s" % str(e))
 
@@ -165,7 +175,7 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
 
     """
     def conv_expr(e):
-        return convert_expr(e, procedures=procedures, arrays=arrays, messages=messages,states=states)
+        return convert_expr(e, procedures=procedures, arrays=arrays, states=states)
 
     def conv_exprs(es):
         # Convert a list of expressions
@@ -199,14 +209,13 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
                 return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(lname.fun_name),subtract_one(hp_e1)),subtract_one(hp_e2)),subtract_one(hp_e3))
         elif isinstance(lname, function.ListExpr):
             return [convert_lname(arg,val) for arg in lname.args]
-        elif isinstance(lname,function.DirectName):
+        elif isinstance(lname, function.DirectName):
             sname=lname.exprs[0]
             if str(sname) in messages.keys():
-                message=messages[str(sname)]
-                message.data=int(str(val))
-                messages[str(sname)]=message
-            return expr.FieldNameExpr(expr.AVar(sname),str(lname.exprs[1]))
-            # return expr.AVar(str(lname))
+                message = messages[str(sname)]
+                message.data = int(str(val))
+                messages[str(sname)] = message
+            return expr.FieldNameExpr(expr.AVar(sname), str(lname.exprs[1]))
 
         else:
             raise NotImplementedError

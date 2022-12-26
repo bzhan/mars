@@ -71,17 +71,38 @@ public
 		subcomponents
 			emerg_imp: thread emerg.imp;
 			velo_voter_imp: thread velo_voter.imp;
+			PI_ctr_imp:thread PI_ctr.imp;
 		connections
 			tran_obs_pos: port obs_pos -> emerg_imp.obs_pos;
 			tran_cmd: port emerg_imp.cmd -> cmd;
 			tran_veh_pos: port veh_pos -> emerg_imp.veh_pos;
 			tran_veh_v: port velo_voter_imp.veh_v -> emerg_imp.veh_v;
-			tran_des_v: port des_v -> emerg_imp.des_v;
+			tran_des_v: port des_v -> PI_ctr_imp.des_v;
 			tran_laser_valid: port laser_valid -> velo_voter_imp.laser_valid;
 			tran_laser_v: port laser_v -> velo_voter_imp.laser_v;
 			tran_wheel_valid: port wheel_valid -> velo_voter_imp.wheel_valid;
 			tran_wheel_v: port wheel_v -> velo_voter_imp.wheel_v;
+			tran_veh_v1: port velo_voter_imp.veh_v -> PI_ctr_imp.veh_v;
+			tran_des_a: port PI_ctr_imp.des_a -> emerg_imp.des_a;
 	end velo_ctr.imp;
+
+	-- discrete PI controller
+	thread PI_ctr
+	    features
+	        veh_v: in data port;
+	        des_v: in data port;
+	        des_a: out data port;
+	    properties
+	        dispatch_protocol => periodic;
+			period => 7ms;
+			deadline => 7ms;
+			compute_execution_time => 1ms;
+			priority => 1;
+	end PI_ctr;
+
+	thread implementation PI_ctr.imp
+	    annex Simulink{** ./Examples/AADL/CCS/Simulink/PI_ctr_imp.xml **};
+	end PI_ctr.imp;
 	
 	-- compute acceleration
 	thread emerg
@@ -89,7 +110,7 @@ public
 			obs_pos: in data port;
 			veh_pos: in data port;
 			veh_v: in data port;
-			des_v: in data port;
+			des_a: in data port;
 			cmd: out data port;
 		properties
 			dispatch_protocol => periodic;
@@ -145,7 +166,7 @@ public
 			des_v: out data port;
 		properties
 			dispatch_protocol => (aperiodic);
-			compute_execution_time => 10ms..10ms;
+			compute_execution_time => 10ms;
 			deadline => 100ms;
 	end pan_ctr_th;
 	

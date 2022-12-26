@@ -179,7 +179,7 @@ class Parser:
             diagram.inherit_to_continuous()
             for block in self.dic.keys():
                 if block == model_name:
-                    self.dic[block]['Sim'] = [str(hp) for _, hp in get_hcsp(*diagram.seperate_diagram()).hps]
+                    self.dic[block]['Sim'] = [str(hp) for _, hp in get_hcsp(*diagram.separate_diagram()).hps]
 
 
     def _xmlparser(self, xmlfile, protocol):

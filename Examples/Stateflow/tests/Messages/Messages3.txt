@@ -10,6 +10,7 @@ begin
   }*
 end
 endmodule
+
 module MessageReceiver():
 begin
   start_MessageReceiver?;
@@ -90,6 +91,7 @@ begin
   }*
 end
 endmodule
+
 module MessageSender():
 begin
   start_MessageSender?;
@@ -99,7 +101,7 @@ begin
   MessageSender_st := "MessageSender_A";
   s := "en_A";
   log("en_A" + "\n");
-  ch_x0_0_out!{data:0};
+  ch_x0_0_out!M;
   end_MessageSender?;
   {
     start_MessageSender?;
@@ -109,6 +111,7 @@ begin
   }*
 end
 endmodule
+
 module data_ctrl():
 begin
   {
@@ -119,6 +122,7 @@ begin
   }*
 end
 endmodule
+
 system
 order_ctrl() ||
 MessageReceiver() ||

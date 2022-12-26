@@ -25,12 +25,3 @@ class Reference(SL_Block):
 
     def __repr__(self):
         return str(self)
-
-    def get_var_map(self):
-        in_var = AVar(self.dest_lines[0].name)
-        cond0 = RelExpr(self.relop, in_var, AConst(0))
-        expr0 = AConst(1)
-        cond1 = cond0.neg()
-        expr1 = AConst(0)
-        out_var = self.src_lines[0][0].name
-        return {out_var: [(cond0, expr0), (cond1, expr1)]}

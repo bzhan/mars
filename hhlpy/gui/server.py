@@ -38,6 +38,7 @@ def runCompute(code):
         pre=hoare_triple.pre, 
         hp=hoare_triple.hp,
         post=hoare_triple.post,
+        constants=hoare_triple.constants,
         functions=hoare_triple.functions)
 
     # Compute wp and verify
@@ -49,9 +50,14 @@ def runCompute(code):
     for _, vcs in verifier.get_all_vcs().items():
 
         for vc in vcs:
-            assume = split_imp(vc.expr)[:-1]
-            show = split_imp(vc.expr)[-1] 
 
+            show = split_imp(vc.expr)[-1] 
+            if hoare_triple.constants.preds:
+                constants = split_imp(vc.expr)[0]
+                assume = split_imp(vc.expr)[1:-1]
+            else:
+                constants = None
+                assume = split_imp(vc.expr)[:-1]            
 
             # Get the proof method
             label_computed = vc.comp_label
@@ -110,7 +116,7 @@ def runCompute(code):
 
             # Append the expression ranges.
             for origin in vc.origins:
-                print("origin:", origin)
+                # print("origin:", origin)
                 if origin.isPre:
                     originMeta = hoare_triple.pre[origin.index].meta
                     to = originMeta.end_pos
@@ -153,6 +159,7 @@ def runCompute(code):
 
             vc_infos.append({
                 "formula": str(vc.expr),
+                "constants": str(constants),
                 "assume": [str(asm) for asm in assume],
                 "show": str(show),
                 "label": str(vc.comp_label),
@@ -173,7 +180,7 @@ def runVerify(formula, code, solver):
     elif solver == "wolfram" and not found_wolfram:
         raise Exception("Wolfram Engine not found.")
     elif solver == "wolfram":
-        return wl_prove(formulaExpr)
+        return wl_prove(formulaExpr, functions=hoare_triple.functions)
     else:
         raise NotImplementedError
 
@@ -212,16 +219,16 @@ def runComputationProcess(inputQueue, outputQueue):
                     formula=msg["formula"],
                     code=msg["code"],
                     solver=msg["solver"])
-            except Exception as e:
-                traceback.print_exc()
-                outputQueue.put({"error": str(e), "type": "error", "file": msg["file"]})
-        
-            outputQueue.put({
+                outputQueue.put({
                 "file": msg["file"],
                 "index": msg["index"], 
                 "formula": msg["formula"], 
                 "result": result, 
                 "type": "verified"})
+            except Exception as e:
+                traceback.print_exc()
+                outputQueue.put({"error": str(e), "type": "error", "file": msg["file"]})
+        
 
 # These queues are used to communicate between the two processes
 computationInputQueue = Queue()
@@ -273,7 +280,7 @@ class HHLPyApplication(WebSocketApplication):
     def on_message(self, message):
         try:
             if message != None:
-                print(message, flush=True)
+                # print(message, flush=True)
                 msg = json.loads(message)
                 # If the type of message received is "compute", 
                 # the message has a code field, which is the document in editor,
@@ -331,7 +338,7 @@ def checkComputationProcess():
     if ws is not None:
         try:
             result = computationOutputQueue.get(False)
-            print("out!", flush=True)
+            # print("out!", flush=True)
             ws.send(json.dumps(result))
         except Empty:
             pass
@@ -366,6 +373,7 @@ def start(port, openBrowser, http):
         Resource(OrderedDict([('/', HHLPyApplication)]))
     )
     try:
+        global computationProcess
         computationProcess = startComputationProcess()
         if http:
             startHttpProcess(port)

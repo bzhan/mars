@@ -1,10 +1,8 @@
 """Parsing for matlab functions."""
 
-from lark import Lark, Transformer, v_args, exceptions
+from lark import Lark, Transformer, v_args
 
 from ss2hcsp.matlab import function
-from ss2hcsp.hcsp import expr
-from ss2hcsp.hcsp import hcsp
 
 
 grammar = r"""
@@ -25,10 +23,13 @@ grammar = r"""
         | "(" expr ")"
         | CNAME ("." CNAME)+ -> direct_name
 
-    ?times_expr: times_expr "*" atom_expr -> times_expr
-        | times_expr "/" atom_expr -> divide_expr
-        | times_expr "%" atom_expr -> mod_expr
+    ?power_expr: power_expr "^" atom_expr -> power_expr
         | atom_expr
+
+    ?times_expr: times_expr "*" power_expr -> times_expr
+        | times_expr "/" power_expr -> divide_expr
+        | times_expr "%" power_expr -> mod_expr
+        | power_expr
 
     ?plus_expr: plus_expr "+" times_expr -> plus_expr
         | plus_expr "-" times_expr -> minus_expr
@@ -55,8 +56,6 @@ grammar = r"""
         | "every" "(" expr "," event ")"  -> every_event
         | expr
 
-
-    
     ?conj: atom_cond "&&" conj | atom_cond     // Conjunction: priority 35
 
     ?disj: conj "||" disj | conj               // Disjunction: priority 30
@@ -144,6 +143,8 @@ class MatlabTransformer(Transformer):
             return function.AConst(1)
         elif s == "false":
             return function.AConst(0)
+        elif s == "pi":
+            return function.FunExpr("pi")
         else:
             return function.Var(str(s))
 
@@ -171,6 +172,9 @@ class MatlabTransformer(Transformer):
     def string_expr(self, s):
         # Remove quotes
         return function.AConst(str(s)[1:-1])
+
+    def power_expr(self, e1, e2):
+        return function.OpExpr("^", e1, e2)
 
     def times_expr(self, e1, e2):
         return function.OpExpr("*", e1, e2)

@@ -1,17 +1,37 @@
 # HHLPy
 
 HHLPy is a formal verification tool for hybrid systems. It is based on an
-extension of Hoare logic to hybrid systems called Hybrid Hoare Logic.
+extension of Hoare logic to hybrid systems called Hybrid Hoare Logic. 
+Performance data of HHLPy on benchmarks and case studys are given in `performance_data.txt`.
 
 ## Installation
 
-### Base installation
-
-The base installation of HHLPy does not require Wolfram Engine:
+### Prerequisites
 * Install Python 3.9 or higher: https://www.python.org/downloads/.
+* (Optional) Install Wolfram Engine (Detailed installation steps are given below).
+
+### Install Using pip (Recommended)
+Note that you do not need to clone the repository.
 * Run `pip install hhlpy` or `python -m pip install hhlpy` to install HHLPy.
 * Run `python -m hhlpy` to start HHLPy. Your browser should open automatically.
   (If it doesn't, open `http://127.0.0.1:8000/` in your browser.)
+  
+### Install Using git
+* Install NodeJS: https://nodejs.org/en/.
+* Clone the library’s repository:
+```
+>>> git clone git@github.com:bzhan/mars.git
+```
+* Install required packages:
+```
+>>> python -m pip install -r requirements.txt
+```
+* Install node modules:
+```
+>>> cd hhlpy/gui
+>>> npm install
+```
+* Run `npm run serve` to start HHLPy. Open `http://127.0.0.1:8080/` in your browser.
 
 ### Install Wolfram Engine
 

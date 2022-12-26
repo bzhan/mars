@@ -1,5 +1,6 @@
 """Parser for expressions."""
 
+from typing import List
 from lark import Lark, Transformer, v_args, exceptions
 from lark.tree import Meta
 from ss2hcsp.hcsp import expr
@@ -7,6 +8,8 @@ from ss2hcsp.hcsp import assertion, label
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import module
 from decimal import Decimal
+
+from ss2hcsp.hcsp.hcsp import HCSPInfo
 
 
 grammar = r"""
@@ -160,10 +163,11 @@ grammar = r"""
     ?cmd: select_cmd
 
     ?function_decl: "function" CNAME "(" CNAME ("," CNAME)* ")" "=" expr ";"
+    ?constants_decl: "constants" (expr ";")* "end"  -> constants_decl
 
     ?hoare_pre : "pre" (ord_assertion)* ";" -> hoare_pre
     ?hoare_post : "post" (ord_assertion)* ";" -> hoare_post
-    ?hoare_triple: (function_decl)* hoare_pre cmd hoare_post
+    ?hoare_triple: constants_decl? (function_decl)* hoare_pre cmd hoare_post
 
     ?procedure: "procedure" CNAME "begin" cmd "end"
 
@@ -172,9 +176,11 @@ grammar = r"""
     ?module_sig: CNAME "(" (CNAME | "$" CNAME) ("," (CNAME | "$" CNAME))* ")"  -> module_sig
         | CNAME "(" ")"                            -> module_sig
 
-    ?module_output: "output" CNAME ("," CNAME)* ";"    -> module_output
+    ?module_output: (CNAME | CNAME "=" expr)    -> module_output
+
+    ?module_outputs: "output" module_output ("," module_output)* ";"  -> module_outputs
     
-    ?module: "module" module_sig ":" (module_output)* (procedure)* "begin" cmd "end" "endmodule"
+    ?module: "module" module_sig ":" (module_outputs)* (procedure)* "begin" cmd "end" "endmodule"
     
     ?module_arg: CNAME ("[" INT "]")*   -> module_arg_channel
         | "$" expr    -> module_arg_expr
@@ -214,7 +220,10 @@ class HPTransformer(Transformer):
         pass
 
     def var_expr(self, meta, s):
-        return expr.AVar(str(s), meta=meta)
+        if s == "pi":
+            return expr.FunExpr("pi", [], meta=meta)
+        else:
+            return expr.AVar(str(s), meta=meta)
 
     def num_expr(self, meta, v):
         return expr.AConst(Decimal(str(v)) if '.' in v or 'e' in v else int(v), meta=meta)
@@ -226,10 +235,7 @@ class HPTransformer(Transformer):
         return expr.ListExpr(meta=meta)
 
     def literal_list(self, meta, *args):
-        if all(isinstance(arg, expr.AConst) for arg in args):
-            return expr.AConst(list(arg.value for arg in args), meta=meta)
-        else:
-            return expr.ListExpr(*args, meta=meta)
+        return expr.ListExpr(*args, meta=meta)
 
     def empty_dict(self, meta):
         return expr.DictExpr(meta=meta)
@@ -555,6 +561,13 @@ class HPTransformer(Transformer):
         else:
             return hcsp.Parallel(*args, meta=meta)
 
+    def constants_decl(self, meta, *args):
+        preds = list(args)
+        vars = set()
+        for pred in preds:
+            vars.union(pred.get_vars())
+        return hcsp.Constants(vars, preds)
+
     def function_decl(self, meta, *args):
         name = str(args[0])
         vars = list(str(var) for var in args[1:-1])
@@ -573,18 +586,29 @@ class HPTransformer(Transformer):
         hp = args[-2]
         post = args[-1]
 
-        # The other arguments are functions
+        # The other arguments are constants or functions
         functions = dict()
+        constants = hcsp.Constants()
         for item in args[:-3]:
-            assert isinstance(item, hcsp.Function);
-            functions[item.name] = item
-        return hcsp.HoareTriple(pre, hp, post, functions=functions, meta=meta)
+            if isinstance(item, hcsp.Constants):
+                constants = item
+            elif isinstance(item, hcsp.Function):
+                functions[item.name] = item
+            else:
+                raise NotImplementedError
+        return hcsp.HoareTriple(pre, hp, post, constants=constants, functions=functions, meta=meta)
 
     def module_sig(self, meta, *args):
         return tuple(str(arg) for arg in args)
 
     def module_output(self, meta, *args):
-        return tuple(str(arg) for arg in args)
+        if len(args) == 1:
+            return hcsp.HCSPOutput(str(args[0]))
+        else:
+            return hcsp.HCSPOutput(str(args[0]), args[1])
+
+    def module_outputs(self, meta, *args):
+        return tuple(args)
 
     def module(self, meta, *args):
         # The first item is a tuple consisting of name and list of parameters
@@ -599,7 +623,7 @@ class HPTransformer(Transformer):
         outputs, procedures = [], []
         for decl in decls:
             if isinstance(decl, tuple):
-                outputs.append(decl)
+                outputs.extend(decl)
             elif isinstance(decl, hcsp.Procedure):
                 procedures.append(decl)
             else:
@@ -694,7 +718,6 @@ def parse_file(text):
 
     """
     text_lines = text.strip().split('\n')
-    hcsp_info = []
 
     # First, read lines from file, each line containing ::= means the
     # start of a new program.
@@ -733,7 +756,7 @@ def parse_file(text):
 
     return infos
 
-def parse_module_file(text):
+def parse_module_file(text: str) -> List[HCSPInfo]:
     """Parse a file in module format.
     
     Input is the string of the file. Output is a list of pairs (name, hp).

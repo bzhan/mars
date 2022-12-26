@@ -116,14 +116,28 @@ def compute_boundary(e):
     if isinstance(e, expr.RelExpr):
         if e.op in ['<', '>', '!=']:
             return expr.RelExpr("==", e.expr1, e.expr2)
+    
     elif isinstance(e, expr.LogicExpr):
         if e.op == '&&':
-            boundary1 = compute_boundary(e.exprs[0])
-            boundary2 = compute_boundary(e.exprs[1])
-            disj1 = expr.LogicExpr('&&', e.exprs[0], boundary2)
-            disj2 = expr.LogicExpr('&&', e.exprs[1], boundary1)
-            disj3 = expr.LogicExpr('&&', boundary1, boundary2)
-            return expr.list_disj(disj1, disj2, disj3)
+            conjs = expr.split_conj(e)
+            conj_boundarys = []
+            conj_closure = []
+            # Compute the boundary and closure for each conjuncts
+            for c in conjs:
+                conj_boundarys.append(compute_boundary(c))
+                conj_closure.append(compute_closure(c))
+            
+            boundarys = []
+            for i in range(len(conjs)):
+                # The boundary of ith conjunct. 
+                # Note that other conjuncts' boundaries may also be satisfied, 
+                # so here use closure of other conjuncts.
+                sub_boundarys = conj_closure.copy()
+                sub_boundarys[i] = conj_boundarys[i]    
+                sub_boundary = expr.list_conj(*sub_boundarys) 
+
+                boundarys.append(sub_boundary)
+            return expr.list_disj(*boundarys) 
         elif e.op == '||':
             boundary1 = compute_boundary(e.exprs[0])
             boundary2 = compute_boundary(e.exprs[1])
@@ -139,8 +153,8 @@ def compute_boundary(e):
     else:
         raise NotImplementedError
 
-def compute_closed_set(e):
-    """Compute the closed set for an open interval"""
+def compute_closure(e):
+    """Compute the closure for an open interval"""
     if isinstance(e, expr.RelExpr):
         if e.op == '<':
             return expr.RelExpr("<=", e.expr1, e.expr2)
@@ -153,11 +167,11 @@ def compute_closed_set(e):
 
     elif isinstance(e, expr.LogicExpr):
         if e.op == '&&':
-            return expr.LogicExpr('&&', compute_closed_set(e.exprs[0]), compute_closed_set(e.exprs[1]))
+            return expr.LogicExpr('&&', compute_closure(e.exprs[0]), compute_closure(e.exprs[1]))
         elif e.op == '||':
-            return expr.LogicExpr('||', compute_closed_set(e.exprs[0]), compute_closed_set(e.exprs[1]))
+            return expr.LogicExpr('||', compute_closure(e.exprs[0]), compute_closure(e.exprs[1]))
         elif e.op == '!':
-            return compute_closed_set(expr.neg_expr(e))
+            return compute_closure(expr.neg_expr(e))
         else:
             raise NotImplementedError
 
@@ -356,12 +370,17 @@ class OriginLoc:
 
 class CmdVerifier:
     """Contains current state of verification of an HCSP program."""
-    def __init__(self, *, pre, hp, post, functions=dict()):
+    def __init__(self, *, pre, hp, post, constants, functions=dict()):
         # The HCSP program to be verified.
         self.hp = hp
 
         # The list of post conditions of the whole HCSP program
         self.post = post
+
+        # The constants object of the HCSP program
+        self.constants = constants
+        # The list of constant predicates, for example, [g == 9.8, pi == 3.14]
+        self.constant_preds = [pred for pred in constants.preds]
 
         # Mapping from program position to CmdInfo objects.
         self.infos = dict()
@@ -560,6 +579,22 @@ class CmdVerifier:
                     isVC=True
                     )
 
+    def add_vc_constants(self, pos):
+        # Add constant predicates into the hypothesis of every verification condition.
+        if self.constant_preds:
+            constant_preds = expr.list_conj(*self.constant_preds)
+            for i in range(len(self.infos[pos].vcs)):
+                    vc = self.infos[pos].vcs[i]
+                    self.infos[pos].vcs[i] = Condition(
+                        expr=expr.imp(constant_preds, vc.expr), 
+                        path=vc.path,
+                        blabel=vc.blabel,
+                        origins=vc.origins,
+                        bottom_loc=vc.bottom_loc, 
+                        categ=vc.categ,
+                        isVC=True
+                        )  
+
     def compute_wp(self, *, pos=((),())):
         """Compute weakest-preconditions using the given information."""
 
@@ -589,6 +624,8 @@ class CmdVerifier:
             # Compute pre-condition by replacing var_name by expr in the
             # post-condition.
             if not isinstance(cur_hp.var_name, expr.AVar):
+                raise NotImplementedError
+            if isinstance(cur_hp.expr, (expr.LogicExpr, expr.RelExpr)):
                 raise NotImplementedError
             if cur_hp.var_name.name in self.constant_names:
                 raise NotImplementedError("Constants can not be assigned")
@@ -768,7 +805,7 @@ class CmdVerifier:
             if cur_hp.constraint != expr.true_expr:
                 raise NotImplementedError
 
-            if cur_hp.inv is None:
+            if not cur_hp.inv:
                 raise AssertionError("Loop invariant at position %s is not set." % str(pos))
 
             # for sub_inv in cur_hp.inv:
@@ -964,7 +1001,7 @@ class CmdVerifier:
                         # One semi-verification condition is closure of constraint -> differential of inv.
                         # (closure of constraint is not necessary because the differential is always a closed set.)
                         differential = compute_diff(dI_inv, eqs_dict=self.infos[sub_pos].eqs_dict, functions=self.functions)
-                        closureD = compute_closed_set(constraint)
+                        closureD = compute_closure(constraint)
                         vc = expr.imp(closureD, differential)
             
                         self.infos[sub_pos].vcs.append(Condition(expr=vc, 
@@ -1038,7 +1075,7 @@ class CmdVerifier:
 
                                 # closure of D -> e_lie_deriv == g * e
                                 # (closure of D is not necessary because "e_lie_deriv == g * e" is a closed set)
-                                closureD = compute_closed_set(constraint)
+                                closureD = compute_closure(constraint)
                                 vc = expr.imp(closureD, expr.RelExpr('==', e_lie_deriv, 
                                                                             expr.OpExpr('*', g, e)))
 
@@ -1068,7 +1105,7 @@ class CmdVerifier:
                                     # remain (e_lie_deriv - g * e) >= 0.
                                     vc_comp = expr.RelExpr('>=', remain, expr.AConst(0))
                                     vc_comps.append(vc_comp)
-                                closureD = compute_closed_set(constraint)
+                                closureD = compute_closure(constraint)
                                 vc = expr.imp(closureD, expr.list_disj(*vc_comps))
 
                                 self.infos[sub_pos].vcs.append(Condition(
@@ -1084,7 +1121,7 @@ class CmdVerifier:
                                 g = self.infos[sub_pos].dbx_cofactor
                                 assert self.is_polynomial(g, self.constant_names) is True
                                 
-                                closureD = compute_closed_set(constraint)
+                                closureD = compute_closure(constraint)
                                 vc = expr.imp(closureD, expr.RelExpr('>=', e_lie_deriv, 
                                                                             expr.OpExpr('*', self.infos[sub_pos].dbx_cofactor, e)))
                                 self.infos[sub_pos].vcs.append(Condition(
@@ -1129,7 +1166,7 @@ class CmdVerifier:
                         e_lie = compute_diff(e, eqs_dict=self.infos[sub_pos].eqs_dict, functions=self.functions)
 
                         # vc: closure of D && e == 0 -> e_lie > 0
-                        closureD = compute_closed_set(constraint)
+                        closureD = compute_closure(constraint)
                         vc = expr.imp(expr.LogicExpr('&&', closureD, 
                                                         expr.RelExpr('==', e, expr.AConst(0))),
                                     expr.RelExpr('>', e_lie, expr.AConst(0)))
@@ -1148,6 +1185,7 @@ class CmdVerifier:
 
                     # Add the assume into the hypothesis of every verification condition at sub_pos.
                     self.add_vc_assume(sub_pos)
+                    self.add_vc_constants(sub_pos)
              
                 pre = pre_dw
                 
@@ -1158,9 +1196,11 @@ class CmdVerifier:
                 #    {(D -> P') && (!D -> Q)} <x_dot = f(x) & D(x)> {Q}
                 # f(x) is linear in x. Assume u(.) solve the symbolic initial value problem u'(t) = f(u), u(0) = x
                 for var, diff in self.infos[pos].eqs_dict.items():
-                            d = degree(sympify(str(diff).replace('^', '**')), gen=symbols(var))
-                            if not d in {0,1}:
-                                raise AssertionError("{0} should be linear in {1} when using sln rule!".format(diff, var))
+                    if str(diff) != str(0):
+                    # The degree of 0 is negative infinity. For example, degree(0, x) -oo.
+                        d = degree(sympify(str(diff).replace('^', '**')), gen=symbols(var))
+                        if not d in {0,1}:
+                            raise AssertionError("{0} should be linear in {1} when using sln rule!".format(diff, var))
 
                 # Create a new variable to represent time
                 time_var = create_newvar('t', self.names)
@@ -1255,7 +1295,8 @@ class CmdVerifier:
 
         # Add assume into the hypothesis of every verification condition at pos.
         self.add_vc_assume(pos)
-        
+        self.add_vc_constants(pos)
+
     def convert_imp(self, e):
         """Convert implication from (p -> q -> u) to (p && q) -> u,
         in which the right expression won't be an implication """
@@ -1299,7 +1340,7 @@ class CmdVerifier:
     def get_all_vcs(self):
         all_vcs = dict()
         for pos, info in self.infos.items():   
-            if info.vcs:
+            if info.vcs:    
                 all_vcs[pos] = info.vcs
         return all_vcs
 
