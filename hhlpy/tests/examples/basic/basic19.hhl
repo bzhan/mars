@@ -1,0 +1,7 @@
+# ArchiveEntry "Benchmarks/Basic/Dynamics: Exponential growth (2)"
+
+pre [x >= 0] [y >= 0];
+t := * (t >= 0);
+{x_dot = y, y_dot = y * y, t_dot = -1 & t > 0}
+  invariant [y >= 0] [x >= 0];
+post [x >= 0];

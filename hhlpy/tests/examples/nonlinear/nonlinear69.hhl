@@ -1,0 +1,11 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Djaballah Chapoutot Kieffer Bouissou 2017: Example 3"
+# 
+# Description "Example 3, p. 293".
+# Citation "Adel Djaballah, Alexandre Chapoutot, Michel Kieffer, Olivier Bouissou. Construction of parametric barrier functions for dynamical systems using interval analysis. Automatica 78 (2017) 287–296.".
+# Link "https://doi.org/10.1016/j.automatica.2016.12.013".
+
+pre [(x1+1.125)^2 + (x2-0.625)^2 - 0.0125 <= 0];
+t := * (t >= 0); 
+{x1_dot = -x1+x1*x2, x2_dot = -x2, t_dot = -1 & t > 0} 
+  invariant [x1 < 0] {dbx};
+post [!((x1-0.875)^2 + (x2-0.125)^2 - 0.0125 <= 0)];

@@ -1,0 +1,12 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Nonlinear Circuit RLC Circuit Oscillator".
+# 
+# Citation "Mohamed H. Zaki, William Denman, Sofiène Tahar, Guy Bois. Integrating Abstraction Techniques for Formal Verification of Analog Designs".
+
+pre [Il == 1] [Vc == 1];
+t := * (t >= 0);
+{Il_dot = -Vc-1/5*Vc^2,
+ Vc_dot = -2*Il-Il^2+Il^3, 
+ t_dot = -1 & t > 0}
+invariant 
+    [4993/2416+Il^4+2*Vc^2+4/15*Vc^3 <= 4/3*Il^2*(3+Il)];
+post [Vc <= 3];

@@ -1,0 +1,15 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Llibre Zhang 2002: Lorenz System (Parametric)"
+
+# Citation "Jaume Llibre, Xiang Zhang. On the invariant algebraic surfaces of the Lorenz systems. J. Math. Phys. 43, 1622 (2002)".
+# Link "https://doi.org/10.1063/1.1435078".
+
+pre [s == -z1 || s > 0.5 && z1 < -0.5 && x > 1][b == 2*s];
+    t := *(t >= 0);
+   {x_dot = s*(y-x),
+    y_dot = r*x-y-x*z1,
+    z1_dot = -b*z1+x*y,
+    t_dot = -1 
+    & t > 0
+   }
+   invariant [x^2 - 2*s*z1 >= 0]{dbx -2*s};
+post [!((s > z1 || s > 2*z1) && z1 > x && x > 1)];

@@ -1,0 +1,18 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Collision Avoidance Maneuver (I)".
+# 
+# Citation "Sriram Sankaranarayanan. Automatic Invariant Generation For Hybrid Systems Using Ideal Fixed Points".
+
+pre [x1==r1] [y1==r1]
+    [x2==r2] [y2==r2]
+    [d1==a] 
+    [d2==0] 
+    [e1==0] 
+    [e2==b];
+t := * (t >= 0); 
+{x1_dot=d1, x2_dot=d2, 
+ d1_dot=-w*d2, d2_dot=w*d1, 
+ y1_dot=e1, y2_dot=e2, 
+ e1_dot=-theta*e2, e2_dot=theta*e1,
+ t_dot = -1 & t > 0}
+invariant [e1^2+e2^2-b^2==0] [d1^2+d2^2-a^2==0] [e1-r2*theta+theta*y2==0] [-a+d1-r2*w+w*x2==0];
+post [(e1 - r2*theta + theta * y2) != e2^2 + 1];

@@ -1,0 +1,9 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Forsman Phd Ex 6_1 page 99".
+
+pre [x^2 + (-2 + y)^2 < 1/24];
+t := * (t >= 0);
+{x_dot = -x+2*x^2*y, y_dot = -y, t_dot = -1 & t > 0} 
+invariant 
+    [y > 0] {dbx} 
+    [12299+9595*x > 0] {bc};
+post [!(x <= -2 || y <= -1)];

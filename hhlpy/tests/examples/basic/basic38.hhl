@@ -1,0 +1,7 @@
+# ArchiveEntry "Benchmarks/Basic/Dynamics: Riccati"
+
+pre [2 * x^3 >= 1/4];
+t := * (t >= 0);
+{x_dot = x^2 + x^4, t_dot = -1 & t > 0} 
+  invariant [2 * x^3 >= 1/4];
+post [2 * x^3 >= 1/4];

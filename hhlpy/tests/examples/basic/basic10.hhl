@@ -1,0 +1,14 @@
+# ArchiveEntry "Benchmarks/Basic/Dynamics: Cascaded"
+
+pre [x > 0];
+t := * (t >= 0);
+{t_dot=-1, x_dot=5 & t > 0}
+  invariant [x > 0]; 
+t := * (t >= 0);
+{t_dot=-1, x_dot=2 & t > 0}
+  invariant [x > 0];
+t := * (t >= 0);
+{t_dot=-1, x_dot=x & t > 0}
+  invariant [x > 0] {dbx};
+
+post [x > 0];

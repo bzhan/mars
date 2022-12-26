@@ -1,0 +1,29 @@
+# ArchiveEntry "Benchmarks/Basic/STTT Tutorial: Example 3a"
+# 
+# Description "A hybrid car model where the controller runs when the car is about to run a stop sign. The requirement to prove is that the car never runs the stop sign.".
+# Citation "Jan-David Quesel, Stefan Mitsch, Sarah Loos, Nikos Aréchiga, and André Platzer. How to model and prove hybrid systems with KeYmaera: A tutorial on safety. STTT, 18(1), pp. 67-91, 2016.".
+# Link "http://symbolaris.com/pub/KeYmaera-tutorial.pdf#page=10".
+
+pre [v >= 0] [A > 0] [B > 0] [x + v^2 / (2*B) < S];
+{
+  a := * (
+    (x+v^2/(2*B) < S && a == A) ||
+    (v == 0 && a == 0) ||
+    a == -B
+  );
+
+  {
+    t := * (t >= 0);
+    {x_dot = v, v_dot = a, t_dot = -1 &
+      t > 0 && v > 0 && x+v^2/(2*B) < S}
+  } 
+  ++ 
+  {
+    t := * (t >= 0);
+    {x_dot = v, v_dot = a, t_dot = -1 &
+      t > 0 && v > 0 && x+v^2/(2*B) > S}
+      invariant [false];
+  }
+}*
+  invariant [v >= 0] [x+v^2/(2*B) <= S];
+post [x <= S];
