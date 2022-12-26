@@ -4,7 +4,7 @@
 ## Usage
 * To run a test, we enter into the root and add an example path in ```Semantic_Stateflow/sf_isabelle_test.py``` and run:
 
-```python -m unittest Semantic_Stateflow.sf_isabelle_test```
+```python3 -m unittest Semantic_Stateflow.sf_isabelle_test```
 
 then check the result in ```Semactic_Stateflow/example_name.thy```
 
@@ -12,7 +12,7 @@ then check the result in ```Semactic_Stateflow/example_name.thy```
 
 * To get all translation files in one time, we can run:
 
-```python -m unittest Semantic_Stateflow.transform_test.py ```
+```python3 -m unittest Semantic_Stateflow.transform_test ```
 
 Here we give the matlab xml file and the corresponding json file in ```example_xml```, then we construct a content ```all_examples``` and all thy files in are put in this content. To check the results, you can execute the charts in Matlab and compare the outputs with the json files, then check the execution correctness in the corresponding thy files.
 
