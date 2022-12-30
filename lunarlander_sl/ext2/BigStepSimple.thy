@@ -23,7 +23,7 @@ datatype proc =
   Cm comm
 | Skip
 | Assign var exp             ("_ ::= _" [99,95] 94)
-| Seq proc proc           ("_; _" [91,90] 90)
+| Seq proc proc           ("_; _" [90,91] 90)
 | Cond fform proc proc        ("IF _ THEN _ ELSE _ FI" [95,94] 93)
 | Wait exp  \<comment> \<open>Waiting for a specified amount of time\<close>
 | IChoice proc proc  \<comment> \<open>Nondeterminism\<close>
@@ -212,9 +212,6 @@ definition Valid :: "assn \<Rightarrow> proc \<Rightarrow> assn \<Rightarrow> bo
 definition entails :: "assn \<Rightarrow> assn \<Rightarrow> bool" (infixr "\<Longrightarrow>\<^sub>A" 25) where
   "(P \<Longrightarrow>\<^sub>A Q) \<longleftrightarrow> (\<forall>s tr. P s tr \<longrightarrow> Q s tr)"
 
-definition entails2 :: "assn2 \<Rightarrow> assn2 \<Rightarrow> bool" (infixr "\<Longrightarrow>\<^sub>B" 25) where
-  "(P \<Longrightarrow>\<^sub>B Q) \<longleftrightarrow> (\<forall>s1 s2 tr. P s1 s2 tr \<longrightarrow> Q s1 s2 tr)"
-
 theorem entails_triv:
   "P \<Longrightarrow>\<^sub>A P"
   unfolding entails_def by auto
@@ -270,26 +267,52 @@ proof -
     using assms unfolding Valid_def by auto
 qed
 
+text \<open>State and trace satisfies P after receiving input\<close>
 definition wait_in :: "cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> assn) \<Rightarrow> assn" where
   "wait_in ch P = (\<lambda>s tr. (\<forall>v. P 0 v s (tr @ [InBlock ch v])) \<and>
                           (\<forall>d>0. \<forall>v. P d v s (tr @ [WaitBlk d (\<lambda>_. State s) ({}, {ch}), InBlock ch v])))"
 
-definition wait_in_c :: "cname \<Rightarrow> real \<Rightarrow> real \<Rightarrow> assn \<Rightarrow> assn" where
-  "wait_in_c ch d v Q = (\<lambda>s tr.
-    if d = 0 then \<exists>tr'. tr = tr' @ [InBlock ch v] \<and> Q s tr'
-    else \<exists>tr'. tr = tr' @ [WaitBlk d (\<lambda>_. State s) ({}, {ch}), InBlock ch v] \<and> Q s tr' \<and> 0 < d)"
+text \<open>Receive input, then state and trace satisfies P\<close>
+inductive wait_in_c :: "cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> state \<Rightarrow> assn) \<Rightarrow> state \<Rightarrow> assn" where
+  "P 0 v s0 s tr \<Longrightarrow> wait_in_c ch P s0 s (InBlock ch v # tr)"
+| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> wait_in_c ch P s0 s (WaitBlk d (\<lambda>_. State s0) ({}, {ch}) # InBlock ch v # tr)"
 
-lemma wait_in_mp:
-  fixes P :: "real \<Rightarrow> real \<Rightarrow> assn" and Q :: assn
-  assumes "Q \<Longrightarrow>\<^sub>A wait_in ch P"
-  shows "\<And>d v. wait_in_c ch d v Q \<Longrightarrow>\<^sub>A P d v"
-  using assms unfolding entails_def wait_in_def wait_in_c_def by auto
+definition init :: "state \<Rightarrow> assn" where
+  "init s0 = (\<lambda>s tr. s = s0 \<and> tr = [])"
 
-lemma wait_in_mp2:
-  fixes P :: "real \<Rightarrow> real \<Rightarrow> assn" and Q :: assn
-  assumes "\<And>d v. wait_in_c ch d v Q \<Longrightarrow>\<^sub>A P d v"
-  shows "Q \<Longrightarrow>\<^sub>A wait_in ch P"
-  using assms unfolding entails_def wait_in_def wait_in_c_def by auto
+definition spec_of :: "proc \<Rightarrow> (state \<Rightarrow> assn) \<Rightarrow> bool" where
+  "spec_of c Q \<longleftrightarrow> (\<forall>s0. \<Turnstile> {init s0} c {Q s0})"
+
+lemma spec_of_assign:
+  "spec_of (var ::= e) (\<lambda>s0 s tr. s = s0(var := e s0))"
+  unfolding Valid_def spec_of_def init_def
+  by (auto elim!: assignE)
+
+lemma Valid_assign_sp:
+  assumes "spec_of c Q"
+  shows "spec_of (var ::= e; c) (\<lambda>s0. Q (s0(var := e s0)))"
+  unfolding Valid_def spec_of_def
+  apply (auto elim!: seqE assignE)
+  using assms unfolding spec_of_def Valid_def init_def by auto
+
+lemma spec_of_receive:
+  "spec_of (Cm (ch[?]var)) (wait_in_c ch (\<lambda>d v s0. init (s0(var := v))))"
+  unfolding Valid_def spec_of_def init_def
+  apply (auto elim!: receiveE)
+   apply (rule wait_in_c.intros(1)) apply auto[1]
+  apply (rule wait_in_c.intros(2)) by auto
+
+lemma Valid_receive_sp:
+  assumes "spec_of c Q"
+  shows "spec_of (Cm (ch[?]var); c)
+                 (wait_in_c ch (\<lambda>d v s0. Q (s0(var := v))))"
+  unfolding Valid_def spec_of_def init_def
+  apply (auto elim!: seqE receiveE)
+  apply (rule wait_in_c.intros(1))
+  using Valid_def spec_of_def init_def assms apply auto[1]
+  apply (rule wait_in_c.intros(2)) apply auto[1]
+  using Valid_def spec_of_def init_def assms apply auto[1]
+  done
 
 theorem Valid_receive:
   "\<Turnstile> {wait_in ch (\<lambda>d v. P {var := (\<lambda>_. v)})}
@@ -301,6 +324,29 @@ theorem Valid_receive:
 definition wait_out :: "cname \<Rightarrow> (state \<Rightarrow> real) \<Rightarrow> (real \<Rightarrow> assn) \<Rightarrow> assn" where
   "wait_out ch e P = (\<lambda>s tr. (P 0 s (tr @ [OutBlock ch (e s)])) \<and>
                              (\<forall>d>0. P d s (tr @ [WaitBlk d (\<lambda>_. State s) ({ch}, {}), OutBlock ch (e s)])))"
+
+inductive wait_out_c :: "cname \<Rightarrow> (state \<Rightarrow> real) \<Rightarrow> (real \<Rightarrow> state \<Rightarrow> assn) \<Rightarrow> state \<Rightarrow> assn" where
+  "P 0 s0 s tr \<Longrightarrow> wait_out_c ch e P s0 s (OutBlock ch (e s0) # tr)"
+| "0 < d \<Longrightarrow> P d s0 s tr \<Longrightarrow> wait_out_c ch e P s0 s (WaitBlk d (\<lambda>_. State s0) ({ch}, {}) # OutBlock ch (e s0) # tr)"
+
+lemma spec_of_send:
+  "spec_of (Cm (ch[!]e)) (wait_out_c ch e (\<lambda>d. init))"
+  unfolding Valid_def spec_of_def init_def
+  apply (auto elim!: sendE)
+   apply (rule wait_out_c.intros(1)) apply auto[1]
+  apply (rule wait_out_c.intros(2)) by auto
+
+lemma Valid_send_sp:
+  assumes "spec_of c Q"
+  shows "spec_of (Cm (ch[!]e); c)
+                 (wait_out_c ch e (\<lambda>d s0. Q s0))"
+  unfolding Valid_def spec_of_def init_def
+  apply (auto elim!: seqE sendE)
+   apply (rule wait_out_c.intros(1))
+  using Valid_def spec_of_def init_def assms apply auto[1]
+  apply (rule wait_out_c.intros(2)) apply auto[1]
+  using Valid_def spec_of_def init_def assms apply auto[1]
+  done
 
 lemma wait_in_forall:
   "wait_in ch (\<lambda>d v. \<forall>\<^sub>a n. P d v n) = (\<forall>\<^sub>a n. wait_in ch (\<lambda>d v. P d v n))"
@@ -331,7 +377,7 @@ definition B :: char where "B = CHR ''b''"
 definition X :: char where "X = CHR ''x''"
 definition Y :: char where "Y = CHR ''y''"
 
-lemma ex1:
+lemma ex1a:
   "\<Turnstile> {wait_in ch1 (\<lambda>d v. (wait_out ch2 (\<lambda>s. s X + 1) (\<lambda>d. P)) {X := (\<lambda>_. v)})}
         Cm (ch1[?]X); Cm (ch2[!](\<lambda>s. s X + 1))
       {P}"
@@ -340,7 +386,28 @@ lemma ex1:
     apply (rule Valid_send)
    apply (rule Valid_receive)
   by (rule entails_triv)
- 
+
+lemma ex1a_sp:
+  "spec_of (Cm (ch1[?]X); Cm (ch2[!](\<lambda>s. s X + 1)))
+           (wait_in_c ch1 (\<lambda>d v s0. wait_out_c ch2 (\<lambda>s. s X + 1) (\<lambda>d. init) (s0(X := v))))"
+  apply (rule Valid_receive_sp)
+  apply (rule spec_of_send)
+  done
+
+lemma ex1b:
+  "\<Turnstile> {wait_out ch1 (\<lambda>_. 3) (\<lambda>d. P)}
+       Cm (ch1[!](\<lambda>_. 3))
+      {P}"
+  apply (rule strengthen_pre)
+   apply (rule Valid_send)
+  by (rule entails_triv)
+
+lemma ex2a_sp:
+  "spec_of (Cm (ch1[!](\<lambda>_. 3)))
+           (wait_out_c ch1 (\<lambda>_. 3) (\<lambda>d. init))"
+  apply (rule spec_of_send)
+  done
+
 fun rinv :: "nat \<Rightarrow> cname \<Rightarrow> assn \<Rightarrow> assn" where
   "rinv 0 ch Q = Q"
 | "rinv (Suc n) ch Q = wait_out ch (\<lambda>s. s A) (\<lambda>d. (rinv n ch Q) {B := (\<lambda>s. s B + 1)})"
@@ -409,6 +476,7 @@ lemma ex3:
   unfolding entails_def apply auto
   by (metis forall_assn_def linv.simps(1))
 
+
 subsection \<open>Combining two traces\<close>
 
 text \<open>Whether two rdy_infos from different processes are compatible.\<close>
@@ -473,6 +541,76 @@ inductive combine_blocks :: "cname set \<Rightarrow> trace \<Rightarrow> trace \
    combine_blocks comms (WaitBlk t1 (\<lambda>x::real. hist1 x) rdy1 # blks1)
                         (WaitBlk t2 (\<lambda>x::real. hist2 x) rdy2 # blks2)
                         (WaitBlk t2 hist rdy # blks)"
+
+text \<open>Definition of big-step for two processes\<close>
+definition par_big_step :: "proc \<Rightarrow> proc \<Rightarrow> cname set \<Rightarrow> state \<Rightarrow> state \<Rightarrow> trace \<Rightarrow> trace \<Rightarrow> state \<Rightarrow> state \<Rightarrow> bool" where
+  "par_big_step c1 c2 chs s11 s12 tr1 tr2 s21 s22 \<longleftrightarrow>
+     big_step c1 s11 tr1 s12 \<and>
+     big_step c2 s21 tr2 s22 \<and>
+     (\<exists>tr. combine_blocks chs tr1 tr2 tr)"
+
+text \<open>Definition of validity of Hoare triples for two processes\<close>
+definition ParValid :: "(state \<Rightarrow> state \<Rightarrow> bool) \<Rightarrow> proc \<Rightarrow> proc \<Rightarrow> cname set \<Rightarrow> (state \<Rightarrow> state \<Rightarrow> bool) \<Rightarrow> bool"
+      ("\<Turnstile>\<^sub>p ({(1_)}/ (_)/ (_)/ (_)/ {(1_)})" 50) where
+  "\<Turnstile>\<^sub>p {P} c1 c2 chs {Q} \<longleftrightarrow> (\<forall>s11 s12 s21 s22 tr1 tr2. P s11 s21 \<longrightarrow>
+      par_big_step c1 c2 chs s11 s12 tr1 tr2 s21 s22 \<longrightarrow> Q s12 s22)"
+
+definition entails2 :: "(state \<Rightarrow> state \<Rightarrow> bool) \<Rightarrow> (state \<Rightarrow> state \<Rightarrow> bool) \<Rightarrow> bool" (infixr "\<Longrightarrow>\<^sub>S" 25) where
+  "(P1 \<Longrightarrow>\<^sub>S P2) \<longleftrightarrow> (\<forall>s1 s2. P1 s1 s2 \<longrightarrow> P2 s1 s2)"
+
+lemma entails2_triv:
+  "P \<Longrightarrow>\<^sub>S P"
+  unfolding entails2_def by auto
+
+lemma ParValid_strengthen_pre:
+  assumes "\<Turnstile>\<^sub>p {P2} c1 c2 chs {Q}"
+    and "P1 \<Longrightarrow>\<^sub>S P2"
+  shows "\<Turnstile>\<^sub>p {P1} c1 c2 chs {Q}"
+  using assms unfolding ParValid_def entails2_def by metis
+
+definition combine_assn :: "(assn \<Rightarrow> assn) \<Rightarrow> (assn \<Rightarrow> assn) \<Rightarrow> cname set \<Rightarrow> (state \<Rightarrow> state \<Rightarrow> bool) \<Rightarrow> (state \<Rightarrow> state \<Rightarrow> bool)" where
+  "combine_assn f g chs Q =
+    (\<lambda>s11 s21. g (\<lambda>s22 tr2. f (\<lambda>s12 tr1. (\<exists>tr. combine_blocks chs tr1 tr2 tr) \<longrightarrow> Q s12 s22) s11 []) s21 [])"
+
+theorem ParValid_Parallel:
+  fixes f g :: "assn \<Rightarrow> assn"
+  assumes "\<And>P1. \<Turnstile> {f P1} c1 {P1}"
+    and "\<And>P2. \<Turnstile> {g P2} c2 {P2}"
+  shows "\<Turnstile>\<^sub>p {combine_assn f g chs Q} c1 c2 chs {Q}"
+proof -
+  have 1: "f P1 s11 [] \<Longrightarrow> big_step c1 s11 tr s12 \<Longrightarrow> P1 s12 tr" for P1 s11 tr s12
+    using assms(1) unfolding Valid_def
+    by (metis append_Nil)
+  have 2: "g P2 s21 [] \<Longrightarrow> big_step c2 s21 tr s22 \<Longrightarrow> P2 s22 tr" for P2 s21 tr s22
+    using assms(2) unfolding Valid_def
+    by (metis append_Nil)
+  have 3: "(\<exists>tr. combine_blocks chs tr1 tr2 tr) \<longrightarrow> Q s12 s22"
+    if "combine_assn f g chs Q s11 s21" "big_step c1 s11 tr1 s12" "big_step c2 s21 tr2 s22" for s11 s12 s21 s22 tr1 tr2 
+    apply (rule 1[OF _ that(2)])
+    apply (rule 2[OF _ that(3)])
+    using that(1) unfolding combine_assn_def by auto
+  then show ?thesis
+    unfolding ParValid_def par_big_step_def by metis
+qed
+
+
+subsection \<open>Examples of using ParValid_parallel\<close>
+
+lemma ex1:
+  "\<Turnstile>\<^sub>p {combine_assn
+          (\<lambda>P1. wait_in ch1 (\<lambda>d v. wait_out ch2 (\<lambda>s. s X + 1) (\<lambda>d. P1) {X := (\<lambda>_. v)}))
+          (\<lambda>P2. wait_out ch1 (\<lambda>_. 3) (\<lambda>d. P2))
+          {ch1}
+       P}
+        (Cm (ch1[?]X); Cm (ch2[!](\<lambda>s. s X + 1)))
+        (Cm (ch1[!](\<lambda>_. 3)))
+        {ch1}
+      {P}"
+  apply (rule ParValid_strengthen_pre)
+  apply (rule ParValid_Parallel)
+   apply (rule ex1a)
+   apply (rule ex1b)
+  by (rule entails2_triv)
 
 
 subsection \<open>Basic elimination rules\<close>
@@ -681,32 +819,20 @@ lemma combine_blocks_emptyE3' [sync_elims]:
 
 
 text \<open>Synchronization of two assertions\<close>
-definition combine_assn :: "cname set \<Rightarrow> assn \<Rightarrow> assn \<Rightarrow> (state \<Rightarrow> state \<Rightarrow> trace \<Rightarrow> bool)" where
-  "combine_assn chs P Q = (\<lambda>s1 s2 tr. \<exists>tr1 tr2. P s1 tr1 \<and> Q s2 tr2 \<and> combine_blocks chs tr1 tr2 tr)"
 
-theorem combine_assn_conj1:
-  "combine_assn chs P1 Q s1 s2 tr \<Longrightarrow> combine_assn chs P2 Q s1 s2 tr \<Longrightarrow>
-   combine_assn chs (\<lambda>s tr. P1 s tr \<and> P2 s tr) Q s1 s2 tr"
-  unfolding combine_assn_def sorry
+lemma combine_assn_emp:
+  "Q \<Longrightarrow>\<^sub>S combine_assn (\<lambda>P1. P1) (\<lambda>P2. P2) chs Q"
+  unfolding combine_assn_def entails2_def by auto
 
-theorem combine_in_out:
-  fixes P :: "real \<Rightarrow> real \<Rightarrow> assn"
-    and Q :: "real \<Rightarrow> assn"
+theorem combine_assn_in_out:
+  fixes Q :: "state \<Rightarrow> state \<Rightarrow> bool"
     and e :: "state \<Rightarrow> real"
+    and f :: "assn \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> assn)"
+    and g :: "assn \<Rightarrow> (real \<Rightarrow> assn)"
   assumes "ch \<in> chs"
-  shows "combine_assn chs (\<lambda>s. P 0 (e s) s) (Q 0) \<Longrightarrow>\<^sub>B
-         combine_assn chs (wait_in ch P) (wait_out ch e Q)"
-  unfolding entails2_def wait_in_def wait_out_def
-  unfolding combine_assn_def apply auto
-  subgoal for s1 s2 tr tr1 tr2
-    apply (rule exI[where x=tr1])
-    apply auto
+  shows "combine_assn (\<lambda>P1. f2 P1) (\<lambda>P2. g2 P2) chs Q \<Longrightarrow>\<^sub>S
+         combine_assn (\<lambda>P1. wait_in ch (f P1)) (\<lambda>P2. wait_out ch e (g P2)) chs Q"
+  unfolding entails2_def combine_assn_def wait_in_def wait_out_def apply auto
+  sorry  
 
-(*
- combine_assn chs
-  (\<lambda>s tr.
-      (\<forall>v. P 0 v s (tr @ [InBlock ch v])))
-  (\<lambda>s tr.
-      Q 0 s (tr @ [OutBlock ch (e s)]))
-  s1 s2 tr
-*)
+end
