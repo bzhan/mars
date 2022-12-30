@@ -23,7 +23,7 @@ datatype proc =
   Cm comm
 | Skip
 | Assign var exp             ("_ ::= _" [99,95] 94)
-| Seq proc proc           ("_; _" [90,91] 90)
+| Seq proc proc           ("_; _" [91,90] 90)
 | Cond fform proc proc        ("IF _ THEN _ ELSE _ FI" [95,94] 93)
 | Wait exp  \<comment> \<open>Waiting for a specified amount of time\<close>
 | IChoice proc proc  \<comment> \<open>Nondeterminism\<close>
@@ -222,6 +222,9 @@ definition subst_assn :: "assn \<Rightarrow> var \<Rightarrow> (state \<Rightarr
 definition forall_assn :: "('a \<Rightarrow> assn) \<Rightarrow> assn" (binder "\<forall>\<^sub>a" 10)where
   "(\<forall>\<^sub>a n. P n) = (\<lambda>s tr. \<forall>n. P n s tr)"
 
+definition exists_assn :: "('a \<Rightarrow> assn) \<Rightarrow> assn" (binder "\<exists>\<^sub>a" 10)where
+  "(\<exists>\<^sub>a n. P n) = (\<lambda>s tr. \<exists>n. P n s tr)"
+
 definition pure_assn :: "bool \<Rightarrow> tassn" ("\<up>") where
   "\<up>b = (\<lambda>_. b)"
 
@@ -358,6 +361,62 @@ lemma wait_out_forall:
   unfolding wait_out_def forall_assn_def
   apply (rule ext) apply (rule ext) by auto
 
+lemma wait_in_c_exists:
+  "wait_in_c ch (\<lambda>d v s0. \<exists>\<^sub>a n. P d v s0 n) s0 = (\<exists>\<^sub>a n. wait_in_c ch (\<lambda>d v s0. P d v s0 n) s0)"
+  apply (rule ext) apply (rule ext)
+  subgoal for s tr
+    apply (rule iffI)
+    subgoal unfolding exists_assn_def
+      apply (induct rule: wait_in_c.cases) apply auto
+      subgoal for v tr' n
+        apply (rule exI[where x=n])
+        apply (rule wait_in_c.intros(1)) by auto
+      subgoal for d v tr' n
+        apply (rule exI[where x=n])
+        apply (rule wait_in_c.intros(2)) by auto
+      done
+    subgoal unfolding exists_assn_def
+      apply auto subgoal for n
+        apply (induction rule: wait_in_c.cases) apply auto
+        subgoal for v tr'
+          apply (rule wait_in_c.intros(1))
+          apply (rule exI[where x=n]) by auto
+        subgoal for d v tr'
+          apply (rule wait_in_c.intros(2))
+           apply simp apply (rule exI[where x=n]) by auto
+        done
+      done
+    done
+  done
+
+lemma wait_out_c_exists:
+  "wait_out_c ch e (\<lambda>d s0. \<exists>\<^sub>a n. P d s0 n) s0 = (\<exists>\<^sub>a n. wait_out_c ch e (\<lambda>d s0. P d s0 n) s0)"
+  apply (rule ext) apply (rule ext)
+  subgoal for s tr
+    apply (rule iffI)
+    subgoal unfolding exists_assn_def
+      apply (induct rule: wait_out_c.cases) apply auto
+      subgoal for tr' n
+        apply (rule exI[where x=n])
+        apply (rule wait_out_c.intros(1)) by auto
+      subgoal for d tr' n
+        apply (rule exI[where x=n])
+        apply (rule wait_out_c.intros(2)) by auto
+      done
+    subgoal unfolding exists_assn_def
+      apply auto subgoal for n
+        apply (induction rule: wait_out_c.cases) apply auto
+        subgoal for tr'
+          apply (rule wait_out_c.intros(1))
+          apply (rule exI[where x=n]) by auto
+        subgoal for d tr'
+          apply (rule wait_out_c.intros(2))
+           apply simp apply (rule exI[where x=n]) by auto
+        done
+      done
+    done
+  done
+
 lemma subst_forall:
   "(\<forall>\<^sub>a n. P n) {var := e} = (\<forall>\<^sub>a n. P n {var := e})"
   unfolding subst_assn_def forall_assn_def
@@ -413,6 +472,10 @@ fun rinv :: "nat \<Rightarrow> cname \<Rightarrow> assn \<Rightarrow> assn" wher
 | "rinv (Suc n) ch Q = wait_out ch (\<lambda>s. s A) (\<lambda>d. (rinv n ch Q) {B := (\<lambda>s. s B + 1)})"
 declare rinv.simps [simp del]
 
+fun rinv_c :: "nat \<Rightarrow> cname \<Rightarrow> (state \<Rightarrow> assn) \<Rightarrow> (state \<Rightarrow> assn)" where
+  "rinv_c 0 ch Q = Q"
+| "rinv_c (Suc n) ch Q = wait_out_c ch (\<lambda>s. s A) (\<lambda>d s0. rinv_c n ch Q (s0(B := s0 B + 1)))"
+
 lemma ex2':
   "\<Turnstile> {\<forall>\<^sub>a n. rinv n ch1 Q}
         Cm (ch1[!](\<lambda>s. s A)); B ::= (\<lambda>s. s B + 1)
@@ -441,6 +504,72 @@ lemma ex2:
    apply (rule ex2')
   unfolding entails_def apply auto
   by (metis forall_assn_def rinv.simps(1))
+
+lemma spec_of_post:
+  "spec_of c Q1 \<Longrightarrow> \<forall>s0. Q1 s0 \<Longrightarrow>\<^sub>A Q2 s0 \<Longrightarrow> spec_of c Q2"
+  unfolding spec_of_def using weaken_post by blast
+
+lemma entails_exists:
+  assumes "\<exists>n. P \<Longrightarrow>\<^sub>A Q n"
+  shows "P \<Longrightarrow>\<^sub>A (\<exists>\<^sub>a n. Q n)"
+  using assms unfolding exists_assn_def entails_def
+  by auto
+
+lemma spec_of_rep:
+  assumes "spec_of (Rep c) Q \<Longrightarrow> spec_of (c; Rep c) Q"
+    and "\<forall>s0. init s0 \<Longrightarrow>\<^sub>A Q s0"
+  shows "spec_of (Rep c) Q"
+  using assms unfolding spec_of_def
+proof -
+  have "big_step p s1 tr2 s2 \<Longrightarrow> p = Rep c \<Longrightarrow> init s0 s1 tr1 \<Longrightarrow> Q s0 s2 (tr1 @ tr2)" for p s0 s1 tr1 tr2 s2
+    apply (induct rule: big_step.induct, auto)
+    using assms(2) unfolding entails_def apply auto[1]
+    sorry
+  show "\<forall>s0. \<Turnstile> {init s0} Rep c {Q s0}"
+    sorry
+qed
+
+lemma big_step_seq_assoc:
+  "big_step ((p1; p2); p3) s1 tr s2 \<longleftrightarrow> big_step (p1; p2; p3) s1 tr s2"
+  apply (rule iffI)
+  subgoal apply (elim seqE)
+    apply auto apply (rule seqB) apply auto
+    apply (rule seqB) by auto
+  subgoal apply (elim seqE)
+    apply auto apply (subst append.assoc[symmetric])
+    apply (rule seqB) apply (rule seqB) by auto
+  done
+
+lemma spec_of_seq_assoc:
+  "spec_of ((p1; p2); p3) Q \<longleftrightarrow> spec_of (p1; p2; p3) Q"
+  unfolding spec_of_def Valid_def
+  using big_step_seq_assoc by auto
+
+lemma ex2_c':
+  assumes "spec_of (Rep (Cm (ch1[!](\<lambda>s. s A)); B ::= (\<lambda>s. s B + 1)))
+              (\<lambda>s0. \<exists>\<^sub>a n. rinv_c n ch1 init s0)"
+  shows "spec_of (Cm (ch1[!](\<lambda>s. s A)); B ::= (\<lambda>s. s B + 1);
+                  Rep (Cm (ch1[!](\<lambda>s. s A)); B ::= (\<lambda>s. s B + 1)))
+            (\<lambda>s0. \<exists>\<^sub>a n. rinv_c n ch1 init s0)"
+  apply (rule spec_of_post)
+   apply (rule Valid_send_sp)
+   apply (rule Valid_assign_sp)
+   apply (rule assms) apply clarify
+  subgoal for s0
+    apply (subst wait_out_c_exists)
+    unfolding exists_assn_def entails_def
+    apply auto subgoal for s tr n
+      apply (rule exI[where x="Suc n"])
+      unfolding rinv_c.simps by auto
+    done
+  done
+
+lemma ex2_c:
+  "spec_of (Rep (Cm (ch1[!](\<lambda>s. s A)); B ::= (\<lambda>s. s B + 1)))
+           (\<lambda>s0. \<exists>\<^sub>a n. rinv_c n ch1 init s0)"
+  apply (rule spec_of_rep)
+  apply (subst spec_of_seq_assoc)
+  using ex2_c' by auto
 
 fun linv :: "nat \<Rightarrow> cname \<Rightarrow> assn \<Rightarrow> assn" where
   "linv 0 ch Q = Q"
