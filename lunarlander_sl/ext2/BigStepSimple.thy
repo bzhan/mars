@@ -298,6 +298,11 @@ lemma Valid_assign_sp:
   apply (auto elim!: seqE assignE)
   using assms unfolding spec_of_def Valid_def init_def by auto
 
+lemma spec_of_skip:
+  "spec_of Skip init"
+  unfolding Valid_def spec_of_def
+  by (auto elim: skipE)
+
 lemma spec_of_receive:
   "spec_of (Cm (ch[?]var)) (wait_in_c ch (\<lambda>d v s0. init (s0(var := v))))"
   unfolding Valid_def spec_of_def init_def
@@ -515,18 +520,28 @@ lemma entails_exists:
   using assms unfolding exists_assn_def entails_def
   by auto
 
-lemma spec_of_rep:
-  assumes "spec_of (Rep c) Q \<Longrightarrow> spec_of (c; Rep c) Q"
-    and "\<forall>s0. init s0 \<Longrightarrow>\<^sub>A Q s0"
-  shows "spec_of (Rep c) Q"
-  using assms unfolding spec_of_def
+fun RepN :: "nat \<Rightarrow> proc \<Rightarrow> proc" where
+  "RepN 0 c = Skip"
+| "RepN (Suc n) c = c; RepN n c"
+
+lemma big_step_rep:
+  "big_step (Rep c) s1 tr1 s2 \<longleftrightarrow> (\<exists>n. big_step (RepN n c) s1 tr1 s2)"
 proof -
-  have "big_step p s1 tr2 s2 \<Longrightarrow> p = Rep c \<Longrightarrow> init s0 s1 tr1 \<Longrightarrow> Q s0 s2 (tr1 @ tr2)" for p s0 s1 tr1 tr2 s2
-    apply (induct rule: big_step.induct, auto)
-    using assms(2) unfolding entails_def apply auto[1]
-    sorry
-  show "\<forall>s0. \<Turnstile> {init s0} Rep c {Q s0}"
-    sorry
+  have "big_step p s1 tr1 s2 \<Longrightarrow> p = Rep c \<Longrightarrow> \<exists>n. big_step (RepN n c) s1 tr1 s2" for p s1 tr1 s2
+    apply (induction rule: big_step.induct, auto)
+     apply (rule exI[where x=0])
+    apply simp apply (rule skipB)
+    subgoal for s1 tr1 s2 tr2 s3 n
+      apply (rule exI[where x="Suc n"])
+      apply simp apply (rule seqB) by auto
+    done
+  moreover have "\<And>s1 tr1 s2. big_step (RepN n c) s1 tr1 s2 \<Longrightarrow> big_step (Rep c) s1 tr1 s2" for n
+    apply (induction n)
+     apply simp apply (elim skipE) apply (auto intro: RepetitionB1)[1]
+    apply simp apply (elim seqE) apply (auto intro: RepetitionB2)
+    done
+  ultimately show ?thesis
+    by auto
 qed
 
 lemma big_step_seq_assoc:
@@ -545,31 +560,31 @@ lemma spec_of_seq_assoc:
   unfolding spec_of_def Valid_def
   using big_step_seq_assoc by auto
 
+lemma spec_of_rep:
+  assumes "\<And>n. spec_of (RepN n c) (Q n)"
+  shows "spec_of (Rep c) (\<lambda>s0. \<exists>\<^sub>a n. Q n s0)"
+  using assms unfolding spec_of_def Valid_def big_step_rep exists_assn_def
+  by blast
+
 lemma ex2_c':
-  assumes "spec_of (Rep (Cm (ch1[!](\<lambda>s. s A)); B ::= (\<lambda>s. s B + 1)))
-              (\<lambda>s0. \<exists>\<^sub>a n. rinv_c n ch1 init s0)"
-  shows "spec_of (Cm (ch1[!](\<lambda>s. s A)); B ::= (\<lambda>s. s B + 1);
-                  Rep (Cm (ch1[!](\<lambda>s. s A)); B ::= (\<lambda>s. s B + 1)))
-            (\<lambda>s0. \<exists>\<^sub>a n. rinv_c n ch1 init s0)"
-  apply (rule spec_of_post)
+  "spec_of (RepN n (Cm (ch1[!](\<lambda>s. s A)); B ::= (\<lambda>s. s B + 1)))
+           (rinv_c n ch1 init)"
+  apply (induction n)
+  apply simp apply (rule spec_of_skip)
+  subgoal premises pre for n
+    apply simp apply (rule spec_of_post)
+    apply (subst spec_of_seq_assoc)
    apply (rule Valid_send_sp)
    apply (rule Valid_assign_sp)
-   apply (rule assms) apply clarify
-  subgoal for s0
-    apply (subst wait_out_c_exists)
-    unfolding exists_assn_def entails_def
-    apply auto subgoal for s tr n
-      apply (rule exI[where x="Suc n"])
-      unfolding rinv_c.simps by auto
-    done
+     apply (rule pre) apply clarify
+    by (rule entails_triv)
   done
 
 lemma ex2_c:
   "spec_of (Rep (Cm (ch1[!](\<lambda>s. s A)); B ::= (\<lambda>s. s B + 1)))
-           (\<lambda>s0. \<exists>\<^sub>a n. rinv_c n ch1 init s0)"
+           (\<lambda>s0. \<exists>\<^sub>an. rinv_c n ch1 init s0)"
   apply (rule spec_of_rep)
-  apply (subst spec_of_seq_assoc)
-  using ex2_c' by auto
+  by (rule ex2_c')
 
 fun linv :: "nat \<Rightarrow> cname \<Rightarrow> assn \<Rightarrow> assn" where
   "linv 0 ch Q = Q"
