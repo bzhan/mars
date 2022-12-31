@@ -734,9 +734,11 @@ inductive wait_in_assn :: "real \<Rightarrow> 'a \<Rightarrow> (real \<Rightarro
   "WaitIn\<^sub>t 0 a p ch v rdy [InBlock ch v]"
 | "d > 0 \<Longrightarrow> WaitIn\<^sub>t d a p ch v rdy [WaitBlk d (\<lambda>\<tau>. EState (a,p \<tau>)) rdy, InBlock ch v]"
 
+
 inductive wait_out_assn :: "real \<Rightarrow> 'a \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> cname \<Rightarrow> 'a ext_exp \<Rightarrow> rdy_info \<Rightarrow> 'a tassn" ("WaitOut\<^sub>t") where
   "WaitOut\<^sub>t 0 a p ch e rdy [OutBlock ch (e (a,p 0))]"
 | "d > 0 \<Longrightarrow> WaitOut\<^sub>t d a p ch e rdy [WaitBlk d (\<lambda>\<tau>. EState (a,p \<tau>)) rdy, OutBlock ch (e (a,p d))]"
+
 
 theorem Valid_ode_out_unique_solution_aux:
   assumes
@@ -785,6 +787,7 @@ proof -
       done
     done
 qed
+
 
 theorem Valid_ode_rdy_unique_solution_aux:
   assumes
@@ -858,5 +861,7 @@ proof -
     apply (auto simp add: entails_def join_assn_def)
     using ** by metis
 qed
+
+
 
 end

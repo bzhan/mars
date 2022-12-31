@@ -642,10 +642,32 @@ theorem Valid_assign_sp:
     by auto
   done
 
+theorem Valid_assign_sp1:
+  "\<Turnstile> {\<lambda>s t. P s t}
+       Assign var e
+      {\<lambda>s t. \<exists>x. (snd s) var = e (fst s,(snd s)(var := x)) \<and> P (fst s,(snd s)(var := x)) t}"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_assign)
+  apply (auto simp add: entails_def)
+  subgoal for a s tr
+    apply (rule exI[where x="s var"])
+    by auto
+  done
+
+
 theorem Valid_basic_sp:
   "\<Turnstile> {\<lambda>(a,s) t. P (a,s) t}
        Basic f
       {\<lambda>(a,s) t. \<exists>x. a = f x s \<and> P (x,s) t}"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_basic)
+  by (auto simp add: entails_def)
+
+
+theorem Valid_basic_sp1:
+  "\<Turnstile> {\<lambda>s t. P s t}
+       Basic f
+      {\<lambda>s t. \<exists>x. fst s = f x (snd s) \<and> P (x,snd s) t}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_basic)
   by (auto simp add: entails_def)
@@ -684,6 +706,14 @@ theorem Valid_wait_sp:
   "\<Turnstile> {\<lambda>s t. P s t}
       Wait e
      {\<lambda>s t. (P s @\<^sub>t (if e s > 0 then Wait\<^sub>t (e s) (\<lambda>_. EState s) ({}, {}) else emp\<^sub>t)) t}"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_wait')
+  by (auto simp add: entails_def join_assn_def magic_wand_assn_def emp_assn_def)
+
+theorem Valid_wait_sp1:
+  "\<Turnstile> {\<lambda>s t. P s t}
+      Wait e
+     {\<lambda>s t. (P s @\<^sub>t Wait\<^sub>t (e s) (\<lambda>_. EState s) ({}, {}) ) t}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_wait')
   by (auto simp add: entails_def join_assn_def magic_wand_assn_def emp_assn_def)
@@ -983,6 +1013,11 @@ theorem Valid_echoice_InIn_sp:
   apply (rule InIn_lemma)
   using assms apply (auto simp add: Valid_def) by blast+
 
-
+theorem Valid_False:
+ "\<Turnstile> {\<lambda> s t. False}
+      P
+     {\<lambda> s t. False}"
+  unfolding Valid_def
+  by auto
 end
 
