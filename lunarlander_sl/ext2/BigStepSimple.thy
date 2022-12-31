@@ -586,6 +586,10 @@ lemma entails_g_triv:
   "P \<Longrightarrow>\<^sub>g P"
   unfolding entails_g_def by auto
 
+lemma entails_g_trans:
+  "P \<Longrightarrow>\<^sub>g Q \<Longrightarrow> Q \<Longrightarrow>\<^sub>g R \<Longrightarrow> P \<Longrightarrow>\<^sub>g R"
+  unfolding entails_g_def by auto
+
 definition ParValid :: "gs_assn \<Rightarrow> pproc \<Rightarrow> gassn \<Rightarrow> bool" ("\<Turnstile>\<^sub>p ({(1_)}/ (_)/ {(1_)})" 50) where
   "\<Turnstile>\<^sub>p {P} c {Q} \<longleftrightarrow> (\<forall>s1 s2 tr2. P s1 \<longrightarrow> par_big_step c s1 tr2 s2 \<longrightarrow> Q s2 tr2)"
 
@@ -594,6 +598,10 @@ definition init_global :: "gstate \<Rightarrow> gs_assn" where
 
 definition init_par :: "gstate \<Rightarrow> gassn" where
   "init_par s0 = (\<lambda>s tr. s = s0)"
+
+fun init_single :: "gstate \<Rightarrow> gassn" where
+  "init_single (State s0) = (\<lambda>s tr. s = State s0 \<and> tr = [])"
+| "init_single (ParState s1 s2) = (\<lambda>s tr. False)"
 
 lemma init_global_parallel:
   "init_global s0 (ParState s1 s2) \<Longrightarrow>
@@ -741,16 +749,31 @@ lemma single_assn_subst2:
     done
   done
 
+lemma single_assn_init:
+  "single_assn init = init_single"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s0 s tr
+    apply (rule iffI)
+    subgoal apply (elim single_assn.cases)
+      by (auto simp add: init_def)
+    subgoal apply (cases s0)
+      apply auto
+      apply (rule single_assn.intros)
+      by (auto simp add: init_def)
+    done
+  done
+
 lemma ex1':
   "spec_of_global
     (Parallel (Single (Cm (ch1[?]X); Cm (ch2[!](\<lambda>s. s X + 1)))) {ch1}
               (Single (Cm (ch1[!](\<lambda>_. 3)))))
     (sync_gassn {ch1}
-      (wait_in_cg ch1 (\<lambda>d v. wait_out_cg ch2 (single_expr (\<lambda>s. s X + 1)) (\<lambda>d. single_assn init) {{X := (\<lambda>_. v)}}\<^sub>g ))
-      (wait_out_cg ch1 (single_expr (\<lambda>_. 3)) (\<lambda>d. single_assn init)))"
+      (wait_in_cg ch1 (\<lambda>d v. wait_out_cg ch2 (single_expr (\<lambda>s. s X + 1)) (\<lambda>d. init_single) {{X := (\<lambda>_. v)}}\<^sub>g ))
+      (wait_out_cg ch1 (single_expr (\<lambda>_. 3)) (\<lambda>d. init_single)))"
   apply (rule spec_of_global_post)
    apply (rule ex1) apply clarify subgoal for s0
-    apply (auto simp: single_assn_wait_in single_assn_wait_out single_assn_subst2)
+    apply (auto simp: single_assn_wait_in single_assn_wait_out single_assn_subst2
+                      single_assn_init)
     by (rule entails_g_triv)
   done
 
@@ -959,6 +982,120 @@ lemma combine_blocks_emptyE3' [sync_elims]:
   by (induct rule: combine_blocks.cases, auto)
 
 
-text \<open>Synchronization of two assertions\<close>
+subsection \<open>Synchronization of two assertions\<close>
+
+lemma sync_gassn_out_in:
+  "ch \<in> chs \<Longrightarrow>
+   sync_gassn chs (wait_in_cg ch P) (wait_out_cg ch e Q) (ParState s1 s2) \<Longrightarrow>\<^sub>g
+   sync_gassn chs (P 0 (e s2)) (Q 0) (ParState s1 s2)"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases) apply auto
+    subgoal for s12 tr1 s22 tr2
+      apply (elim wait_in_cg.cases) apply auto
+      subgoal for v tr1'
+        apply (elim wait_out_cg.cases) apply auto
+        subgoal for tr2'
+          apply (elim combine_blocks_pairE)
+            apply auto
+          apply (rule sync_gassn.intros) by auto
+        subgoal for d tr2'
+          apply (elim sync_elims) by auto
+        done
+      subgoal for d v tr1'
+        apply (elim wait_out_cg.cases) apply auto
+        by (auto elim!: sync_elims)
+      done
+    done
+  done
+
+fun left :: "gstate \<Rightarrow> gstate" where
+  "left (ParState s1 s2) = s1"
+| "left (State s) = undefined"
+
+lemma sync_gassn_out_emp:
+  "ch \<notin> chs \<Longrightarrow>
+   sync_gassn chs (wait_out_cg ch e Q) init_single (ParState s1 s2) \<Longrightarrow>\<^sub>g
+   wait_out_cg ch (\<lambda>s. e (left s)) (\<lambda>d. sync_gassn chs (Q d) init_single) (ParState s1 s2)"
+proof -
+  have 1: "(\<lambda>s. e (left s)) (ParState s1 s2') = e s1" for s2'
+    by auto
+  show ?thesis
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases) apply auto
+    subgoal for s12 tr1 s22 tr2
+      apply (elim wait_out_cg.cases) apply auto
+      subgoal for tr1'
+        apply (cases s2) apply auto subgoal for s2'
+          apply (elim sync_elims)
+          subgoal for tr2' apply auto
+            subgoal premises pre
+              apply (subst 1[symmetric])
+              apply (rule wait_out_cg.intros)
+              apply (rule sync_gassn.intros)
+              using pre by auto
+            done
+          done
+        done
+      subgoal for d tr1'
+        apply (cases s2) apply auto subgoal for s2'
+          by (elim sync_elims)
+        done
+      done
+    done
+  done
+qed
+
+fun left_subst :: "gstate \<Rightarrow> var \<Rightarrow> (state \<Rightarrow> real) \<Rightarrow> gstate" where
+  "left_subst (State s) var e = State s"
+| "left_subst (ParState s1 s2) var e = ParState (single_subst s1 var e) s2"
+
+definition single_subst_assn_left :: "(gstate \<Rightarrow> gassn) \<Rightarrow> var \<Rightarrow> (state \<Rightarrow> real) \<Rightarrow> (gstate \<Rightarrow> gassn)"
+  ("_ {{_ := _}}\<^sub>l" [90,90,90] 91) where
+  "P {{var := e}}\<^sub>l = (\<lambda>s0. P (left_subst s0 var e))"
+
+lemma sync_gassn_subst_left:
+  "sync_gassn chs (P {{ var := e }}\<^sub>g) Q (ParState s1 s2) \<Longrightarrow>\<^sub>g
+   (sync_gassn chs P Q {{ var := e }}\<^sub>l) (ParState s1 s2)"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    unfolding single_subst_assn_left_def single_subst_assn2_def
+    apply (elim sync_gassn.cases) apply auto
+    subgoal for s12 tr1 s22 tr2
+      apply (rule sync_gassn.intros) by auto
+    done
+  done
+
+lemma sync_gassn_par:
+  assumes "(\<And>s1 s2. sync_gassn chs P Q (ParState s1 s2) \<Longrightarrow>\<^sub>g R (ParState s1 s2))"
+  shows "sync_gassn chs P Q s0 \<Longrightarrow>\<^sub>g R s0"
+  using assms unfolding entails_g_def
+  apply auto apply (elim sync_gassn.cases)
+  by (auto simp add: sync_gassn.intros)
+
+lemma entails_g_subst_left:
+  assumes "P (left_subst s0 var e) \<Longrightarrow>\<^sub>g Q (left_subst s0 var e)"
+  shows "(P {{ var := e }}\<^sub>l) s0 \<Longrightarrow>\<^sub>g (Q {{ var := e }}\<^sub>l) s0"
+  unfolding entails_g_def single_subst_assn_left_def
+  apply auto using assms unfolding entails_g_def by auto
+
+lemma ex1'':
+  "spec_of_global
+    (Parallel (Single (Cm (ch1[?]X); Cm (ch2[!](\<lambda>s. s X + 1)))) {ch1}
+              (Single (Cm (ch1[!](\<lambda>_. 3)))))
+    (Q)"
+  apply (rule spec_of_global_post)
+   apply (rule ex1') apply auto subgoal for s0
+  apply (rule sync_gassn_par) subgoal for s1 s2
+    apply (rule entails_g_trans)
+      apply (rule sync_gassn_out_in) apply simp
+      apply (rule entails_g_trans)
+       apply (rule sync_gassn_subst_left)
+      apply (rule entails_g_trans)
+       apply (rule entails_g_subst_left)
+      apply (rule sync_gassn_out_emp)
+
+
 
 end
