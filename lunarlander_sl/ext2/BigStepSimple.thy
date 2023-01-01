@@ -1125,18 +1125,59 @@ lemma sync_gassn_subst_left:
     done
   done
 
+lemma sync_gassn_emp:
+  assumes "pns = pns1 \<union> pns2"
+  shows "sync_gassn chs pns1 pns2 (init_single pns1) (init_single pns2) s0 \<Longrightarrow>\<^sub>g
+         init_single pns s0"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases) apply auto
+    subgoal for s11 s12 s21 s22 tr1 tr2
+      apply (elim init_single.cases) apply auto
+      apply (frule combine_blocks_emptyE1) apply auto
+      apply (rule init_single.intros)
+      by (auto simp add: assms proc_set_merge)
+    done
+  done
+
+lemma gassn_subst:
+  "(P {{ var := e }}\<^sub>g at pn) s0 \<Longrightarrow>\<^sub>g P (single_subst pn s0 var e)"
+  unfolding entails_g_def
+  by (auto simp add: single_subst_assn2_def)
+
+lemma wait_out_cg_entails:
+  assumes "\<And>d s0. P d s0 \<Longrightarrow>\<^sub>g Q d s0"
+  shows "wait_out_cg ch pn e P s0 \<Longrightarrow>\<^sub>g wait_out_cg ch pn e Q s0"
+  apply (auto simp add: entails_g_def)
+  subgoal for s tr
+    apply (elim wait_out_cg.cases) apply auto
+    subgoal apply (rule wait_out_cg.intros)
+      using assms unfolding entails_g_def by auto
+    subgoal apply (rule wait_out_cg.intros)
+      using assms unfolding entails_g_def by auto
+    done
+  done
+
 lemma ex1'':
   "spec_of_global
-    (Parallel (Single ''a'' (Cm (ch1[?]X); Cm (ch2[!](\<lambda>s. s X + 1)))) {ch1}
-              (Single ''b'' (Cm (ch1[!](\<lambda>_. 3)))))
-    (Q)"
+    (Parallel (Single ''a'' (Cm (''ch1''[?]X); Cm (''ch2''[!](\<lambda>s. s X + 1)))) {''ch1''}
+              (Single ''b'' (Cm (''ch1''[!](\<lambda>_. 3)))))
+    (\<lambda>s0. wait_out_cg ''ch2'' ''a'' (\<lambda>s. s X + 1) (\<lambda>d. init_single {''a'', ''b''})
+          (single_subst ''a'' s0 X (\<lambda>_. 3)))"
   apply (rule spec_of_global_post)
    apply (rule ex1') apply auto subgoal for s0
     apply (rule entails_g_trans)
       apply (rule sync_gassn_out_in) apply auto
       apply (rule entails_g_trans)
        apply (rule sync_gassn_subst_left) apply simp
-      apply (rule entails_g_trans)
-
+    apply (rule entails_g_trans)
+     apply (rule gassn_subst)
+    apply (rule entails_g_trans)
+     apply (rule sync_gassn_out_emp) apply auto
+    apply (rule wait_out_cg_entails)
+    subgoal for d s0
+      apply (rule sync_gassn_emp) by auto
+    done
+  done
 
 end
