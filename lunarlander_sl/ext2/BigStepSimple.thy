@@ -1300,4 +1300,77 @@ proof -
     done
 qed
 
+lemma ex3':
+  assumes "the (s0 ''b'') Y = the (s0 ''a'') A * the (s0 ''a'') B"
+  shows
+  "\<exists>s1. (the (s1 ''b'') Y = the (s1 ''a'') A * the (s1 ''a'') B) \<and>
+   (sync_gassn {''ch1''} {''a''} {''b''}
+     (single_assn ''a'' (rinv_c (Suc n) ''ch1'' init))
+     (single_assn ''b'' (linv_c (Suc n) ''ch1'' init)) s0 \<Longrightarrow>\<^sub>g
+    sync_gassn {''ch1''} {''a''} {''b''}
+     (single_assn ''a'' (rinv_c n ''ch1'' init))
+     (single_assn ''b'' (linv_c n ''ch1'' init)) s1)"
+proof -
+  have eq1: "single_subst ''a'' (single_subst ''b'' s0 X (the (s0 ''a'') A)) B
+              (the (single_subst ''b'' s0 X (the (s0 ''a'') A) ''a'') B + 1) =
+             single_subst ''a'' (single_subst ''b'' s0 X (the (s0 ''a'') A)) B (the (s0 ''a'') B + 1)"
+    unfolding single_subst_def
+    by (simp add: A_def B_def X_def)
+  have eq2: "(single_subst ''b'' (single_subst ''a'' (single_subst ''b'' s0 X (the (s0 ''a'') A)) B (the (s0 ''a'') B + 1)) Y
+               (the (single_subst ''a'' (single_subst ''b'' s0 X (the (s0 ''a'') A)) B (the (s0 ''a'') B + 1) ''b'') Y +
+               the (single_subst ''a'' (single_subst ''b'' s0 X (the (s0 ''a'') A)) B (the (s0 ''a'') B + 1) ''b'') X)) =
+             (single_subst ''b'' (single_subst ''a'' (single_subst ''b'' s0 X (the (s0 ''a'') A)) B (the (s0 ''a'') B + 1)) Y
+               (the (s0 ''b'') Y + the (s0 ''a'') A))"
+    unfolding single_subst_def
+    by (simp add: A_def B_def X_def Y_def)
+  let ?s1 = "single_subst ''b'' (single_subst ''a'' (single_subst ''b'' s0 X (the (s0 ''a'') A)) B (the (s0 ''a'') B + 1)) Y
+               (the (s0 ''b'') Y + the (s0 ''a'') A)"
+  show ?thesis
+  apply (rule exI[where x="?s1"])
+  apply (rule conjI)
+    subgoal using assms unfolding single_subst_def
+      apply (auto simp add: A_def B_def X_def Y_def)
+      by (auto simp add: algebra_simps)
+  subgoal
+    apply simp
+    apply (auto simp: single_assn_wait_in single_assn_wait_out single_assn_subst2)
+    apply (rule entails_g_trans)
+     apply (rule sync_gassn_out_in) apply auto
+    apply (rule entails_g_trans)
+     apply (rule sync_gassn_subst_right) apply auto
+    apply (rule entails_g_trans)
+     apply (rule gassn_subst)
+    apply (rule entails_g_trans)
+     apply (rule sync_gassn_subst_left) apply simp
+    apply (rule entails_g_trans)
+     apply (rule gassn_subst) apply (subst eq1)
+    apply (rule entails_g_trans)
+     apply (rule sync_gassn_subst_right) apply auto
+    apply (rule entails_g_trans)
+     apply (rule gassn_subst) apply (subst eq2)
+    by (rule entails_g_triv)
+  done
+qed
+
+lemma ex3:
+  "spec_of_global
+    (Parallel (Single ''a'' (Rep (Cm (ch1[!](\<lambda>s. s A)); B ::= (\<lambda>s. s B + 1))))
+              {''ch1'', ''ch2''}
+              (Single ''b'' (Rep (Cm (ch1[?]X); Y ::= (\<lambda>s. s Y + s X)))))
+    Q"
+proof -
+  show ?thesis
+  (* Stage 1: merge ex3_c and ex4_c *)
+    apply (rule spec_of_global_post)
+     apply (rule spec_of_parallel)
+        apply (rule spec_of_single)
+    apply (rule ex3_c)
+       apply (rule spec_of_single)
+    apply (rule ex4_c)
+      apply simp apply simp
+  (* Stage 2: *)
+    apply auto subgoal for s0
+
+
+
 end
