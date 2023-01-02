@@ -639,7 +639,7 @@ lemma spec_of_parallel:
   done
 
 lemma weaken_post_global:
-  "\<Turnstile>\<^sub>p {P} c {Q1} \<Longrightarrow> Q1 \<Longrightarrow>\<^sub>g Q2 \<Longrightarrow> \<Turnstile>\<^sub>p {P} c {Q2}"
+  "\<Turnstile>\<^sub>p {P} c {R} \<Longrightarrow> R \<Longrightarrow>\<^sub>g Q \<Longrightarrow> \<Turnstile>\<^sub>p {P} c {Q}"
   unfolding ParValid_def entails_g_def by auto
 
 lemma spec_of_global_post:
@@ -1146,6 +1146,42 @@ lemma sync_gassn_out_emp:
     done
   done
 
+lemma sync_gassn_out_emp_unpair:
+  "ch \<in> chs \<Longrightarrow>
+   sync_gassn chs pns1 pns2 (wait_out_cg ch pn e Q) (init_single pns2) s0 \<Longrightarrow>\<^sub>g P"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases) apply auto
+    subgoal for s11 s12 s21 s22 tr1 tr2
+      apply (elim wait_out_cg.cases) apply auto
+      subgoal for tr1'
+        apply (elim init_single.cases) apply auto
+        apply (elim sync_elims) by auto
+      subgoal for d tr1'
+        apply (elim init_single.cases) apply auto
+        by (elim sync_elims)
+      done
+    done
+  done
+
+lemma sync_gassn_emp_in_unpair:
+  "ch \<in> chs \<Longrightarrow>
+   sync_gassn chs pns1 pns2 (init_single pns1) (wait_in_cg ch Q) s0 \<Longrightarrow>\<^sub>g P"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases) apply auto
+    subgoal for s11 s12 s21 s22 tr1 tr2
+      apply (elim wait_in_cg.cases) apply auto
+      subgoal for tr1'
+        apply (elim init_single.cases) apply auto
+        apply (elim sync_elims) by auto
+      subgoal for d tr1'
+        apply (elim init_single.cases) apply auto
+        by (elim sync_elims)
+      done
+    done
+  done
+
 lemma sync_gassn_subst_left:
   assumes "pn \<in> pns1"
   shows "sync_gassn chs pns1 pns2 (P {{ var := e }}\<^sub>g at pn) Q s0 \<Longrightarrow>\<^sub>g
@@ -1300,16 +1336,19 @@ proof -
     done
 qed
 
+definition ex3_inv :: "gstate \<Rightarrow> bool" where
+  "ex3_inv s0 = (the (s0 ''b'') Y = the (s0 ''a'') A * the (s0 ''a'') B)"
+
 lemma ex3':
-  assumes "the (s0 ''b'') Y = the (s0 ''a'') A * the (s0 ''a'') B"
+  assumes "ex3_inv s0"
   shows
-  "\<exists>s1. (the (s1 ''b'') Y = the (s1 ''a'') A * the (s1 ''a'') B) \<and>
+  "\<exists>s1. ex3_inv s1 \<and>
    (sync_gassn {''ch1''} {''a''} {''b''}
-     (single_assn ''a'' (rinv_c (Suc n) ''ch1'' init))
-     (single_assn ''b'' (linv_c (Suc n) ''ch1'' init)) s0 \<Longrightarrow>\<^sub>g
+     (single_assn ''a'' (rinv_c (Suc n1) ''ch1'' init))
+     (single_assn ''b'' (linv_c (Suc n2) ''ch1'' init)) s0 \<Longrightarrow>\<^sub>g
     sync_gassn {''ch1''} {''a''} {''b''}
-     (single_assn ''a'' (rinv_c n ''ch1'' init))
-     (single_assn ''b'' (linv_c n ''ch1'' init)) s1)"
+     (single_assn ''a'' (rinv_c n1 ''ch1'' init))
+     (single_assn ''b'' (linv_c n2 ''ch1'' init)) s1)"
 proof -
   have eq1: "single_subst ''a'' (single_subst ''b'' s0 X (the (s0 ''a'') A)) B
               (the (single_subst ''b'' s0 X (the (s0 ''a'') A) ''a'') B + 1) =
@@ -1328,7 +1367,7 @@ proof -
   show ?thesis
   apply (rule exI[where x="?s1"])
   apply (rule conjI)
-    subgoal using assms unfolding single_subst_def
+    subgoal using assms unfolding single_subst_def ex3_inv_def
       apply (auto simp add: A_def B_def X_def Y_def)
       by (auto simp add: algebra_simps)
   subgoal
@@ -1352,25 +1391,135 @@ proof -
   done
 qed
 
-lemma ex3:
+lemma ex3'':
+  "ex3_inv s0 \<Longrightarrow>
+   \<exists>s1. ex3_inv s1 \<and>
+    (sync_gassn {''ch1''} {''a''} {''b''}
+      (single_assn ''a'' (rinv_c n1 ''ch1'' init))
+      (single_assn ''b'' (linv_c n2 ''ch1'' init)) s0 \<Longrightarrow>\<^sub>g
+    init_single {''b'', ''a''} s1)"
+proof (induction n1 n2 arbitrary: s0 rule: diff_induct)
+  case (1 n1)
+  show ?case
+  proof (cases n1)
+    case 0
+    show ?thesis
+      apply (subst 0)
+      apply (rule exI[where x=s0])
+      apply (rule conjI) using 1 apply simp
+      apply (rule entails_g_trans)
+      apply (auto simp add: single_assn_init)
+       apply (rule sync_gassn_emp) apply auto
+      by (rule entails_g_triv)
+  next
+    case (Suc n1)
+    show ?thesis
+      apply (subst Suc)
+      apply (rule exI[where x=s0])
+      apply (rule conjI) using 1 apply simp
+      apply auto
+       apply (auto simp add: single_assn_init single_assn_wait_out)
+       apply (rule sync_gassn_out_emp_unpair)
+      by auto
+  qed
+next
+  case (2 y)
+  show ?case
+    apply (rule exI[where x=s0])
+    apply (rule conjI) using 2 apply simp
+    apply auto
+    apply (auto simp add: single_assn_init single_assn_wait_in)
+    apply (rule sync_gassn_emp_in_unpair)
+    by auto
+next
+  case (3 n1 n2)
+  obtain s1 where s1: "ex3_inv s1"
+    "sync_gassn {''ch1''} {''a''} {''b''}
+      (single_assn ''a'' (rinv_c (Suc n1) ''ch1'' init))
+      (single_assn ''b'' (linv_c (Suc n2) ''ch1'' init)) s0 \<Longrightarrow>\<^sub>g
+     sync_gassn {''ch1''} {''a''} {''b''}
+      (single_assn ''a'' (rinv_c n1 ''ch1'' init))
+      (single_assn ''b'' (linv_c n2 ''ch1'' init)) s1"
+    using ex3' 3 by blast
+  obtain s2 where s2: "ex3_inv s2"
+    "sync_gassn {''ch1''} {''a''} {''b''} (single_assn ''a'' (rinv_c n1 ''ch1'' init))
+       (single_assn ''b'' (linv_c n2 ''ch1'' init)) s1 \<Longrightarrow>\<^sub>g
+     init_single {''b'', ''a''} s2"
+    using 3 s1(1) by blast 
+  show ?case
+    apply (rule exI[where x=s2])
+    apply (rule conjI) apply (rule s2)
+    apply (rule entails_g_trans)
+     apply (rule s1)
+    by (rule s2)
+qed
+
+definition exists_gassn :: "('a \<Rightarrow> gassn) \<Rightarrow> gassn" (binder "\<exists>\<^sub>g" 10)where
+  "(\<exists>\<^sub>g n. P n) = (\<lambda>s tr. \<exists>n. P n s tr)"
+
+lemma single_assn_exists:
+  "single_assn pn (\<lambda>s0. \<exists>\<^sub>an. P n s0) = (\<lambda>s0. (\<exists>\<^sub>g n. single_assn pn (P n) s0))"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s tr s0
+    apply (rule iffI)
+    apply (auto simp add: exists_gassn_def exists_assn_def)
+      by (auto elim: single_assn.cases intro: single_assn.intros)
+    done
+
+lemma sync_gassn_exists_left:
+  "sync_gassn chs pns1 pns2 (\<lambda>s0. \<exists>\<^sub>gn. P n s0) Q = (\<lambda>s0. \<exists>\<^sub>g n. sync_gassn chs pns1 pns2 (P n) Q s0)"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s tr s0
+    apply (rule iffI)
+     apply (auto simp add: exists_gassn_def)
+    by (auto elim: sync_gassn.cases intro: sync_gassn.intros)
+  done
+
+lemma sync_gassn_exists_right:
+  "sync_gassn chs pns1 pns2 P (\<lambda>s0. \<exists>\<^sub>gn. Q n s0) = (\<lambda>s0. \<exists>\<^sub>g n. sync_gassn chs pns1 pns2 P (Q n) s0)"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s tr s0
+    apply (rule iffI)
+     apply (auto simp add: exists_gassn_def)
+    by (auto elim: sync_gassn.cases intro: sync_gassn.intros)
+  done
+
+lemma ex3''':
   "spec_of_global
     (Parallel (Single ''a'' (Rep (Cm (ch1[!](\<lambda>s. s A)); B ::= (\<lambda>s. s B + 1))))
-              {''ch1'', ''ch2''}
+              {''ch1''}
               (Single ''b'' (Rep (Cm (ch1[?]X); Y ::= (\<lambda>s. s Y + s X)))))
-    Q"
-proof -
-  show ?thesis
+    (\<lambda>s0. \<exists>\<^sub>gn1 n2. sync_gassn {''ch1''} {''a''} {''b''}
+                    (single_assn ''a'' (rinv_c n1 ch1 init))
+                    (single_assn ''b'' (linv_c n2 ch1 init)) s0)"
   (* Stage 1: merge ex3_c and ex4_c *)
-    apply (rule spec_of_global_post)
-     apply (rule spec_of_parallel)
-        apply (rule spec_of_single)
-    apply (rule ex3_c)
-       apply (rule spec_of_single)
-    apply (rule ex4_c)
-      apply simp apply simp
-  (* Stage 2: *)
-    apply auto subgoal for s0
+  apply (rule spec_of_global_post)
+   apply (rule spec_of_parallel)
+      apply (rule spec_of_single)
+  apply (rule ex3_c)
+     apply (rule spec_of_single)
+  apply (rule ex4_c) apply auto
+  apply (auto simp add: single_assn_exists sync_gassn_exists_left sync_gassn_exists_right)
+  by (rule entails_g_triv)
 
+definition spec_of_global_gen :: "(gstate \<Rightarrow> bool) \<Rightarrow> pproc \<Rightarrow> (gstate \<Rightarrow> gassn) \<Rightarrow> bool" where
+  "spec_of_global_gen P c Q \<longleftrightarrow> (\<forall>s0. P s0 \<longrightarrow> \<Turnstile>\<^sub>p {init_global s0} c {Q s0})"
 
+lemma ex3:
+  "ex3_inv s0 \<Longrightarrow>
+    \<Turnstile>\<^sub>p {init_global s0}
+        (Parallel (Single ''a'' (Rep (Cm (''ch1''[!](\<lambda>s. s A)); B ::= (\<lambda>s. s B + 1))))
+                  {''ch1''}
+                  (Single ''b'' (Rep (Cm (''ch1''[?]X); Y ::= (\<lambda>s. s Y + s X)))))
+       {\<exists>\<^sub>gs1. (\<lambda>s tr. ex3_inv s1 \<and> init_single {''b'', ''a''} s1 s tr)}"
+  apply (rule weaken_post_global[where R="\<exists>\<^sub>gn1 n2. sync_gassn {''ch1''} {''a''} {''b''}
+                    (single_assn ''a'' (rinv_c n1 ''ch1'' init))
+                    (single_assn ''b'' (linv_c n2 ''ch1'' init)) s0"])
+  subgoal by (auto simp: ex3'''[unfolded spec_of_global_def])
+  apply (auto simp add: exists_gassn_def entails_g_def)
+  subgoal for s tr n1 n2
+    using ex3''[of s0 n1 n2] unfolding entails_g_def
+    by auto
+  done
 
 end
