@@ -334,6 +334,7 @@ definition A :: char where "A = CHR ''a''"
 definition B :: char where "B = CHR ''b''"
 definition X :: char where "X = CHR ''x''"
 definition Y :: char where "Y = CHR ''y''"
+definition Z :: char where "Z = CHR ''z''"
 
 lemma ex1a_sp:
   "spec_of (Cm (ch1[?]X); Cm (ch2[!](\<lambda>s. s X + 1)))
@@ -408,7 +409,7 @@ lemma spec_of_rep:
   using assms unfolding spec_of_def Valid_def big_step_rep exists_assn_def
   by blast
 
-lemma ex2_c':
+lemma ex3_c':
   "spec_of (RepN n (Cm (ch1[!](\<lambda>s. s A)); B ::= (\<lambda>s. s B + 1)))
            (rinv_c n ch1 init)"
   apply (induction n)
@@ -422,17 +423,17 @@ lemma ex2_c':
     by (rule entails_triv)
   done
 
-lemma ex2_c:
+lemma ex3_c:
   "spec_of (Rep (Cm (ch1[!](\<lambda>s. s A)); B ::= (\<lambda>s. s B + 1)))
            (\<lambda>s0. \<exists>\<^sub>an. rinv_c n ch1 init s0)"
   apply (rule spec_of_rep)
-  by (rule ex2_c')
+  by (rule ex3_c')
 
 fun linv_c :: "nat \<Rightarrow> cname \<Rightarrow> (state \<Rightarrow> assn) \<Rightarrow> (state \<Rightarrow> assn)" where
   "linv_c 0 ch Q = Q"
 | "linv_c (Suc n) ch Q = wait_in_c ch (\<lambda>d v. linv_c n ch Q {{Y := (\<lambda>s. s Y + s X)}} {{X := (\<lambda>_. v)}} )"
 
-lemma ex3_c':
+lemma ex4_c':
   "spec_of (RepN n (Cm (ch1[?]X); Y ::= (\<lambda>s. s Y + s X)))
            (linv_c n ch1 init)"
   apply (induction n)
@@ -447,11 +448,11 @@ lemma ex3_c':
     done
   done
 
-lemma ex3_c:
+lemma ex4_c:
   "spec_of (Rep (Cm (ch1[?]X); Y ::= (\<lambda>s. s Y + s X)))
            (\<lambda>s0. \<exists>\<^sub>an. linv_c n ch1 init s0)"
   apply (rule spec_of_rep)
-  by (rule ex3_c')
+  by (rule ex4_c')
 
 
 subsection \<open>Combining two traces\<close>
@@ -737,12 +738,12 @@ lemma single_assn_wait_out:
     done
   done
 
-definition single_subst :: "pname \<Rightarrow> gstate \<Rightarrow> var \<Rightarrow> (state \<Rightarrow> real) \<Rightarrow> gstate" where
-  "single_subst pn gs var e = gs (pn \<mapsto> ((the (gs pn)) (var := e (the (gs pn)))))"
+definition single_subst :: "pname \<Rightarrow> gstate \<Rightarrow> var \<Rightarrow> real \<Rightarrow> gstate" where
+  "single_subst pn gs var val = gs (pn \<mapsto> ((the (gs pn)) (var := val)))"
 
 definition single_subst_assn2 :: "(gstate \<Rightarrow> gassn) \<Rightarrow> var \<Rightarrow> (state \<Rightarrow> real) \<Rightarrow> pname \<Rightarrow> (gstate \<Rightarrow> gassn)"
   ("_ {{_ := _}}\<^sub>g at _" [90,90,90,90] 91) where
-  "P {{var := e}}\<^sub>g at pn = (\<lambda>ps s tr. ps pn \<noteq> None \<and> P (single_subst pn ps var e) s tr)"
+  "P {{var := e}}\<^sub>g at pn = (\<lambda>ps s tr. ps pn \<noteq> None \<and> P (single_subst pn ps var (e (the (ps pn)))) s tr)"
 
 lemma subst_State:
   "State pn s(pn \<mapsto> s') = State pn s'"
@@ -1051,8 +1052,19 @@ lemma single_subst_merge_state1:
   apply (cases "s11 pn") apply auto
   using assms unfolding proc_set_def by auto
 
+lemma single_subst_merge_state2:
+  assumes "pn \<in> proc_set s12"
+    and "proc_set s11 \<inter> proc_set s12 = {}"
+  shows "single_subst pn (merge_state s11 s12) var e = merge_state s11 (single_subst pn s12 var e)"
+  apply (auto simp add: single_subst_def merge_state_def)
+  apply (rule ext) apply auto
+  subgoal apply (cases "s11 pn") 
+    using assms by (auto simp add: proc_set_def)
+  subgoal for pn'
+    apply (cases "s11 pn'") by auto
+  done
 
-lemma sync_gassn_out_in:
+lemma sync_gassn_in_out:
   "ch \<in> chs \<Longrightarrow>
    pn \<in> pns2 \<Longrightarrow>
    pns1 \<inter> pns2 = {} \<Longrightarrow>
@@ -1070,6 +1082,34 @@ lemma sync_gassn_out_in:
             apply auto
           apply (rule sync_gassn.intros) apply auto
           apply (subst merge_state_eval2) by auto
+        subgoal for d tr2'
+          apply (elim sync_elims) by auto
+        done
+      subgoal for d v tr1'
+        apply (elim wait_out_cg.cases) apply auto
+        by (auto elim!: sync_elims)
+      done
+    done
+  done
+
+lemma sync_gassn_out_in:
+  "ch \<in> chs \<Longrightarrow>
+   pn \<in> pns1 \<Longrightarrow>
+   pns1 \<inter> pns2 = {} \<Longrightarrow>
+   sync_gassn chs pns1 pns2 (wait_out_cg ch pn e Q) (wait_in_cg ch P) s0 \<Longrightarrow>\<^sub>g
+   sync_gassn chs pns1 pns2 (Q 0) (P 0 (e (the (s0 pn)))) s0"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases) apply auto
+    subgoal for s11 s12 s21 s22 tr1 tr2
+      apply (elim wait_in_cg.cases) apply auto
+      subgoal for v tr1'
+        apply (elim wait_out_cg.cases) apply auto
+        subgoal for tr2'
+          apply (elim combine_blocks_pairE)
+            apply auto
+          apply (rule sync_gassn.intros) apply auto
+          apply (subst merge_state_eval1) by auto
         subgoal for d tr2'
           apply (elim sync_elims) by auto
         done
@@ -1120,7 +1160,29 @@ lemma sync_gassn_subst_left:
         apply (subst single_subst_merge_state1)
         using assms apply simp
         apply (rule sync_gassn.intros)
-        using assms single_subst_proc_set by auto
+        using assms single_subst_proc_set apply auto
+        by (simp add: merge_state_eval1)
+      done
+    done
+  done
+
+lemma sync_gassn_subst_right:
+  assumes "pn \<in> pns2"
+    and "pns1 \<inter> pns2 = {}"
+  shows "sync_gassn chs pns1 pns2 Q (P {{ var := e }}\<^sub>g at pn) s0 \<Longrightarrow>\<^sub>g
+         (sync_gassn chs pns1 pns2 Q P {{ var := e }}\<^sub>g at pn) s0"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases) apply auto
+    subgoal for s11 s12 s21 s22 tr1 tr2
+      apply (auto simp add: single_subst_assn2_def)
+      subgoal using assms merge_state_eval2 by auto
+      subgoal for s11'
+        apply (subst single_subst_merge_state2)
+        using assms apply auto
+        apply (rule sync_gassn.intros)
+        using assms single_subst_proc_set apply auto
+        by (simp add: merge_state_eval2)
       done
     done
   done
@@ -1141,7 +1203,7 @@ lemma sync_gassn_emp:
   done
 
 lemma gassn_subst:
-  "(P {{ var := e }}\<^sub>g at pn) s0 \<Longrightarrow>\<^sub>g P (single_subst pn s0 var e)"
+  "(P {{ var := e }}\<^sub>g at pn) s0 \<Longrightarrow>\<^sub>g P (single_subst pn s0 var (e (the (s0 pn))))"
   unfolding entails_g_def
   by (auto simp add: single_subst_assn2_def)
 
@@ -1163,11 +1225,11 @@ lemma ex1'':
     (Parallel (Single ''a'' (Cm (''ch1''[?]X); Cm (''ch2''[!](\<lambda>s. s X + 1)))) {''ch1''}
               (Single ''b'' (Cm (''ch1''[!](\<lambda>_. 3)))))
     (\<lambda>s0. wait_out_cg ''ch2'' ''a'' (\<lambda>s. s X + 1) (\<lambda>d. init_single {''a'', ''b''})
-          (single_subst ''a'' s0 X (\<lambda>_. 3)))"
+          (single_subst ''a'' s0 X 3))"
   apply (rule spec_of_global_post)
    apply (rule ex1') apply auto subgoal for s0
     apply (rule entails_g_trans)
-      apply (rule sync_gassn_out_in) apply auto
+      apply (rule sync_gassn_in_out) apply auto
       apply (rule entails_g_trans)
        apply (rule sync_gassn_subst_left) apply simp
     apply (rule entails_g_trans)
@@ -1179,5 +1241,63 @@ lemma ex1'':
       apply (rule sync_gassn_emp) by auto
     done
   done
+
+lemma ex2_c:
+  "spec_of (Cm (ch1[!](\<lambda>s. s X)); Cm (ch2[?]Y))
+           (wait_out_c ch1 (\<lambda>s. s X) (\<lambda>d. wait_in_c ch2 (\<lambda>d v. init {{Y := (\<lambda>_. v)}})))"
+  apply (rule Valid_send_sp)
+  apply (rule spec_of_receive)
+  done
+
+lemma ex2_c':
+  "spec_of (Cm (ch1[?]Z); Cm (ch2[!](\<lambda>s. s Z + 1)))
+           (wait_in_c ch1 (\<lambda>d v. wait_out_c ch2 (\<lambda>s. s Z + 1) (\<lambda>d. init) {{Z := (\<lambda>_. v)}}))"
+  apply (rule Valid_receive_sp)
+  apply (rule spec_of_send)
+  done
+
+lemma ex2:
+  "spec_of_global
+    (Parallel (Single ''a'' (Cm (''ch1''[!](\<lambda>s. s X)); Cm (''ch2''[?]Y)))
+              {''ch1'', ''ch2''}
+              (Single ''b'' (Cm (''ch1''[?]Z); Cm (''ch2''[!](\<lambda>s. s Z + 1)))))
+    (\<lambda>s0. init_single {''b'', ''a''}
+     (single_subst ''a'' (single_subst ''b'' s0 Z (the (s0 ''a'') X)) Y
+       (the (s0 ''a'') X + 1)))"
+proof -
+  have eq: "the (single_subst ''b'' s0 Z (the (s0 ''a'') X) ''b'') Z + 1 =
+        the (s0 ''a'') X + 1" for s0
+    by (auto simp: single_subst_def)
+  show ?thesis
+  (* Stage 1: merge ex2_c and ex2_c' *)
+  apply (rule spec_of_global_post)
+   apply (rule spec_of_parallel)
+      apply (rule spec_of_single)
+      apply (rule ex2_c)
+  apply (rule spec_of_single)
+     apply (rule ex2_c')
+    apply simp apply simp
+  (* Stage 2: rewrite the assertions*)
+  apply auto subgoal for s0
+    apply (auto simp: single_assn_wait_in single_assn_wait_out single_assn_subst2 single_assn_init)
+  (* Stage 3: combine the two assertions *)
+    apply (rule entails_g_trans)
+     apply (rule sync_gassn_out_in) apply auto
+    apply (rule entails_g_trans)
+     apply (rule sync_gassn_subst_right) apply auto
+    apply (rule entails_g_trans)
+     apply (rule gassn_subst)
+    apply (rule entails_g_trans)
+     apply (rule sync_gassn_in_out) apply auto
+    apply (rule entails_g_trans)
+     apply (rule sync_gassn_subst_left) apply auto
+    apply (rule entails_g_trans)
+     apply (rule gassn_subst)
+    apply (rule entails_g_trans)
+       apply (rule sync_gassn_emp) apply simp
+      apply (subst eq)
+      by (rule entails_g_triv)
+    done
+qed
 
 end
