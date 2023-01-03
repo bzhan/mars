@@ -158,20 +158,13 @@ lemma combine_ex_left:
 lemma combine_ex_right:
 "combine_assn chs (q) (\<exists>\<^sub>t v. p v) = (\<exists>\<^sub>t v. combine_assn chs q (p v))"
   unfolding combine_assn_def ex_assn_def entails_tassn_def 
-  by auto
-
-lemma combine_pure_left:
-"combine_assn chs (\<up>b \<and>\<^sub>t p) (q) = (\<up>b \<and>\<^sub>t combine_assn chs p q)"
-  unfolding combine_assn_def pure_assn_def entails_tassn_def  conj_assn_def
-  by auto
-
-lemma combine_pure_right:
-"combine_assn chs (q) (\<up>b \<and>\<^sub>t p) = (\<up>b \<and>\<^sub>t combine_assn chs q p)"
-  unfolding combine_assn_def pure_assn_def entails_tassn_def  conj_assn_def
+  thm disjE
   by auto
 
 
-
+lemma entails_disjE:
+"P \<Longrightarrow>\<^sub>A R \<Longrightarrow> Q \<Longrightarrow>\<^sub>A R \<Longrightarrow> (\<lambda> (a,s)  t. P  (a,s) t \<or> Q  (a,s) t) \<Longrightarrow>\<^sub>A R"
+  unfolding entails_def by auto
 
 
 

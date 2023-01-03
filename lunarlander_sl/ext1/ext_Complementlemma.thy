@@ -139,6 +139,13 @@ theorem Valid_pre_cases:
   shows "\<Turnstile> {\<lambda>s tr. P s} c {R}"
   using assms unfolding Valid_def entails_def by blast
 
+theorem Valid_pre_cases':
+  assumes "\<Turnstile> {\<lambda>(a,s) tr. P (a,s) \<and> Q (a,s) tr} c {R}"
+    and "\<Turnstile> {\<lambda>(a,s) tr. \<not> P (a,s) \<and> Q (a,s) tr} c {R}"
+  shows "\<Turnstile> {Q} c {R}"
+  using assms unfolding Valid_def entails_def 
+  by (smt (verit, best) case_prodI2')
+
 theorem Valid_ichoice_sp_st:
   assumes "\<Turnstile> {P} c1 {Q}"
     and "\<Turnstile> {P} c2 {Q}"
@@ -658,7 +665,7 @@ inductive waitout_assn :: "real \<Rightarrow> (real \<Rightarrow> 'a gstate) \<R
 
 
 theorem Valid_interrupt_sol:
-  assumes "b ss \<and> d > 0"
+  assumes "b ss \<Longrightarrow> d > 0"
     and "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) UNIV"
     and "p 0 = ss"
     and "(\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<and> \<not>b (p d)"
@@ -666,20 +673,20 @@ theorem Valid_interrupt_sol:
     and "\<And>i. i < length cs \<Longrightarrow>
     case cs ! i of
       (ch[!]e, p2) \<Rightarrow> \<forall> tt. ((tt \<ge>0 \<and> tt\<le>d) \<longrightarrow>
-        \<Turnstile> {\<lambda>(a,s) tr. (a,s) = (aa,p tt) \<and> 
+        \<Turnstile> {\<lambda>(a,s) tr. (a,s) = (aa,p tt) \<and> b ss \<and>
           (P (aa,ss) @\<^sub>t Waitout\<^sub>t tt (\<lambda> t. EState (aa,p t)) ch (e (aa,p tt)) (rdy_of_echoice cs)) tr} p2 {R})
     | (ch[?]var, p2) \<Rightarrow> \<forall> tt v. ((tt \<ge>0 \<and> tt\<le>d) \<longrightarrow>
-        \<Turnstile> {\<lambda>(a,s) tr. (a,s) = (aa,(p tt)(var := v)) \<and> 
+        \<Turnstile> {\<lambda>(a,s) tr. (a,s) = (aa,(p tt)(var := v)) \<and> b ss \<and>
           (P (aa,ss) @\<^sub>t Waitin\<^sub>t tt (\<lambda> t. EState (aa,p t)) ch v (rdy_of_echoice cs)) tr} p2 {R})"
-    and "(\<lambda>(a,s) tr. (a,s) = (aa,ss) \<and> P (a,s) tr) \<Longrightarrow>\<^sub>A (\<lambda>(a,s) tr. R (a,p d) (tr @ [WaitBlk d (\<lambda>\<tau>. EState (a,p \<tau>)) (rdy_of_echoice cs)]))" 
-  shows "\<Turnstile> {\<lambda>(a,s) tr. (a,s) = (aa,ss) \<and> P (a,s) tr} Interrupt ode b cs {R}"
+    and "(\<lambda>(a,s) tr. (a,s) = (aa,ss) \<and> b ss \<and> P (a,s) tr) \<Longrightarrow>\<^sub>A (\<lambda>(a,s) tr. R (a,p d) (tr @ [WaitBlk d (\<lambda>\<tau>. EState (a,p \<tau>)) (rdy_of_echoice cs)]))" 
+  shows "\<Turnstile> {\<lambda>(a,s) tr. (a,s) = (aa,ss) \<and> b ss \<and> P (a,s) tr} Interrupt ode b cs {R}"
 proof -
   have main: "d2 = d \<and> p2 d = p d \<and> (\<forall>\<tau>\<in>{0..d}. EState (aa,p2 \<tau>) = EState (aa,p \<tau>))"
     if cond: "0 < d2"
        "ODEsol ode p2 d2"
        "(\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (p2 t))"
        "\<not> b (p2 d2)"
-       "p2 0 = ss" for p2 d2
+       "p2 0 = ss" "d>0"for p2 d2
   proof -
     interpret loc:ll_on_open_it "{-1<..}"
       "\<lambda>t v. ODE2Vec ode (vec2state v)" UNIV 0
@@ -711,18 +718,18 @@ proof -
     proof (rule ccontr)
       assume 0: "\<not>(d2 \<le> d)"
       from 0 have 1: "(\<lambda>t. state2vec (p t)) d = (\<lambda>t. state2vec (p2 t)) d"
-        using s2[of d] s4[of d] assms by auto 
+        using s2[of d] s4[of d] assms cond by auto 
       from 1 have "p d = p2 d"
         by (auto simp add: state2vec_def)
       show False
-        using "0" \<open>p d = p2 d\<close> assms that(3) by auto
+        using "0" \<open>p d = p2 d\<close> assms that(3) cond by auto
     qed
     have s7: "d = d2" using s5 s6 by auto
     have s8: "t\<in>{0..d} \<Longrightarrow> p2 t = p t" for t
       using s2 s4 s7 
       by (metis vec_state_map1)
     have s10: "p d = p2 d"
-      using s8 that(1) assms by auto
+      using s8 that(1) assms cond by auto
     show ?thesis using s7 s8 s10 assms 
       by auto
   qed
@@ -730,7 +737,7 @@ proof -
     if cond: "0 < d2"
        "ODEsol ode p2 d2"
        "(\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (p2 t))"
-       "p2 0 = ss" for p2 d2
+       "p2 0 = ss" "d>0"for p2 d2
   proof -
     interpret loc:ll_on_open_it "{-1<..}"
       "\<lambda>t v. ODE2Vec ode (vec2state v)" UNIV 0
@@ -751,11 +758,11 @@ proof -
     proof (rule ccontr)
       assume 0: "\<not>(d2 \<le> d)"
       from 0 have 1: "(\<lambda>t. state2vec (p t)) d = (\<lambda>t. state2vec (p2 t)) d"
-        using s2[of d] s4[of d] assms by auto 
+        using s2[of d] s4[of d] assms cond by auto 
       from 1 have "p d = p2 d"
         by (auto simp add: state2vec_def)
       show False
-        using "0" \<open>p d = p2 d\<close> assms that(3) by auto
+        using "0" \<open>p d = p2 d\<close> assms that(3) cond by auto
     qed
     have s8: "t\<in>{0..d2} \<Longrightarrow> p2 t = p t" for t
       using s2 s4 s6 cond(1)
@@ -775,7 +782,7 @@ proof -
       proof-
         have 1:"\<Turnstile> {\<lambda>(a, s) tr.
                 a = aa \<and>
-                s = p 0 \<and>
+                s = p 0 \<and> b ss \<and>
                 (P (aa, ss) @\<^sub>t
                  Waitout\<^sub>t 0 (\<lambda>t. EState (aa, p t)) ch (e (aa, p 0))
                   (rdy_of_echoice cs))
@@ -800,22 +807,24 @@ proof -
       proof-
         have 1:"WaitBlk dd (\<lambda>\<tau>. EState (aa, pp \<tau>)) (rdy_of_echoice cs) = WaitBlk dd (\<lambda>\<tau>. EState (aa, p \<tau>)) (rdy_of_echoice cs)"
           apply(rule WaitBlk_ext_real)
-          using pre by auto
+          using pre assms(1) by auto
         have 2:"Waitout\<^sub>t dd (\<lambda>t. EState (aa, p t)) ch (e (aa, p dd))
                   (rdy_of_echoice cs) [WaitBlk dd (\<lambda>\<tau>. EState (aa, pp \<tau>)) (rdy_of_echoice cs) ,OutBlock ch (e (aa, p dd))]"
           apply(auto simp add: 1)
           apply(rule ) using pre by auto
         have 3:"\<Turnstile> {\<lambda>(a, s) tr.
                 a = aa \<and>
-                s = p dd \<and>
+                s = p dd \<and> 
                 (P (aa, p 0) @\<^sub>t
                  Waitout\<^sub>t dd (\<lambda>t. EState (aa, p t)) ch (e (aa, p dd))
                   (rdy_of_echoice cs))
                  tr}
             p2 {R}"
-          using pre by auto
-        show ?thesis using 2 3 pre unfolding Valid_def join_assn_def 
-          apply auto using assms(3) by fastforce
+          using pre assms(1) by auto
+        have 4:"d>0" using assms pre by auto
+        thm pre
+        show ?thesis using 2 3 4 unfolding Valid_def join_assn_def 
+          apply auto using assms(3) pre(1,2,7,10) apply auto by fastforce
       qed
       done
     subgoal for tr1 a s i ch var p2 v tr2
@@ -825,7 +834,7 @@ proof -
       proof-
         have 1:"\<Turnstile> {\<lambda>(a, s) tr.
                 a = aa \<and>
-                s = (p 0)(var := v) \<and>
+                s = (p 0)(var := v) \<and> b ss \<and>
                 (P (aa, ss) @\<^sub>t
                  Waitin\<^sub>t 0 (\<lambda>t. EState (aa, p t)) ch v (rdy_of_echoice cs))
                  tr}
@@ -847,7 +856,7 @@ proof -
       proof-
         have 1:"WaitBlk dd (\<lambda>\<tau>. EState (aa, pp \<tau>)) (rdy_of_echoice cs) = WaitBlk dd (\<lambda>\<tau>. EState (aa, p \<tau>)) (rdy_of_echoice cs)"
           apply(rule WaitBlk_ext_real)
-          using pre by auto
+          using pre assms(1) by auto
         have 2:"Waitin\<^sub>t dd (\<lambda>t. EState (aa, p t)) ch v (rdy_of_echoice cs)
                   [WaitBlk dd (\<lambda>\<tau>. EState (aa, pp \<tau>)) (rdy_of_echoice cs) ,InBlock ch v]"
           apply(auto simp add: 1)
@@ -860,16 +869,19 @@ proof -
                   (rdy_of_echoice cs))
                  tr}
             p2 {R}"
-          using pre by auto
-        show ?thesis using 2 3 pre unfolding Valid_def join_assn_def 
-          apply auto using assms(3) by fastforce
+          using pre assms(1) by auto
+        have 4:"d>0" using assms pre by auto
+        show ?thesis using 2 3 4 pre unfolding Valid_def join_assn_def 
+          apply auto using assms(1,3) by fastforce
       qed
       done
-    subgoal using assms by auto
     subgoal for tr1 dd pp
       using assms(7) unfolding entails_def 
       using main[of dd pp]
       apply auto
+      apply(subgoal_tac "d>0")
+       prefer 2
+      subgoal using assms(1) by blast
       apply(subgoal_tac"WaitBlk d (\<lambda>\<tau>. EState (aa, pp \<tau>)) (rdy_of_echoice cs) = WaitBlk d (\<lambda>\<tau>. EState (aa, p \<tau>)) (rdy_of_echoice cs)")
       prefer 2
        apply(rule WaitBlk_ext_real)
@@ -877,9 +889,101 @@ proof -
     done
   qed
 
+theorem Valid_interrupt_not:
+  assumes "p 0 = ss"
+    and "\<And>i. i < length cs \<Longrightarrow>
+    case cs ! i of
+      (ch[!]e, p2) \<Rightarrow> 
+        \<Turnstile> {\<lambda>(a,s) tr. (a,s) = (aa,ss) \<and> \<not> b ss \<and> 
+          (P (aa,ss) @\<^sub>t Waitout\<^sub>t 0 (\<lambda> t. EState (aa,p t)) ch (e (aa,p 0)) (rdy_of_echoice cs)) tr} p2 {R}
+    | (ch[?]var, p2) \<Rightarrow> \<forall> v.
+        \<Turnstile> {\<lambda>(a,s) tr. (a,s) = (aa,(p 0)(var := v)) \<and> \<not> b ss \<and> 
+          (P (aa,ss) @\<^sub>t Waitin\<^sub>t 0 (\<lambda> t. EState (aa,p t)) ch v (rdy_of_echoice cs)) tr} p2 {R}"
+    and "(\<lambda>(a,s) tr. (a,s) = (aa,ss) \<and> \<not> b ss \<and> P (a,s) tr) \<Longrightarrow>\<^sub>A (\<lambda>(a,s) tr. R (a,s) tr )" 
+  shows "\<Turnstile> {\<lambda>(a,s) tr. (a,s) = (aa,ss) \<and> \<not> b ss \<and> P (a,s) tr} Interrupt ode b cs {R}"
+unfolding Valid_def
+    apply(auto elim!: interruptE)
+  subgoal for tr1 a s i ch e p2 tr2
+    using assms(2)[of i]
+    apply auto
+    unfolding Valid_def join_assn_def
+    apply(subgoal_tac "Waitout\<^sub>t 0 (\<lambda>t. EState (aa, p t)) ch (e (aa, p 0)) (rdy_of_echoice cs) [OutBlock ch (e (aa, p 0))]")
+     prefer 2
+     apply rule
+     apply auto using assms
+    by fastforce
+  subgoal for tr1 a s i ch var p2 v tr2
+    using assms(2)[of i]
+    apply auto
+    unfolding Valid_def join_assn_def
+    apply(subgoal_tac"Waitin\<^sub>t 0 (\<lambda>t. EState (aa, p t)) ch v (rdy_of_echoice cs)[InBlock ch v]")
+     prefer 2
+     apply rule
+     apply auto using assms
+    by fastforce
+  subgoal for tr1
+    using assms(3) unfolding entails_def
+    by auto
+  done
+    
+theorem Valid_interrupt_in_sol:
+  assumes "b ss \<Longrightarrow> d > 0"
+    and "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) UNIV"
+    and "p 0 = ss"
+    and "(\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<and> \<not>b (p d)"
+    and "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
+    and "\<forall> tt v. ((tt \<ge>0 \<and> tt\<le>d) \<longrightarrow>
+        \<Turnstile> {\<lambda>(a,s) tr. (a,s) = (aa,(p tt)(var := v)) \<and> b ss \<and> 
+          (P (aa,ss) @\<^sub>t Waitin\<^sub>t tt (\<lambda> t. EState (aa,p t)) ch v ({},{ch})) tr} pp {R tt v})"
+    shows "\<Turnstile> {\<lambda>(a,s) tr. (a,s) = (aa,ss) \<and> b ss \<and> P (a,s) tr} Interrupt ode b [(ch[?]var, pp)] {\<lambda>(a,s) tr. (\<exists>tt vv. (tt \<ge>0 \<and> tt\<le>d) \<and> R tt vv (a,s) tr) \<or> ((a,s) = (aa,p d) \<and> b ss \<and> (P(aa,ss) @\<^sub>t Wait\<^sub>t d (\<lambda>\<tau>. EState (aa,p \<tau>)) ({},{ch})) tr )}"
+  apply(rule Valid_interrupt_sol[where d= d and p = p])
+  subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal
+    using assms(6)
+    apply auto
+    subgoal for tt v
+      apply(rule Valid_strengthen_post[where Q ="R tt v"])
+       prefer 2 apply auto
+      unfolding entails_def
+      by auto
+    done
+  unfolding entails_def join_assn_def
+  apply auto
+  subgoal for tr
+    apply(subgoal_tac "Wait\<^sub>t d (\<lambda>\<tau>. EState (aa, p \<tau>)) ({}, {ch}) [WaitBlk d (\<lambda>\<tau>. EState (aa, p \<tau>)) ({}, {ch})]")
+     apply auto
+    apply(rule )
+    using assms by auto
+  done
 
 
-
-
+theorem Valid_interrupt_in_not:
+  assumes "p 0 = ss"
+    and "\<forall> v.
+        \<Turnstile> {\<lambda>(a,s) tr. (a,s) = (aa,(p 0)(var := v)) \<and> \<not> b ss \<and> 
+          (P (aa,ss) @\<^sub>t Waitin\<^sub>t 0 (\<lambda> t. EState (aa,p t)) ch v ({},{ch})) tr} pp {R 0 v}"
+    shows "\<Turnstile> {\<lambda>(a,s) tr. (a,s) = (aa,ss) \<and> \<not> b ss \<and> P (a,s) tr} Interrupt ode b [(ch[?]var, pp)] {\<lambda> (a,s) tr. \<exists> v. R 0 v (a,s) tr \<or> ((a,s) = (aa,p 0) \<and> \<not> b ss \<and> (P(aa,ss) @\<^sub>t Wait\<^sub>t 0 (\<lambda>\<tau>. EState (aa,p \<tau>)) ({},{ch})) tr)}"
+  apply(rule Valid_interrupt_not[where p=p])
+  subgoal using assms by auto
+  subgoal using assms(2)
+    apply auto
+    subgoal for v
+      apply(rule Valid_strengthen_post[where Q ="R 0 v"])
+       prefer 2 apply auto
+      unfolding entails_def
+      by auto
+    done
+  unfolding entails_def
+  apply auto
+  subgoal for tr
+    apply(subgoal_tac "Wait\<^sub>t 0 (\<lambda>\<tau>. EState (aa, p \<tau>)) ({}, {ch}) []")
+     apply auto
+    apply(rule )
+    using assms by auto
+  done
 
 end
