@@ -133,6 +133,12 @@ theorem Valid_post_and':
   shows "\<Turnstile> {P} c {\<lambda>(a,s) tr. Q1 s tr \<and> Q2 s tr}"
   using assms unfolding Valid_def entails_def by blast
 
+theorem Valid_pre_or:
+  assumes "\<Turnstile> {P} c {R}"
+    and "\<Turnstile> {Q} c {R}"
+  shows "\<Turnstile> {\<lambda>s tr. P s tr \<or> Q s tr} c {R}"
+  using assms unfolding Valid_def entails_def by blast
+
 theorem Valid_pre_cases:
   assumes "\<Turnstile> {\<lambda>s tr. P s \<and> Q s} c {R}"
     and "\<Turnstile> {\<lambda>s tr. P s \<and> \<not> Q s} c {R}"

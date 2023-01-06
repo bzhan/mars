@@ -64,6 +64,13 @@ fun ready_assign :: "estate \<Rightarrow> state \<Rightarrow> estate" where
 fun run_assign :: "estate \<Rightarrow> state \<Rightarrow> estate" where
 "run_assign (Task st nt p) s = (Task RUNNING nt p)"
 
+definition inv_s :: "state \<Rightarrow> bool" where
+ "inv_s s = (s T \<le> 0.045 \<and> s C \<le> 0.01)"
+
+definition C_upd :: "entered \<Rightarrow> real \<Rightarrow> real" where
+ "C_upd ent c = (if ent = ezero then 0 else c)"
+
+
 definition T1 :: "estate proc" where
 "T1 = IF (\<lambda>(a,s) . status a = WAIT) 
         THEN (Wait (\<lambda>(a,s). 0.045 - s T);T ::= (\<lambda>_. 0); Basic (ent_assign ezero);Basic (ready_assign)) 
@@ -80,30 +87,43 @@ definition T1 :: "estate proc" where
       FI) FI"
 
 
-fun T1_tr:: "nat \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate tassn" where
-  "T1_tr k (Sch v va vb) s = false\<^sub>A"
-| "T1_tr k None s = false\<^sub>A"
-| "T1_tr 0 (Task st ent tp) s = emp\<^sub>t"
-| "T1_tr (Suc k) (Task WAIT ent tp) s = 
-   (wait_tassn (0.045 - s T) (\<lambda>_ . EState(Task WAIT ent tp,s)) ({},{}) @\<^sub>t T1_tr k (Task READY ezero tp) (s(T:=0)))"
-| "T1_tr (Suc k) (Task READY ent tp) s =
-  (((out_tassn (req_ch 1) tp) @\<^sub>t 
-     ((\<exists>\<^sub>t \<tau> v. \<up>(\<tau>\<in>{0..<0.045- s T}) \<and>\<^sub>t (wait_assn \<tau> (\<lambda> t. EState(Task READY ent tp,s(T := s T + t))) ({}, {run_ch 1}) @\<^sub>t in_tassn (run_ch 1) v @\<^sub>t T1_tr k (Task RUNNING ent tp) (s(T := s T + \<tau>, F := v)))) 
-  \<or>\<^sub>t (wait_assn (0.045- s T) (\<lambda> t. EState(Task READY ent tp,s(T := s T + t))) ({}, {run_ch 1}) @\<^sub>t ((\<exists>\<^sub>t v. in_tassn (run_ch 1) v @\<^sub>t T1_tr k (Task RUNNING ent tp) (s(T := 0.045, F := v)))
-                                                                                   \<or>\<^sub>t(out_tassn (exit_ch 1) 0 @\<^sub>t T1_tr k (Task WAIT ent tp) (s(T := 0.045)))
-                                                                                   \<or>\<^sub>t(\<exists>\<^sub>t \<tau> . \<up>(\<tau>\<in>{0<..}) \<and>\<^sub>t wait_tassn \<tau> (\<lambda>_. EState(Task READY ent tp,s(T := 0.045))) ({exit_ch 1},{run_ch 1}) @\<^sub>t true\<^sub>A)))))
-   \<or>\<^sub>t ((\<exists>\<^sub>t \<tau> . \<up>(\<tau>\<in>{0<..}) \<and>\<^sub>t (wait_assn \<tau> (\<lambda>_ . EState(Task READY ent tp,s)) ({req_ch 1}, {}))) @\<^sub>t true\<^sub>A))"
-| "T1_tr (Suc k) (Task RUNNING ent tp) s =
-  (let c = (if ent = ezero then 0 else s C) in 
-  (\<exists>\<^sub>t \<tau> v. \<up>(\<tau>\<in>{0..<min (0.045- s T) (0.01 - c)}) \<and>\<^sub>t (wait_assn \<tau> (\<lambda> t. EState(Task RUNNING eone tp,s(T := s T + t,C := c + t))) ({}, {preempt_ch 1}) @\<^sub>t in_tassn (preempt_ch 1) v @\<^sub>t T1_tr k (Task READY eone tp) (s(T := s T + \<tau>, C := c + \<tau>,F := v))))
-\<or>\<^sub>t(wait_assn (min (0.045- s T) (0.01 - c)) (\<lambda> t. EState(Task RUNNING eone tp,s(T := s T + t,C := c + t))) ({}, {preempt_ch 1}) @\<^sub>t ((\<exists>\<^sub>t v. in_tassn (preempt_ch 1) v @\<^sub>t T1_tr k (Task WAIT eone tp) (s(T := s T + (min (0.045- s T) (0.01 - c)),C := c+(min (0.045- s T) (0.01 - c)),  F := v)))
-                                                                                                                              \<or>\<^sub>t(out_tassn (free_ch 1) 0 @\<^sub>t T1_tr k (Task WAIT eone tp) (s(T := s T + (min (0.045- s T) (0.01 - c)),C := c+(min (0.045- s T) (0.01 - c)))))
-                                                                                                                              \<or>\<^sub>t(\<exists>\<^sub>t \<tau> . \<up>(\<tau>\<in>{0<..}) \<and>\<^sub>t wait_tassn \<tau> (\<lambda>_. EState(Task RUNNING eone tp,s(T := s T + (min (0.045- s T) (0.01 - c)),C := c+(min (0.045- s T) (0.01 - c))))) ({exit_ch 1},{run_ch 1}) @\<^sub>t true\<^sub>A))))"
-definition inv_s :: "state \<Rightarrow> bool" where
- "inv_s s = (s T \<le> 0.045 \<and> s C \<le> 0.01)"
-
-definition C_upd :: "entered \<Rightarrow> real \<Rightarrow> real" where
- "C_upd ent c = (if ent = ezero then 0 else c)"
+fun T1_tr:: "nat \<Rightarrow> estate ext_state \<Rightarrow> estate tassn" where
+  "T1_tr 0 (Task st ent tp,ss)  = emp\<^sub>t"
+| "T1_tr (Suc k) (Task WAIT ent tp,ss) = 
+   (Wait\<^sub>t (9 / 200 - ss T) (\<lambda>_. EState (Task WAIT ent tp, ss)) ({}, {}) @\<^sub>t T1_tr k (Task READY ezero tp,ss(T:=0)))"
+| "T1_tr (Suc k) (Task READY ent tp,ss) = (
+             (\<exists>\<^sub>t v tt. \<up>(tt\<ge>0 \<and> tt \<le> 0.045 - ss T) \<and>\<^sub>t Out\<^sub>t (EState (Task READY ent tp, ss)) (req_ch 1) tp @\<^sub>t
+                   Waitin\<^sub>t tt (\<lambda>t. EState (Task READY ent tp, ss(T := ss T + t)))
+                    (run_ch 1) v ({}, {run_ch 1}) @\<^sub>t 
+                   T1_tr k (Task RUNNING ent tp,ss(T := ss T + tt, F:=v)))
+           \<or>\<^sub>t (Out\<^sub>t (EState (Task READY ent tp, ss)) (req_ch 1) tp @\<^sub>t
+                   Wait\<^sub>t (9 / 200 - ss T) (\<lambda>\<tau>. EState (Task READY ent tp, ss(T := ss T + \<tau>)))
+                    ({}, {run_ch 1}) @\<^sub>t
+                    Out\<^sub>t (EState (Task READY ent tp, ss(T:=0.045))) (exit_ch 1) 0 @\<^sub>t
+                   T1_tr k (Task WAIT ent tp,ss(T:=0.045))))"
+| "T1_tr (Suc k) (Task RUNNING ent tp,ss) = (
+             (\<exists>\<^sub>t v tt. \<up>(tt\<ge>0 \<and> tt \<le> (min (0.045 - ss T) (0.01 - C_upd ent (ss C)))) \<and>\<^sub>t Waitin\<^sub>t tt
+                           (\<lambda>t. EState
+                                 (Task RUNNING eone tp, ss
+                                  (CHR ''t'' := ss CHR ''t'' + t,
+                                   CHR ''c'' := C_upd ent (ss CHR ''c'') + t)))
+                           (preempt_ch 1) v ({}, {preempt_ch 1}) @\<^sub>t
+                         T1_tr k (Task READY eone tp,ss
+                         (CHR ''t'' := ss CHR ''t'' + tt,
+                          CHR ''c'' := C_upd ent (ss CHR ''c'') + tt, F := v)))
+            \<or>\<^sub>t (Wait\<^sub>t (min (0.045 - ss T) (0.01 - C_upd ent (ss C)))
+          (\<lambda>\<tau>. EState
+                (Task RUNNING eone tp, ss(T := ss T + \<tau>, C := C_upd ent (ss C) + \<tau>)))
+          ({}, {preempt_ch 1}) @\<^sub>t
+             Out\<^sub>t (EState (Task RUNNING eone tp, ss
+         (T := ss T + min (0.045 - ss T) (0.01 - C_upd ent (ss C)),
+          C := C_upd ent (ss C) +
+               min (0.045 - ss T) (0.01 - C_upd ent (ss C))))) (free_ch 1) 0) @\<^sub>t
+                T1_tr k (Task WAIT eone tp, ss
+         (T := ss T + min (0.045 - ss T) (0.01 - C_upd ent (ss C)),
+          C := C_upd ent (ss C) +
+               min (0.045 - ss T) (0.01 - C_upd ent (ss C)))))"
+                                                                                                                              
 
 lemma T1_Valid_WAIT:
 "\<Turnstile> {\<lambda>s t. s = (Task WAIT ent tp,ss) \<and> inv_s (snd s) \<and> P s t}
@@ -134,18 +154,18 @@ lemma T1_Valid_WAIT:
 lemma T1_Valid_READY:
 "\<Turnstile> {\<lambda>s t. s = (Task READY ent tp,ss) \<and> inv_s (snd s) \<and> P s t}
    T1
-    {\<lambda> s tr. inv_s (snd s) \<and> ((\<exists> tt v. tt\<ge>0 \<and> tt \<le> 0.045 - ss T \<and> s = (Task RUNNING ent tp,ss(T:= ss T + tt,F := v)) \<and>
+    {\<lambda> s tr. (inv_s (snd s) \<and> (\<exists> tt v. tt\<ge>0 \<and> tt \<le> 0.045 - ss T \<and> s = (Task RUNNING ent tp,ss(T:= ss T + tt,F := v)) \<and>
                     ((P (Task READY ent tp, ss) @\<^sub>t
                     Out\<^sub>t (EState (Task READY ent tp, ss)) (req_ch 1) tp) @\<^sub>t
                    Waitin\<^sub>t tt (\<lambda>t. EState (Task READY ent tp, ss(T := ss T + t)))
-                    (run_ch 1) v ({}, {run_ch 1})) tr) 
-              \<or>   (s = (Task WAIT ent tp,ss(T:=0.045)) \<and> 
+                    (run_ch 1) v ({}, {run_ch 1})) tr)) 
+              \<or> (inv_s (snd s) \<and> s = (Task WAIT ent tp,ss(T:=0.045)) \<and> 
                    ((P (Task READY ent tp, ss) @\<^sub>t
                     Out\<^sub>t (EState (Task READY ent tp, ss)) (req_ch 1) tp) @\<^sub>t
                    Wait\<^sub>t (9 / 200 - ss T) (\<lambda>\<tau>. EState (Task READY ent tp, ss(T := ss T + \<tau>)))
                     ({}, {run_ch 1}) @\<^sub>t
                     Out\<^sub>t (EState (Task READY ent tp, ss(T:=0.045))) (exit_ch 1) 0)
-                   tr))}"
+                   tr)}"
 unfolding T1_def
   apply(rule Valid_strengthen_post)
    prefer 2
@@ -286,49 +306,37 @@ unfolding entails_def
      apply(rule Valid_send_sp)
    apply(rule Valid_basic_sp1)
    apply(rule Valid_skip)
-  apply (simp add: pure_assn_def join_assn_def conj_assn_def)
-  apply clarify
-  subgoal for a b tr
+  apply(rule allI)+
+  apply(rule impI)
+  apply(erule disjE) subgoal by auto
+  apply(erule disjE) prefer 2 subgoal by auto
+  apply(erule disjE) 
+  subgoal for s tr
+    apply(rule disjI2)
     apply(rule conjI)
     subgoal
-      apply clarify
-      apply(rule conjI)
-      subgoal unfolding inv_s_def by auto
-      apply(rule disjI2)
-      apply auto
+      by (auto simp add: pure_assn_def conj_assn_def join_assn_def inv_s_def C_def T_def F_def)
+    subgoal 
+      apply(cases s)
+      apply (auto simp add: join_assoc pure_assn_def conj_assn_def join_assn_def inv_s_def C_def T_def F_def)
       subgoal for tr2 tr1b tr2a tr2b
         apply(rule exI[where x="tr1b@tr2b"])
         by auto
       done
-    subgoal
-      apply clarify
-      apply(rule conjI)
-      subgoal unfolding inv_s_def by auto
-      apply(rule disjI1)
-      unfolding T_def F_def
-      apply auto
-      subgoal for tt v tr1a tr2 tr2a
-        apply(rule exI[where x=tt])
-        apply auto
-        apply(rule exI[where x=v])
-        apply auto
-        apply(rule exI[where x="tr1a @ tr2a"])
-        by auto
-      subgoal for tt v tr1a tr2 tr2a
-        apply(rule exI[where x=tt])
-        apply auto
-        apply(rule exI[where x=v])
-        apply auto
-        apply(rule exI[where x="tr1a @ tr2a"])
-        by auto
-      done
     done
+  subgoal for s tr
+    apply(rule disjI1)
+    apply(rule conjI)
+    subgoal
+      by (auto simp add: pure_assn_def conj_assn_def join_assn_def inv_s_def C_def T_def F_def)
+    by auto
   done
+
 
 lemma T1_Valid_RUNNING:
 "\<Turnstile> {\<lambda>s t. s = (Task RUNNING ent tp,ss) \<and> inv_s (snd s) \<and> P s t}
    T1
-    {\<lambda> s tr. inv_s (snd s) \<and> ((\<exists> tt v. tt\<ge>0 \<and> tt \<le> (min (0.045 - ss T) (0.01 - C_upd ent (ss C))) \<and> 
+    {\<lambda> s tr. ((inv_s (snd s) \<and> (\<exists> tt v. tt\<ge>0 \<and> tt \<le> (min (0.045 - ss T) (0.01 - C_upd ent (ss C))) \<and> 
                           s = (Task READY eone tp,ss
                          (CHR ''t'' := ss CHR ''t'' + tt,
                           CHR ''c'' := C_upd ent (ss CHR ''c'') + tt, F := v)) \<and> (
@@ -339,8 +347,8 @@ lemma T1_Valid_RUNNING:
                                   (CHR ''t'' := ss CHR ''t'' + t,
                                    CHR ''c'' := C_upd ent (ss CHR ''c'') + t)))
                            (preempt_ch 1) v ({}, {preempt_ch 1}))
-                          tr) 
-              \<or>  (s =
+                          tr)) 
+              \<or>  (inv_s (snd s) \<and> s =
           (Task WAIT eone tp, ss
          (T := ss T + min (0.045 - ss T) (0.01 - C_upd ent (ss C)),
           C := C_upd ent (ss C) +
@@ -543,12 +551,9 @@ unfolding entails_def
   apply(erule disjE) subgoal by auto
   apply(erule disjE) 
   subgoal for s tr
-    apply(rule conjI)
-    subgoal 
-      unfolding pure_assn_def join_assn_def conj_assn_def inv_s_def T_def C_def F_def
-      by auto
     apply(rule disjI2)
     apply clarify
+    apply(rule conjI)
     unfolding pure_assn_def join_assn_def conj_assn_def inv_s_def T_def C_def F_def
     apply auto 
     subgoal apply(cases s) by auto
@@ -557,10 +562,6 @@ unfolding entails_def
       by auto
     done
   subgoal for s tr
-    apply(rule conjI)
-    subgoal 
-      unfolding pure_assn_def join_assn_def conj_assn_def inv_s_def T_def C_def F_def
-      by auto
     apply(rule disjI1)
     apply clarify
     unfolding pure_assn_def join_assn_def conj_assn_def inv_s_def T_def C_def F_def
@@ -574,9 +575,177 @@ unfolding entails_def
   
 
 
+fun RepN :: "nat \<Rightarrow> 'a proc \<Rightarrow> 'a proc" where
+  "RepN 0 c = Skip"
+| "RepN (Suc n) c = c; RepN n c"
 
-  
+lemma big_step_rep:
+  "big_step (Rep c) s1 tr1 s2 \<longleftrightarrow> (\<exists>n. big_step (RepN n c) s1 tr1 s2)"
+proof -
+  have "big_step p s1 tr1 s2 \<Longrightarrow> p = Rep c \<Longrightarrow> \<exists>n. big_step (RepN n c) s1 tr1 s2" for p s1 tr1 s2
+    apply (induction rule: big_step.induct, auto)
+     apply (rule exI[where x=0])
+    apply simp apply (rule skipB)
+    subgoal for a b tr1 aa ba tr2 ab bb n
+      apply (rule exI[where x="Suc n"])
+      apply simp apply (rule seqB) by auto
+    done
+  moreover have "\<And>s1 tr1 s2. big_step (RepN n c) s1 tr1 s2 \<Longrightarrow> big_step (Rep c) s1 tr1 s2" for n
+    apply (induction n)
+     apply simp apply (elim skipE) apply (auto intro: RepetitionB1)[1]
+    apply simp apply (elim seqE) apply (auto intro: RepetitionB2) 
+    using RepetitionB2 by blast
+  ultimately show ?thesis
+    by blast
+    qed
 
+
+lemma Valid_rep':
+  assumes"\<And>n P . \<Turnstile> {\<lambda>s t. s = s0 \<and> f s \<and> P t}
+                      RepN n c
+                 {\<lambda>s t. f s \<and> (P @\<^sub>t (Q n s0)) t}" 
+  shows "\<Turnstile> {\<lambda>s t. s = s0 \<and> f s \<and> P t}
+                      Rep c
+            {\<lambda>s t. f s \<and> (\<exists>n. (P @\<^sub>t (Q n s0)) t)}"
+  using assms unfolding Valid_def big_step_rep
+  by blast
+
+lemma Valid_T1_rep:
+  "\<Turnstile> {\<lambda>s t. s = (Task st ent tp,ss) \<and> inv_s (snd s) \<and> emp\<^sub>t t}
+                      Rep T1
+      {\<lambda>s t. inv_s (snd s) \<and> (\<exists>n. (emp\<^sub>t @\<^sub>t T1_tr n (Task st ent tp,ss)) t)}"
+  apply(rule Valid_rep')
+  subgoal for n p
+    apply(induction n arbitrary:p st ent tp ss)
+    subgoal for p
+      apply auto
+      apply(rule Valid_strengthen_post)
+       prefer 2
+       apply(rule Valid_skip)
+      unfolding entails_def by auto
+    subgoal premises pre for n p st ent tp ss
+      apply auto
+      apply(cases st)
+      subgoal
+        apply simp
+        apply(rule Valid_seq)
+         apply(rule T1_Valid_WAIT)
+        apply(rule Valid_strengthen_post)
+         prefer 2
+         apply(rule pre)
+        unfolding entails_def by (auto simp add:join_assoc)
+      subgoal
+        apply simp
+        apply(rule Valid_seq)
+         apply(rule T1_Valid_READY)
+        apply(rule Valid_pre_or)
+        subgoal
+          thm pre
+          apply auto
+          apply(rule Valid_weaken_pre[where P' = "\<lambda>s tr. \<exists>tt v . s = (Task RUNNING ent tp, ss(T := ss T + tt, F := v)) \<and> inv_s (snd s) \<and>
+               (((\<up>(0 \<le> tt \<and> tt \<le> 9 / 200 - ss T) \<and>\<^sub>t p @\<^sub>t Out\<^sub>t (EState (Task READY ent tp, ss)) (req_ch 1) tp) @\<^sub>t
+                         Waitin\<^sub>t tt (\<lambda>t. EState (Task READY ent tp, ss(T := ss T + t)))
+                          (run_ch 1) v ({}, {run_ch 1}))
+                         tr)"])
+          subgoal unfolding entails_def
+            by(auto simp add: pure_assn_def conj_assn_def)
+          apply(rule Valid_ex_pre)+
+          apply(rule Valid_strengthen_post)
+           prefer 2
+           apply(rule pre)
+          unfolding entails_def
+          apply (auto simp add: join_disj_assn)
+          unfolding disj_assn_def
+          apply(rule disjI1)
+          apply(auto simp add: ex_assn_def pure_assn_def conj_assn_def join_assn_def)
+          subgoal for tt v b tr2 tr1b tr2a tr2b
+            apply(rule exI[where x="tr1b"])
+            apply auto
+            apply(rule exI[where x=v])
+            apply(rule exI[where x=tt])
+            by auto
+          done
+        subgoal
+        apply(rule Valid_weaken_pre[where P'="\<lambda>s tr. 
+                s = (Task WAIT ent tp, ss(T := 45 / 10 ^ 3)) \<and> inv_s (snd s) \<and>
+               ((p @\<^sub>t Out\<^sub>t (EState (Task READY ent tp, ss)) (req_ch 1) tp) @\<^sub>t
+                Wait\<^sub>t (9 / 200 - ss T)
+                 (\<lambda>\<tau>. EState (Task READY ent tp, ss(T := ss T + \<tau>))) ({}, {run_ch 1}) @\<^sub>t
+                Out\<^sub>t (EState (Task READY ent tp, ss(T := 45 / 10 ^ 3))) (exit_ch 1) 0)
+                tr"])
+        subgoal unfolding entails_def by auto
+        apply(rule Valid_strengthen_post)
+           prefer 2
+           apply(rule pre)
+          unfolding entails_def
+          apply (auto simp add: join_disj_assn)
+          unfolding disj_assn_def
+          apply(rule disjI2)
+          by(auto simp add: join_assoc) 
+        done
+        subgoal
+          apply simp
+          apply(rule Valid_seq)
+           apply(rule T1_Valid_RUNNING)
+          apply(rule Valid_pre_or)
+        subgoal
+          thm pre
+          apply auto
+          apply(rule Valid_weaken_pre[where P' = "\<lambda>s tr. \<exists>tt v . s = (Task READY eone tp, ss
+                         (CHR ''t'' := ss CHR ''t'' + tt,CHR ''c'' := C_upd ent (ss CHR ''c'') + tt, F := v)) \<and> inv_s (snd s) \<and>
+               ((\<up>(0 \<le> tt \<and> tt \<le> 9 / 200 - ss T \<and> tt \<le> 1 / 100 - C_upd ent (ss C)) 
+                       \<and>\<^sub>t p @\<^sub>t Waitin\<^sub>t tt
+                          (\<lambda>t. EState
+                                (Task RUNNING eone tp, ss
+                                 (CHR ''t'' := ss CHR ''t'' + t,
+                                  CHR ''c'' := C_upd ent (ss CHR ''c'') + t)))
+                          (preempt_ch 1) v ({}, {preempt_ch 1}))
+                         tr)"])
+          subgoal unfolding entails_def
+            by(auto simp add: pure_assn_def conj_assn_def)
+          apply(rule Valid_ex_pre)+
+          apply(rule Valid_strengthen_post)
+           prefer 2
+           apply(rule pre)
+          unfolding entails_def
+          apply (auto simp add: join_disj_assn)
+          unfolding disj_assn_def
+          apply(rule disjI1)
+          apply(auto simp add: ex_assn_def pure_assn_def conj_assn_def join_assn_def)
+          subgoal for tt v b tr1a tr2 tr2a
+            apply(rule exI[where x="tr1a"])
+            by auto
+          done
+        subgoal
+        apply(rule Valid_weaken_pre[where P'="\<lambda>s tr. 
+                s = (Task WAIT eone tp, ss
+                (T := ss T + min (45 / 10 ^ 3 - ss T) (1 / 10\<^sup>2 - C_upd ent (ss C)),
+                 C := C_upd ent (ss C) +
+                      min (45 / 10 ^ 3 - ss T) (1 / 10\<^sup>2 - C_upd ent (ss C)))) \<and> inv_s (snd s) \<and>
+               ((p @\<^sub>t Wait\<^sub>t (min (45 / 10 ^ 3 - ss T) (1 / 10\<^sup>2 - C_upd ent (ss C)))
+          (\<lambda>\<tau>. EState (Task RUNNING eone tp, ss(T := ss T + \<tau>, C := C_upd ent (ss C) + \<tau>))) ({}, {preempt_ch 1}) @\<^sub>t
+         Out\<^sub>t (EState (Task RUNNING eone tp, ss(T := ss T + min (45 / 10 ^ 3 - ss T) (1 / 10\<^sup>2 - C_upd ent (ss C)),
+              C := C_upd ent (ss C) + min (45 / 10 ^ 3 - ss T) (1 / 10\<^sup>2 - C_upd ent (ss C)))))(free_ch 1) 0)
+                tr)"])
+        subgoal unfolding entails_def by auto
+        apply(rule Valid_strengthen_post)
+           prefer 2
+           apply(rule pre)
+          unfolding entails_def
+          apply (auto simp add: join_disj_assn)
+          unfolding disj_assn_def
+          apply(rule disjI2)
+          by(auto simp add: join_assoc) 
+        done
+      done
+    done
+  done
+
+
+
+
+
+end
 
 
 

@@ -2,138 +2,6 @@ theory testvalid
   imports ext_Complementlemma
 begin
 
-inductive out_tassn :: "cname \<Rightarrow> real \<Rightarrow> 'a tassn" where
-  "(out_tassn ch v) [OutBlock ch v]"
-
-inductive in_tassn :: "cname \<Rightarrow> real \<Rightarrow> 'a tassn " where
-  "(in_tassn ch v) [InBlock ch v]"
-
-inductive wait_tassn :: "real \<Rightarrow> (real \<Rightarrow> 'a gstate) \<Rightarrow> rdy_info \<Rightarrow> 'a tassn" where
-  "d \<le> 0 \<Longrightarrow> (wait_tassn d p rdy) []"
-| "d > 0 \<Longrightarrow> (wait_tassn d p rdy) [WaitBlk d p rdy]"
-
-inductive wait_le_out_tassn :: "real \<Rightarrow> (real \<Rightarrow> 'a gstate) \<Rightarrow> rdy_info \<Rightarrow> cname \<Rightarrow> (real \<Rightarrow> real) \<Rightarrow> 'a tassn" where
-  "d = 0 \<Longrightarrow> d\<le>T \<Longrightarrow> (wait_le_out_tassn T p rdy ch v) [OutBlock ch (v 0)]"
-| "d > 0 \<Longrightarrow> d\<le>T \<Longrightarrow>(wait_le_out_tassn T p rdy ch v) [WaitBlk d p rdy, OutBlock ch (v d)]"
-
-theorem send1:
-  assumes "d\<ge>0"
-  shows "\<Turnstile> {\<lambda>s t. P s t}
-       Cm (ch[!]e)
-     {\<lambda>s t. (P s @\<^sub>t (((\<exists>\<^sub>t \<tau> . \<up>(\<tau>\<in>{0..d}) \<and>\<^sub>t (wait_tassn \<tau> (\<lambda>_ .EState s) ({ch}, {}) @\<^sub>t out_tassn ch (e s)))) \<or>\<^sub>t (\<exists>\<^sub>t \<tau> . \<up>(\<tau>\<in>{d<..}) \<and>\<^sub>t (wait_assn \<tau> (\<lambda>_ . EState s) ({ch}, {}))) @\<^sub>t true\<^sub>A)) t}"
-  unfolding Valid_def
-  apply auto
-  apply(elim sendE)
-  unfolding join_assn_def disj_assn_def
-  subgoal for a b tr1 aa ba tr2
-    apply(rule exI[where x="tr1"])
-    apply(rule exI[where x="tr2"])
-    apply simp
-    apply(rule disjI1)
-    unfolding ex_assn_def conj_assn_def pure_assn_def
-    apply(rule exI[where x="0"])
-    using assms
-    apply auto
-    apply(rule exI[where x="[]"])
-    apply auto
-     apply(rule )
-    apply auto
-    apply(rule )
-    done
-  subgoal for a b tr1 aa ba tr2 da
-    apply(cases "da\<le>d")
-    subgoal
-      apply(rule exI[where x="tr1"])
-      apply(rule exI[where x="tr2"])
-      apply simp
-      unfolding ex_assn_def conj_assn_def pure_assn_def
-      apply(rule disjI1)
-      apply(rule exI[where x="da"])
-      apply auto
-      apply(rule exI[where x="[WaitBlk da (\<lambda>_. EState (a, b)) ({ch}, {})]"])
-      apply auto
-       apply (rule)
-       apply auto
-      apply(rule )
-      done
-    apply(cases "da>d")
-    subgoal
-      apply(rule exI[where x="tr1"])
-      apply(rule exI[where x="tr2"])
-      apply simp
-      unfolding ex_assn_def conj_assn_def pure_assn_def
-      apply(rule disjI2)
-      apply auto
-      apply(rule exI[where x="[WaitBlk da (\<lambda>_. EState (a, b)) ({ch}, {})]"])
-      apply auto
-       apply(rule exI[where x="da"])
-      apply auto
-      apply(rule )
-      by(auto simp add: true_assn_def)
-    by auto
-  done
-
-
-
-
-lemma t:
-"(\<exists>\<^sub>t \<tau>. \<up>(\<tau>\<in>{0..T}) \<and>\<^sub>t (wait_tassn \<tau> p rdy @\<^sub>t out_tassn ch (v \<tau>))) = wait_le_out_tassn T p rdy ch v"
-  apply(rule ext)
-  apply(auto simp add: ex_assn_def pure_assn_def conj_assn_def join_assn_def)
-  subgoal for t tr1 tr2
-    apply(cases rule:wait_tassn.cases[of t p rdy tr1])
-      apply auto
-    subgoal
-      apply(cases rule:out_tassn.cases[of ch "(v 0)" tr2])
-       apply auto
-      apply(rule )
-      by auto
-    subgoal
-      apply(cases rule:out_tassn.cases[of ch "(v t)" tr2])
-       apply auto
-      apply(rule wait_le_out_tassn.intros(2))
-      by auto
-    done
-  subgoal for tr
-    apply(cases rule: wait_le_out_tassn.cases[of T p rdy ch v tr])
-      apply auto
-    subgoal
-      apply(rule exI[where x=0])
-      apply auto
-      apply(rule exI[where x="[]"])
-      apply auto
-       apply(rule)
-       apply auto
-      apply(rule)
-      done
-    subgoal for d
-      apply(rule exI[where x="d"])
-      apply auto
-      apply(rule exI[where x="[WaitBlk d p rdy]"])
-      apply auto
-       apply(rule)
-       apply auto
-      apply(rule)
-      done
-    done
-  done
-
-
-
-
-theorem true:
-  assumes "d\<ge>0"
-  shows "\<Turnstile> {\<lambda>s t. (P s @\<^sub>t true\<^sub>A) t}
-       H
-     {\<lambda>s t. ((\<exists>\<^sub>t s. P s) @\<^sub>t true\<^sub>A) t}"
-unfolding Valid_def
-  apply auto
-  unfolding join_assn_def true_assn_def ex_assn_def
-  apply auto 
-  subgoal for a b aa ba tr2 tr1a tr2a
-    apply(rule exI[where x="tr1a"])
-    by auto
-  done
 
 lemma ex_tran:
   assumes "\<And>x. P x \<Longrightarrow>\<^sub>t R x"
@@ -166,6 +34,56 @@ lemma entails_disjE:
 "P \<Longrightarrow>\<^sub>A R \<Longrightarrow> Q \<Longrightarrow>\<^sub>A R \<Longrightarrow> (\<lambda> (a,s)  t. P  (a,s) t \<or> Q  (a,s) t) \<Longrightarrow>\<^sub>A R"
   unfolding entails_def by auto
 
+lemma entails_disjE':
+"P \<Longrightarrow>\<^sub>A R \<Longrightarrow> Q \<Longrightarrow>\<^sub>A R \<Longrightarrow> (\<lambda> s  t. P  s t \<or> Q  s t) \<Longrightarrow>\<^sub>A R"
+  unfolding entails_def by auto
+
+lemma entails_disjI1':
+"P \<Longrightarrow>\<^sub>A R1 \<Longrightarrow> P \<Longrightarrow>\<^sub>A (\<lambda> s t. R1 s t \<or> R2 s t)"
+  unfolding entails_def by auto
+
+lemma entails_disjI2':
+"P \<Longrightarrow>\<^sub>A R2 \<Longrightarrow> P \<Longrightarrow>\<^sub>A (\<lambda> s t. R1 s t \<or> R2 s t)"
+  unfolding entails_def by auto
+
+lemma join_disj_assn:
+"P @\<^sub>t (Q1 \<or>\<^sub>t Q2) = ((P @\<^sub>t Q1) \<or>\<^sub>t (P @\<^sub>t Q2))"
+  unfolding join_assn_def disj_assn_def join_assn_def by blast
+
+lemma Valid_true:
+"\<Turnstile> {\<lambda> s t. P t} p {\<lambda> s t. (P @\<^sub>t true\<^sub>A) t}"
+  unfolding Valid_def join_assn_def true_assn_def by auto
+
+
+inductive out_0assn :: "cname \<Rightarrow> real \<Rightarrow> 'a tassn" ("Out0\<^sub>t") where
+  "Out0\<^sub>t ch v [OutBlock ch v]"
+
+inductive wait_passn :: "(real \<Rightarrow> 'a gstate) \<Rightarrow> rdy_info \<Rightarrow> 'a tassn" ("Waitp\<^sub>t") where
+  "d > 0 \<Longrightarrow> Waitp\<^sub>t p rdy [WaitBlk d (\<lambda>\<tau>. p \<tau>) rdy]"
+
+theorem Valid_send_sp_assm0:
+  "\<Turnstile> {\<lambda>s t. P s t}
+       Cm (ch[!]e)
+     {\<lambda>s t. (P s @\<^sub>t (Out0\<^sub>t ch (e s) \<or>\<^sub>t Waitp\<^sub>t (\<lambda> _. EState s) ({ch},{}) @\<^sub>t true\<^sub>A)) t}"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_send)
+  apply (auto simp add: entails_def magic_wand_assn_def join_assn_def disj_assn_def true_assn_def)
+    subgoal for a b tr
+      apply(rule exI[where x= tr])
+      using out_0assn.intros(1) by auto
+    subgoal for a b tr d
+      apply(rule exI[where x= tr])
+      apply(rule conjI)
+      apply simp
+      apply(rule exI[where x="[WaitBlk d (\<lambda>_. EState (a, b)) ({ch}, {}), OutBlock ch (e (a, b))]"])
+      apply(rule conjI)
+       apply(rule disjI2)
+      using wait_passn.intros(1)[of d]
+       apply fastforce
+      by auto
+    done
+
+   
 
 
 end
