@@ -610,6 +610,16 @@ lemma Valid_rep':
   using assms unfolding Valid_def big_step_rep
   by blast
 
+lemma Valid_rep'':
+  assumes"\<And>n P . \<Turnstile> {\<lambda>s t. s = s0 \<and> P t}
+                      RepN n c
+                 {\<lambda>s t. (P @\<^sub>t (Q n s0)) t}" 
+  shows "\<Turnstile> {\<lambda>s t. s = s0 \<and> P t}
+                      Rep c
+            {\<lambda>s t. (\<exists>n. (P @\<^sub>t (Q n s0)) t)}"
+  using assms unfolding Valid_def big_step_rep
+  by blast
+
 lemma Valid_T1_rep:
   "\<Turnstile> {\<lambda>s t. s = (Task st ent tp,ss) \<and> inv_s (snd s) \<and> emp\<^sub>t t}
                       Rep T1

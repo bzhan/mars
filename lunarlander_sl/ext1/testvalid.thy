@@ -83,7 +83,10 @@ theorem Valid_send_sp_assm0:
       by auto
     done
 
-   
+lemma tassn_to_assn:
+"P \<Longrightarrow>\<^sub>t Q \<Longrightarrow> (\<lambda> s. P) \<Longrightarrow>\<^sub>A (\<lambda> s. Q)"
+  unfolding entails_def entails_tassn_def
+  by auto
 
 
 end

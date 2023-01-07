@@ -279,10 +279,21 @@ definition Q :: "(real \<times> tid) list \<Rightarrow> tid \<Rightarrow> real \
                         else s = (Sch p 1 2, ss(Pr:=2)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) 2 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (run_ch 1) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=2))) ({run_ch 1},{})) @\<^sub>t true\<^sub>A )) t)
          \<or> (\<exists> v\<noteq>2. (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t true\<^sub>A ) t)
                         \<or> (if rp \<ge> 1 then s = (Sch (p @ [(1, 2)]) rn rp,ss(Pr:=1)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) 1 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}))) t 
-        else if rn \<noteq> -1 then s = (Sch p 2 1, ss(Pr:=1)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) 1 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t (Out\<^sub>t (EState ((Sch p rn rp, ss(Pr:=1)))) (preempt_ch 1) 0) @\<^sub>t (Out\<^sub>t (EState ((Sch p 2 1, ss(Pr:=1)))) (run_ch 2) 0)) t 
-                        else s = (Sch p 2 1, ss(Pr:=1)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) 1 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t (Out\<^sub>t (EState ((Sch p 2 1, ss(Pr:=1)))) (run_ch 2) 0)) t)
+        else if rn \<noteq> -1 then s = (Sch p 2 1, ss(Pr:=1)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) 1 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (preempt_ch 1) 0) @\<^sub>t (Out0\<^sub>t (run_ch 2) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=1))) ({preempt_ch 1},{})) @\<^sub>t true\<^sub>A \<or>\<^sub>t (Out0\<^sub>t (preempt_ch 1) 0) @\<^sub>t(Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=1))) ({run_ch 2},{})) @\<^sub>t true\<^sub>A)) t 
+                        else s = (Sch p 2 1, ss(Pr:=1)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) 1 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (run_ch 2) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=1))) ({run_ch 2},{})) @\<^sub>t true\<^sub>A )) t)
          \<or> (\<exists> v\<noteq>1. (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t true\<^sub>A ) t)
-         )"
+         \<or> (\<exists> v. if length p > 0 then s = (sched_get_max'(Sch p rn rp),ss(G:=v)) 
+                    \<and> (if run_now(sched_get_max'(Sch p rn rp)) = 1 
+                        then (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (free_ch 1) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (run_ch 1) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (sched_get_max'(Sch p rn rp),ss(G:=v))) ({run_ch 1},{})) @\<^sub>t true\<^sub>A )) t  
+                        else (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (free_ch 1) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (run_ch 2) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (sched_get_max'(Sch p rn rp),ss(G:=v))) ({run_ch 2},{})) @\<^sub>t true\<^sub>A )) t) 
+                  else s = (sched_clear'(Sch p rn rp),ss(G:=v)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (free_ch 1) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}))) t)
+        \<or>  (\<exists> v. if length p > 0 then s = (sched_get_max'(Sch p rn rp),ss(G:=v)) 
+                    \<and> (if run_now(sched_get_max'(Sch p rn rp)) = 1 
+                        then (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (free_ch 2) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (run_ch 1) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (sched_get_max'(Sch p rn rp),ss(G:=v))) ({run_ch 1},{})) @\<^sub>t true\<^sub>A )) t  
+                        else (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (free_ch 2) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (run_ch 2) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (sched_get_max'(Sch p rn rp),ss(G:=v))) ({run_ch 2},{})) @\<^sub>t true\<^sub>A )) t) 
+                  else s = (sched_clear'(Sch p rn rp),ss(G:=v)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (free_ch 2) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}))) t)
+        \<or>  (\<exists> v. s = (sched_del_proc' 1 (Sch p rn rp),ss(G:=v)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (exit_ch 1) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}))) t)
+        \<or>  (\<exists> v. s = (sched_del_proc' 2 (Sch p rn rp),ss(G:=v)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (exit_ch 2) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}))) t))"
 
 lemma Sch_Valid_1:
 "\<Turnstile> {\<lambda>s t. s = (Sch p rn rp,ss) \<and> P s t}
@@ -451,13 +462,13 @@ lemma Sch_Valid_1:
             apply(rule Valid_basic_sp1)
            apply(rule Valid_seq)
             apply(rule Valid_cond_sp)
-             apply(rule Valid_send_sp)
+             apply(rule Valid_send_sp_assm0)
             apply(rule Valid_skip)
            apply(rule Valid_seq)
+            apply(rule Valid_send_sp_assm0)
+            apply(rule Valid_seq)
             apply(rule Valid_basic_sp1)
-           apply(rule Valid_seq)
-            apply(rule Valid_basic_sp1)
-           apply(rule Valid_send_sp)
+           apply(rule Valid_basic_sp1)
           apply(rule entails_disjE')
           subgoal
             unfolding entails_def
@@ -484,7 +495,31 @@ lemma Sch_Valid_1:
               apply (auto simp add: Pr_def pure_assn_def conj_assn_def join_assn_def)
               subgoal for tr2 tr1b tr2a tr2b
                 apply(rule exI[where x=tr1b])
-                by auto
+                apply auto
+                apply(rule exI[where x=tr2b])
+                apply auto
+                unfolding disj_assn_def
+                apply(erule disjE)
+                subgoal 
+                  apply(erule disjE)
+                  subgoal by auto
+                  subgoal 
+                    apply(rule disjI2)
+                    apply(rule disjI1)
+                    by(auto simp add: true_assn_def)
+                  done
+                subgoal
+                apply(erule disjE)
+                  subgoal
+                    apply(rule disjI2)
+                    apply(rule disjI2)
+                    by(auto simp add: true_assn_def)
+                  subgoal
+                    apply(rule disjI2)
+                    apply(rule disjI1)
+                    by(auto simp add: true_assn_def)
+                  done
+                done
               subgoal for tr2 tr1a tr2a
                 apply(rule exI[where x=tr1a])
                 by auto
@@ -571,11 +606,77 @@ lemma Sch_Valid_1:
           apply(rule Valid_seq)
            apply(rule Valid_basic_sp1)
           apply(rule Valid_cond_sp)
-           apply(rule Valid_send_sp)
-          apply(rule Valid_send_sp)
+           apply(rule Valid_send_sp_assm0)
+          apply(rule Valid_send_sp_assm0)
          apply(rule Valid_basic_sp1)
-
-        sorry
+        apply(rule entails_disjE')
+         apply(rule entails_disjE')
+        subgoal
+          unfolding Q_def entails_def
+          apply(rule allI)+
+          apply(rule impI)
+          subgoal for s tr
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI1)
+            apply (auto simp add: pure_assn_def conj_assn_def join_assn_def disj_assn_def)
+            subgoal for v tr2 tr1a tr2a
+              apply(cases s)
+              apply(rule exI[where x=v])
+              by auto
+            subgoal for v tr1a tr2a tr1b tr2b
+              apply(cases s)
+              apply(rule exI[where x=v])
+              apply (auto simp add:true_assn_def)
+              apply(rule exI[where x=tr1a])
+              apply (auto simp add:true_assn_def)
+              done
+            done
+          done
+        subgoal
+          unfolding Q_def entails_def
+          apply(rule allI)+
+          apply(rule impI)
+          subgoal for s tr
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI1)
+            apply (auto simp add: pure_assn_def conj_assn_def join_assn_def disj_assn_def)
+            subgoal for v tr2 tr1a tr2a
+              apply(cases s)
+              apply(rule exI[where x=v])
+              by auto
+            subgoal for v tr1a tr2a tr1b tr2b
+              apply(cases s)
+              apply(rule exI[where x=v])
+              apply (auto simp add:true_assn_def)
+              apply(rule exI[where x=tr1a])
+              apply (auto simp add:true_assn_def)
+              done
+            done
+          done
+        subgoal
+          unfolding Q_def entails_def
+          apply(rule allI)+
+          apply(rule impI)
+          subgoal for s tr
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI1)
+            apply (auto simp add: pure_assn_def conj_assn_def join_assn_def disj_assn_def)
+            subgoal for v tr1 tr2
+              apply(cases s)
+              apply(rule exI[where x=v])
+              by auto
+            done
+          done
+        done
       apply(rule conjI)
       subgoal unfolding entails_def
         apply(rule allI)+
@@ -596,9 +697,626 @@ lemma Sch_Valid_1:
         done
       done
     subgoal for i'''
-      
+      apply(cases i''')
+    subgoal
+      apply auto
+      apply(rule exI[where x="\<lambda> s t. (\<exists> v. s = (Sch p rn rp, ss(G:=v)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (free_ch 2) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}))) t)"])
+      apply(rule conjI)
+      subgoal 
+        apply(rule Valid_strengthen_post)
+        prefer 2
+         apply(rule Valid_cond_sp)
+          apply(rule Valid_seq)
+           apply(rule Valid_basic_sp1)
+          apply(rule Valid_cond_sp)
+           apply(rule Valid_send_sp_assm0)
+          apply(rule Valid_send_sp_assm0)
+         apply(rule Valid_basic_sp1)
+        apply(rule entails_disjE')
+         apply(rule entails_disjE')
+        subgoal
+          unfolding Q_def entails_def
+          apply(rule allI)+
+          apply(rule impI)
+          subgoal for s tr
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI1)
+            apply (auto simp add: pure_assn_def conj_assn_def join_assn_def disj_assn_def)
+            subgoal for v tr2 tr1a tr2a
+              apply(cases s)
+              apply(rule exI[where x=v])
+              by auto
+            subgoal for v tr1a tr2a tr1b tr2b
+              apply(cases s)
+              apply(rule exI[where x=v])
+              apply (auto simp add:true_assn_def)
+              apply(rule exI[where x=tr1a])
+              apply (auto simp add:true_assn_def)
+              done
+            done
+          done
+        subgoal
+          unfolding Q_def entails_def
+          apply(rule allI)+
+          apply(rule impI)
+          subgoal for s tr
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI1)
+            apply (auto simp add: pure_assn_def conj_assn_def join_assn_def disj_assn_def)
+            subgoal for v tr2 tr1a tr2a
+              apply(cases s)
+              apply(rule exI[where x=v])
+              by auto
+            subgoal for v tr1a tr2a tr1b tr2b
+              apply(cases s)
+              apply(rule exI[where x=v])
+              apply (auto simp add:true_assn_def)
+              apply(rule exI[where x=tr1a])
+              apply (auto simp add:true_assn_def)
+              done
+            done
+          done
+        subgoal
+          unfolding Q_def entails_def
+          apply(rule allI)+
+          apply(rule impI)
+          subgoal for s tr
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI1)
+            apply (auto simp add: pure_assn_def conj_assn_def join_assn_def disj_assn_def)
+            subgoal for v tr1 tr2
+              apply(cases s)
+              apply(rule exI[where x=v])
+              by auto
+            done
+          done
+        done
+      apply(rule conjI)
+      subgoal unfolding entails_def
+        apply(rule allI)+
+        apply(rule impI)
+        apply auto
+        by (metis (no_types, opaque_lifting) inrdy_assn.intros(1) join_assn_def)
+      subgoal unfolding entails_def
+        apply(rule allI)+
+        apply(rule impI)
+        apply auto
+        subgoal for tr d v
+          apply(rule exI[where x=v])
+          apply (auto simp add:join_assn_def)
+          apply(rule exI[where x=tr])
+          apply auto
+          apply(rule )
+          by auto
+        done
+      done
+    subgoal for i''''
+      apply(cases i'''')
+      subgoal
+        apply auto
+        apply(rule exI[where x="\<lambda> s t. (\<exists> v. s = (Sch p rn rp, ss(G:=v)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (exit_ch 1) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}))) t)"])
+        apply(rule conjI)
+        subgoal
+          apply(rule Valid_ex_pre)
+          apply(rule Valid_strengthen_post)
+           prefer 2
+           apply(rule Valid_basic_sp1)
+          apply auto
+          unfolding Q_def entails_def
+          apply(rule allI)+
+          apply(rule impI)
+          apply(rule disjI2)
+          apply(rule disjI2)
+          apply(rule disjI2)
+          apply(rule disjI2)
+          apply(rule disjI2)
+          apply(rule disjI2)
+          apply(rule disjI1)
+          by auto
+        apply(rule conjI)
+        subgoal
+          unfolding entails_def
+          apply auto
+          by (metis inrdy_assn.intros(1) join_assn_def)
+        subgoal
+          unfolding entails_def
+          apply (auto simp add:join_assn_def)
+          subgoal for tr d v
+            apply(rule exI[where x=v])
+            apply auto
+            apply(rule exI[where x=tr])
+            apply auto
+            apply(rule ) by auto
+          done
+        done
+      subgoal for i'''''
+        subgoal
+        apply auto
+        apply(rule exI[where x="\<lambda> s t. (\<exists> v. s = (Sch p rn rp, ss(G:=v)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (exit_ch 2) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}))) t)"])
+        apply(rule conjI)
+        subgoal
+          apply(rule Valid_ex_pre)
+          apply(rule Valid_strengthen_post)
+           prefer 2
+           apply(rule Valid_basic_sp1)
+          apply auto
+          unfolding Q_def entails_def
+          apply(rule allI)+
+          apply(rule impI)
+          apply(rule disjI2)
+          apply(rule disjI2)
+          apply(rule disjI2)
+          apply(rule disjI2)
+          apply(rule disjI2)
+          apply(rule disjI2)
+          apply(rule disjI2)
+          by auto
+        apply(rule conjI)
+        subgoal
+          unfolding entails_def
+          apply auto
+          by (metis inrdy_assn.intros(1) join_assn_def)
+        subgoal
+          unfolding entails_def
+          apply (auto simp add:join_assn_def)
+          subgoal for tr d v
+            apply(rule exI[where x=v])
+            apply auto
+            apply(rule exI[where x=tr])
+            apply auto
+            apply(rule ) by auto
+          done
+        done
+      done
+    done
+  done
+  done
+  done
+  done
+  done
+
+            
+fun SCH_tr:: "nat \<Rightarrow> estate ext_state \<Rightarrow> estate tassn" where
+  "SCH_tr 0 (Sch p rn rp,ss)  = emp\<^sub>t" 
+| "SCH_tr (Suc k) (Sch p rn rp,ss) = (
+   (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) 2
+               ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) 
+              @\<^sub>t (if rp \<ge> 2 then SCH_tr k (Sch (p @ [(2, 1)]) rn rp,ss(Pr := 2)) 
+               else if rn \<noteq> -1 then Out0\<^sub>t (preempt_ch 2) 0 @\<^sub>t Out0\<^sub>t (run_ch 1) 0 @\<^sub>t SCH_tr k (Sch p 1 2,ss(Pr := 2)) \<or>\<^sub>t
+                                     Waitp\<^sub>t (\<lambda>_. EState (Sch p rn rp, ss(Pr := 2))) ({preempt_ch 2}, {}) @\<^sub>t true\<^sub>A \<or>\<^sub>t
+                                      Out0\<^sub>t (preempt_ch 2) 0 @\<^sub>t Waitp\<^sub>t (\<lambda>_. EState (Sch p rn rp, ss(Pr := 2))) ({run_ch 1}, {}) @\<^sub>t true\<^sub>A 
+                              else Out0\<^sub>t (run_ch 1) 0 @\<^sub>t SCH_tr k (Sch p 1 2,ss(Pr := 2))\<or>\<^sub>t
+                                     Waitp\<^sub>t (\<lambda>_. EState (Sch p rn rp, ss(Pr := 2)))({run_ch 1}, {}) @\<^sub>t true\<^sub>A)
+ \<or>\<^sub>t(\<exists>\<^sub>t v. \<up>(v\<noteq>2) \<and>\<^sub>t  Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) v ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) @\<^sub>t true\<^sub>A ) 
+ \<or>\<^sub>t(Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) 1
+               ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) 
+              @\<^sub>t (if rp \<ge> 1 then SCH_tr k (Sch (p @ [(1, 2)]) rn rp,ss(Pr := 1)) 
+               else if rn \<noteq> -1 then Out0\<^sub>t (preempt_ch 1) 0 @\<^sub>t Out0\<^sub>t (run_ch 2) 0 @\<^sub>t SCH_tr k (Sch p 2 1,ss(Pr := 1)) \<or>\<^sub>t
+                                     Waitp\<^sub>t (\<lambda>_. EState (Sch p rn rp, ss(Pr := 1))) ({preempt_ch 1}, {}) @\<^sub>t true\<^sub>A \<or>\<^sub>t
+                                      Out0\<^sub>t (preempt_ch 1) 0 @\<^sub>t Waitp\<^sub>t (\<lambda>_. EState (Sch p rn rp, ss(Pr := 1))) ({run_ch 2}, {}) @\<^sub>t true\<^sub>A 
+                              else Out0\<^sub>t (run_ch 2) 0 @\<^sub>t SCH_tr k (Sch p 2 1,ss(Pr := 1))\<or>\<^sub>t
+                                     Waitp\<^sub>t (\<lambda>_. EState (Sch p rn rp, ss(Pr := 1)))({run_ch 2}, {}) @\<^sub>t true\<^sub>A)
+  \<or>\<^sub>t(\<exists>\<^sub>t v. \<up>(v\<noteq>1) \<and>\<^sub>t  Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) v ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) @\<^sub>t true\<^sub>A ) 
+  \<or>\<^sub>t(\<exists>\<^sub>t v. Inrdy\<^sub>t (Sch p rn rp, ss) (free_ch 1) v ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) @\<^sub>t 
+          (if length p > 0 then if run_now (sched_get_max' (Sch p rn rp)) = 1 
+                                then  (Out0\<^sub>t (run_ch 1) 0 @\<^sub>t SCH_tr k (sched_get_max' (Sch p rn rp), ss(G := v)) \<or>\<^sub>t
+                                       Waitp\<^sub>t (\<lambda>_. EState (sched_get_max' (Sch p rn rp), ss(G := v))) ({run_ch 1}, {}) @\<^sub>t true\<^sub>A)
+                                else  (Out0\<^sub>t (run_ch 2) 0 @\<^sub>t SCH_tr k (sched_get_max' (Sch p rn rp), ss(G := v)) \<or>\<^sub>t
+                                       Waitp\<^sub>t (\<lambda>_. EState (sched_get_max' (Sch p rn rp), ss(G := v))) ({run_ch 2}, {}) @\<^sub>t true\<^sub>A)
+                           else SCH_tr k (sched_clear' (Sch p rn rp), ss(G := v))))
+  \<or>\<^sub>t(\<exists>\<^sub>t v. Inrdy\<^sub>t (Sch p rn rp, ss) (free_ch 2) v ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) @\<^sub>t 
+          (if length p > 0 then if run_now (sched_get_max' (Sch p rn rp)) = 1 
+                                then  (Out0\<^sub>t (run_ch 1) 0 @\<^sub>t SCH_tr k (sched_get_max' (Sch p rn rp), ss(G := v)) \<or>\<^sub>t
+                                       Waitp\<^sub>t (\<lambda>_. EState (sched_get_max' (Sch p rn rp), ss(G := v))) ({run_ch 1}, {}) @\<^sub>t true\<^sub>A)
+                                else  (Out0\<^sub>t (run_ch 2) 0 @\<^sub>t SCH_tr k (sched_get_max' (Sch p rn rp), ss(G := v)) \<or>\<^sub>t
+                                       Waitp\<^sub>t (\<lambda>_. EState (sched_get_max' (Sch p rn rp), ss(G := v))) ({run_ch 2}, {}) @\<^sub>t true\<^sub>A)
+                           else SCH_tr k (sched_clear' (Sch p rn rp), ss(G := v))))
+  \<or>\<^sub>t(\<exists>\<^sub>t v. Inrdy\<^sub>t (Sch p rn rp, ss) (exit_ch 1) v ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) 
+                             @\<^sub>t SCH_tr k (sched_del_proc' 1 (Sch p rn rp), ss(G := v)))
+  \<or>\<^sub>t(\<exists>\<^sub>t v. Inrdy\<^sub>t (Sch p rn rp, ss) (exit_ch 2) v ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) 
+                             @\<^sub>t SCH_tr k (sched_del_proc' 2 (Sch p rn rp), ss(G := v)))
+)"
   
-    
+
+
+
+lemma Valid_SCH_rep:
+  "\<Turnstile> {\<lambda>s t. s = (Sch p rn rp,ss) \<and> emp\<^sub>t t}
+                      Rep SCH
+      {\<lambda>s t. (\<exists>n. (emp\<^sub>t @\<^sub>t SCH_tr n (Sch p rn rp,ss)) t)}"
+apply(rule Valid_rep'')
+  subgoal for n P
+    apply(induction n arbitrary:P p rn rp ss)
+    subgoal for P
+      apply auto
+      apply(rule Valid_strengthen_post)
+       prefer 2
+       apply(rule Valid_skip)
+      unfolding entails_def by auto
+    subgoal premises pre for n P p rn rp ss
+      subgoal
+        unfolding RepN.simps
+        apply(rule Valid_seq)
+         apply(rule Sch_Valid_1)
+        thm pre
+        unfolding Q_def
+        apply(rule Valid_pre_or)
+        subgoal
+          apply(cases "2\<le>rp")
+          subgoal 
+            apply(rule Valid_strengthen_post)
+             prefer 2
+             apply simp
+             apply(rule pre)
+            apply(simp only:join_assoc)
+            apply(rule tassn_to_assn)
+            apply(rule entails_tassn_cancel_left)
+            unfolding entails_tassn_def
+            apply(rule allI)
+            apply(rule impI)
+            unfolding disj_assn_def SCH_tr.simps
+            apply(rule disjI1)
+            by auto
+          apply(cases "rn \<noteq> - 1")
+          subgoal 
+            apply(rule Valid_strengthen_post)
+             prefer 2
+             apply simp
+             apply(rule pre)
+            apply(simp only:join_assoc)
+            apply(rule tassn_to_assn)
+            apply(rule entails_tassn_cancel_left)
+            unfolding entails_tassn_def
+            apply(rule allI)
+            apply(rule impI)
+            unfolding disj_assn_def SCH_tr.simps
+            apply(rule disjI1)
+            apply (auto simp add:join_assn_def true_assn_def)
+            subgoal by metis
+            subgoal by metis
+            subgoal by metis
+            done
+          subgoal 
+            apply(rule Valid_strengthen_post)
+             prefer 2
+             apply simp
+             apply(rule pre)
+            apply(simp only:join_assoc)
+            apply(rule tassn_to_assn)
+            apply(rule entails_tassn_cancel_left)
+            unfolding entails_tassn_def
+            apply(rule allI)
+            apply(rule impI)
+            unfolding disj_assn_def SCH_tr.simps
+            apply(rule disjI1)
+            apply (auto simp add:join_assn_def true_assn_def)
+            by metis
+          done
+        apply(rule Valid_pre_or)
+        subgoal
+          apply(rule Valid_ex_pre)
+          apply(rule Valid_strengthen_post)
+          prefer 2
+           apply(rule Valid_true)
+          subgoal for v
+            apply(rule tassn_to_assn)
+            apply (simp del:SCH_tr.simps add:join_assoc)
+            apply(rule impI)
+            apply(rule entails_tassn_cancel_left)
+            unfolding entails_tassn_def
+            apply(rule allI)
+            apply(rule impI)
+            unfolding disj_assn_def SCH_tr.simps
+            apply(rule disjI2)
+            apply(rule disjI1)
+            by (auto simp add:join_assn_def true_assn_def ex_assn_def pure_assn_def conj_assn_def)
+          done
+        apply(rule Valid_pre_or)
+        subgoal
+          apply(cases "1\<le>rp")
+          subgoal 
+            apply(rule Valid_strengthen_post)
+             prefer 2
+             apply simp
+             apply(rule pre)
+            apply(simp only:join_assoc)
+            apply(rule tassn_to_assn)
+            apply(rule entails_tassn_cancel_left)
+            unfolding entails_tassn_def
+            apply(rule allI)
+            apply(rule impI)
+            unfolding disj_assn_def SCH_tr.simps
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI1)
+            by auto
+          apply(cases "rn \<noteq> - 1")
+          subgoal 
+            apply(rule Valid_strengthen_post)
+             prefer 2
+             apply simp
+             apply(rule pre)
+            apply(simp only:join_assoc)
+            apply(rule tassn_to_assn)
+            apply(rule entails_tassn_cancel_left)
+            unfolding entails_tassn_def
+            apply(rule allI)
+            apply(rule impI)
+            unfolding disj_assn_def SCH_tr.simps
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI1)
+            apply (auto simp add:join_assn_def true_assn_def)
+            subgoal by metis
+            subgoal by metis
+            subgoal by metis
+            done
+          subgoal 
+            apply(rule Valid_strengthen_post)
+             prefer 2
+             apply simp
+             apply(rule pre)
+            apply(simp only:join_assoc)
+            apply(rule tassn_to_assn)
+            apply(rule entails_tassn_cancel_left)
+            unfolding entails_tassn_def
+            apply(rule allI)
+            apply(rule impI)
+            unfolding disj_assn_def SCH_tr.simps
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI1)
+            apply (auto simp add:join_assn_def true_assn_def)
+            by metis
+          done
+        apply(rule Valid_pre_or)
+        subgoal
+          apply(rule Valid_ex_pre)
+          apply(rule Valid_strengthen_post)
+          prefer 2
+           apply(rule Valid_true)
+          subgoal for v
+            apply(rule tassn_to_assn)
+            apply (simp del:SCH_tr.simps add:join_assoc)
+            apply(rule impI)
+            apply(rule entails_tassn_cancel_left)
+            unfolding entails_tassn_def
+            apply(rule allI)
+            apply(rule impI)
+            unfolding disj_assn_def SCH_tr.simps
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI2)
+            apply(rule disjI1)
+            by (auto simp add:join_assn_def true_assn_def ex_assn_def pure_assn_def conj_assn_def)
+          done
+        apply(rule Valid_pre_or)
+        subgoal
+          apply(rule Valid_ex_pre)
+          subgoal for v
+          apply(cases "length p > 0")
+            subgoal
+              apply(cases "run_now (sched_get_max' (Sch p rn rp)) = 1")
+              subgoal
+                apply (simp del: SCH_tr.simps)
+                 apply(cases "get_max p")
+                subgoal for pp tt
+                  apply (simp del: SCH_tr.simps)
+                  apply(rule Valid_strengthen_post)
+                   prefer 2
+                   apply(rule pre)
+                  apply(rule tassn_to_assn)
+                  apply(simp del: SCH_tr.simps add: join_assoc)
+                  apply(rule entails_tassn_cancel_left)
+                  unfolding entails_tassn_def
+                  apply(rule allI)
+                  apply(rule impI)
+                  unfolding disj_assn_def SCH_tr.simps
+                  apply(rule disjI2)
+                  apply(rule disjI2)
+                  apply(rule disjI2)
+                  apply(rule disjI2)
+                  apply(rule disjI1)
+                  apply (auto simp add:join_assn_def true_assn_def ex_assn_def pure_assn_def conj_assn_def)
+                  subgoal by metis
+                  subgoal by metis
+                  done
+                done
+              subgoal
+                apply (simp del: SCH_tr.simps)
+                 apply(cases "get_max p")
+                subgoal for pp tt
+                  apply (simp del: SCH_tr.simps)
+                  apply(rule Valid_strengthen_post)
+                   prefer 2
+                   apply(rule pre)
+                  apply(rule tassn_to_assn)
+                  apply(simp del: SCH_tr.simps add: join_assoc)
+                  apply(rule entails_tassn_cancel_left)
+                  unfolding entails_tassn_def
+                  apply(rule allI)
+                  apply(rule impI)
+                  unfolding disj_assn_def SCH_tr.simps
+                  apply(rule disjI2)
+                  apply(rule disjI2)
+                  apply(rule disjI2)
+                  apply(rule disjI2)
+                  apply(rule disjI1)
+                  apply (auto simp add:join_assn_def true_assn_def ex_assn_def pure_assn_def conj_assn_def)
+                  subgoal by metis
+                  subgoal by metis
+                  done
+                done
+              done
+            subgoal
+              apply (simp del: SCH_tr.simps)
+              apply(rule Valid_strengthen_post)
+              prefer 2
+              apply(rule pre)
+              apply(rule tassn_to_assn)
+              apply(simp del: SCH_tr.simps add: join_assoc)
+              apply(rule entails_tassn_cancel_left)
+              unfolding entails_tassn_def
+              apply(rule allI)
+              apply(rule impI)
+              unfolding disj_assn_def SCH_tr.simps
+              apply(rule disjI2)
+              apply(rule disjI2)
+              apply(rule disjI2)
+              apply(rule disjI2)
+              apply(rule disjI1)
+              by(auto simp add: ex_assn_def)
+            done
+          done
+        apply(rule Valid_pre_or)
+        subgoal
+          apply(rule Valid_ex_pre)
+          subgoal for v
+          apply(cases "length p > 0")
+            subgoal
+              apply(cases "run_now (sched_get_max' (Sch p rn rp)) = 1")
+              subgoal
+                apply (simp del: SCH_tr.simps)
+                 apply(cases "get_max p")
+                subgoal for pp tt
+                  apply (simp del: SCH_tr.simps)
+                  apply(rule Valid_strengthen_post)
+                   prefer 2
+                   apply(rule pre)
+                  apply(rule tassn_to_assn)
+                  apply(simp del: SCH_tr.simps add: join_assoc)
+                  apply(rule entails_tassn_cancel_left)
+                  unfolding entails_tassn_def
+                  apply(rule allI)
+                  apply(rule impI)
+                  unfolding disj_assn_def SCH_tr.simps
+                  apply(rule disjI2)
+                  apply(rule disjI2)
+                  apply(rule disjI2)
+                  apply(rule disjI2)
+                  apply(rule disjI2)
+                  apply (auto simp add:join_assn_def true_assn_def ex_assn_def pure_assn_def conj_assn_def)
+                  subgoal by metis
+                  subgoal by metis
+                  done
+                done
+              subgoal
+                apply (simp del: SCH_tr.simps)
+                 apply(cases "get_max p")
+                subgoal for pp tt
+                  apply (simp del: SCH_tr.simps)
+                  apply(rule Valid_strengthen_post)
+                   prefer 2
+                   apply(rule pre)
+                  apply(rule tassn_to_assn)
+                  apply(simp del: SCH_tr.simps add: join_assoc)
+                  apply(rule entails_tassn_cancel_left)
+                  unfolding entails_tassn_def
+                  apply(rule allI)
+                  apply(rule impI)
+                  unfolding disj_assn_def SCH_tr.simps
+                  apply(rule disjI2)
+                  apply(rule disjI2)
+                  apply(rule disjI2)
+                  apply(rule disjI2)
+                  apply(rule disjI2)
+                  apply(rule disjI1)
+                  apply (auto simp add:join_assn_def true_assn_def ex_assn_def pure_assn_def conj_assn_def)
+                  subgoal by metis
+                  subgoal by metis
+                  done
+                done
+              done
+            subgoal
+              apply (simp del: SCH_tr.simps)
+              apply(rule Valid_strengthen_post)
+              prefer 2
+              apply(rule pre)
+              apply(rule tassn_to_assn)
+              apply(simp del: SCH_tr.simps add: join_assoc)
+              apply(rule entails_tassn_cancel_left)
+              unfolding entails_tassn_def
+              apply(rule allI)
+              apply(rule impI)
+              unfolding disj_assn_def SCH_tr.simps
+              apply(rule disjI2)
+              apply(rule disjI2)
+              apply(rule disjI2)
+              apply(rule disjI2)
+              apply(rule disjI2)
+              apply(rule disjI1)
+              by(auto simp add: ex_assn_def)
+            done
+          done
+        apply(rule Valid_pre_or)
+        subgoal
+          apply(rule Valid_ex_pre)
+          subgoal for v
+            apply (simp del: SCH_tr.simps)
+            apply(rule Valid_strengthen_post)
+              prefer 2
+              apply(rule pre)
+              apply(rule tassn_to_assn)
+              apply(simp del: SCH_tr.simps add: join_assoc)
+              apply(rule entails_tassn_cancel_left)
+              unfolding entails_tassn_def
+              apply(rule allI)
+              apply(rule impI)
+              unfolding disj_assn_def SCH_tr.simps
+              apply(rule disjI2)
+              apply(rule disjI2)
+              apply(rule disjI2)
+              apply(rule disjI2)
+              apply(rule disjI2)
+              apply(rule disjI2)
+              apply(rule disjI1)
+              by(auto simp add: ex_assn_def)
+            done
+          subgoal
+          apply(rule Valid_ex_pre)
+          subgoal for v
+            apply (simp del: SCH_tr.simps)
+            apply(rule Valid_strengthen_post)
+              prefer 2
+              apply(rule pre)
+              apply(rule tassn_to_assn)
+              apply(simp del: SCH_tr.simps add: join_assoc)
+              apply(rule entails_tassn_cancel_left)
+              unfolding entails_tassn_def
+              apply(rule allI)
+              apply(rule impI)
+              unfolding disj_assn_def SCH_tr.simps
+              apply(rule disjI2)
+              apply(rule disjI2)
+              apply(rule disjI2)
+              apply(rule disjI2)
+              apply(rule disjI2)
+              apply(rule disjI2)
+              apply(rule disjI2)
+              by(auto simp add: ex_assn_def)
+            done
+          done
+        done
+      done
+    done
+
+
+
+        
+
+
 
 
 end
