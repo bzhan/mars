@@ -29,6 +29,8 @@ lemma combine_ex_right:
   thm disjE
   by auto
 
+  
+  
 
 lemma entails_disjE:
 "P \<Longrightarrow>\<^sub>A R \<Longrightarrow> Q \<Longrightarrow>\<^sub>A R \<Longrightarrow> (\<lambda> (a,s)  t. P  (a,s) t \<or> Q  (a,s) t) \<Longrightarrow>\<^sub>A R"
@@ -57,6 +59,9 @@ lemma Valid_true:
 
 inductive out_0assn :: "cname \<Rightarrow> real \<Rightarrow> 'a tassn" ("Out0\<^sub>t") where
   "Out0\<^sub>t ch v [OutBlock ch v]"
+
+inductive in_0assn :: "cname \<Rightarrow> real \<Rightarrow> 'a tassn" ("In0\<^sub>t") where
+  "In0\<^sub>t ch v [InBlock ch v]"
 
 inductive wait_passn :: "(real \<Rightarrow> 'a gstate) \<Rightarrow> rdy_info \<Rightarrow> 'a tassn" ("Waitp\<^sub>t") where
   "d > 0 \<Longrightarrow> Waitp\<^sub>t p rdy [WaitBlk d (\<lambda>\<tau>. p \<tau>) rdy]"

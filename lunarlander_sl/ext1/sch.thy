@@ -273,8 +273,8 @@ definition SCH :: "estate proc" where
                 (exit_ch 1[?]G,Basic (sched_del_proc 1)),
                 (exit_ch 2[?]G,Basic (sched_del_proc 2))]"
 
-definition Q :: "(real \<times> tid) list \<Rightarrow> tid \<Rightarrow> real \<Rightarrow> state \<Rightarrow> estate assn \<Rightarrow> estate assn"where 
-"Q p rn rp ss P = (\<lambda> s t. (if rp \<ge> 2 then s = (Sch (p @ [(2, 1)]) rn rp,ss(Pr:=2)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) 2 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}))) t 
+definition QQ :: "(real \<times> tid) list \<Rightarrow> tid \<Rightarrow> real \<Rightarrow> state \<Rightarrow> estate assn \<Rightarrow> estate assn"where 
+"QQ p rn rp ss P = (\<lambda> s t. (if rp \<ge> 2 then s = (Sch (p @ [(2, 1)]) rn rp,ss(Pr:=2)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) 2 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}))) t 
         else if rn \<noteq> -1 then s = (Sch p 1 2, ss(Pr:=2)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) 2 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (preempt_ch 2) 0) @\<^sub>t (Out0\<^sub>t (run_ch 1) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=2))) ({preempt_ch 2},{})) @\<^sub>t true\<^sub>A \<or>\<^sub>t (Out0\<^sub>t (preempt_ch 2) 0) @\<^sub>t(Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=2))) ({run_ch 1},{})) @\<^sub>t true\<^sub>A)) t 
                         else s = (Sch p 1 2, ss(Pr:=2)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) 2 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (run_ch 1) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=2))) ({run_ch 1},{})) @\<^sub>t true\<^sub>A )) t)
          \<or> (\<exists> v\<noteq>2. (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t true\<^sub>A ) t)
@@ -298,7 +298,7 @@ definition Q :: "(real \<times> tid) list \<Rightarrow> tid \<Rightarrow> real \
 lemma Sch_Valid_1:
 "\<Turnstile> {\<lambda>s t. s = (Sch p rn rp,ss) \<and> P s t}
    SCH
-    {\<lambda> s t. Q p rn rp ss P s t}"
+    {\<lambda> s t. QQ p rn rp ss P s t}"
   unfolding  SCH_def
   apply(rule Valid_echoice)
   apply auto
@@ -332,7 +332,7 @@ lemma Sch_Valid_1:
             apply(rule allI)+
             subgoal for s tr
               apply auto
-              unfolding Q_def 
+              unfolding QQ_def 
               apply(rule disjI1)
               apply (auto simp add: Pr_def)
               by (metis prod.exhaust_sel)
@@ -342,7 +342,7 @@ lemma Sch_Valid_1:
             apply(rule allI)+
             subgoal for s tr
               apply auto
-              unfolding Q_def 
+              unfolding QQ_def 
               apply(rule disjI1)
               apply(cases s)
               apply (auto simp add: Pr_def pure_assn_def conj_assn_def join_assn_def)
@@ -391,7 +391,7 @@ lemma Sch_Valid_1:
             apply(rule Valid_strengthen_post)
              prefer 2
              apply(rule Valid_true)
-            unfolding Q_def
+            unfolding QQ_def
             apply(rule entails_disjI2')
             unfolding entails_def
             by (auto simp add:pure_assn_def conj_assn_def join_assoc)
@@ -475,7 +475,7 @@ lemma Sch_Valid_1:
             apply(rule allI)+
             subgoal for s tr
               apply auto
-              unfolding Q_def 
+              unfolding QQ_def 
               apply(rule disjI2)
               apply(rule disjI2)
               apply(rule disjI1)
@@ -487,7 +487,7 @@ lemma Sch_Valid_1:
             apply(rule allI)+
             subgoal for s tr
               apply auto
-              unfolding Q_def 
+              unfolding QQ_def 
               apply(rule disjI2)
               apply(rule disjI2)
               apply(rule disjI1)
@@ -538,7 +538,7 @@ lemma Sch_Valid_1:
             apply(rule Valid_strengthen_post)
              prefer 2
              apply(rule Valid_true)
-            unfolding Q_def
+            unfolding QQ_def
             apply(rule entails_disjI2')
             unfolding entails_def
             by (auto simp add:pure_assn_def conj_assn_def join_assoc)
@@ -612,7 +612,7 @@ lemma Sch_Valid_1:
         apply(rule entails_disjE')
          apply(rule entails_disjE')
         subgoal
-          unfolding Q_def entails_def
+          unfolding QQ_def entails_def
           apply(rule allI)+
           apply(rule impI)
           subgoal for s tr
@@ -636,7 +636,7 @@ lemma Sch_Valid_1:
             done
           done
         subgoal
-          unfolding Q_def entails_def
+          unfolding QQ_def entails_def
           apply(rule allI)+
           apply(rule impI)
           subgoal for s tr
@@ -660,7 +660,7 @@ lemma Sch_Valid_1:
             done
           done
         subgoal
-          unfolding Q_def entails_def
+          unfolding QQ_def entails_def
           apply(rule allI)+
           apply(rule impI)
           subgoal for s tr
@@ -715,7 +715,7 @@ lemma Sch_Valid_1:
         apply(rule entails_disjE')
          apply(rule entails_disjE')
         subgoal
-          unfolding Q_def entails_def
+          unfolding QQ_def entails_def
           apply(rule allI)+
           apply(rule impI)
           subgoal for s tr
@@ -740,7 +740,7 @@ lemma Sch_Valid_1:
             done
           done
         subgoal
-          unfolding Q_def entails_def
+          unfolding QQ_def entails_def
           apply(rule allI)+
           apply(rule impI)
           subgoal for s tr
@@ -765,7 +765,7 @@ lemma Sch_Valid_1:
             done
           done
         subgoal
-          unfolding Q_def entails_def
+          unfolding QQ_def entails_def
           apply(rule allI)+
           apply(rule impI)
           subgoal for s tr
@@ -814,7 +814,7 @@ lemma Sch_Valid_1:
            prefer 2
            apply(rule Valid_basic_sp1)
           apply auto
-          unfolding Q_def entails_def
+          unfolding QQ_def entails_def
           apply(rule allI)+
           apply(rule impI)
           apply(rule disjI2)
@@ -852,7 +852,7 @@ lemma Sch_Valid_1:
            prefer 2
            apply(rule Valid_basic_sp1)
           apply auto
-          unfolding Q_def entails_def
+          unfolding QQ_def entails_def
           apply(rule allI)+
           apply(rule impI)
           apply(rule disjI2)
@@ -951,7 +951,7 @@ apply(rule Valid_rep'')
         apply(rule Valid_seq)
          apply(rule Sch_Valid_1)
         thm pre
-        unfolding Q_def
+        unfolding QQ_def
         apply(rule Valid_pre_or)
         subgoal
           apply(cases "2\<le>rp")
