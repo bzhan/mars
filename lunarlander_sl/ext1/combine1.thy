@@ -31,6 +31,11 @@ lemma combine_assn_both_tran:
   unfolding entails_tassn_def combine_assn_def
   by auto
 
+lemma combine_assn_left_disj:
+"combine_assn chs (P1) Q \<Longrightarrow>\<^sub>t R \<Longrightarrow> combine_assn chs (P2) Q \<Longrightarrow>\<^sub>t R \<Longrightarrow>  combine_assn chs (P1 \<or>\<^sub>t P2) Q \<Longrightarrow>\<^sub>t R"
+  unfolding entails_tassn_def combine_assn_def disj_assn_def
+  by blast
+
 lemma combine_assn_wait_emp':
   "combine_assn chs (Wait\<^sub>t d p rdy @\<^sub>t P) emp\<^sub>t \<Longrightarrow>\<^sub>t combine_assn chs P emp\<^sub>t "
   unfolding combine_assn_def entails_tassn_def
@@ -287,7 +292,70 @@ lemma combine_assn_inrdy_wait':
       done
     done
   done
- 
+
+
+lemma combine_assn_out0_wait':
+  assumes "ch\<notin>chs \<and> d>0"
+  shows "combine_assn chs (out_0assn ch v @\<^sub>t P) (wait_assn d p rdy @\<^sub>t Q) 
+          \<Longrightarrow>\<^sub>t out_0assn ch v @\<^sub>t (combine_assn chs P (wait_assn d p rdy @\<^sub>t Q))"
+  unfolding Valid_def combine_assn_def entails_tassn_def join_assn_def
+  using assms
+  apply auto
+  subgoal for tr tr1a tr2a tr1b tr2b
+    apply(cases rule:out_0assn.cases[of ch v tr1a])
+     apply auto
+    apply(cases rule:wait_assn.cases[of d p rdy tr1b])
+      apply auto
+    apply(elim combine_blocks_unpairE3)
+    apply auto
+    apply(rule exI[where x="[OutBlock ch v]"])
+    apply auto
+    apply(rule exI[where x="tr2a"])
+    apply auto
+    apply(rule exI[where x="(WaitBlk d p rdy # tr2b)"])
+    apply auto
+    done
+  done
+
+
+lemma combine_assn_waitp_wait:
+  assumes "compat_rdy rdy1 rdy2 \<and> d > 0"
+  shows "combine_assn chs (wait_passn p1 rdy1 @\<^sub>t P) (wait_assn d p2 rdy2 @\<^sub>t Q)
+      \<Longrightarrow>\<^sub>t wait_passn (\<lambda> t. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) @\<^sub>t true\<^sub>A"
+  unfolding combine_assn_def entails_tassn_def join_assn_def true_assn_def
+  using assms
+  apply auto
+  subgoal for tr tr1a tr2a tr1b tr2b
+    apply(cases rule:wait_passn.cases[of p1 rdy1 tr1a])
+     apply auto
+    apply(cases rule:wait_assn.cases[of d p2 rdy2 tr1b])
+      apply auto
+    subgoal for dd
+      apply(cases "dd < d")
+      subgoal 
+        apply(elim combine_blocks_waitE3)
+           apply auto
+        apply(rule exI[where x="[WaitBlk dd (\<lambda>t. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2)]"])
+        apply auto
+        apply(rule) by auto
+      apply(cases "dd>d")
+      subgoal
+       apply(elim combine_blocks_waitE4)
+           apply auto
+        apply(rule exI[where x="[WaitBlk d (\<lambda>t. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2)]"])
+        apply auto
+        apply(rule) by auto
+      apply(cases "dd= d")
+      subgoal
+        apply simp
+       apply(elim combine_blocks_waitE2)
+           apply auto
+        apply(rule exI[where x="[WaitBlk d (\<lambda>t. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2)]"])
+        apply auto
+        apply(rule) by auto
+      by auto
+    done
+  done
 
 fun combine1 :: "nat \<Rightarrow> nat \<Rightarrow> estate ext_state \<Rightarrow> estate ext_state \<Rightarrow> estate tassn" where
   "combine1 0 0 (Sch p rn rp,ss) (Task st ent tp,ts) = (emp\<^sub>t)"
@@ -309,7 +377,22 @@ fun combine1 :: "nat \<Rightarrow> nat \<Rightarrow> estate ext_state \<Rightarr
     \<or>\<^sub>t   (\<exists>\<^sub>ttt. \<up> (0 \<le> tt \<and> tt < 9 / 200 - ts T) \<and>\<^sub>t
         Waitin\<^sub>t tt (\<lambda>t. ParState (EState (Sch p rn rp, ss)) (EState (Task WAIT ent 2, ts(T:= ts T + t))))
          (req_ch 2) 1 ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})
-       @\<^sub>t (if 1\<le>rp then combine1 sk (Suc tk) (Sch (p@[(1,2)]) rn rp,ss(Pr:=1)) (Task WAIT ent 2,ts(T:= ts T + tt)) else emp\<^sub>t))
+       @\<^sub>t (if 1\<le>rp then combine1 sk (Suc tk) (Sch (p@[(1,2)]) rn rp,ss(Pr:=1)) (Task WAIT ent 2,ts(T:= ts T + tt)) 
+                   else (Out0\<^sub>t (run_ch 2) 0 @\<^sub>t combine1 sk (Suc tk) (Sch p 2 1,ss(Pr:=1)) (Task WAIT ent 2,ts(T:= ts T + tt))
+                        \<or>\<^sub>t Waitp\<^sub>t (\<lambda> t. ParState (EState(Sch p rn rp,ss(Pr:=1))) (EState (Task WAIT ent tp,ts(T:=ts T+(t+tt))))) ({run_ch 2},{}) @\<^sub>t true\<^sub>A)))
+    \<or>\<^sub>t  (\<exists>\<^sub>ttt v.\<up> (0 \<le> tt \<and> tt < 9 / 200 - ts T \<and> v\<noteq>1) \<and>\<^sub>t
+        Waitin\<^sub>t tt (\<lambda>t. ParState (EState (Sch p rn rp, ss)) (EState (Task WAIT ent 2, ts(T := ts T + t))))
+         (req_ch 2) v ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) @\<^sub>t true\<^sub>A)
+    \<or>\<^sub>t  (\<exists>\<^sub>ttt v.\<up> (0 \<le> tt \<and> tt < 9 / 200 - ts T) \<and>\<^sub>t 
+        Waitin\<^sub>t tt (\<lambda>t. ParState (EState (Sch p rn rp, ss)) (EState (Task WAIT ent 2, ts(T := ts T + t))))
+         (free_ch 2) v ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})
+          @\<^sub>t (if length p > 0 then (Out0\<^sub>t (run_ch 2) 0 @\<^sub>t combine1 sk (Suc tk) (Sch (del_proc p 2) 2 1,ss(G:=v)) (Task WAIT ent 2,ts(T:= ts T + tt))
+                                     \<or>\<^sub>t Waitp\<^sub>t (\<lambda> t. ParState (EState (sched_get_max'(Sch p rn rp),ss(G:=v))) (EState (Task WAIT ent tp,ts(T:=ts T+(t+tt))))) ({run_ch 2},{}) @\<^sub>t true\<^sub>A ) 
+              else combine1 sk (Suc tk) (Sch [] (-1) (-1),ss(G:=v)) (Task WAIT ent 2,ts(T:= ts T + tt))))
+    \<or>\<^sub>t  (\<exists>\<^sub>ttt v.\<up> (0 \<le> tt \<and> tt < 9 / 200 - ts T) \<and>\<^sub>t
+        Waitin\<^sub>t tt(\<lambda>t. ParState (EState (Sch p rn rp, ss))(EState (Task WAIT ent 2, ts(T := ts T + t))))
+         (exit_ch 2) v ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})
+            @\<^sub>t combine1 sk (Suc tk) (Sch (del_proc p 2) rn rp,ss(G:=v)) (Task WAIT ent 2,ts(T:= ts T + tt)))
 )"
 
 definition propc :: "nat \<Rightarrow> estate \<Rightarrow> estate \<Rightarrow> bool" where
@@ -317,30 +400,30 @@ definition propc :: "nat \<Rightarrow> estate \<Rightarrow> estate \<Rightarrow>
 
 
 lemma combine_SCH_T1:
-"propc ns (Sch p rn rp) (Task st ent 2) \<Longrightarrow>
+"propc nt (Sch p rn rp) (Task st ent 2) \<Longrightarrow>
    proper (Sch p rn rp) \<Longrightarrow>
  combine_assn {req_ch 1, preempt_ch 1, run_ch 1, free_ch 1, exit_ch 1} 
- (SCH_tr nt (Sch p rn rp,ss)) (T1_tr ns (Task st ent 2,ts)) \<Longrightarrow>\<^sub>t
- combine1 nt ns (Sch p rn rp,ss) (Task st ent 2,ts) "
+ (SCH_tr ns (Sch p rn rp,ss)) (T1_tr nt (Task st ent 2,ts)) \<Longrightarrow>\<^sub>t
+ combine1 ns nt (Sch p rn rp,ss) (Task st ent 2,ts) "
 proof(induction " nt+ns"  arbitrary: nt ns p rn rp ts st ent ss rule: less_induct)
   case less
   then show ?case 
-    apply(cases nt)
+    apply(cases ns)
     subgoal
-      apply(cases ns)
+      apply(cases nt)
       subgoal
         by auto
-      subgoal for ns'
+      subgoal for nt'
         apply(cases st)
         apply auto
         subgoal premises pre
           apply(rule entails_tassn_trans)
            apply(rule combine_assn_emp_wait')
-          using pre(1)[of 0 ns' p rn rp READY ezero ss "ts(T := 0)"] pre(2,3)
-          apply(subgoal_tac "propc ns' (Sch p rn rp) (Task READY ezero 2)")
+          using pre(1)[of nt' 0 p rn rp READY ezero ss "ts(T := 0)"] pre(2,3)
+          apply(subgoal_tac "propc nt' (Sch p rn rp) (Task READY ezero 2)")
           subgoal unfolding proper_def by auto
           subgoal unfolding propc_def 
-            apply(cases ns') subgoal by auto
+            apply(cases nt') subgoal by auto
             by (metis estate.sel(4) less.prems(1) pre(5) pre(6) propc_def status.distinct(3) status.distinct(5) zero_less_Suc)
           done
         subgoal
@@ -367,8 +450,8 @@ proof(induction " nt+ns"  arbitrary: nt ns p rn rp ts st ent ss rule: less_induc
           done
         done
       done
-    subgoal for nt'
-      apply(cases ns)
+    subgoal for ns'
+      apply(cases nt)
       subgoal
         apply (simp only: SCH_tr.simps T1_tr.simps)
         apply(rule combine_or_left)
@@ -393,7 +476,7 @@ proof(induction " nt+ns"  arbitrary: nt ns p rn rp ts st ent ss rule: less_induc
           apply(rule entails_tassn_cancel_left)
           apply(cases "1\<le>rp")
           subgoal apply simp
-            using pre(1)[of nt' 0 "(p @ [(1, 2)])" rn rp st ent "ss(Pr := 1)" ts] pre(2,3) properl_p1[of p 1 2]
+            using pre(1)[of 0 ns' "(p @ [(1, 2)])" rn rp st ent "ss(Pr := 1)" ts] pre(2,3) properl_p1[of p 1 2]
             by(auto simp add:propc_def proper_def properp_def)
           apply(cases "rn = 1")
           subgoal apply simp
@@ -419,7 +502,7 @@ proof(induction " nt+ns"  arbitrary: nt ns p rn rp ts st ent ss rule: less_induc
                apply(rule combine_assn_out0_emp')
               subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
               apply(rule entails_tassn_cancel_left)
-              using pre(1)[of nt' 0 p 2 1 st ent "ss(Pr := 1)" ts] pre(2,3)
+              using pre(1)[of 0 ns' p 2 1 st ent "ss(Pr := 1)" ts] pre(2,3)
               by (auto simp add:propc_def proper_def properp_def)
             subgoal
               apply(rule entails_tassn_trans)
@@ -476,7 +559,7 @@ proof(induction " nt+ns"  arbitrary: nt ns p rn rp ts st ent ss rule: less_induc
                   apply(rule combine_assn_out0_emp')
                 subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
                 apply(rule entails_tassn_cancel_left)
-                using pre(1)[of nt' 0 "(del_proc p 2)" 2 1 st ent "ss(G := v)" ts] pre(2,3) properl_p4[of p 2]
+                using pre(1)[of 0 ns' "(del_proc p 2)" 2 1 st ent "ss(G := v)" ts] pre(2,3) properl_p4[of p 2]
                 by(auto simp add:propc_def proper_def properp_def)
               subgoal
                 apply(rule entails_tassn_trans)
@@ -485,7 +568,7 @@ proof(induction " nt+ns"  arbitrary: nt ns p rn rp ts st ent ss rule: less_induc
               done
             subgoal
               apply simp
-              using pre(1)[of nt' 0 "[]" "-1" "-1" st ent "ss(G := v)" ts] pre(2,3) properl_p4[of p 2]
+              using pre(1)[of 0 ns' "[]" "-1" "-1" st ent "ss(G := v)" ts] pre(2,3) properl_p4[of p 2]
               by(auto simp add:propc_def proper_def properp_def)
             done
           done
@@ -507,11 +590,17 @@ proof(induction " nt+ns"  arbitrary: nt ns p rn rp ts st ent ss rule: less_induc
                apply(rule combine_assn_inrdy_emp')
               subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
               apply(rule entails_tassn_cancel_left)
-              using pre(1)[of nt' 0 "(del_proc p 2)" rn rp st ent "ss(G := v)" ts] pre(2,3) properl_p4[of p 2]
+              using pre(1)[of 0 ns' "(del_proc p 2)" rn rp st ent "ss(G := v)" ts] pre(2,3) properl_p4[of p 2]
               by(auto simp add:propc_def proper_def properp_def)
             done
           done
-        subgoal for ns'
+        subgoal for nt'
+
+
+
+
+
+
           apply(cases st)
             apply (simp only: SCH_tr.simps T1_tr.simps)
           subgoal premises pre
@@ -591,6 +680,7 @@ proof(induction " nt+ns"  arbitrary: nt ns p rn rp ts st ent ss rule: less_induc
                 apply(cases "1\<le>rp")
                 subgoal apply simp
                   apply(rule entails_tassn_disjI2)
+                  apply(rule entails_tassn_disjI1)
                   apply(rule ex_tran)
                   apply auto
                   apply(rule entails_tassn_cancel_left)
@@ -603,6 +693,350 @@ proof(induction " nt+ns"  arbitrary: nt ns p rn rp ts st ent ss rule: less_induc
                     by auto
                   apply(rule combine_assn_right_tran)
                   apply simp
+                  thm pre
+                  subgoal premises pre' for tt
+                  proof-
+                    have 1:"(9 / 200 - (ts T + tt)) = (9 / 200 - ts T - tt)"
+                      by auto
+                    have 2:"(\<lambda>t. EState (Task WAIT ent 2, ts(T := ts T + tt + t))) = (\<lambda>t. EState (Task WAIT ent 2, ts(T := ts T + (t + tt))))"
+                      apply(rule ext)
+                      by auto
+                    show ?thesis
+                      by(auto simp add:1 2)
+                  qed
+                  done
+                subgoal 
+                  apply(subgoal_tac"rn\<noteq>1")
+                   prefer 2
+                  subgoal using pre(2) unfolding propc_def by auto
+                  apply simp
+                  apply(rule entails_tassn_disjI2)
+                  apply(rule entails_tassn_disjI1)
+                  apply(rule ex_tran)
+                  apply auto
+                  apply(rule entails_tassn_cancel_left)
+                  apply(rule combine_assn_left_disj)
+                  subgoal for tt
+                    apply(rule entails_tassn_disjI1)
+                    apply(rule entails_tassn_trans)
+                     apply(rule combine_assn_out0_wait')
+                    subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
+                    apply(rule entails_tassn_cancel_left)
+                    apply(rule entails_tassn_trans)
+                     prefer 2
+                     apply(rule pre)
+                    subgoal by auto
+                    subgoal using pre(2) unfolding propc_def by auto
+                    subgoal using pre(2,3) properl_p1[of p 1 2] unfolding proper_def properp_def
+                      by auto
+                    apply(rule combine_assn_right_tran)
+                    apply simp
+                    thm pre
+                    subgoal premises pre'
+                    proof-
+                      have 1:"(9 / 200 - (ts T + tt)) = (9 / 200 - ts T - tt)"
+                        by auto
+                      have 2:"(\<lambda>t. EState (Task WAIT ent 2, ts(T := ts T + tt + t))) = (\<lambda>t. EState (Task WAIT ent 2, ts(T := ts T + (t + tt))))"
+                        apply(rule ext)
+                        by auto
+                      show ?thesis
+                        by(auto simp add:1 2)
+                    qed
+                    done
+                  subgoal for tt
+                    apply(rule entails_tassn_disjI2)
+                    apply(rule entails_tassn_trans)
+                     apply(rule combine_assn_waitp_wait)
+                    subgoal by auto
+                    by auto
+                  done
+                done
+              done
+            apply(rule combine_or_left)
+            subgoal
+              apply(rule combine_assn_ex_pre_left')
+              apply(rule combine_assn_pure_pre_left')
+              apply(rule entails_tassn_trans)
+               apply(rule combine_assn_inrdy_wait')
+              subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
+              apply(rule entails_tassn_disjE)
+              subgoal for v
+                apply simp
+                apply(rule entails_tassn_disjI1)
+                apply(rule entails_tassn_cancel_left)
+                apply(rule entails_tassn_trans)
+                 prefer 2
+                 apply(rule pre)
+                subgoal by auto
+                subgoal using pre(2) unfolding propc_def by auto
+                subgoal using pre(3) by auto
+                apply(rule combine_assn_left_tran)
+                unfolding SCH_tr.simps
+                apply(rule entails_tassn_disjI2)
+                apply(rule entails_tassn_disjI2)
+                apply(rule entails_tassn_disjI2)
+                apply(rule entails_tassn_disjI1)
+                apply(rule entails_tassn_exI[where x= v])
+                by auto
+              subgoal for v
+                unfolding combine1.simps
+                apply(rule entails_tassn_disjI2)
+                apply(rule entails_tassn_disjI2)
+                apply(rule entails_tassn_disjI1)
+                apply(rule ex_tran)
+                apply auto
+                apply(rule entails_tassn_exI[where x= v])
+                apply auto
+                apply(rule entails_tassn_cancel_left)
+                unfolding entails_tassn_def true_assn_def
+                by auto
+              done
+            apply(rule combine_or_left)
+            subgoal
+              apply(rule combine_assn_ex_pre_left')
+              apply(rule entails_tassn_trans)
+              apply(rule combine_assn_inrdy_wait)
+              subgoal by auto
+              unfolding combine1.simps
+              apply(rule entails_tassn_disjI1)
+              apply(rule entails_tassn_cancel_both)
+              subgoal by auto
+              apply(rule entails_tassn_trans)
+                prefer 2
+                apply(rule pre)
+              subgoal by auto
+              subgoal using pre(2) unfolding propc_def by auto
+              subgoal using pre(3) by auto
+              apply(rule combine_assn_left_tran)
+              unfolding SCH_tr.simps
+              apply(rule entails_tassn_disjI2)
+              apply(rule entails_tassn_disjI2)
+              apply(rule entails_tassn_disjI2)
+              apply(rule entails_tassn_disjI2)
+              apply(rule entails_tassn_disjI1)
+              subgoal for v
+                apply(rule entails_tassn_exI[where x= v])
+                by auto
+              done
+            apply(rule combine_or_left)
+            subgoal
+              apply(rule combine_assn_ex_pre_left')
+              apply(rule entails_tassn_trans)
+               apply(rule combine_assn_inrdy_wait')
+              subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
+              apply(rule entails_tassn_disjE)
+              subgoal for v
+                unfolding combine1.simps
+                apply(rule entails_tassn_disjI1)
+                apply(rule entails_tassn_cancel_both)
+                subgoal by auto
+                apply(rule entails_tassn_trans)
+                 prefer 2
+                 apply(rule pre)
+                subgoal by auto
+                subgoal using pre(2) unfolding propc_def by auto
+                subgoal using pre(3) by auto
+                apply(rule combine_assn_left_tran)
+                unfolding SCH_tr.simps
+                apply(rule entails_tassn_disjI2)
+                apply(rule entails_tassn_disjI2)
+                apply(rule entails_tassn_disjI2)
+                apply(rule entails_tassn_disjI2)
+                apply(rule entails_tassn_disjI2)
+                apply(rule entails_tassn_disjI1)
+                apply(rule entails_tassn_exI[where x= v])
+                by auto
+              subgoal for v
+                unfolding combine1.simps
+                apply(rule entails_tassn_disjI2)
+                apply(rule entails_tassn_disjI2)
+                apply(rule entails_tassn_disjI2)
+                apply(rule entails_tassn_disjI1)
+                apply(rule ex_tran)
+                apply(cases "length p > 0")
+                subgoal for tt
+                  apply(subgoal_tac"get_max p = (1, 2)")
+                   prefer 2
+                  subgoal using pre(3) properl_p5[of p]
+                  apply auto
+                  apply(cases "get_max p")
+                    by (auto simp add: proper_def properp_def)
+                  apply auto
+                  apply(rule entails_tassn_exI[where x= v])
+                  apply(rule entails_tassn_cancel_left)
+                  apply(rule combine_assn_left_disj)
+                  subgoal
+                    apply(rule entails_tassn_disjI1)
+                    apply(rule entails_tassn_trans)
+                     apply(rule combine_assn_out0_wait')
+                    subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
+                    apply(rule entails_tassn_cancel_left)
+                    apply(rule entails_tassn_trans)
+                     prefer 2
+                     apply(rule pre)
+                    subgoal by auto
+                    subgoal using pre(2) unfolding propc_def by auto
+                    subgoal using pre(2,3) properl_p4[of p 2] unfolding proper_def properp_def
+                      by auto
+                    apply(rule combine_assn_right_tran)
+                    unfolding T1_tr.simps
+                    apply simp
+                    thm pre
+                    subgoal premises pre'
+                    proof-
+                      have 1:"(9 / 200 - (ts T + tt)) = (9 / 200 - ts T - tt)"
+                        by auto
+                      have 2:"(\<lambda>t. EState (Task WAIT ent 2, ts(T := ts T + tt + t))) = (\<lambda>t. EState (Task WAIT ent 2, ts(T := ts T + (t + tt))))"
+                        apply(rule ext)
+                        by auto
+                      show ?thesis
+                        by(auto simp add:1 2)
+                    qed
+                    done
+                  subgoal 
+                    apply(rule entails_tassn_disjI2)
+                    apply(rule entails_tassn_trans)
+                     apply(rule combine_assn_waitp_wait)
+                    subgoal by auto
+                    by auto
+                  done
+                subgoal for tt
+                  apply auto
+                  apply(rule entails_tassn_exI[where x= v])
+                  apply(rule entails_tassn_cancel_left)
+                    apply(rule entails_tassn_trans)
+                     prefer 2
+                     apply(rule pre)
+                    subgoal by auto
+                    subgoal using pre(2) unfolding propc_def by auto
+                    subgoal using pre(2,3) properl_p4[of p 2] unfolding proper_def properp_def
+                      by auto
+                    apply(rule combine_assn_right_tran)
+                    unfolding T1_tr.simps
+                    apply simp
+                    thm pre
+                    subgoal premises pre'
+                    proof-
+                      have 1:"(9 / 200 - (ts T + tt)) = (9 / 200 - ts T - tt)"
+                        by auto
+                      have 2:"(\<lambda>t. EState (Task WAIT ent 2, ts(T := ts T + tt + t))) = (\<lambda>t. EState (Task WAIT ent 2, ts(T := ts T + (t + tt))))"
+                        apply(rule ext)
+                        by auto
+                      show ?thesis
+                        by(auto simp add:1 2)
+                    qed
+                    done
+                  done
+                done
+            apply(rule combine_or_left)
+            subgoal
+              apply(rule combine_assn_ex_pre_left')
+              apply(rule entails_tassn_trans)
+              apply(rule combine_assn_inrdy_wait)
+              subgoal by auto
+              unfolding combine1.simps
+              apply(rule entails_tassn_disjI1)
+              apply(rule entails_tassn_cancel_both)
+              subgoal by auto
+              apply(rule entails_tassn_trans)
+                prefer 2
+                apply(rule pre)
+              subgoal by auto
+              subgoal using pre(2) unfolding propc_def by auto
+              subgoal using pre(3) by auto
+              apply(rule combine_assn_left_tran)
+              unfolding SCH_tr.simps
+              apply(rule entails_tassn_disjI2)
+              apply(rule entails_tassn_disjI2)
+              apply(rule entails_tassn_disjI2)
+              apply(rule entails_tassn_disjI2)
+              apply(rule entails_tassn_disjI2)
+              apply(rule entails_tassn_disjI2)
+              apply(rule entails_tassn_disjI1)
+              subgoal for v
+                apply(rule entails_tassn_exI[where x= v])
+                by auto
+              done
+            subgoal
+              apply(rule combine_assn_ex_pre_left')
+              apply(rule entails_tassn_trans)
+               apply(rule combine_assn_inrdy_wait')
+              subgoal by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
+              unfolding combine1.simps
+              apply(rule entails_tassn_disjE)
+              subgoal for v
+                apply(rule entails_tassn_disjI1)
+                apply(rule entails_tassn_cancel_both)
+                subgoal by auto
+                apply(rule entails_tassn_trans)
+                prefer 2
+                apply(rule pre)
+                subgoal by auto
+                subgoal using pre(2) unfolding propc_def by auto
+                subgoal using pre(2,3) properl_p4[of p 2] unfolding proper_def properp_def
+                  by auto
+                apply(rule combine_assn_left_tran)
+                unfolding SCH_tr.simps
+                apply(rule entails_tassn_disjI2)+
+                apply(rule entails_tassn_exI[where x= v])
+                by auto
+              subgoal for v
+                apply(rule entails_tassn_disjI2)+
+                apply(rule ex_tran)
+                subgoal for tt
+                  apply(rule entails_tassn_exI[where x= v])
+                  apply auto
+                  apply(rule entails_tassn_cancel_left)
+                  apply(rule entails_tassn_trans)
+                     prefer 2
+                     apply(rule pre)
+                    subgoal by auto
+                    subgoal using pre(2) unfolding propc_def by auto
+                    subgoal using pre(2,3) properl_p4[of p 2] unfolding proper_def properp_def
+                      by auto
+                    apply(rule combine_assn_right_tran)
+                    unfolding T1_tr.simps
+                    apply simp
+                    thm pre
+                    subgoal premises pre'
+                    proof-
+                      have 1:"(9 / 200 - (ts T + tt)) = (9 / 200 - ts T - tt)"
+                        by auto
+                      have 2:"(\<lambda>t. EState (Task WAIT ent 2, ts(T := ts T + tt + t))) = (\<lambda>t. EState (Task WAIT ent 2, ts(T := ts T + (t + tt))))"
+                        apply(rule ext)
+                        by auto
+                      show ?thesis
+                        by(auto simp add:1 2)
+                    qed
+                    done
+                  done
+                done
+              done
+
+
+
+
+          apply (simp only: SCH_tr.simps T1_tr.simps)
+          subgoal premises pre
+            apply(rule combine_or_left)
+            subgoal 
+              apply(rule combine_or_right)
+              subgoal
+               apply(rule combine_assn_ex_pre_right')+
+               apply(rule combine_assn_pure_pre_right')
+
+
+                   
+
+
+
+
+
+
+
+
+                  
+
 
 
                   
