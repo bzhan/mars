@@ -16,6 +16,11 @@ lemma pure_tran:
 
 lemma pure_simp:
 "(\<up>b1 \<and>\<^sub>t \<up>b2 \<and>\<^sub>t P) = (\<up>(b1 \<and> b2) \<and>\<^sub>t P)"
+  by (auto simp add: pure_assn_def entails_tassn_def conj_assn_def)
+
+
+lemma pure_true[simp]:
+"(\<up> True \<and>\<^sub>t p) = p"
 by (auto simp add: pure_assn_def entails_tassn_def conj_assn_def)
 
 lemma combine_ex_left:

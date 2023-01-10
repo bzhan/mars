@@ -660,6 +660,110 @@ proof -
 qed
 
 
+theorem Valid_ode_sol_sp:
+  assumes "b ss \<Longrightarrow> d > 0"
+    and "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) UNIV"
+    and "p 0 = ss"
+    and "(\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<and> \<not>b (p d)"
+    and "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
+  shows "\<Turnstile>
+    {\<lambda>(a,s) t. (a,s) = (aa,ss) \<and> b ss \<and> P (a,s) t}
+      Cont ode b
+    {\<lambda>(a,s) t. (a,s) = (aa,p d) \<and> b ss \<and> (P (aa,ss) @\<^sub>t Wait\<^sub>t d (\<lambda> t. EState (aa,p t)) ({},{})) t}"
+proof-
+have main: "d2 = d \<and> p2 d = p d \<and> (\<forall>\<tau>\<in>{0..d}. EState (aa,p2 \<tau>) = EState (aa,p \<tau>))"
+    if cond: "0 < d2"
+       "ODEsol ode p2 d2"
+       "(\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (p2 t))"
+       "\<not> b (p2 d2)"
+       "p2 0 = ss" "d>0"for p2 d2
+  proof -
+    interpret loc:ll_on_open_it "{-1<..}"
+      "\<lambda>t v. ODE2Vec ode (vec2state v)" UNIV 0
+      apply standard
+      using assms by auto
+    have s1: "((\<lambda>t. state2vec (p t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..} UNIV"
+      using assms(2) has_vderiv_on_subset unfolding solves_ode_def 
+      by (smt (verit, del_insts) Pi_UNIV UNIV_I has_vderiv_on_eq_rhs top_greatest vec_state_map1)
+    have s2: "(loc.flow 0 (state2vec ss)) t = (\<lambda>t. state2vec (p t)) t" if "t \<in> {0..d}" for t
+      apply (rule loc.maximal_existence_flow(2)[OF s1])
+      using that by (auto simp add: state2vec_def assms(3))
+    have s3: "((\<lambda>t. state2vec(p2 t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d2} UNIV"
+      using cond(2) using ODEsol_old[OF cond(2)]unfolding ODEsol_def solves_ode_def by auto
+    have s4: "loc.flow 0 (state2vec ss) t = state2vec (p2 t)" if "t\<in>{0..d2}" for t
+      apply (rule loc.maximal_existence_flow(2)[OF s3])
+      using cond that by auto
+    have s5: "d \<le> d2"
+    proof (rule ccontr)
+      assume 0: "\<not>(d \<le> d2)"
+      from 0 have 1: "(\<lambda>t. state2vec (p t)) d2 = (\<lambda>t. state2vec (p2 t)) d2"
+        using s2[of d2] s4[of d2] cond(1) by auto
+      from 1 have "p d2 = p2 d2"
+        by (auto simp add: state2vec_def)
+      show False
+        using "0" \<open>p d2 = p2 d2\<close> assms that(1) that(4)
+        using less_eq_real_def by auto
+    qed
+    have s6: "d2 \<le> d"
+    proof (rule ccontr)
+      assume 0: "\<not>(d2 \<le> d)"
+      from 0 have 1: "(\<lambda>t. state2vec (p t)) d = (\<lambda>t. state2vec (p2 t)) d"
+        using s2[of d] s4[of d] assms cond by auto 
+      from 1 have "p d = p2 d"
+        by (auto simp add: state2vec_def)
+      show False
+        using "0" \<open>p d = p2 d\<close> assms that(3) cond by auto
+    qed
+    have s7: "d = d2" using s5 s6 by auto
+    have s8: "t\<in>{0..d} \<Longrightarrow> p2 t = p t" for t
+      using s2 s4 s7 
+      by (metis vec_state_map1)
+    have s10: "p d = p2 d"
+      using s8 that(1) assms cond by auto
+    show ?thesis using s7 s8 s10 assms 
+      by auto
+  qed
+  show ?thesis
+    unfolding Valid_def
+    apply(auto elim!: contE)
+    subgoal for tr1 dd pp
+      using main[of dd pp]
+      using assms(1) by blast
+    subgoal for tr1 dd pp
+      using main[of dd pp]
+      apply(auto simp add:join_assn_def)
+      apply(rule exI[where x="tr1"])
+      apply auto
+      apply(subgoal_tac "d>0")
+       prefer 2
+      subgoal
+      using assms(1) 
+      by blast
+      apply(subgoal_tac "WaitBlk dd (\<lambda>\<tau>. EState (aa, pp \<tau>)) ({}, {}) = WaitBlk d (\<lambda>\<tau>. EState (aa, p \<tau>)) ({}, {})")
+      prefer 2
+      subgoal
+        apply(rule WaitBlk_ext_real)
+        by auto
+      apply simp
+      apply(rule ) by auto
+    done
+qed
+
+theorem Valid_ode_not_sp:
+  assumes "\<not> b ss \<Longrightarrow> d \<le> 0"
+    and "p 0 = ss"
+    shows "\<Turnstile>
+    {\<lambda>(a,s) t. (a,s) = (aa,ss) \<and> \<not> b ss \<and> P (a,s) t}
+      Cont ode b
+    {\<lambda>(a,s) t. (a,s) = (aa,ss) \<and> \<not> b ss \<and> (P (aa,ss) @\<^sub>t Wait\<^sub>t d (\<lambda> t. EState (aa,p t)) ({},{})) t}"
+      unfolding Valid_def
+      apply(auto elim!: contE)
+      using assms wait_assn.intros(2)
+      by(auto simp add:join_assn_def)
+
+        
+
+
 inductive waitin_assn :: "real \<Rightarrow> (real \<Rightarrow> 'a gstate) \<Rightarrow> cname \<Rightarrow> real \<Rightarrow> rdy_info \<Rightarrow>  'a tassn" ("Waitin\<^sub>t") where
   "d > 0 \<Longrightarrow> Waitin\<^sub>t d p ch v rdy [WaitBlk d (\<lambda>\<tau>. p \<tau>) rdy, InBlock ch v]"
 | "d \<le> 0 \<Longrightarrow> Waitin\<^sub>t d p ch v rdy [InBlock ch v]"

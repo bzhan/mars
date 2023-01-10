@@ -263,9 +263,9 @@ definition proper :: "estate \<Rightarrow> bool " where
 
 definition SCH :: "estate proc" where
 "SCH = EChoice [(req_ch 1[?]Pr,IF (\<lambda> s. run_prior (fst s) \<ge> (snd s) Pr) THEN Basic (sched_push 1) 
-                   ELSE (IF (\<lambda> s. run_now (fst s) \<noteq> -1) THEN Cm (preempt_ch 2[!](\<lambda>_ . 0)) ELSE Skip FI; Cm (run_ch 1[!](\<lambda>_ . 0));Basic (run_now_assign 1);Basic run_prior_assign) FI),
+                   ELSE (IF (\<lambda> s. run_now (fst s) = 2) THEN Cm (preempt_ch 2[!](\<lambda>_ . 0)) ELSE Skip FI; Cm (run_ch 1[!](\<lambda>_ . 0));Basic (run_now_assign 1);Basic run_prior_assign) FI),
                 (req_ch 2[?]Pr,IF (\<lambda> s. run_prior (fst s) \<ge> (snd s) Pr) THEN Basic (sched_push 2) 
-                   ELSE (IF (\<lambda> s. run_now (fst s) \<noteq> -1) THEN Cm (preempt_ch 1[!](\<lambda>_ . 0)) ELSE Skip FI; Cm (run_ch 2[!](\<lambda>_ . 0));Basic (run_now_assign 2);Basic run_prior_assign) FI),
+                   ELSE (IF (\<lambda> s. run_now (fst s) = 1) THEN Cm (preempt_ch 1[!](\<lambda>_ . 0)) ELSE Skip FI; Cm (run_ch 2[!](\<lambda>_ . 0));Basic (run_now_assign 2);Basic run_prior_assign) FI),
                 (free_ch 1[?]G,IF (\<lambda> s. length (pool (fst s)) > 0) THEN ((Basic sched_get_max);(IF (\<lambda> s. run_now (fst s) = 1)THEN Cm (run_ch 1[!](\<lambda>_.0)) ELSE Cm (run_ch 2[!](\<lambda>_.0)) FI)) 
                    ELSE Basic sched_clear FI),
                 (free_ch 2[?]G,IF (\<lambda> s. length (pool (fst s)) > 0) THEN ((Basic sched_get_max);(IF (\<lambda> s. run_now (fst s) = 1)THEN Cm (run_ch 1[!](\<lambda>_.0)) ELSE Cm (run_ch 2[!](\<lambda>_.0)) FI)) 
@@ -275,11 +275,11 @@ definition SCH :: "estate proc" where
 
 definition QQ :: "(real \<times> tid) list \<Rightarrow> tid \<Rightarrow> real \<Rightarrow> state \<Rightarrow> estate assn \<Rightarrow> estate assn"where 
 "QQ p rn rp ss P = (\<lambda> s t. (if rp \<ge> 2 then s = (Sch (p @ [(2, 1)]) rn rp,ss(Pr:=2)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) 2 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}))) t 
-        else if rn \<noteq> -1 then s = (Sch p 1 2, ss(Pr:=2)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) 2 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (preempt_ch 2) 0) @\<^sub>t (Out0\<^sub>t (run_ch 1) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=2))) ({preempt_ch 2},{})) @\<^sub>t true\<^sub>A \<or>\<^sub>t (Out0\<^sub>t (preempt_ch 2) 0) @\<^sub>t(Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=2))) ({run_ch 1},{})) @\<^sub>t true\<^sub>A)) t 
+        else if rn = 2 then s = (Sch p 1 2, ss(Pr:=2)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) 2 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (preempt_ch 2) 0) @\<^sub>t (Out0\<^sub>t (run_ch 1) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=2))) ({preempt_ch 2},{})) @\<^sub>t true\<^sub>A \<or>\<^sub>t (Out0\<^sub>t (preempt_ch 2) 0) @\<^sub>t(Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=2))) ({run_ch 1},{})) @\<^sub>t true\<^sub>A)) t 
                         else s = (Sch p 1 2, ss(Pr:=2)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) 2 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (run_ch 1) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=2))) ({run_ch 1},{})) @\<^sub>t true\<^sub>A )) t)
          \<or> (\<exists> v\<noteq>2. (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t true\<^sub>A ) t)
                         \<or> (if rp \<ge> 1 then s = (Sch (p @ [(1, 2)]) rn rp,ss(Pr:=1)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) 1 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}))) t 
-        else if rn \<noteq> -1 then s = (Sch p 2 1, ss(Pr:=1)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) 1 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (preempt_ch 1) 0) @\<^sub>t (Out0\<^sub>t (run_ch 2) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=1))) ({preempt_ch 1},{})) @\<^sub>t true\<^sub>A \<or>\<^sub>t (Out0\<^sub>t (preempt_ch 1) 0) @\<^sub>t(Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=1))) ({run_ch 2},{})) @\<^sub>t true\<^sub>A)) t 
+        else if rn = 1 then s = (Sch p 2 1, ss(Pr:=1)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) 1 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (preempt_ch 1) 0) @\<^sub>t (Out0\<^sub>t (run_ch 2) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=1))) ({preempt_ch 1},{})) @\<^sub>t true\<^sub>A \<or>\<^sub>t (Out0\<^sub>t (preempt_ch 1) 0) @\<^sub>t(Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=1))) ({run_ch 2},{})) @\<^sub>t true\<^sub>A)) t 
                         else s = (Sch p 2 1, ss(Pr:=1)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) 1 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (run_ch 2) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=1))) ({run_ch 2},{})) @\<^sub>t true\<^sub>A )) t)
          \<or> (\<exists> v\<noteq>1. (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t true\<^sub>A ) t)
          \<or> (\<exists> v. if length p > 0 then s = (sched_get_max'(Sch p rn rp),ss(G:=v)) 
@@ -894,7 +894,7 @@ fun SCH_tr:: "nat \<Rightarrow> estate ext_state \<Rightarrow> estate tassn" whe
    (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) 2
                ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) 
               @\<^sub>t (if rp \<ge> 2 then SCH_tr k (Sch (p @ [(2, 1)]) rn rp,ss(Pr := 2)) 
-               else if rn \<noteq> -1 then Out0\<^sub>t (preempt_ch 2) 0 @\<^sub>t Out0\<^sub>t (run_ch 1) 0 @\<^sub>t SCH_tr k (Sch p 1 2,ss(Pr := 2)) \<or>\<^sub>t
+               else if rn = 2 then Out0\<^sub>t (preempt_ch 2) 0 @\<^sub>t Out0\<^sub>t (run_ch 1) 0 @\<^sub>t SCH_tr k (Sch p 1 2,ss(Pr := 2)) \<or>\<^sub>t
                                      Waitp\<^sub>t (\<lambda>_. EState (Sch p rn rp, ss(Pr := 2))) ({preempt_ch 2}, {}) @\<^sub>t true\<^sub>A \<or>\<^sub>t
                                       Out0\<^sub>t (preempt_ch 2) 0 @\<^sub>t Waitp\<^sub>t (\<lambda>_. EState (Sch p rn rp, ss(Pr := 2))) ({run_ch 1}, {}) @\<^sub>t true\<^sub>A 
                               else Out0\<^sub>t (run_ch 1) 0 @\<^sub>t SCH_tr k (Sch p 1 2,ss(Pr := 2))\<or>\<^sub>t
@@ -903,7 +903,7 @@ fun SCH_tr:: "nat \<Rightarrow> estate ext_state \<Rightarrow> estate tassn" whe
  \<or>\<^sub>t(Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) 1
                ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) 
               @\<^sub>t (if rp \<ge> 1 then SCH_tr k (Sch (p @ [(1, 2)]) rn rp,ss(Pr := 1)) 
-               else if rn \<noteq> -1 then Out0\<^sub>t (preempt_ch 1) 0 @\<^sub>t Out0\<^sub>t (run_ch 2) 0 @\<^sub>t SCH_tr k (Sch p 2 1,ss(Pr := 1)) \<or>\<^sub>t
+               else if rn = 1 then Out0\<^sub>t (preempt_ch 1) 0 @\<^sub>t Out0\<^sub>t (run_ch 2) 0 @\<^sub>t SCH_tr k (Sch p 2 1,ss(Pr := 1)) \<or>\<^sub>t
                                      Waitp\<^sub>t (\<lambda>_. EState (Sch p rn rp, ss(Pr := 1))) ({preempt_ch 1}, {}) @\<^sub>t true\<^sub>A \<or>\<^sub>t
                                       Out0\<^sub>t (preempt_ch 1) 0 @\<^sub>t Waitp\<^sub>t (\<lambda>_. EState (Sch p rn rp, ss(Pr := 1))) ({run_ch 2}, {}) @\<^sub>t true\<^sub>A 
                               else Out0\<^sub>t (run_ch 2) 0 @\<^sub>t SCH_tr k (Sch p 2 1,ss(Pr := 1))\<or>\<^sub>t
@@ -969,7 +969,7 @@ apply(rule Valid_rep'')
             unfolding disj_assn_def SCH_tr.simps
             apply(rule disjI1)
             by auto
-          apply(cases "rn \<noteq> - 1")
+          apply(cases "rn = 2")
           subgoal 
             apply(rule Valid_strengthen_post)
              prefer 2
@@ -1042,7 +1042,7 @@ apply(rule Valid_rep'')
             apply(rule disjI2)
             apply(rule disjI1)
             by auto
-          apply(cases "rn \<noteq> - 1")
+          apply(cases "rn = 1")
           subgoal 
             apply(rule Valid_strengthen_post)
              prefer 2

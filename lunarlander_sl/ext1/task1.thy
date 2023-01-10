@@ -73,7 +73,7 @@ definition C_upd :: "entered \<Rightarrow> real \<Rightarrow> real" where
 
 definition T1 :: "estate proc" where
 "T1 = IF (\<lambda>(a,s) . status a = WAIT) 
-        THEN (Wait (\<lambda>(a,s). 0.045 - s T);T ::= (\<lambda>_. 0); Basic (ent_assign ezero);Basic (ready_assign)) 
+        THEN (Cont (ODE ((\<lambda> _ _ . 0)(T := (\<lambda> _ .1)))) (\<lambda> s. s T < 0.045);T ::= (\<lambda>_. 0); Basic (ent_assign ezero);Basic (ready_assign)) 
       ELSE 
       (IF(\<lambda>(a,s) . status a = READY) 
         THEN (Cm ((req_ch 1)[!](\<lambda>(a,s). task_prior a)); 
@@ -90,7 +90,7 @@ definition T1 :: "estate proc" where
 fun T1_tr:: "nat \<Rightarrow> estate ext_state \<Rightarrow> estate tassn" where
   "T1_tr 0 (Task st ent tp,ss)  = emp\<^sub>t"
 | "T1_tr (Suc k) (Task WAIT ent tp,ss) = 
-   (Wait\<^sub>t (9 / 200 - ss T) (\<lambda>_. EState (Task WAIT ent tp, ss)) ({}, {}) @\<^sub>t T1_tr k (Task READY ezero tp,ss(T:=0)))"
+   (Wait\<^sub>t (9 / 200 - ss T) (\<lambda>t. EState (Task WAIT ent tp, ss(T:= ss T + t))) ({}, {}) @\<^sub>t T1_tr k (Task READY ezero tp,ss(T:=0)))"
 | "T1_tr (Suc k) (Task READY ent tp,ss) = (
              (\<exists>\<^sub>t v tt. \<up>(tt\<ge>0 \<and> tt \<le> 0.045 - ss T) \<and>\<^sub>t Out\<^sub>t (EState (Task READY ent tp, ss)) (req_ch 1) tp @\<^sub>t
                    Waitin\<^sub>t tt (\<lambda>t. EState (Task READY ent tp, ss(T := ss T + t)))
@@ -128,14 +128,66 @@ fun T1_tr:: "nat \<Rightarrow> estate ext_state \<Rightarrow> estate tassn" wher
 lemma T1_Valid_WAIT:
 "\<Turnstile> {\<lambda>s t. s = (Task WAIT ent tp,ss) \<and> inv_s (snd s) \<and> P s t}
    T1
-    {\<lambda> s t. s = (Task READY ezero tp,ss(T:=0)) \<and> inv_s (snd s) \<and> (P (Task WAIT ent tp,ss) @\<^sub>t Wait\<^sub>t (9 / 200 - ss T) (\<lambda>_. EState (Task WAIT ent tp, ss)) ({}, {})) t}"
+    {\<lambda> s t. s = (Task READY ezero tp,ss(T:=0)) \<and> inv_s (snd s) \<and> (P (Task WAIT ent tp,ss) @\<^sub>t Wait\<^sub>t (9 / 200 - ss T) (\<lambda>t. EState (Task WAIT ent tp, ss(T:= ss T + t))) ({}, {})) t}"
   unfolding T1_def
   apply(rule Valid_strengthen_post)
    prefer 2
    apply(rule Valid_cond_sp)
     apply(rule Valid_seq)
-     apply(rule Valid_wait_sp1)
-    apply(rule Valid_seq)
+     apply(rule Valid_pre_cases'[where P="\<lambda>(a,s) . s T< 0.045"])
+      apply(rule Valid_weaken_pre)
+       prefer 2
+       apply(rule Valid_strengthen_post[where Q'="\<lambda> s t. s = (Task WAIT ent tp,ss(T:=0.045)) \<and> inv_s (snd s) \<and> (P (Task WAIT ent tp,ss) @\<^sub>t
+         Wait\<^sub>t (45 / 10 ^ 3 - ss T) (\<lambda>t. EState (Task WAIT ent tp, ss(T := ss T + t))) ({}, {})) t"])
+        prefer 2
+        apply(rule Valid_ode_sol_sp[where ss= ss and aa = "Task WAIT ent tp" and d="0.045- ss T" and p="\<lambda> t. ss(T:= ss T+t)" and P = "\<lambda>(a,s) t. inv_s (snd (a, s)) \<and> P (a, s) t"])
+     subgoal by auto
+     subgoal 
+       apply auto unfolding state2vec_def has_vderiv_on_def
+       apply clarify
+       apply (rule has_vector_derivative_projI)
+       apply auto
+       apply (rule has_vector_derivative_eq_rhs)
+        apply (fast intro!: derivative_intros)
+       by auto
+     subgoal by auto
+     subgoal by auto
+     subgoal
+       apply auto unfolding state2vec_def vec2state_def
+       apply (rule c1_implies_local_lipschitz[where f'="(\<lambda>(t,v). Blinfun(\<lambda>(v::vec) . \<chi> x. 0))"])
+       apply auto
+       unfolding has_derivative_def
+       apply auto
+        prefer 2
+        apply (rule vec_tendstoI)
+       subgoal
+       proof-
+         have b1:"bounded_linear (\<lambda> (v::vec). \<chi> a . 0)"
+           apply (rule bounded_linearI')
+           using vec_lambda_unique by fastforce+
+         then have b2:"blinfun_apply (Blinfun (\<lambda> (v::vec). \<chi> x. 0)) = (\<lambda>v. \<chi> x. 0)"
+           apply(rule bounded_linear_Blinfun_apply)
+           done
+         then have b3:"bounded_linear (blinfun_apply (Blinfun (\<lambda> (v::vec). \<chi> x. 0)))"
+           using b1 
+           by (simp add: blinfun.bounded_linear_right)
+         show ?thesis
+           by(auto simp add:b2)
+       qed
+       by (simp add: blinfun.bounded_linear_right)
+     subgoal
+       unfolding entails_def inv_s_def by (auto simp add:C_def T_def pure_assn_def conj_assn_def)
+     subgoal unfolding entails_def by auto
+        apply(rule Valid_weaken_pre)
+         prefer 2
+         apply(rule Valid_strengthen_post)
+          prefer 2
+          apply(rule Valid_ode_not_sp[where ss= ss and aa = "Task WAIT ent tp" and d="0.045- ss T" and p="\<lambda> t. ss(T:= ss T+t)" and P = "\<lambda>(a,s) t. inv_s (snd (a, s)) \<and> P (a, s) t"])
+     subgoal by auto
+     subgoal by auto
+     subgoal unfolding entails_def inv_s_def by (auto simp add:C_def T_def pure_assn_def conj_assn_def)
+     subgoal unfolding entails_def inv_s_def by (auto simp add:C_def T_def)
+     apply(rule Valid_seq)
   apply(rule Valid_assign_sp1)
     apply(rule Valid_seq)
      apply(rule Valid_basic_sp1)
@@ -147,8 +199,13 @@ lemma T1_Valid_WAIT:
   unfolding entails_def
     apply auto[1]
    apply(rule Valid_False)
-  apply(auto simp add: pure_assn_def conj_assn_def inv_s_def)
-  done
+  apply(auto simp add: pure_assn_def conj_assn_def inv_s_def C_def T_def)
+  sorry
+  
+  
+  
+    
+  
 
 
 lemma T1_Valid_READY:
