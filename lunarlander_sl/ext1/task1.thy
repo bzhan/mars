@@ -200,8 +200,22 @@ lemma T1_Valid_WAIT:
     apply auto[1]
    apply(rule Valid_False)
   apply(auto simp add: pure_assn_def conj_assn_def inv_s_def C_def T_def)
-  sorry
-  
+  subgoal for ss' tr x
+    apply (rule ext) subgoal for v
+      apply (cases "v = CHR ''t''")
+      subgoal by auto
+      subgoal premises pre proof -
+        have "(ss'(CHR ''t'' := x)) v = (ss(CHR ''t'' := 9 / 200)) v"
+          using pre(2) by auto
+        then have "ss' v = ss v"
+          using pre(6) by auto
+        then show ?thesis
+          using pre(6) by auto
+      qed
+      done
+    done
+  done
+
   
   
     
