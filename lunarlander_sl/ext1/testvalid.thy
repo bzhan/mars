@@ -68,13 +68,13 @@ inductive out_0assn :: "cname \<Rightarrow> real \<Rightarrow> 'a tassn" ("Out0\
 inductive in_0assn :: "cname \<Rightarrow> real \<Rightarrow> 'a tassn" ("In0\<^sub>t") where
   "In0\<^sub>t ch v [InBlock ch v]"
 
-inductive wait_passn :: "(real \<Rightarrow> 'a gstate) \<Rightarrow> rdy_info \<Rightarrow> 'a tassn" ("Waitp\<^sub>t") where
-  "d > 0 \<Longrightarrow> Waitp\<^sub>t p rdy [WaitBlk d (\<lambda>\<tau>. p \<tau>) rdy]"
+inductive wait_passn :: "rdy_info \<Rightarrow> 'a tassn" ("Waitp\<^sub>t") where
+  "d > 0 \<Longrightarrow> Waitp\<^sub>t rdy [WaitBlk d (\<lambda>\<tau>. p \<tau>) rdy]"
 
 theorem Valid_send_sp_assm0:
   "\<Turnstile> {\<lambda>s t. P s t}
        Cm (ch[!]e)
-     {\<lambda>s t. (P s @\<^sub>t (Out0\<^sub>t ch (e s) \<or>\<^sub>t Waitp\<^sub>t (\<lambda> _. EState s) ({ch},{}) @\<^sub>t true\<^sub>A)) t}"
+     {\<lambda>s t. (P s @\<^sub>t (Out0\<^sub>t ch (e s) \<or>\<^sub>t Waitp\<^sub>t ({ch},{}) @\<^sub>t true\<^sub>A)) t}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_send)
   apply (auto simp add: entails_def magic_wand_assn_def join_assn_def disj_assn_def true_assn_def)

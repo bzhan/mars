@@ -275,22 +275,22 @@ definition SCH :: "estate proc" where
 
 definition QQ :: "(real \<times> tid) list \<Rightarrow> tid \<Rightarrow> real \<Rightarrow> state \<Rightarrow> estate assn \<Rightarrow> estate assn"where 
 "QQ p rn rp ss P = (\<lambda> s t. (if rp \<ge> 2 then s = (Sch (p @ [(2, 1)]) rn rp,ss(Pr:=2)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) 2 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}))) t 
-        else if rn = 2 then s = (Sch p 1 2, ss(Pr:=2)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) 2 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (preempt_ch 2) 0) @\<^sub>t (Out0\<^sub>t (run_ch 1) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=2))) ({preempt_ch 2},{})) @\<^sub>t true\<^sub>A \<or>\<^sub>t (Out0\<^sub>t (preempt_ch 2) 0) @\<^sub>t(Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=2))) ({run_ch 1},{})) @\<^sub>t true\<^sub>A)) t 
-                        else s = (Sch p 1 2, ss(Pr:=2)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) 2 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (run_ch 1) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=2))) ({run_ch 1},{})) @\<^sub>t true\<^sub>A )) t)
+        else if rn = 2 then s = (Sch p 1 2, ss(Pr:=2)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) 2 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (preempt_ch 2) 0) @\<^sub>t (Out0\<^sub>t (run_ch 1) 0) \<or>\<^sub>t (Waitp\<^sub>t  ({preempt_ch 2},{})) @\<^sub>t true\<^sub>A \<or>\<^sub>t (Out0\<^sub>t (preempt_ch 2) 0) @\<^sub>t(Waitp\<^sub>t  ({run_ch 1},{})) @\<^sub>t true\<^sub>A)) t 
+                        else s = (Sch p 1 2, ss(Pr:=2)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) 2 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (run_ch 1) 0) \<or>\<^sub>t (Waitp\<^sub>t ({run_ch 1},{})) @\<^sub>t true\<^sub>A )) t)
          \<or> (\<exists> v\<noteq>2. (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t true\<^sub>A ) t)
                         \<or> (if rp \<ge> 1 then s = (Sch (p @ [(1, 2)]) rn rp,ss(Pr:=1)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) 1 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}))) t 
-        else if rn = 1 then s = (Sch p 2 1, ss(Pr:=1)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) 1 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (preempt_ch 1) 0) @\<^sub>t (Out0\<^sub>t (run_ch 2) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=1))) ({preempt_ch 1},{})) @\<^sub>t true\<^sub>A \<or>\<^sub>t (Out0\<^sub>t (preempt_ch 1) 0) @\<^sub>t(Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=1))) ({run_ch 2},{})) @\<^sub>t true\<^sub>A)) t 
-                        else s = (Sch p 2 1, ss(Pr:=1)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) 1 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (run_ch 2) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (Sch p rn rp, ss(Pr:=1))) ({run_ch 2},{})) @\<^sub>t true\<^sub>A )) t)
+        else if rn = 1 then s = (Sch p 2 1, ss(Pr:=1)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) 1 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (preempt_ch 1) 0) @\<^sub>t (Out0\<^sub>t (run_ch 2) 0) \<or>\<^sub>t (Waitp\<^sub>t  ({preempt_ch 1},{})) @\<^sub>t true\<^sub>A \<or>\<^sub>t (Out0\<^sub>t (preempt_ch 1) 0) @\<^sub>t(Waitp\<^sub>t  ({run_ch 2},{})) @\<^sub>t true\<^sub>A)) t 
+                        else s = (Sch p 2 1, ss(Pr:=1)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) 1 ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (run_ch 2) 0) \<or>\<^sub>t (Waitp\<^sub>t  ({run_ch 2},{})) @\<^sub>t true\<^sub>A )) t)
          \<or> (\<exists> v\<noteq>1. (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t true\<^sub>A ) t)
          \<or> (\<exists> v. if length p > 0 then s = (sched_get_max'(Sch p rn rp),ss(G:=v)) 
                     \<and> (if run_now(sched_get_max'(Sch p rn rp)) = 1 
-                        then (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (free_ch 1) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (run_ch 1) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (sched_get_max'(Sch p rn rp),ss(G:=v))) ({run_ch 1},{})) @\<^sub>t true\<^sub>A )) t  
-                        else (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (free_ch 1) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (run_ch 2) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (sched_get_max'(Sch p rn rp),ss(G:=v))) ({run_ch 2},{})) @\<^sub>t true\<^sub>A )) t) 
+                        then (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (free_ch 1) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (run_ch 1) 0) \<or>\<^sub>t (Waitp\<^sub>t  ({run_ch 1},{})) @\<^sub>t true\<^sub>A )) t  
+                        else (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (free_ch 1) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (run_ch 2) 0) \<or>\<^sub>t (Waitp\<^sub>t  ({run_ch 2},{})) @\<^sub>t true\<^sub>A )) t) 
                   else s = (sched_clear'(Sch p rn rp),ss(G:=v)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (free_ch 1) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}))) t)
         \<or>  (\<exists> v. if length p > 0 then s = (sched_get_max'(Sch p rn rp),ss(G:=v)) 
                     \<and> (if run_now(sched_get_max'(Sch p rn rp)) = 1 
-                        then (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (free_ch 2) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (run_ch 1) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (sched_get_max'(Sch p rn rp),ss(G:=v))) ({run_ch 1},{})) @\<^sub>t true\<^sub>A )) t  
-                        else (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (free_ch 2) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (run_ch 2) 0) \<or>\<^sub>t (Waitp\<^sub>t (\<lambda>_ .EState (sched_get_max'(Sch p rn rp),ss(G:=v))) ({run_ch 2},{})) @\<^sub>t true\<^sub>A )) t) 
+                        then (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (free_ch 2) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (run_ch 1) 0) \<or>\<^sub>t (Waitp\<^sub>t  ({run_ch 1},{})) @\<^sub>t true\<^sub>A )) t  
+                        else (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (free_ch 2) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) @\<^sub>t ((Out0\<^sub>t (run_ch 2) 0) \<or>\<^sub>t (Waitp\<^sub>t  ({run_ch 2},{})) @\<^sub>t true\<^sub>A )) t) 
                   else s = (sched_clear'(Sch p rn rp),ss(G:=v)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (free_ch 2) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}))) t)
         \<or>  (\<exists> v. s = (sched_del_proc' 1 (Sch p rn rp),ss(G:=v)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (exit_ch 1) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}))) t)
         \<or>  (\<exists> v. s = (sched_del_proc' 2 (Sch p rn rp),ss(G:=v)) \<and> (P (Sch p rn rp, ss) @\<^sub>t (Inrdy\<^sub>t (Sch p rn rp, ss) (exit_ch 2) v ({},{req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}))) t))"
@@ -895,33 +895,33 @@ fun SCH_tr:: "nat \<Rightarrow> estate ext_state \<Rightarrow> estate tassn" whe
                ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) 
               @\<^sub>t (if rp \<ge> 2 then SCH_tr k (Sch (p @ [(2, 1)]) rn rp,ss(Pr := 2)) 
                else if rn = 2 then Out0\<^sub>t (preempt_ch 2) 0 @\<^sub>t Out0\<^sub>t (run_ch 1) 0 @\<^sub>t SCH_tr k (Sch p 1 2,ss(Pr := 2)) \<or>\<^sub>t
-                                     Waitp\<^sub>t (\<lambda>_. EState (Sch p rn rp, ss(Pr := 2))) ({preempt_ch 2}, {}) @\<^sub>t true\<^sub>A \<or>\<^sub>t
-                                      Out0\<^sub>t (preempt_ch 2) 0 @\<^sub>t Waitp\<^sub>t (\<lambda>_. EState (Sch p rn rp, ss(Pr := 2))) ({run_ch 1}, {}) @\<^sub>t true\<^sub>A 
+                                     Waitp\<^sub>t  ({preempt_ch 2}, {}) @\<^sub>t true\<^sub>A \<or>\<^sub>t
+                                      Out0\<^sub>t (preempt_ch 2) 0 @\<^sub>t Waitp\<^sub>t  ({run_ch 1}, {}) @\<^sub>t true\<^sub>A 
                               else Out0\<^sub>t (run_ch 1) 0 @\<^sub>t SCH_tr k (Sch p 1 2,ss(Pr := 2))\<or>\<^sub>t
-                                     Waitp\<^sub>t (\<lambda>_. EState (Sch p rn rp, ss(Pr := 2)))({run_ch 1}, {}) @\<^sub>t true\<^sub>A)
+                                     Waitp\<^sub>t ({run_ch 1}, {}) @\<^sub>t true\<^sub>A)
  \<or>\<^sub>t(\<exists>\<^sub>t v. \<up>(v\<noteq>2) \<and>\<^sub>t  Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 1) v ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) @\<^sub>t true\<^sub>A ) 
  \<or>\<^sub>t(Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) 1
                ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2})) 
               @\<^sub>t (if rp \<ge> 1 then SCH_tr k (Sch (p @ [(1, 2)]) rn rp,ss(Pr := 1)) 
                else if rn = 1 then Out0\<^sub>t (preempt_ch 1) 0 @\<^sub>t Out0\<^sub>t (run_ch 2) 0 @\<^sub>t SCH_tr k (Sch p 2 1,ss(Pr := 1)) \<or>\<^sub>t
-                                     Waitp\<^sub>t (\<lambda>_. EState (Sch p rn rp, ss(Pr := 1))) ({preempt_ch 1}, {}) @\<^sub>t true\<^sub>A \<or>\<^sub>t
-                                      Out0\<^sub>t (preempt_ch 1) 0 @\<^sub>t Waitp\<^sub>t (\<lambda>_. EState (Sch p rn rp, ss(Pr := 1))) ({run_ch 2}, {}) @\<^sub>t true\<^sub>A 
+                                     Waitp\<^sub>t  ({preempt_ch 1}, {}) @\<^sub>t true\<^sub>A \<or>\<^sub>t
+                                      Out0\<^sub>t (preempt_ch 1) 0 @\<^sub>t Waitp\<^sub>t  ({run_ch 2}, {}) @\<^sub>t true\<^sub>A 
                               else Out0\<^sub>t (run_ch 2) 0 @\<^sub>t SCH_tr k (Sch p 2 1,ss(Pr := 1))\<or>\<^sub>t
-                                     Waitp\<^sub>t (\<lambda>_. EState (Sch p rn rp, ss(Pr := 1)))({run_ch 2}, {}) @\<^sub>t true\<^sub>A)
+                                     Waitp\<^sub>t ({run_ch 2}, {}) @\<^sub>t true\<^sub>A)
   \<or>\<^sub>t(\<exists>\<^sub>t v. \<up>(v\<noteq>1) \<and>\<^sub>t  Inrdy\<^sub>t (Sch p rn rp, ss) (req_ch 2) v ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) @\<^sub>t true\<^sub>A ) 
   \<or>\<^sub>t(\<exists>\<^sub>t v. Inrdy\<^sub>t (Sch p rn rp, ss) (free_ch 1) v ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) @\<^sub>t 
           (if length p > 0 then if run_now (sched_get_max' (Sch p rn rp)) = 1 
                                 then  (Out0\<^sub>t (run_ch 1) 0 @\<^sub>t SCH_tr k (sched_get_max' (Sch p rn rp), ss(G := v)) \<or>\<^sub>t
-                                       Waitp\<^sub>t (\<lambda>_. EState (sched_get_max' (Sch p rn rp), ss(G := v))) ({run_ch 1}, {}) @\<^sub>t true\<^sub>A)
+                                       Waitp\<^sub>t  ({run_ch 1}, {}) @\<^sub>t true\<^sub>A)
                                 else  (Out0\<^sub>t (run_ch 2) 0 @\<^sub>t SCH_tr k (sched_get_max' (Sch p rn rp), ss(G := v)) \<or>\<^sub>t
-                                       Waitp\<^sub>t (\<lambda>_. EState (sched_get_max' (Sch p rn rp), ss(G := v))) ({run_ch 2}, {}) @\<^sub>t true\<^sub>A)
+                                       Waitp\<^sub>t  ({run_ch 2}, {}) @\<^sub>t true\<^sub>A)
                            else SCH_tr k (sched_clear' (Sch p rn rp), ss(G := v))))
   \<or>\<^sub>t(\<exists>\<^sub>t v. Inrdy\<^sub>t (Sch p rn rp, ss) (free_ch 2) v ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) @\<^sub>t 
           (if length p > 0 then if run_now (sched_get_max' (Sch p rn rp)) = 1 
                                 then  (Out0\<^sub>t (run_ch 1) 0 @\<^sub>t SCH_tr k (sched_get_max' (Sch p rn rp), ss(G := v)) \<or>\<^sub>t
-                                       Waitp\<^sub>t (\<lambda>_. EState (sched_get_max' (Sch p rn rp), ss(G := v))) ({run_ch 1}, {}) @\<^sub>t true\<^sub>A)
+                                       Waitp\<^sub>t  ({run_ch 1}, {}) @\<^sub>t true\<^sub>A)
                                 else  (Out0\<^sub>t (run_ch 2) 0 @\<^sub>t SCH_tr k (sched_get_max' (Sch p rn rp), ss(G := v)) \<or>\<^sub>t
-                                       Waitp\<^sub>t (\<lambda>_. EState (sched_get_max' (Sch p rn rp), ss(G := v))) ({run_ch 2}, {}) @\<^sub>t true\<^sub>A)
+                                       Waitp\<^sub>t  ({run_ch 2}, {}) @\<^sub>t true\<^sub>A)
                            else SCH_tr k (sched_clear' (Sch p rn rp), ss(G := v))))
   \<or>\<^sub>t(\<exists>\<^sub>t v. Inrdy\<^sub>t (Sch p rn rp, ss) (exit_ch 1) v ({}, {req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) 
                              @\<^sub>t SCH_tr k (sched_del_proc' 1 (Sch p rn rp), ss(G := v)))
