@@ -1,5 +1,5 @@
 theory sch
-  imports task1
+  imports task2
 begin
 
 

@@ -21,7 +21,15 @@ lemma pure_simp:
 
 lemma pure_true[simp]:
 "(\<up> True \<and>\<^sub>t p) = p"
-by (auto simp add: pure_assn_def entails_tassn_def conj_assn_def)
+  by (auto simp add: pure_assn_def entails_tassn_def conj_assn_def)
+
+lemma pure_true'[simp]:
+" P  \<Longrightarrow>\<^sub>t  \<up> True "
+  by (auto simp add: pure_assn_def entails_tassn_def conj_assn_def)
+
+lemma true_assn[simp]:
+" P  \<Longrightarrow>\<^sub>t  true_assn "
+by (auto simp add: true_assn_def entails_tassn_def conj_assn_def)
 
 lemma combine_ex_left:
 "combine_assn chs (\<exists>\<^sub>t v. p v) (q) = (\<exists>\<^sub>t v. combine_assn chs (p v) q)"
