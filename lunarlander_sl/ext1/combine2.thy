@@ -88,23 +88,47 @@ fun combine2 :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> estate ex
   (\<up> (min (9 / 200 - ts1 T) (1 / 100 - C_upd ent1 (ts1 C)) \<ge> (9 / 200 - ts2 T)) 
         \<and>\<^sub>t Wait\<^sub>t (9 / 200 - ts2 T)
      (\<lambda>t. ParState(ParState (EState (Sch p rn rp, ss))
-             (EState(Task RUNNING eone 2, ts1(T := ts1 T + t, C := C_upd ent1 (ts1 C) + t))))
-             (EState (Task WAIT ent2 1, ts2(T := ts2 T + t))))
+             (EState(Task RUNNING eone tp1, ts1(T := ts1 T + t, C := C_upd ent1 (ts1 C) + t))))
+             (EState (Task WAIT ent2 tp2, ts2(T := ts2 T + t))))
      ({},{preempt_ch 1, req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) @\<^sub>t
    combine2 (Suc k) (Suc k1) k2 (Sch p rn rp, ss) (Task RUNNING eone tp1, ts1(T:= ts1 T + (9 / 200 - ts2 T), C:= C_upd ent1 (ts1 C) + (9 / 200 - ts2 T))) (Task READY ezero tp2, ts2(T := 0)))
 \<or>\<^sub>t(\<up> ((9 / 200 - ts2 T) > min (9 / 200 - ts1 T) (1 / 100 - C_upd ent1 (ts1 C))) 
         \<and>\<^sub>t Wait\<^sub>t (min (9 / 200 - ts1 T) (1 / 100 - C_upd ent1 (ts1 C)))
      (\<lambda>t. ParState(ParState (EState (Sch p rn rp, ss))
-             (EState(Task RUNNING eone 2, ts1(T := ts1 T + t, C := C_upd ent1 (ts1 C) + t))))
-             (EState (Task WAIT ent2 1, ts2(T := ts2 T + t))))
+             (EState(Task RUNNING eone tp1, ts1(T := ts1 T + t, C := C_upd ent1 (ts1 C) + t))))
+             (EState (Task WAIT ent2 tp2, ts2(T := ts2 T + t))))
      ({},{preempt_ch 1, req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) @\<^sub>t
 (combine2 k k1 (Suc k2) (Sch [] (- 1) (- 1), ss(G := 0))
-       (Task WAIT eone 2, ts1(T := ts1 T + min (9 / 200 - ts1 T) (1 / 100 - C_upd ent1 (ts1 C)),
+       (Task WAIT eone tp1, ts1(T := ts1 T + min (9 / 200 - ts1 T) (1 / 100 - C_upd ent1 (ts1 C)),
          C := C_upd ent1 (ts1 C) + min (9 / 200 - ts1 T) (1 / 100 - C_upd ent1 (ts1 C))))
        (Task WAIT ent2 tp2, ts2(T:= ts2 T + min (9 / 200 - ts1 T) (1 / 100 - C_upd ent1 (ts1 C))))))
 )"
-
-
+| "combine2 (Suc k) (Suc k1) (Suc k2) (Sch p rn rp, ss) (Task RUNNING ent1 tp1, ts1) (Task READY ent2 tp2, ts2) = (
+   (\<up> (min (9 / 200 - ts1 T) (1 / 100 - C_upd ent1 (ts1 C)) = 0) \<and>\<^sub>t
+       (combine2 k k1 (Suc k2) (Sch [] (- 1) (- 1), ss(G := 0)) (Task WAIT eone tp1, ts1(C := C_upd ent1 (ts1 C))) (Task READY ent2 tp2, ts2)))
+\<or>\<^sub>t (\<up> (min (9 / 200 - ts1 T) (1 / 100 - C_upd ent1 (ts1 C)) \<le> 9 / 200 - ts2 T \<and> k > 0) \<and>\<^sub>t
+    Wait\<^sub>t (min (9 / 200 - ts1 T) (1 / 100 - C_upd ent1 (ts1 C)))
+     (\<lambda>t. ParState(ParState (EState (Sch [(1, 2)] 1 2, ss(Pr := 1)))
+             (EState (Task RUNNING eone tp1, ts1(T := ts1 T + t, C := C_upd ent1 (ts1 C) + t))))
+             (EState (Task READY ent2 tp2, ts2(T := ts2 T + t))))
+     ({}, {run_ch 2, preempt_ch 1, req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) @\<^sub>t 
+     (combine2 (k-1) k1 k2 (Sch [] 2 1, ss(Pr := 1, G := 0))
+       (Task WAIT eone tp1, ts1
+        (T := ts1 T + min (9 / 200 - ts1 T) (1 / 100 - C_upd ent1 (ts1 C)),
+         C := C_upd ent1 (ts1 C) + min (9 / 200 - ts1 T) (1 / 100 - C_upd ent1 (ts1 C))))
+       (Task RUNNING ent2 tp2, ts2(T := ts2 T + min (9 / 200 - ts1 T) (1 / 100 - C_upd ent1 (ts1 C)), F := 0))))
+\<or>\<^sub>t (\<up> (min (9 / 200 - ts1 T) (1 / 100 - C_upd ent1 (ts1 C)) \<ge> 9 / 200 - ts2 T \<and> k > 0) \<and>\<^sub>t
+    Wait\<^sub>t (9 / 200 - ts2 T)
+     (\<lambda>t. ParState
+           (ParState (EState (Sch [(1, 2)] 1 2, ss(Pr := 1)))
+             (EState (Task RUNNING eone tp1, ts1(T := ts1 T + t, C := C_upd ent1 (ts1 C) + t))))
+           (EState (Task READY ent2 tp2, ts2(T := ts2 T + t))))
+     ({}, {run_ch 2, preempt_ch 1, req_ch 1, req_ch 2, free_ch 1, free_ch 2, exit_ch 1, exit_ch 2}) @\<^sub>t
+     (combine2 (k-1) (Suc k1) k2 (Sch [] 1 2, ss(Pr := 1, G := 0))
+       (Task RUNNING eone tp1, ts1(T := ts1 T + (9 / 200 - ts2 T), C := C_upd ent1 (ts1 C) + (9 / 200 - ts2 T)))
+       (Task WAIT ent2 tp2, ts2(T := 9 / 200))))
+)"
+| "combine2 (Suc k) (Suc k1) (Suc k2) (Sch p rn rp, ss) (Task RUNNING ent1 tp1, ts1) (Task RUNNING ent2 tp2, ts2) = false\<^sub>A"
 
 
 lemma combine_assn_in0_emp:
@@ -3263,11 +3287,12 @@ ts2
 
 
 
+
              apply(simp only:combine1.simps T2_tr.simps)
             subgoal premises pre
-              apply(subgoal_tac"p=[]")
+              apply(subgoal_tac"p=[] \<and> min (45 / 10 ^ 3 - ts1 T) (1 / 10\<^sup>2 - C_upd ent1 (ts1 C)) \<ge> 0 \<and> (9 / 200 - ts2 T) \<ge>0")
                prefer 2 
-              subgoal using pre(4) unfolding proper'_def by auto
+              subgoal using pre(4,5,6) unfolding proper'_def inv_s_def inv_s'_def C_upd_def by auto
               apply simp
               apply(rule combine_or_left)
               subgoal
@@ -3278,7 +3303,410 @@ ts2
                   apply(rule entails_tassn_trans)
                    apply(rule combine_assn_wait_out)
                   subgoal by auto
-              
+                  apply auto
+                  apply(rule entails_tassn_disjI1)
+                  apply(subgoal_tac"min (45 / 10 ^ 3 - ts1 T) (1 / 10\<^sup>2 - C_upd ent1 (ts1 C)) = 0")
+                    prefer 2 subgoal by auto
+                  apply auto
+                  apply(rule entails_tassn_trans)
+                   prefer 2
+                   apply(rule pre(1))
+                  subgoal by auto
+                  subgoal using pre(2) unfolding propc_def by auto
+                  subgoal using pre(3) unfolding propc'_def by auto 
+                  subgoal using pre(4) unfolding proper'_def properp_def by auto
+                  subgoal using pre(5,6) unfolding inv_s_def inv_s'_def apply(cases "(9 / 200 - ts1 T) \<le>(1 / 100 - C_upd ent1 (ts1 C))") by auto
+                  subgoal using pre(5,6) unfolding inv_s'_def inv_s_def by(auto simp add:T_def C_def)
+                  apply(rule combine_assn_right_tran)
+                  unfolding T2_tr.simps
+                  apply(rule entails_tassn_disjI1)
+                  subgoal for v tt
+                    apply(rule entails_tassn_exI[where x=v])            
+                    apply(rule entails_tassn_exI[where x=tt])
+                    by auto
+                  done
+                subgoal
+                  apply(rule entails_tassn_trans)
+                   apply(rule combine_assn_wait_out)
+                  subgoal by auto
+                  apply auto
+                  apply(subgoal_tac"min (45 / 10 ^ 3 - ts1 T) (1 / 10\<^sup>2 - C_upd ent1 (ts1 C)) = 0")
+                    prefer 2 subgoal by auto
+                  apply auto
+                  apply(rule entails_tassn_disjI1)
+                  apply(rule entails_tassn_trans)
+                   prefer 2
+                   apply(rule pre(1))
+                  subgoal by auto
+                  subgoal using pre(2) unfolding propc_def by auto
+                  subgoal using pre(3) unfolding propc'_def by auto 
+                  subgoal using pre(4) unfolding proper'_def properp_def by auto
+                  subgoal using pre(5,6) unfolding inv_s_def inv_s'_def apply(cases "(9 / 200 - ts1 T) \<le>(1 / 100 - C_upd ent1 (ts1 C))") by auto
+                  subgoal using pre(5,6) unfolding inv_s'_def inv_s_def by(auto simp add:T_def C_def)
+                  apply(rule combine_assn_right_tran)
+                  unfolding T2_tr.simps
+                  apply(rule entails_tassn_disjI2)
+                  by auto
+                done
+              apply(rule combine_or_left)
+              subgoal
+                apply(rule combine_assn_ex_pre_left')+
+                apply(rule combine_assn_pure_pre_left')
+                apply auto
+                apply(rule combine_or_right)
+                subgoal for t
+                  apply(rule combine_assn_ex_pre_right')+
+                  apply(rule combine_assn_pure_pre_right')
+                  apply(rule entails_tassn_trans)
+                   apply(rule combine_assn_waitin_out)
+                  subgoal by auto
+                  apply auto
+                  apply(cases k')
+                  subgoal apply simp unfolding false_assn_def combine_assn_def entails_tassn_def
+                    by auto
+                  subgoal for v tt k''
+                    apply (simp add: T_def C_def)
+                    apply(rule combine_or_left)
+                    subgoal
+                      apply(rule entails_tassn_trans)
+                       apply(rule combine_assn_wait_waitin)
+                      subgoal by auto
+                      apply auto
+                      apply(rule entails_tassn_disjI2)
+                      apply(rule entails_tassn_disjI1)
+                      apply(rule entails_tassn_cancel_left)
+                      apply(rule combine_or_left)
+                      subgoal
+                        apply(rule entails_tassn_trans)
+                         apply(rule combine_assn_out0_waitin)
+                        subgoal by auto
+                        apply auto
+                        apply(subgoal_tac"min (9 / 200 - ts1 CHR ''t'') (1 / 100 - C_upd ent1 (ts1 CHR ''c'')) = tt")
+                         prefer 2 subgoal by auto
+                        apply auto
+                        apply(rule entails_tassn_trans)
+                         prefer 2
+                         apply(rule pre(1))
+                        subgoal by auto
+                        subgoal using pre(2) unfolding propc_def by auto
+                        subgoal using pre(3) unfolding propc'_def by auto 
+                        subgoal using pre(4) unfolding proper'_def properp_def by auto
+                        subgoal using pre(5,6) unfolding inv_s_def inv_s'_def 
+                          apply(cases "(9 / 200 - ts1 T) \<le>(1 / 100 - C_upd ent1 (ts1 C))") 
+                          unfolding T_def C_def by auto
+                        subgoal using pre(5,6) unfolding inv_s'_def inv_s_def by(auto simp add:T_def C_def)
+                        by auto
+                      apply(rule combine_or_left)
+                      subgoal
+                        apply(rule combine_assn_waitp_waitin')
+                        by auto
+                      subgoal
+                        apply(rule combine_assn_waitp_waitin')
+                        by auto
+                      done
+                      apply(rule combine_or_left)
+                      subgoal
+                        apply(rule combine_assn_ex_pre_left')+
+                        apply(rule combine_assn_pure_pre_left')
+                        apply auto
+                        apply(rule combine_assn_waitin_waitin)
+                        by auto
+                      apply(rule combine_or_left)
+                      subgoal
+                        apply(rule combine_assn_ex_pre_left')+
+                        apply(rule combine_assn_pure_pre_left')
+                        apply auto
+                        apply(rule combine_assn_waitin_waitin)
+                        by auto
+                      apply(rule combine_or_left)
+                      subgoal
+                        apply(rule combine_assn_ex_pre_left')+
+                        apply(rule combine_assn_pure_pre_left')
+                        apply auto
+                        apply(rule combine_assn_waitin_waitin)
+                        by auto
+                      subgoal
+                        apply(rule combine_assn_ex_pre_left')+
+                        apply(rule combine_assn_pure_pre_left')
+                        apply auto
+                        apply(rule combine_assn_waitin_waitin)
+                        by auto
+                      done
+                    done
+                  subgoal
+                    apply(rule entails_tassn_trans)
+                     apply(rule combine_assn_waitin_out)
+                    subgoal by auto
+                    apply auto
+                    apply(cases k')
+                    subgoal apply simp unfolding false_assn_def combine_assn_def entails_tassn_def
+                      by auto
+                    subgoal for k''
+                      apply(auto simp add: T_def C_def)
+                      apply(rule combine_or_left)
+                      subgoal
+                        apply(cases "(min (9 / 200 - ts1 CHR ''t'') (1 / 100 - C_upd ent1 (ts1 CHR ''c''))) < (9 / 200 - ts2 CHR ''t'')")
+                        subgoal
+                          apply(rule entails_tassn_trans)
+                           apply(rule combine_assn_wait_wait3)
+                          subgoal by auto
+                          apply auto
+                          apply(rule entails_tassn_disjI2)
+                          apply(rule entails_tassn_disjI1)
+                          apply(rule entails_tassn_cancel_left)
+                          apply(rule combine_or_left)
+                          subgoal 
+                            apply(rule combine_assn_out0_wait)
+                            by auto
+                          apply(rule combine_or_left)
+                          subgoal
+                            apply(rule combine_assn_waitp_wait')
+                            by auto
+                          subgoal
+                            apply(rule combine_assn_waitp_wait')
+                            by auto
+                          done
+                        apply(cases " (9 / 200 - ts2 CHR ''t'') = (min (9 / 200 - ts1 CHR ''t'') (1 / 100 - C_upd ent1 (ts1 CHR ''c'')))")
+                        subgoal
+                          apply simp
+                          apply(rule entails_tassn_trans)
+                           apply(rule combine_assn_wait_wait2)
+                          subgoal by auto
+                          apply auto
+                          apply(rule entails_tassn_disjI2)
+                          apply(rule entails_tassn_disjI1)
+                          apply(rule entails_tassn_cancel_left)
+                          apply(rule combine_or_left)
+                          subgoal 
+                            apply(rule combine_or_right)
+                            subgoal
+                              apply(rule combine_assn_out0_outrdy)
+                              by auto
+                            subgoal
+                              apply(rule combine_assn_ex_pre_right')+
+                              apply(rule entails_tassn_trans)
+                               apply(rule combine_assn_out0_inrdy)
+                              subgoal by auto
+                              apply auto
+                              apply(rule entails_tassn_trans)
+                               prefer 2
+                               apply(rule pre(1))
+                              subgoal by auto
+                              subgoal using pre(2) unfolding propc_def by auto
+                              subgoal using pre(3) unfolding propc'_def by auto 
+                              subgoal using pre(4) unfolding proper'_def properp_def by auto
+                              subgoal using pre(5,6) unfolding inv_s_def inv_s'_def 
+                                apply(cases "(9 / 200 - ts1 T) \<le>(1 / 100 - C_upd ent1 (ts1 C))") 
+                                unfolding T_def C_def by auto
+                              subgoal using pre(5,6) unfolding inv_s'_def inv_s_def by(auto simp add:T_def C_def)
+                              apply(subgoal_tac "ts2(CHR ''t'' := ts2 CHR ''t'' + min (9 / 200 - ts1 CHR ''t'') (1 / 100 - C_upd ent1 (ts1 CHR ''c'')), F := 0) = ts2(CHR ''t'' := 9 / 200, F := 0)")
+                              by auto
+                            done
+                          apply(rule combine_or_left)
+                          subgoal
+                            apply(rule combine_or_right)
+                            subgoal
+                              apply(rule combine_assn_waitp_outrdy')
+                              by auto
+                            subgoal
+                              apply(rule combine_assn_ex_pre_right')+
+                              apply(rule combine_assn_waitp_inrdy')
+                              by auto
+                            done
+                            subgoal
+                            apply(rule combine_or_right)
+                            subgoal
+                              apply(rule combine_assn_waitp_outrdy')
+                              by auto
+                            subgoal
+                              apply(rule combine_assn_ex_pre_right')+
+                              apply(rule combine_assn_waitp_inrdy')
+                              by auto
+                            done
+                          done
+                        apply(cases "(min (9 / 200 - ts1 CHR ''t'') (1 / 100 - C_upd ent1 (ts1 CHR ''c''))) > (9 / 200 - ts2 CHR ''t'')")
+                        subgoal
+                          apply(rule entails_tassn_trans)
+                           apply(rule combine_assn_wait_wait4)
+                          subgoal by auto
+                          apply auto
+                          apply(rule entails_tassn_disjI2)
+                          apply(rule entails_tassn_disjI2)
+                          apply(rule entails_tassn_cancel_left)
+                          apply(rule combine_or_right)
+                          subgoal
+                            apply(rule entails_tassn_trans)
+                            apply(rule combine_assn_wait_outrdy)
+                            by auto
+                          subgoal
+                            apply(rule combine_assn_ex_pre_right')+
+                            apply(rule entails_tassn_trans)
+                            apply(rule combine_assn_wait_inrdy)
+                            by auto
+                          done
+                        by auto
+                      apply(rule combine_or_left)
+                      subgoal
+                        apply(rule combine_assn_ex_pre_left')+
+                        apply(rule combine_assn_pure_pre_left')
+                        apply auto
+                        apply(rule entails_tassn_trans)
+                         apply(rule combine_assn_waitin_wait)
+                        subgoal by auto
+                        apply auto
+                        apply(rule entails_tassn_disjI2)
+                        apply(rule entails_tassn_disjI2)
+                        apply(rule entails_tassn_cancel_left)
+                        apply(rule combine_or_right)
+                        subgoal
+                          apply(rule entails_tassn_trans)
+                           apply(rule combine_assn_waitin_outrdy)
+                          by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
+                        subgoal
+                          apply(rule combine_assn_ex_pre_right')+
+                          apply(rule combine_assn_waitin_inrdy)
+                          by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
+                        done
+                      apply(rule combine_or_left)
+                      subgoal
+                        apply(rule combine_assn_ex_pre_left')+
+                        apply(rule combine_assn_pure_pre_left')
+                        apply auto
+                        apply(rule entails_tassn_trans)
+                         apply(rule combine_assn_waitin_wait)
+                        subgoal by auto
+                        apply auto
+                        apply(rule entails_tassn_disjI2)
+                        apply(rule entails_tassn_disjI2)
+                        apply(rule entails_tassn_cancel_left)
+                        apply(rule combine_or_right)
+                        subgoal
+                          apply(rule entails_tassn_trans)
+                           apply(rule combine_assn_waitin_outrdy)
+                          by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
+                        subgoal
+                          apply(rule combine_assn_ex_pre_right')+
+                          apply(rule combine_assn_waitin_inrdy)
+                          by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
+                        done
+                      apply(rule combine_or_left)
+                      subgoal
+                        apply(rule combine_assn_ex_pre_left')+
+                        apply(rule combine_assn_pure_pre_left')
+                        apply auto
+                        apply(rule entails_tassn_trans)
+                         apply(rule combine_assn_waitin_wait)
+                        subgoal by auto
+                        apply auto
+                        apply(rule entails_tassn_disjI2)
+                        apply(rule entails_tassn_disjI2)
+                        apply(rule entails_tassn_cancel_left)
+                        apply(rule combine_or_right)
+                        subgoal
+                          apply(rule entails_tassn_trans)
+                           apply(rule combine_assn_waitin_outrdy)
+                          by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
+                        subgoal
+                          apply(rule combine_assn_ex_pre_right')+
+                          apply(rule combine_assn_waitin_inrdy)
+                          by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
+                        done
+                      subgoal
+                        apply(rule combine_assn_ex_pre_left')+
+                        apply(rule combine_assn_pure_pre_left')
+                        apply auto
+                        apply(rule entails_tassn_trans)
+                         apply(rule combine_assn_waitin_wait)
+                        subgoal by auto
+                        apply auto
+                        apply(rule entails_tassn_disjI2)
+                        apply(rule entails_tassn_disjI2)
+                        apply(rule entails_tassn_cancel_left)
+                        apply(rule combine_or_right)
+                        subgoal for tt v
+                          apply(rule entails_tassn_trans)
+                           apply(rule combine_assn_waitin_outrdy)
+                          subgoal by auto
+                          apply auto
+                          apply(rule entails_tassn_trans)
+                           prefer 2
+                           apply(rule pre(1))
+                          subgoal by auto
+                          subgoal using pre(2) unfolding propc_def by auto
+                          subgoal using pre(3) unfolding propc'_def by auto 
+                          subgoal using pre(4) unfolding proper'_def properp_def by auto
+                          subgoal using pre(5,6) unfolding inv_s_def inv_s'_def 
+                            apply(cases "(9 / 200 - ts1 T) \<le>(1 / 100 - C_upd ent1 (ts1 C))") 
+                            unfolding T_def C_def by auto
+                          subgoal using pre(5,6) unfolding inv_s'_def inv_s_def by(auto simp add:T_def C_def)
+                          by auto
+                        subgoal
+                          apply(rule combine_assn_ex_pre_right')+
+                          apply(rule combine_assn_waitin_inrdy)
+                          by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
+                        done
+                      done
+                    done
+                  done
+                apply(rule combine_or_left)
+                subgoal
+                  apply(rule combine_assn_ex_pre_left')+
+                  apply(rule combine_assn_pure_pre_left')
+                  apply auto
+                  apply(rule combine_or_right)
+                  subgoal
+                    apply(rule combine_assn_ex_pre_right')+
+                    apply(rule combine_assn_pure_pre_right')
+                    apply auto
+                    apply(rule entails_tassn_trans)
+                     apply(rule combine_assn_waitin_out)
+                    by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
+                  subgoal
+                    apply(rule entails_tassn_trans)
+                     apply(rule combine_assn_waitin_out)
+                    by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
+                  done
+                apply(rule combine_or_left)
+                subgoal
+                  apply(rule combine_assn_ex_pre_left')+
+                  apply(rule combine_assn_pure_pre_left')
+                  apply auto
+                  apply(rule combine_or_right)
+                  subgoal
+                    apply(rule combine_assn_ex_pre_right')+
+                    apply(rule combine_assn_pure_pre_right')
+                    apply auto
+                    apply(rule combine_assn_waitin_out'')
+                    by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
+                  subgoal
+                    apply(rule combine_assn_waitin_out'')
+                    by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
+                  done
+                subgoal
+                  apply(rule combine_assn_ex_pre_left')+
+                  apply(rule combine_assn_pure_pre_left')
+                  apply auto
+                  apply(rule combine_or_right)
+                  subgoal
+                    apply(rule combine_assn_ex_pre_right')+
+                    apply(rule combine_assn_pure_pre_right')
+                    apply auto
+                    apply(rule combine_assn_waitin_out'')
+                    by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
+                  subgoal
+                    apply(rule combine_assn_waitin_out'')
+                    by(auto simp add: req_ch_def preempt_ch_def run_ch_def free_ch_def exit_ch_def)
+                  done
+                done
+
+              apply(simp only:combine1.simps T2_tr.simps)
+              subgoal 
+                unfolding propc_def propc'_def by auto
+              done
+            done
+          done
+        done
+    qed
 
 
 
@@ -3286,61 +3714,8 @@ ts2
 
 
 
-                      
 
 
 
 
-
-                
-
-
-
-                    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                      
-
-                      
-
-
-
-
-
-
-                
-               
-                      
-
-
-
-
-
-
-
-
-
-
-
-
-
-              
-
-
-
-
-
-qed
 end
