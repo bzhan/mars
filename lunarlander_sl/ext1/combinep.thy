@@ -39,10 +39,6 @@ lemma Valid_SCH_rep':
   unfolding entails_def by auto 
 
 
-thm combine_SCH_T1
-thm combine_SCH_T1_T2
-
-
 
 lemma g1:
 "\<Turnstile>\<^sub>p {pair_assn  (\<lambda> (a,s). (a,s) = (Sch [] (-1) (-1),(\<lambda>_ . 0))) (\<lambda> (a,s). (a,s) = (Task WAIT ezero 2,(\<lambda>_ . 0)))}
