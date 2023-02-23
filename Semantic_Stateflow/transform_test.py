@@ -43,7 +43,6 @@ if __name__ == "__main__":
 '''
 class TransformAllExamples(unittest.TestCase):
     def testTransformExamples1(self):
-        print("here")
         try:
             list_dir(give_path)
             #print("file：", file)

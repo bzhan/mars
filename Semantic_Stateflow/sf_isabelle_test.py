@@ -13,43 +13,15 @@ from ss2hcsp.matlab.parser import expr_parser, cond_parser, cmd_parser, event_pa
 
 
 class SFIsabelleTest(unittest.TestCase):
-    '''
-    def testTranslateExpr(self):
-        test_data = [
-            ("0", "N 0"),
-            ("x + 1", "Plus (V ''x'') (N 1)"),
-        ]
-        for e, res in test_data:
-            e = expr_parser.parse(e)
-            self.assertEqual(translate_expr(e), res)
-
-    def testTranslateCond(self):
-        test_data = [
-            ("true", "Bc True"),
-            ("false", "Bc False"),
-            ("x > 10", "(V ''x'') [>] (N 10)"),
-        ]
-
-        for e, res in test_data:
-            e = cond_parser.parse(e)
-            self.assertEqual(translate_expr(e), res)
-
-    def testTranslateEvent(self):
-        test_data = [
-            ("e", "S [\'\'e\'\']"),
-        ]
-
-        for event, res in test_data:
-            event = event_parser.parse(event)
-            self.assertEqual(translate_event(event), res)
-    '''
     def testTranslate1(self):
-        filename = "Semantic_Stateflow/test.xml"
+        #Inputs: Stateflow XML file
+        filename = "Semantic_Stateflow/test3.xml"
         n = 2
         input_enent = "[\'\'\'\', \'\'\'\']"
         output_str = ""
         try:
-            jsonname  = "./Semantic_Stateflow/test.json"
+            #Inputs: Stateflow Json file
+            jsonname  = "./Semantic_Stateflow/test3.json"
             with open(jsonname,'r',encoding='utf8')as fp:
                 json_data = json.load(fp)
                 for key in json_data.keys():
@@ -86,14 +58,13 @@ class SFIsabelleTest(unittest.TestCase):
         #chart_str = translate_chart_info(chart)
         chart_str = 'definition I :: ctxt where \n\"I str = (Info False [] [])\"'
         str += chart_str + '\n'
-        #print(str)
+
         def_list.append('I_def')
 
         #fe and ge
         fe_str = 'definition fe::fenv where \" ' + '\n'
         fe_str += translate_fe_info(chart)
 
-        #print(fe_str)
         str += fe_str + '\n'
         def_list.append('fe_def')
 
