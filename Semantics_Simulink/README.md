@@ -7,13 +7,13 @@
 * The definition and related lemmas of permutation.
 
 ### DiscreteSyntax.thy
-* Syntax of discrete blocks and its sort.
+* Syntax of discrete blocks, block sorting, calculation of inherited sample time.
 
 ### DiscreteSemantics.thy
 * Semantics of discrete blocks, existence and uniqueness of discrete blocks.
 
 ### ContinuousSyntax.thy
-* Syntax of continuous blocks, combination of continuous blocks.
+* Syntax of continuous blocks, the combination of integrator blocks into one single integrator block.
 
 ### DisConSemantics.thy
 * Semantics of continuous blocks, existence and uniqueness of continuous blocks; Semantics of disctere-continuous blocks, existence and uniqueness of discrete-continuous blocks
