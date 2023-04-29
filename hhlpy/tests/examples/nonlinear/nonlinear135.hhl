@@ -1,0 +1,19 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Product of Man Maccallum Goriely Page 57 and ZYLZCL Example C1"
+
+pre [xleft^2+yleft^2<=1/4] 
+    [4<=x1right] [x1right<=4.5]
+    [1<=x2right] [x2right<=2];
+t := * (t >= 0);
+{xleft_dot=-yleft+2*xleft^2*yleft, 
+ yleft_dot=yleft+2*xleft*yleft^2, 
+ x1right_dot=-11/2*x2right+x2right^2, 
+ x2right_dot=6*x1right-x1right^2, 
+ t_dot = -1
+  & t > 0 &&
+    1<x1right && x1right<5 && 
+    1<x2right && x2right<5} 
+invariant 
+  [349+4*((-9)+x1right)*x1right^2+ 
+    x2right^2*((-33)+4*x2right)<=0] 
+  [2*xleft^2 < 1] {dbx};
+post [!xleft>3] [!(1<=x1right && x1right<=2 && 2<=x2right && x2right<=3)];

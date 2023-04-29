@@ -1,0 +1,16 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Gorbuzov Pranevich 2012: Example 1.6"
+# 
+# Citation "V.N. Gorbuzov, A.F. Pranevich: First integrals of ordinary linear differential systems. ".
+
+pre [x5 > -5] [x5 < x1] [x2 > x1 + 8] [x1 >= -1];
+t := * (t >= 0); 
+{x1_dot=x1-2*x2+x3-2*x6, 
+ x2_dot=3*x2-x3-x5+2*x6, 
+ x3_dot=-x1+x3+2*x4+2*x5, 
+ x4_dot=-x1+x4+x5+x6, 
+ x5_dot=x1+x2+x5, 
+ x6_dot=x1-x2+x3-x4-x6,
+ t_dot = -1 
+  & t > 0 && x5 < 0}
+ invariant [x1+x2+x5 >= 0] {dbx};
+post [!(x2 < 0 && x1 < x2 && x5 < x2)];

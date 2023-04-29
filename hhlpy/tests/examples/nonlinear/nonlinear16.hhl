@@ -1,0 +1,12 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Dumortier Llibre Artes Ex. 10_9".
+# 
+# Description "Exercise 10.9".
+# Citation "Freddy Dumortier, Jaume Llibre, Joan C. Artes. Qualitative Theory of Planar Differential Systems".
+
+pre [(-1 + x)^2 + (1 + y)^2 < 1/4];
+t := * (t >= 0);
+{x_dot = x^4+2*x*y^2-6*x^2*y^2+y^4+x*(x^2-y^2), 
+ y_dot = 2*x^2*y-4*x^3*y+4*x*y^3-y*(x^2-y^2), 
+ t_dot = -1 & t > 0}
+  invariant [y < 0] {dbx};
+post [!(y >= 1)];

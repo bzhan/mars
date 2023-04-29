@@ -1,0 +1,11 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Wiggins Example 18_7_3_n".
+
+pre [(-1/3 + x)^2 + (-1/3 + y)^2 < 1/16];
+t := * (t >= 0); 
+{x_dot = -x+2*y+x^2*y+x^4*y^5, 
+ y_dot = -y-x^4*y^6+x^8*y^9, 
+ t_dot = -1 & t > 0}
+invariant 
+  [y > 0] {dbx} 
+  [x > 0] {dbx};
+post [!(x <= -1 || y <= -1)];

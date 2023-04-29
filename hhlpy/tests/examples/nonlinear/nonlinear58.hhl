@@ -1,0 +1,12 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Ferragut Giacomini 2010: Example 2"
+# 
+# Citation "Antoni Ferragut, Hector Giacomini: A New Algorithm for Finding Rational First Integrals of Polynomial Vector Fields. Qual. Theory Dyn. Syst. (2010)".
+
+pre [(x + 2)^2 + (y + 2)^2 <= 5];
+t := * (t >= 0); 
+{x_dot = x+2*y-y^2, y_dot = -y+y^2, t_dot = -1 & t > 0} 
+invariant 
+    [x+y < 0] {dbx} 
+    [x < ((-2)+y)*y] {bc} 
+    [2*x+y < 0];
+post [2*x+y < 0];

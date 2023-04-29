@@ -1,0 +1,7 @@
+# ArchiveEntry "Benchmarks/Basic/Dynamics: Open cases"
+
+pre [x^3 > 5] [y > 2];
+t := 0; 
+{x_dot = x^3 + x^4, y_dot = 5 * y + y^2, t_dot = 1 & t < 10} 
+invariant [x^3 > 5] {bc} [y > 2] {bc};
+post [x^3 > 5] [y > 2];

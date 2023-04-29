@@ -1,0 +1,10 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Yang Wu Lin 2020: Benchmark C2 (Nonparametric)"
+# 
+# Citation "Z. Yang, M. Wu and W. Lin, Nonlinear Analysis: Hybrid Systems (36), 2020, Benchmark C2".
+
+pre [(x-1)^2+y^2<=0.04] [u1 == -1] [u2 == 3];
+t := * (t >= 0); 
+{x_dot = u1*y-3/2*x^2-1/2*x^3, y_dot = u2*x-y, t_dot = -1
+  & t > 0 && -2<x && x<2 && -2<y && y<2} 
+invariant [x*((-26090)+x*(34696+12539*x))+38464*y < 61620] {bc};
+post [!((x+1.8)^2+y^2 <= 0.16)];

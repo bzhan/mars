@@ -1,0 +1,12 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Gorbuzov Pranevich 2012: Example 1.5 Variant 2"
+# 
+# Citation "V.N. Gorbuzov, A.F. Pranevich: First integrals of ordinary linear differential systems. ".
+
+pre [x3 > 1] [x1 > (x1 - x3)^2] [x3 > x2];
+t := * (t >= 0); 
+{x1_dot=4*x1-x2, 
+ x2_dot=3*x1+x2-x3, 
+ x3_dot=x1+x3, 
+ t_dot = -1 & t > 0}
+invariant [(x1-x3)^2-2*x3*(x1-x2+x3) < 0] {dbx};
+post [!(x3 < 0 && x1 - x2 + x3 > 0)];

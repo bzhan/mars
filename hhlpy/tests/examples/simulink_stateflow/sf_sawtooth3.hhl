@@ -1,0 +1,44 @@
+pre [true];
+  Chart_All_A := 1;
+  Chart_All_B := 2;
+  Chart_All := 0;
+  x := 1;
+  Chart_st := Chart_All;
+  t := 1;
+  Chart_All_st := Chart_All_A;
+  y := 1;
+
+  {
+    Chart_ret := 0;
+    if (Chart_All_st == Chart_All_A) {
+      Chart_All_A_done := 0;
+      if (t >= 1) {
+        t := 0;
+        if (Chart_All_st == Chart_All_A) {
+          Chart_All_st := Chart_All_B;
+          y := -1;
+          Chart_All_A_done := 1;
+        }
+      }
+      Chart_ret := Chart_All_A_done;
+    } else if (Chart_All_st == Chart_All_B) {
+      Chart_All_B_done := 0;
+      if (t >= 1) {
+        t := 0;
+        if (Chart_All_st == Chart_All_B) {
+          Chart_All_st := Chart_All_A;
+          y := 1;
+          Chart_All_B_done := 1;
+        }
+      }
+      Chart_ret := Chart_All_B_done;
+    }
+      {x_dot = y, t_dot = 1 & t < 1} solution;   
+  }*
+  invariant [Chart_All_st == Chart_All_A -> x == 1]
+            [Chart_All_st == Chart_All_B -> x == 0]
+	          [Chart_All_st == Chart_All_A || Chart_All_st == Chart_All_B]
+	          [t == 1];
+
+post [x >= 0][x <= 1];
+

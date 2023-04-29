@@ -1,0 +1,9 @@
+# ArchiveEntry "Benchmarks/Basic/Static semantics correctness: Assignment 3"
+# 
+# Description "Overwrite assignment in loop".
+
+pre [x >= 0];
+x := x+1;
+{ x := x+1; }*
+  invariant [x >= 1];
+post [x >= 1];

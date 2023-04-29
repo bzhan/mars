@@ -1,0 +1,12 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Arrowsmith Place Fig_3_5e page 79".
+# 
+# Description "Fig 3.5e Page 79".
+# Citation "D. K. Arrowsmith and C. M. Place. An Introduction to Dynamical Systems".
+
+pre [x == 1] [y == -1];
+t := * (t >= 0);
+{x_dot = x^2 + (x+y)/2, y_dot = (-x + 3*y)/2, t_dot = -1 & t > 0} 
+  invariant
+    [y-x+1 <= 0] {dbx 1}
+    [y <= 0] {dbx 1};
+post [!(y>0)];

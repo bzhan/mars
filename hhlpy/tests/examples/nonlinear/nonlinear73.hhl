@@ -1,0 +1,10 @@
+# ArchiveEntry "Benchmarks/Nonlinear/3D Lotka Volterra (III)".
+# 
+# Citation "Sriram Sankaranarayanan. Automatic Invariant Generation For Hybrid Systems Using Ideal Fixed Points".
+
+pre [x == 1] [y == 1] [z == -1];
+t := * (t >= 0); 
+{x_dot = x*y-x*z, y_dot = y*z-y*x, z_dot = z*x-z*y, 
+ t_dot = -1 & t > 0}
+invariant [x>0] {dbx} [y>0] {dbx} [z<0] {dbx};
+post [x + y - z > -2];

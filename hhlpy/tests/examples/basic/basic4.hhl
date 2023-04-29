@@ -1,0 +1,11 @@
+
+# ArchiveEntry "Benchmarks/Basic/Static semantics correctness: Assignment 4"
+# 
+# Description "Overwrite assignment in ODE".
+
+pre [x >= 0];
+x := x+1;
+t := * (t >= 0);
+{t_dot=-1, x_dot=2 & t > 0}
+  invariant [x >= 1];
+post [x >= 1];

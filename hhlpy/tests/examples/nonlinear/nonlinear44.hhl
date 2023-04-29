@@ -1,0 +1,9 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Unstable Unit Circle 2".
+
+pre [b == 1/2] [y == 1/2];
+t := * (t >= 0);
+{b_dot = -b+b^3-y+b*y^2, 
+ y_dot = b-y+b^2*y+y^3, 
+ t_dot = -1 & t > 0}
+invariant [b^2+y^2 < 1] {dbx};
+post [!(b^2 + y^2 > 2)];
