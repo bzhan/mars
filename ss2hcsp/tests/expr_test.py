@@ -1,4 +1,6 @@
 # Unit tests for expressions
+# Under the folder called mars, to run all the tests in this file, run:
+#    python -m unittest ss2hcsp.tests.expr_test.
 
 import unittest
 
@@ -104,7 +106,9 @@ class ExprTest(unittest.TestCase):
 
     def testSubstAllFuncs(self):
         funcs = {'f': hcsp.Function('f', ['x'], "x + 1"),
-                 'g': hcsp.Function('g', ['x'], "f(x) + 2")}
+                 'g': hcsp.Function('g', ['x'], "f(x) + 2"),
+                 'q': hcsp.Function('q', ['x', 'y'], "x * 2 + y * 2"),
+                 }
 
         test_data = [
             ("f(x)", "x + 1"),
@@ -112,7 +116,8 @@ class ExprTest(unittest.TestCase):
             ("g(y)", "y + 1 + 2"),
             ("g(y) * 5", "(y + 1 + 2) * 5"),
             ("f(x) >= 0", "x + 1 >= 0"),
-            ("f(x) >= 0 && g(x) >= 0", "x + 1 >= 0 && x + 1 + 2 >= 0")
+            ("f(x) >= 0 && g(x) >= 0", "x + 1 >= 0 && x + 1 + 2 >= 0"),
+            ("q(y+1, x+2)", "(y + 1) * 2 + (x + 2) * 2"),
         ]
        
         for s1, s2 in test_data:

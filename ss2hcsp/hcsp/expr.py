@@ -296,8 +296,8 @@ class FunExpr(Expr):
 def replace_function(e: FunExpr, funcs=dict()):
     """Replace a FunExpr by the expr of its corresponding Function object.
     For example,
-    For FunExpr bar(y), with funcs = {'bar': Function('bar', ['x'], 'x + 1')}),
-    return Expr y + 1
+    For FunExpr bar(2 * x), with funcs = {'bar': Function('bar', ['x'], 'x + 1')}),
+    return Expr 2 * x + 1
     """
     assert e.fun_name in funcs, \
         "Function {f} is not defined".format(f=e.fun_name)
@@ -305,11 +305,15 @@ def replace_function(e: FunExpr, funcs=dict()):
     fun_obj_expr = fun_obj.expr
     assert len(e.exprs) == len(fun_obj.vars)
     length = len(e.exprs)
+    inst = dict()
     for i in range(length):
-        # Substitute the parameters by arguments. 
-        # Example: for bar(y), substitute x with y in x + 1.
+        # Build the dictionary, which maps the parameter on its argument. 
+        # Example: for bar(x) = x + 1, the dictionary of bar(2 * x) maps x on 2 * x.
         if str(fun_obj.vars[i]) != str(e.exprs[i]):
-            fun_obj_expr = fun_obj_expr.subst({fun_obj.vars[i]: e.exprs[i]})
+            inst[fun_obj.vars[i]] = e.exprs[i]
+    
+    # Substitute the parameters in function with their arguments.
+    fun_obj_expr = fun_obj_expr.subst(inst)
 
     return fun_obj_expr
 
