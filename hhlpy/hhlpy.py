@@ -113,6 +113,8 @@ def constraint_examination(e):
 
 def compute_boundary(e):
     # Compute the boundary for a boolean expression.
+    # Example: e is x < 0 && y < 0, then compute_boundary returns 
+    # x == 0 && y <= 0 || y == 0 && x <= 0
     if isinstance(e, expr.RelExpr):
         if e.op in ['<', '>', '!=']:
             return expr.RelExpr("==", e.expr1, e.expr2)
@@ -123,6 +125,8 @@ def compute_boundary(e):
             conj_boundarys = []
             conj_closure = []
             # Compute the boundary and closure for each conjuncts
+            # Example, conj_boundarys for x < 0 && y < 0 is [x == 0, y == 0]
+            #          conj_closure for x < 0 && y < 0 is [x <= 0, y <= 0]
             for c in conjs:
                 conj_boundarys.append(compute_boundary(c))
                 conj_closure.append(compute_closure(c))
@@ -132,12 +136,15 @@ def compute_boundary(e):
                 # The boundary of ith conjunct. 
                 # Note that other conjuncts' boundaries may also be satisfied, 
                 # so here use closure of other conjuncts.
-                sub_boundarys = conj_closure.copy()
+                sub_boundarys = conj_closure.copy() 
+                # Example, sub_boundarys is [x <= 0, y <= 0]
                 sub_boundarys[i] = conj_boundarys[i]    
+                # Example, sub_boundarys when i == 0 is [x == 0, y <= 0]
                 sub_boundary = expr.list_conj(*sub_boundarys) 
+                # Example, sub_boundarys when i == 0 is x == 0 && y <= 0
 
                 boundarys.append(sub_boundary)
-            return expr.list_disj(*boundarys) 
+            return expr.list_disj(*boundarys) # Example, returns x == 0 && y <= 0 || y == 0 && x <= 0
         elif e.op == '||':
             boundary1 = compute_boundary(e.exprs[0])
             boundary2 = compute_boundary(e.exprs[1])
@@ -171,7 +178,7 @@ def compute_closure(e):
         elif e.op == '||':
             return expr.LogicExpr('||', compute_closure(e.exprs[0]), compute_closure(e.exprs[1]))
         elif e.op == '!':
-            return compute_closure(expr.neg_expr(e))
+            return compute_closure(expr.neg_expr(e.exprs[0]))
         else:
             raise NotImplementedError
 
