@@ -8,7 +8,7 @@
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.4</P>
+      <P Name="ComputedModelVersion">1.8</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -67,26 +67,38 @@
           <Object ObjectID="6">
             <P Name="IsActive" Class="logical">1</P>
             <P Name="IsTabbed" Class="logical">1</P>
-            <P Name="ViewObjType" Class="char">StateflowChart</P>
-            <P Name="LoadSaveID" Class="char">1</P>
+            <P Name="ViewObjType" Class="char">SimulinkTopLevel</P>
+            <P Name="LoadSaveID" Class="char">0</P>
             <P Name="Extents" Class="double">[1031.0, 545.0]</P>
-            <P Name="ZoomFactor" Class="double">0.67360574446146881</P>
-            <P Name="Offset" Class="double">[-408.12171046470593, -25.876724630823507]</P>
-            <P Name="SceneRectInView" Class="double">[-408.12171046470593, -25.876724630823507, 1530.5688950504114, 809.07861086563935]</P>
+            <P Name="ZoomFactor" Class="double">2.7032589132193579</P>
+            <P Name="Offset" Class="double">[276.8742995581523, 110.23246304466764]</P>
+            <P Name="SceneRectInView" Class="double">[276.8742995581523, 110.23246304466764, 381.39151043144597, 201.60850939392634]</P>
           </Object>
           <Object ObjectID="7">
             <P Name="IsActive" Class="logical">0</P>
             <P Name="IsTabbed" Class="logical">0</P>
-            <P Name="ViewObjType" Class="char">SimulinkTopLevel</P>
-            <P Name="LoadSaveID" Class="char">0</P>
+            <P Name="ViewObjType" Class="char">StateflowChart</P>
+            <P Name="LoadSaveID" Class="char">1</P>
             <P Name="Extents" Class="double">[1031.0, 545.0]</P>
-            <P Name="ZoomFactor" Class="double">1.0</P>
-            <P Name="Offset" Class="double">[0.0, 0.0]</P>
-            <P Name="SceneRectInView" Class="double">[0.0, 0.0, 1031.0, 545.0]</P>
+            <P Name="ZoomFactor" Class="double">0.95174228466857724</P>
+            <P Name="Offset" Class="double">[-20.347029609398987, 158.88103253027441]</P>
+            <P Name="SceneRectInView" Class="double">[-20.347029609398987, 158.88103253027441, 1083.2764463743695, 572.63400899518081]</P>
           </Object>
         </Array>
         <Array PropName="DockComponentsInfo" Type="Simulink.DockComponentInfo" Dimension="1*3">
           <Object ObjectID="8">
+            <P Name="Type" Class="char">GLUE2:DDG Component</P>
+            <P Name="ID" Class="char">SymbolManager</P>
+            <P Name="Visible" Class="logical">0</P>
+            <P Name="CreateCallback" Class="char">Stateflow.Interface.Panel.createSymbolManagerComponent</P>
+            <P Name="UserData" Class="char">1</P>
+            <P Name="Floating" Class="logical">0</P>
+            <P Name="DockPosition" Class="char">Right</P>
+            <P Name="Width" Class="int32">254</P>
+            <P Name="Height" Class="int32">578</P>
+            <P Name="Minimized" Class="char">Unset</P>
+          </Object>
+          <Object ObjectID="9">
             <P Name="Type" Class="char">Simulink:Editor:ReferencedFiles</P>
             <P Name="ID" Class="char">Referenced Files</P>
             <P Name="Visible" Class="logical">0</P>
@@ -99,7 +111,7 @@
             <P Name="Height" Class="int32">480</P>
             <P Name="Minimized" Class="char">Unset</P>
           </Object>
-          <Object ObjectID="9">
+          <Object ObjectID="10">
             <P Name="Type" Class="char">GLUE2:PropertyInspector</P>
             <P Name="ID" Class="char">Property Inspector</P>
             <P Name="Visible" Class="logical">1</P>
@@ -110,18 +122,6 @@
             <P Name="Width" Class="int32">640</P>
             <P Name="Height" Class="int32">480</P>
             <P Name="Minimized" Class="char">On</P>
-          </Object>
-          <Object ObjectID="10">
-            <P Name="Type" Class="char">GLUE2:DDG Component</P>
-            <P Name="ID" Class="char">SymbolManager</P>
-            <P Name="Visible" Class="logical">0</P>
-            <P Name="CreateCallback" Class="char">Stateflow.Interface.Panel.createSymbolManagerComponent</P>
-            <P Name="UserData" Class="char">1</P>
-            <P Name="Floating" Class="logical">0</P>
-            <P Name="DockPosition" Class="char">Right</P>
-            <P Name="Width" Class="int32">254</P>
-            <P Name="Height" Class="int32">578</P>
-            <P Name="Minimized" Class="char">Unset</P>
           </Object>
         </Array>
         <P Name="WindowState" Class="char">AAAA/wAAAAD9AAAAAgAAAAAAAAC9AAAB+PwCAAAABPsAAAAWAEQAbwBjAGsAVwBpAGQAZwBlAHQAMwEAAAAxAAAB+AAAAAAAAAAA+wAAABYARABvAGMAawBXAGkAZABnAGUAdAA0AAAAAAD/////AAAAAAAAAAD7AAAAUgBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQALwBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQAAAAAAP////8AAABrAAf///sAAABgAFMAaQBtAHUAbABpAG4AawA6AEUAZABpAHQAbwByADoAUgBlAGYAZQByAGUAbgBjAGUAZABGAGkAbABlAHMALwBSAGUAZgBlAHIAZQBuAGMAZQBkACAARgBpAGwAZQBzAAAAAAD/////AAAAjwD///8AAAABAAABAgAAAl78AgAAAAL7AAAAQgBHAEwAVQBFADIAOgBEAEQARwAgAEMAbwBtAHAAbwBuAGUAbgB0AC8AUwB5AG0AYgBvAGwATQBhAG4AYQBnAGUAcgAAAAB5AAACXgAAACAA////+wAAAFQARwBMAFUARQAyADoAUAByAG8AcABlAHIAdAB5AEkAbgBzAHAAZQBjAHQAbwByAC8AUAByAG8AcABlAHIAdAB5ACAASQBuAHMAcABlAGMAdABvAHIAAAAAAP////8AAAGsAP///wAABC0AAAJeAAAAAQAAAAIAAAABAAAAAvwAAAADAAAAAAAAAAEAAAA2AGMAbwBsAGwAYQBwAHMAaQBiAGwAZQBQAGEAbgBlAGwAVABvAG8AbABCAGEAcgBMAGUAZgB0AwAAAAD/////AAAAAAAAAAAAAAABAAAAAQAAADgAYwBvAGwAbABhAHAAcwBpAGIAbABlAFAAYQBuAGUAbABUAG8AbwBsAEIAYQByAFIAaQBnAGgAdAMAAAAA/////wAAAAAAAAAAAAAAAwAAAAEAAAA6AGMAbwBsAGwAYQBwAHMAaQBiAGwAZQBQAGEAbgBlAGwAVABvAG8AbABCAGEAcgBCAG8AdAB0AG8AbQAAAAAA/////wAAAAAAAAAA</P>
@@ -140,9 +140,9 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">apple</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Tue Feb 08 23:03:03 2022</P>
-      <P Name="RTWModifiedTimeStamp">566248172</P>
-      <P Name="ModelVersionFormat">%&lt;AutoIncrement:1.4&gt;</P>
+      <P Name="LastModifiedDate">Wed Oct 19 22:50:32 2022</P>
+      <P Name="RTWModifiedTimeStamp">588120646</P>
+      <P Name="ModelVersionFormat">%&lt;AutoIncrement:1.8&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -192,8 +192,8 @@
       <P Name="SnapshotBufferSize">10</P>
       <P Name="SnapshotInterval">10</P>
       <P Name="NumberOfLastSnapshots">0</P>
-      <P Name="EnablePacing">off</P>
-      <P Name="PacingRate">1</P>
+      <P Name="EnablePacing">on</P>
+      <P Name="PacingRate">0.500000</P>
       <P Name="LinearizationMsg">none</P>
       <P Name="Profile">off</P>
       <P Name="ParamWorkspaceSource">MATLABWorkspace</P>
@@ -1099,15 +1099,17 @@
     <System>
       <P Name="Location">[8, 33, 1153, 813]</P>
       <P Name="SystemRect">[0.000000, 0.000000, 0.000000, 0.000000]</P>
+      <P Name="Open">on</P>
       <P Name="SetExecutionDomain">off</P>
       <P Name="ExecutionDomainType">Deduce</P>
       <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
+      <P Name="ZoomFactor">270</P>
       <P Name="ReportName">simulink-default.rpt</P>
-      <P Name="SIDHighWatermark">1</P>
+      <P Name="SIDHighWatermark">4</P>
       <P Name="SimulinkSubDomain">Simulink</P>
       <Block BlockType="SubSystem" Name="Washing machine" SID="1">
         <P Name="Ports">[]</P>
-        <P Name="Position">[395, 159, 455, 211]</P>
+        <P Name="Position">[420, 189, 480, 241]</P>
         <P Name="ZOrder">2</P>
         <P Name="ErrorFcn">Stateflow.Translate.translate</P>
         <P Name="PermitHierarchicalResolution">ExplicitOnly</P>
@@ -1118,11 +1120,10 @@
         <System>
           <P Name="Location">[8, 33, 1153, 813]</P>
           <P Name="SystemRect">[0.000000, 0.000000, 0.000000, 0.000000]</P>
-          <P Name="Open">on</P>
           <P Name="SetExecutionDomain">off</P>
           <P Name="ExecutionDomainType">Deduce</P>
           <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
-          <P Name="SIDHighWatermark">102</P>
+          <P Name="SIDHighWatermark">105</P>
           <P Name="SimulinkSubDomain">Simulink</P>
           <Block BlockType="Demux" Name=" Demux " SID="1::98">
             <P Name="Ports">[1, 1]</P>
@@ -1130,9 +1131,9 @@
             <P Name="ZOrder">78</P>
             <P Name="Outputs">1</P>
           </Block>
-          <Block BlockType="Ground" Name=" Ground " SID="1::102">
+          <Block BlockType="Ground" Name=" Ground " SID="1::105">
             <P Name="Position">[20, 111, 40, 129]</P>
-            <P Name="ZOrder">82</P>
+            <P Name="ZOrder">85</P>
           </Block>
           <Block BlockType="S-Function" Name=" SFunction " SID="1::97">
             <P Name="Tag">Stateflow S-Function 3</P>
@@ -1150,21 +1151,21 @@
             <P Name="ZOrder">79</P>
           </Block>
           <Line>
-            <P Name="ZOrder">28</P>
+            <P Name="ZOrder">46</P>
             <P Name="SrcBlock"> Ground </P>
             <P Name="SrcPort">1</P>
             <P Name="DstBlock"> SFunction </P>
             <P Name="DstPort">1</P>
           </Line>
           <Line>
-            <P Name="ZOrder">29</P>
+            <P Name="ZOrder">47</P>
             <P Name="SrcBlock"> Demux </P>
             <P Name="SrcPort">1</P>
             <P Name="DstBlock"> Terminator </P>
             <P Name="DstPort">1</P>
           </Line>
           <Line>
-            <P Name="ZOrder">30</P>
+            <P Name="ZOrder">48</P>
             <P Name="SrcBlock"> SFunction </P>
             <P Name="SrcPort">1</P>
             <P Name="DstBlock"> Demux </P>
@@ -1184,14 +1185,17 @@
         <chart id="37">
           <P Name="name">Washing machine</P>
           <P Name="windowPosition">[199.5 216.75 417 348.75]</P>
-          <P Name="viewLimits">[-408.122 1122.447 -25.877 783.202]</P>
-          <P Name="zoomFactor">1.485</P>
+          <P Name="viewLimits">[-20.347 1062.929 158.881 731.515]</P>
+          <P Name="zoomFactor">1.051</P>
           <P Name="screen">[1 1 3200 1200 1.25]</P>
           <P Name="viewObj">37</P>
+          <P Name="visible">1</P>
+          <subviewS/>
           <P Name="ssIdHighWaterMark">35</P>
           <P Name="decomposition">CLUSTER_CHART</P>
           <P Name="chartFileNumber">3</P>
           <P Name="allowGlobalAccessToExportedFunctions">0</P>
+          <P Name="executeAtInitialization">1</P>
           <P Name="saturateOnIntegerOverflow">1</P>
           <P Name="userSpecifiedStateTransitionExecutionOrder">1</P>
           <P Name="disableImplicitCasting">1</P>
@@ -1204,14 +1208,17 @@
               <P Name="subviewer">37</P>
               <P Name="type">OR_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
+              <eml/>
               <Children>
                 <state SSID="7">
-                  <P Name="labelString">Initial_State</P>
+                  <P Name="labelString">Initial_State
+en:fprintf(&quot;Initialization&quot;);n3 = 45;</P>
                   <P Name="position">[207.1776 294.5934 97 65]</P>
                   <P Name="fontSize">13</P>
                   <P Name="subviewer">37</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
+                  <eml/>
                 </state>
                 <state SSID="17">
                   <P Name="labelString">off
@@ -1222,14 +1229,17 @@ finish = 0;</P>
                   <P Name="subviewer">37</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
+                  <eml/>
                 </state>
                 <state SSID="9">
-                  <P Name="labelString">Pending_State</P>
+                  <P Name="labelString">Pending_State
+en:fprintf(&quot;pending&quot;)</P>
                   <P Name="position">[78.1776 411.0934 182 60]</P>
                   <P Name="fontSize">13</P>
                   <P Name="subviewer">37</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
+                  <eml/>
                 </state>
                 <transition SSID="8">
                   <P Name="labelString"/>
@@ -1273,8 +1283,8 @@ finish = 0;</P>
                   <P Name="executionOrder">1</P>
                 </transition>
                 <transition SSID="28">
-                  <P Name="labelString">OFF</P>
-                  <P Name="labelPosition">[126.178 379.593 27.984 15]</P>
+                  <P Name="labelString">STOP</P>
+                  <P Name="labelPosition">[126.178 379.593 37.125 15]</P>
                   <P Name="fontSize">13</P>
                   <src>
                     <P Name="SSID">9</P>
@@ -1303,28 +1313,33 @@ on E:fprintf(&quot;Washing Completed!&quot;);</P>
               <P Name="subviewer">37</P>
               <P Name="type">OR_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
+              <eml/>
               <Children>
                 <state SSID="10">
                   <P Name="labelString">Add_Water
-du:time = time + 1;</P>
+du:time = time + 1;
+en:fprintf(&quot;Entry stage1&quot;)</P>
                   <P Name="position">[687.9733 291.5934 181 67]</P>
                   <P Name="fontSize">13</P>
                   <P Name="subviewer">37</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
+                  <eml/>
                 </state>
                 <state SSID="12">
                   <P Name="labelString">Washing
-du:time = time + 1;</P>
+du:time = time + 1;
+en:fprintf(&quot;Entry stage2&quot;)</P>
                   <P Name="position">[688.4733 411.5934 180 60]</P>
                   <P Name="fontSize">13</P>
                   <P Name="subviewer">37</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
+                  <eml/>
                 </state>
                 <transition SSID="15">
-                  <P Name="labelString">[time &gt;= n1]/{time = 0;}</P>
-                  <P Name="labelPosition">[620.919 376.307 133.25 15]</P>
+                  <P Name="labelString">[time &gt;= 5]/{time = 0;}</P>
+                  <P Name="labelPosition">[620.919 376.307 126.031 15]</P>
                   <P Name="fontSize">13</P>
                   <src>
                     <P Name="SSID">10</P>
@@ -1344,7 +1359,7 @@ du:time = time + 1;</P>
                   <P Name="executionOrder">1</P>
                 </transition>
                 <transition SSID="16">
-                  <P Name="labelString">[time &gt;= n2]/{time = 0;}</P>
+                  <P Name="labelString">[time &gt;= 10]/{time = 0;}</P>
                   <P Name="labelPosition">[810.694 375.593 133.25 15]</P>
                   <P Name="fontSize">13</P>
                   <src>
@@ -1478,17 +1493,17 @@ du:time = time + 1;</P>
             <event SSID="21">
               <P Name="name">SWITCH</P>
               <P Name="scope">LOCAL_EVENT</P>
-              <P Name="trigger">RISING_EDGE_EVENT</P>
+              <P Name="trigger">EITHER_EDGE_EVENT</P>
             </event>
             <event SSID="25">
               <P Name="name">ON</P>
               <P Name="scope">LOCAL_EVENT</P>
-              <P Name="trigger">FUNCTION_CALL_EVENT</P>
+              <P Name="trigger">EITHER_EDGE_EVENT</P>
             </event>
             <event SSID="29">
-              <P Name="name">OFF</P>
+              <P Name="name">STOP</P>
               <P Name="scope">LOCAL_EVENT</P>
-              <P Name="trigger">FUNCTION_CALL_EVENT</P>
+              <P Name="trigger">EITHER_EDGE_EVENT</P>
             </event>
             <transition SSID="2">
               <P Name="labelString"/>
@@ -1532,8 +1547,8 @@ du:time = time + 1;</P>
               <P Name="executionOrder">1</P>
             </transition>
             <transition SSID="19">
-              <P Name="labelString">OFF</P>
-              <P Name="labelPosition">[456.855 326.959 27.984 15]</P>
+              <P Name="labelString">STOP</P>
+              <P Name="labelPosition">[456.855 326.959 37.125 15]</P>
               <P Name="fontSize">13</P>
               <src>
                 <P Name="SSID">6</P>
@@ -1607,7 +1622,7 @@ du:time = time + 1;</P>
                 <P Name="intersection">[2 1 0 0.6611 260.1776 450.7565 0 0]</P>
               </dst>
               <P Name="midPoint">[445.0755 450.7565]</P>
-              <P Name="dataLimits">[260.178 621.973 448.356 453.156]</P>
+              <P Name="dataLimits">[260.178 621.973 448.357 453.156]</P>
               <P Name="subviewer">37</P>
               <P Name="drawStyle">SMART</P>
               <slide>

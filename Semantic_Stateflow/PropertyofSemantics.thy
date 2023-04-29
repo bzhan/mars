@@ -61,7 +61,7 @@ inductive_cases pathlist_exec: "pathlist_exec env (str#strl) f e is_send s1 s2 b
 
 thm update_vals2.induct
 
-theorem update_vals_determine_aux : 
+theorem update_vals_deterministic_aux : 
   "\<forall> v v1 v2. (update_vals2 a1 a2 v v1 \<longrightarrow>
     update_vals2 a1 a2 v v2 \<longrightarrow> v1 = v2)"
   apply auto
@@ -114,10 +114,10 @@ next
 qed
 
 
-theorem update_vals_determine : 
+theorem update_vals_deterministic: 
   "(update_vals2 a1 a2 v v1 \<longrightarrow>
     update_vals2 a1 a2 v v2 \<longrightarrow> v1 = v2)"
-  using update_vals_determine_aux by auto
+  using update_vals_deterministic_aux by auto
 
 
 lemma test1: "trans_exec env t e src_p s st2 b a trg \<longrightarrow> enable t e s src_p"
@@ -136,7 +136,7 @@ lemma transition_enable: "\<forall>st2 b a trg. trans_exec env t e src_p s st2 b
       using test1 by auto 
     done
 
-theorem determine: 
+theorem exec_deterministic:
   "(act_exec en a e s st st1 con1 \<longrightarrow>
     (\<forall>st2 con2. act_exec en a e s st st2 con2 \<longrightarrow>
      st1 = st2 \<and> con1 = con2)) \<and>
@@ -281,10 +281,10 @@ next
   have 1: "get_fenv env f = fe f"
     using Funapp by auto
   have 2: "\<forall>v2a. update_vals2 a2 (fst (snd (fe f))) v1 v2a \<longrightarrow> v2 = v2a"
-    using Funapp(2) update_vals_determine[of a2 "(fst (snd (fe f)))" v1 v2]
+    using Funapp(2) update_vals_deterministic[of a2 "(fst (snd (fe f)))" v1 v2]
     by auto
   have 3: "\<forall>v2. update_vals2 (snd (snd (fe f))) a1 v3 v2 \<longrightarrow> v4 = v2"
-    using Funapp(5) update_vals_determine[of "(snd (snd (fe f)))" a1 v3 v4]
+    using Funapp(5) update_vals_deterministic[of "(snd (snd (fe f)))" a1 v3 v4]
     by auto
   show ?case
     apply (intro allI impI)
@@ -295,10 +295,10 @@ next
   have 1: "get_genv env f = ge f"
     using Grafun by auto
   have 2: "\<forall>v2a. update_vals2 a2 (fst (snd (ge f))) v1 v2a \<longrightarrow> v2a = v2"
-    using Grafun(2) update_vals_determine[of a2 "(fst (snd (ge f)))" v1 v2]
+    using Grafun(2) update_vals_deterministic[of a2 "(fst (snd (ge f)))" v1 v2]
     by auto
   have 3: "\<forall>v2. update_vals2 (snd (snd (ge f))) a1 v3 v2 \<longrightarrow> v2 = v4"
-    using Grafun(5) update_vals_determine[of "(snd (snd (ge f)))" a1 v3 v4]
+    using Grafun(5) update_vals_deterministic[of "(snd (snd (ge f)))" a1 v3 v4]
     by auto
   have tmp: "\<forall>v3a I2a st2 ts2 con2 ta2 s2 p2.
   st2 = (Status v3a I2a) \<longrightarrow> translist_exec env [fst (ge f)] [] src_p (Status v2 I1) st2 ts2 con2 ta2 s2
@@ -3232,7 +3232,16 @@ next
     using And_Execution(2) apply simp
     using And_Execution by auto
 qed 
-  
+
+theorem state_execution_deterministic:
+  "state_exec en ST e iss st st1 con1 \<Longrightarrow>
+   state_exec en ST e iss st st2 con2 \<Longrightarrow> st1 = st2 \<and> con1 = con2"
+  using exec_deterministic by auto
+
+theorem composition_execution_deterministic:
+  "comp_exec en c p e iss st st1 con1 \<Longrightarrow>
+   comp_exec en c p e iss st st2 con2 \<Longrightarrow> st1 = st2 \<and> con1 = con2"
+  using exec_deterministic by auto
 
 
 end

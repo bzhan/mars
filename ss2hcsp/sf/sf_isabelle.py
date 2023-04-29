@@ -7,7 +7,7 @@ from ss2hcsp.sf.sf_convert import SFConvert
 from ss2hcsp.matlab import function
 from ss2hcsp.matlab import convert
 
-
+#translation for Stateflow expression
 def translate_expr(e):
     if e is None:
         # None in condition means true
@@ -75,6 +75,7 @@ def translate_expr(e):
         print(type(e))
         raise NotImplementedError
 
+#translation for Stateflow actions
 def translate_action(c, diagram, is_tran_act=False):
     if isinstance(c, function.Skip):
         return "SKIP"
@@ -212,6 +213,7 @@ def translate_action(c, diagram, is_tran_act=False):
         return "SKIP"
         #raise NotImplementedError
 
+#transition for action list in transition actions.
 def translate_actions(cs, diagram, is_tran_act=False):
     actions_str = ''
     for i in range(len(cs)):
@@ -223,6 +225,7 @@ def translate_actions(cs, diagram, is_tran_act=False):
             actions_str += ');'
     return actions_str
 
+#transition for events
 def translate_event(event):
     if event is None:
         return "S []"
@@ -241,6 +244,7 @@ def translate_event(event):
         print(type(event))
         raise NotImplementedError
 
+#return the path for a state
 def get_state_path(state):
     if state.name != '':
         path_list = [state.name]
@@ -260,6 +264,7 @@ def get_state_path(state):
     path += ']'
     return path
 
+#return the final name for a state
 def translate_state_name(ssid, diagram, is_GraphicalJunction = False):
     if is_GraphicalJunction:
         if ssid is None:
@@ -280,6 +285,7 @@ def translate_state_name(ssid, diagram, is_GraphicalJunction = False):
     else:
         raise NotImplementedError
 
+#translation for transitions
 def translate_trans(tran, diagram, is_GraphicalJunction = False):
     # Obtain source and destination states
     src_str = translate_state_name(tran.src, diagram, is_GraphicalJunction=is_GraphicalJunction)
@@ -299,6 +305,7 @@ def translate_trans(tran, diagram, is_GraphicalJunction = False):
     return "Trans (%s) (%s) (%s) (%s) (%s) (%s)" % \
         (src_str, event_str, cond_str, cond_act_str, tran_act_str, dst_str)
 
+#translation for a state
 def translate_state(ssid, diagram):
     state = diagram.all_states[ssid]
     if isinstance(state, OR_State):
@@ -389,6 +396,7 @@ def translate_state(ssid, diagram):
     else:
         return ""
 
+#tranlation for a composition
 def translate_composition(ssid, diagram):
     state = diagram.all_states[ssid]
     if isinstance(state.children[0], OR_State):
@@ -475,7 +483,7 @@ def translate_junction_function(diagram):
     fun_str += '[])\"'
     return fun_str
 
-#转化顺序有要求，一定得先从最低一层转换，否则会报错
+#tranlate a chart from the lowest level
 def dfs_search_chart(ssid, diagram, str, def_list):
     state = diagram.all_states[ssid]
     if isinstance(state, Junction):
@@ -510,7 +518,7 @@ def dfs_search_chart(ssid, diagram, str, def_list):
             def_list.append('Root_def')
     return str, def_list
 
-
+#translation for chart information
 def translate_chart_info(chart):
     chart_str = 'definition I :: ctxt where \n'
     chart_str += '\"I str = ('
@@ -531,6 +539,7 @@ def translate_chart_info(chart):
     chart_str += str1 + ')\"\n'
     return chart_str
 
+#translation for Matlab function environment
 def translate_fe_info(chart):
     fe_str = 'fe str = ('
     for fun in chart.diagram.funs:
@@ -565,7 +574,8 @@ def translate_fe_info(chart):
     #print(fe_str)
     return fe_str
             #print(procedures)
-    
+
+#translation for graphical function environment 
 def translate_ge_info(chart):
     ge_str = 'ge str = ('
     for fun in chart.diagram.funs:

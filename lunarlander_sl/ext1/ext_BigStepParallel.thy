@@ -808,6 +808,7 @@ lemma combine_assn_waitout_emp:
   apply (auto simp add: entails_tassn_def join_assn_def emp_assn_def false_assn_def wait_out_assn.simps)
   using assms by (auto elim: sync_elims)
 
+
 subsection \<open>Assertions for global states\<close>
 
 definition entails_gassn :: "'a gassn \<Rightarrow> 'a gassn \<Rightarrow> bool" (infixr "\<Longrightarrow>\<^sub>g" 25) where
