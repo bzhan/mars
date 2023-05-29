@@ -1,0 +1,17 @@
+%type: module
+import modules
+import SCHEDULLER_FIFO
+
+system
+
+Scheduler = SCHEDULLER_FIFO($0) ||
+Isollete = isollete() ||
+DIS_Sensor = DIS_periodic($"Sensor", $0.09, $0) ||
+COM_Sensor = Sensor($0, $"Sensor", $0.03, $0.03, $0.09) ||
+DIS_Controller = DIS_periodic($"Controller", $0.09, $0.01) ||
+COM_Controller = Controller($0, $"Controller", $0.03, $0.03, $0.09) ||
+DIS_Actuator = DIS_periodic($"Actuator", $0.09, $0.02) ||
+COM_Actuator = Actuator($0, $"Actuator", $0.03, $0.03, $0.09) ||
+Conn0 = conn0() || Conn1 = conn1()
+
+endsystem
