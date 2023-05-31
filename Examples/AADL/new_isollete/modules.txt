@@ -7,7 +7,7 @@ begin
 lb := 95; ub := 101;
 c := 98; q := 98; v := -1;
 {
-    {c_dot = -0.026*(c-q), q_dot = v & true} |> [] (heatCommand?new_v --> if (new_v*v==-1) {log("haha");}v:=new_v;, boxTemp!c --> skip;)
+    {c_dot = -0.026*(c-q), q_dot = v & true} |> [] (heatCommand?v --> skip;, boxTemp!c --> skip;)
 }*
 end
 endmodule
