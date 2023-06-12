@@ -21,6 +21,9 @@ fun upd :: "'a estate \<Rightarrow> var \<Rightarrow> real \<Rightarrow> 'a esta
 fun updr :: "'a estate \<Rightarrow> state \<Rightarrow> 'a estate" where
   "updr (EState r e) r2 = EState r2 e"
 
+fun upde :: "'a estate \<Rightarrow> 'a \<Rightarrow> 'a estate" where
+  "upde (EState r e) e2 = EState r e2"
+
 text \<open>Taking the real part and extra part of the state\<close>
 fun rpart :: "'a estate \<Rightarrow> state" where
   "rpart (EState r e) = r"
@@ -56,6 +59,7 @@ datatype 'a proc =
   Cm "'a comm"
 | Skip
 | Assign var "'a eexp"                 ("_ ::= _" [99,95] 94)
+| Basic "'a estate \<Rightarrow> 'a"
 | Seq "'a proc" "'a proc"              ("_; _" [91,90] 90)
 | Cond "'a eform" "'a proc" "'a proc"  ("IF _ THEN _ ELSE _ FI" [95,94] 93)
 | Wait "'a eexp"  \<comment> \<open>Waiting for a specified amount of time\<close>
@@ -111,6 +115,7 @@ in a trace tr and final state s2.\<close>
 inductive big_step :: "'a proc \<Rightarrow> 'a estate \<Rightarrow> 'a trace \<Rightarrow> 'a estate \<Rightarrow> bool" where
   skipB: "big_step Skip s [] s"
 | assignB: "big_step (var ::= e) s [] (upd s var (e s))"
+| basicB: "big_step (Basic f) s [] (upde s (f s))"
 | seqB: "big_step p1 s1 tr1 s2 \<Longrightarrow>
          big_step p2 s2 tr2 s3 \<Longrightarrow>
          big_step (p1; p2) s1 (tr1 @ tr2) s3"
@@ -184,6 +189,7 @@ lemma big_step_cong:
 
 inductive_cases skipE: "big_step Skip s1 tr s2"
 inductive_cases assignE: "big_step (Assign var e) s1 tr s2"
+inductive_cases basicE: "big_step (Basic f) s1 tr s2"
 inductive_cases sendE: "big_step (Cm (ch[!]e)) s1 tr s2"
 inductive_cases receiveE: "big_step (Cm (ch[?]var)) s1 tr s2"
 inductive_cases seqE: "big_step (Seq p1 p2) s1 tr s2"
@@ -236,6 +242,9 @@ inductive wait_in_c :: "cname \<Rightarrow> (real \<Rightarrow> real \<Rightarro
 definition subst_assn2 :: "'a assn2 \<Rightarrow> var \<Rightarrow> ('a estate \<Rightarrow> real) \<Rightarrow> 'a assn2" ("_ {{_ := _}}" [90,90,90] 91) where 
   "P {{var := e}} = (\<lambda>s0. P (upd s0 var (e s0)))"
 
+definition subste_assn2 :: "'a assn2 \<Rightarrow> ('a estate \<Rightarrow> 'a) \<Rightarrow> 'a assn2" ("_ {{_}}" [90,90] 91) where 
+  "P {{f}} = (\<lambda>s0. P (upde s0 (f s0)))"
+
 definition init :: "'a estate \<Rightarrow> 'a assn" where
   "init s0 = (\<lambda>s tr. s = s0 \<and> tr = [])"
 
@@ -254,10 +263,41 @@ lemma Valid_assign_sp:
   apply (auto elim!: seqE assignE)
   using assms unfolding spec_of_def Valid_def init_def subst_assn2_def by auto
 
+lemma spec_of_basic:
+  "spec_of (Basic f) (\<lambda>s0 s tr. s = upde s0 (f s0))"
+  unfolding Valid_def spec_of_def init_def
+  by (auto elim: basicE)
+
+lemma Valid_basic_sp:
+  assumes "spec_of c Q"
+  shows "spec_of (Basic f; c) (Q {{ f }})"
+  unfolding Valid_def spec_of_def
+  apply (auto elim!: seqE basicE)
+  using assms unfolding spec_of_def Valid_def init_def subste_assn2_def by auto
+
+definition cond_assn2 :: "'a eform \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2"
+  ("IFA _ THEN _ ELSE _ FI" [95,94] 93) where
+  "IFA b THEN Q1 ELSE Q2 FI = (\<lambda>s0 s tr. if b s0 then Q1 s0 s tr else Q2 s0 s tr)"
+
+lemma spec_of_cond:
+  assumes "spec_of c1 Q1"
+    and "spec_of c2 Q2"
+  shows "spec_of (IF b THEN c1 ELSE c2 FI) (IFA b THEN Q1 ELSE Q2 FI)"
+  unfolding Valid_def spec_of_def init_def cond_assn2_def
+  apply (auto elim!: condE)
+  using assms unfolding Valid_def spec_of_def init_def by auto
+
 lemma spec_of_skip:
   "spec_of Skip init"
   unfolding Valid_def spec_of_def
   by (auto elim: skipE)
+
+lemma Valid_skip_sp:
+  assumes "spec_of c Q"
+  shows "spec_of (Skip; c) Q"
+  unfolding Valid_def spec_of_def
+  apply (auto elim!: seqE skipE)
+  using assms unfolding spec_of_def Valid_def init_def by auto
 
 lemma spec_of_receive:
   "spec_of (Cm (ch[?]var)) (wait_in_c ch (\<lambda>d v. init {{ var := (\<lambda>_. v) }}))"
@@ -435,6 +475,38 @@ lemma spec_of_seq_assoc:
   "spec_of ((p1; p2); p3) Q \<longleftrightarrow> spec_of (p1; p2; p3) Q"
   unfolding spec_of_def Valid_def
   using big_step_seq_assoc by blast
+
+lemma big_step_cond_distrib:
+  "big_step ((IF b THEN c1 ELSE c2 FI); c) s1 tr s2 \<longleftrightarrow>
+   big_step ((IF b THEN (c1; c) ELSE (c2; c) FI)) s1 tr s2"
+  apply (rule iffI)
+  subgoal apply (elim seqE)
+    subgoal for tr1 s3 tr2
+      apply (cases "b s1")
+      subgoal 
+        apply (rule condB1) apply simp
+        apply auto apply (rule seqB) by (auto elim: condE)
+      subgoal
+        apply (rule condB2) apply simp
+        apply auto apply (rule seqB) by (auto elim: condE)
+      done
+    done
+  subgoal apply (elim condE)
+    subgoal
+      apply (elim seqE) apply auto
+      apply (rule seqB) by (auto intro: condB1)
+    subgoal
+      apply (elim seqE) apply auto
+      apply (rule seqB) by (auto intro: condB2)
+    done
+  done
+
+lemma spec_of_cond_distrib:
+  "spec_of ((IF b THEN c1 ELSE c2 FI); c) Q \<longleftrightarrow>
+   spec_of ((IF b THEN (c1; c) ELSE (c2; c) FI)) Q"
+  unfolding spec_of_def Valid_def
+  using big_step_cond_distrib by blast
+
 
 lemma spec_of_rep:
   assumes "\<And>n. spec_of (RepN n c) (Q n)"
@@ -1585,6 +1657,75 @@ lemma ex3:
   subgoal for s tr n1 n2
     using ex3''[of s0 n1 n2] unfolding entails_g_def
     by auto
+  done
+
+text \<open>
+  We analyze the following program for transmitting a list
+  to another process.
+\<close>
+
+type_synonym ex5_state = "real list"
+
+definition ex5_left :: "cname \<Rightarrow> ex5_state proc" where
+  "ex5_left ch1 = Rep (IF (\<lambda>s. epart s \<noteq> []) THEN
+                         (Cm (ch1[!](\<lambda>s. hd (epart s))); Basic (\<lambda>s. tl (epart s)))
+                       ELSE Skip FI)"
+
+fun ex5_linv_c :: "nat \<Rightarrow> cname \<Rightarrow> ex5_state assn2 \<Rightarrow> ex5_state assn2" where
+  "ex5_linv_c 0 ch Q = Q"
+| "ex5_linv_c (Suc n) ch Q =
+   (IFA (\<lambda>s. epart s \<noteq> []) THEN
+      wait_out_c ch (\<lambda>s. hd (epart s)) (\<lambda>d. ex5_linv_c n ch Q {{ (\<lambda>s0. tl (epart s0)) }})
+    ELSE ex5_linv_c n ch Q FI)"
+
+lemma ex5_c:
+  "spec_of (RepN n (IF (\<lambda>s. epart s \<noteq> []) THEN
+                      (Cm (ch1[!](\<lambda>s. hd (epart s))); Basic (\<lambda>s. tl (epart s)))
+                    ELSE Skip FI))
+           (ex5_linv_c n ch1 init)"
+  apply (induction n)
+   apply simp apply (rule spec_of_skip)
+  subgoal premises pre for n
+    apply simp
+    apply (subst spec_of_cond_distrib)
+    apply (rule spec_of_cond)
+    subgoal
+      apply (rule spec_of_post)
+      apply (subst spec_of_seq_assoc)
+       apply (rule Valid_send_sp)
+       apply (rule Valid_basic_sp)
+      apply (rule pre) apply clarify
+      by (rule entails_triv)
+    subgoal
+      apply (rule spec_of_post)
+      apply (rule Valid_skip_sp)
+       apply (rule pre) apply clarify
+      by (rule entails_triv)
+    done
+  done
+
+definition ex5_right :: "cname \<Rightarrow> ex5_state proc" where
+  "ex5_right ch1 = Rep (Cm (ch1[?]X); Basic (\<lambda>s. val s X # epart s))"
+
+fun ex5_rinv_c :: "nat \<Rightarrow> cname \<Rightarrow> ex5_state assn2 \<Rightarrow> ex5_state assn2" where
+  "ex5_rinv_c 0 ch Q = Q"
+| "ex5_rinv_c (Suc n) ch Q =
+   wait_in_c ch (\<lambda>d v. ex5_rinv_c n ch Q {{ (\<lambda>s. val s X # epart s) }} {{ X := (\<lambda>_. v) }})"
+
+lemma ex5_c2:
+  "spec_of (RepN n (Cm (ch1[?]X); Basic (\<lambda>s. val s X # epart s)))
+           (ex5_rinv_c n ch1 init)"
+  apply (induction n)
+   apply simp apply (rule spec_of_skip)
+  subgoal premises pre for n
+    apply simp
+    apply (subst spec_of_seq_assoc)
+    apply (rule spec_of_post)
+     apply (rule Valid_receive_sp)
+     apply (rule Valid_basic_sp)
+     apply (rule pre) apply clarify
+    apply (rule entails_triv)      
+    done
   done
 
 end
