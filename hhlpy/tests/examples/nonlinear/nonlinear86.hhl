@@ -1,0 +1,12 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Gorbuzov Pranevich 2012: Example 1.2"
+# 
+# Citation "V.N. Gorbuzov, A.F. Pranevich: First integrals of ordinary linear differential systems. ".
+
+pre [x1^2 + x2^2 + x3^2 >= 5];
+t := * (t >= 0); 
+{x1_dot = 2*x1+x2, 
+ x2_dot = x1+3*x2-x3, 
+ x3_dot = -x1+2*x2+3*x3, 
+ t_dot = -1 & t > 0}
+invariant [x1^2+x2^2+x3^2 >= 1] {di};
+post [!(x1^2+x2^2+x3^2 < 1)];

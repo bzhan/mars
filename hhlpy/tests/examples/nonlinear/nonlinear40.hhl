@@ -1,0 +1,10 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Strogatz Exercise 6_1_9 Dipole".
+# 
+# Description "Exercise 6.1.9".
+# Citation "Steven H. Strogatz. Nonlinear Dynamics And Chaos: With Applications To Physics, Biology, Chemistry, And Engineering".
+
+pre [(-1/3 + x)^2 + y^2 < 1/25];
+t := * (t >= 0);
+{x_dot = 2*x*y, y_dot = -x^2+y^2, t_dot = -1 & t > 0} 
+  invariant [x > 0] {dbx};
+post [!(x <= -2)];

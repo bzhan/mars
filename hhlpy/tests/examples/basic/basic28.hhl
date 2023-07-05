@@ -1,0 +1,9 @@
+# ArchiveEntry "Benchmarks/Basic/Dynamics: Conserved quantity"
+
+pre [x1^4 * x2^2 + x1^2 * x2^4 - 3 * x1^2 * x2^2 + 1 <= c];
+t := 0;
+{x1_dot = 2 * x1^4 * x2 + 4 * x1^2 * x2^3 - 6 * x1^2 * x2,
+x2_dot = -4 * x1^3 * x2^2 - 2 * x1 * x2^4 + 6 * x1 * x2^2,
+t_dot = 1 & t < 10}
+  invariant [x1^4 * x2^2 + x1^2 * x2^4 - 3 * x1^2 * x2^2 + 1 <= c];
+post [x1^4 * x2^2 + x1^2 * x2^4 - 3 * x1^2 * x2^2 + 1 <= c];

@@ -1,0 +1,28 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Coupled Spring-Mass System (I)".
+# 
+# Citation "Hui Kong, Sergiy Bogomolov, Christian Schilling, Yu Jiang, Thomas A. Henzinger. Invariant Clusters for Hybrid Systems. CoRR abs/1605.01450 (2016)".
+
+function invcluster(x1, x2, v1, v2) = (u8*v1*v2+k2*x1*x2*(m1*u8-2*m2*u10)/(m1*m2) + u10*v1^2+u1 
+  + 1/2*v2^2*(k1*m2*u8-k2*m1*u8+k2*m2*u8+2*k2*m2*u10)/(k2*m1) 
+  + 1/2*(2*k1*m2*u10-k2*m1*u8+2*k2*m2*u10)*x1^2/(m1*m2) 
+  + 1/2*(k1*m2*u8-k2*m1*u8+2*k2*m2*u10)*x2^2/(m1*m2));
+
+pre [x1==0]
+    [v1==0]
+    [x2==7/8]
+    [v2==0]
+    [k1==-1]
+    [k2==-1]
+    [k==-1]
+    [m1==5]
+    [m2==1]
+    [u10==0]
+    [u1==0]
+    [u8==320/49];
+t := * (t >= 0); 
+{x1_dot=v1, v1_dot=-k1/m1*x1-k2/m1*(x1-x2), 
+ x2_dot=v2, v2_dot=-k2/m2*(x2-x1), 
+ t_dot = -1 & t > 0}
+invariant [v1*v2+(-3)/10*v2^2+1/2*x1^2+(-1)*x1*x2+2/5*x2^2 
+           >= 358/1169];
+post [!invcluster(x1,x2,v1,v2) < -v1^2];

@@ -42,6 +42,7 @@ pre [initial(m, z, v)];
     t := 0;                                                  /* reset control cycle timer */
     {z_dot=v, v_dot=a, t_dot=1  & v > 0 && t < ep} solution;                /* drive (not backwards v>=0)
                                                               for at most ep time (t<=ep) until next controller run */
-}* invariant [v >= 0][safeInv(m, z, v)];                   /* repeat, loop invariant documents system design property */
+}* invariant [v >= 0]{{maintain 1.exec: wolfram, maintain 2.exec: wolfram, maintain 3(1).exec: wolfram, maintain 3(2).exec: wolfram}}
+             [safeInv(m, z, v)]{{maintain 1.exec: wolfram, maintain 2.exec: wolfram, maintain 3(1).exec: wolfram, maintain 3(2).exec: wolfram}};                   /* repeat, loop invariant documents system design property */
     
 post [z <= m];                          /* safety property: train 'z' never drives past end of movement authority 'm' */

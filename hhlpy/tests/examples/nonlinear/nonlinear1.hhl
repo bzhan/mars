@@ -1,0 +1,13 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Ahmadi Parrilo Krstic".
+#
+# Description "Theorem 1.1 (1)".
+# Citation "Amir Ali Ahmadi, Miroslav Krstic, and Pablo A. Parrilo. A globally asymptotically stable polynomial vector field with no polynomial Lyapunov function. CDC-ECE 2011".
+# Link "https://doi.org/10.1109/CDC.2011.6161499".
+
+pre [0.5 <= x] [x <= 0.7] [0 <= y] [y <= 0.3];
+t := * (t >= 0);
+{x_dot = -x + x * y , y_dot = -y, t_dot = -1 & t > 0} 
+  invariant
+    [x >= 0] {dbx}
+    [y >= 0] {dbx};
+post [!(-0.8 >= x && x >= -1 && -0.7 >= y && y >= -1)];

@@ -1,0 +1,16 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Fitzhugh Nagumo Ben Sassi Girard 2".
+# 
+# Description "Fitzhugh-Nagumo system (modified)".
+# Citation "Mohamed Amin Ben Sassi, Antoine Girard, Sriram Sankaranarayanan. Iterative computation of polyhedral invariants sets for polynomial dynamical systems".
+# Link "10.1109/CDC.2014.7040384".
+
+pre [-1<=a] [a<=-0.5] [1<=y] [y<=1.5];
+t := * (t >= 0);
+{a_dot = 7/8+a-a^3/3-y, 
+ y_dot = (2*(7/10+a-(4*y)/5))/25, 
+ t_dot = -1 & t > 0}
+invariant 
+  [0.12152*a^4 + 0.22807*a^3*y + 0.214*a^2*y^2 - 0.71222*y^4 - 0.27942*a^3
+  - 0.48799*a^2*y - 0.2517*a*y^2 - 0.3366*y^3 - 0.21526*a^2 + 0.16728*a*y
+  - 0.44613*y^2 + 0.35541*a - 0.21594*y - 0.72852 <= 0] {bc} {{init: wolfram, maintain: wolfram}};
+post [!(-2.5<=a && a<=-2 && -2<=y && y<=-1.5)] {{exec: wolfram }};

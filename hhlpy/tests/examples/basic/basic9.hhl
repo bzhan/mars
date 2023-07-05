@@ -1,0 +1,17 @@
+# ArchiveEntry "Benchmarks/Basic/Static semantics correctness: Assignment 9"
+# 
+# Description "Potentially overwrite exponential decay".
+
+pre [x > 0] [y > 0];
+t := * (t >= 0);
+{t_dot=-1, x_dot = -x & t > 0} 
+invariant ghost z (z_dot = z/2)
+          [x * z * z == 1]
+          [y > 0];
+{
+  { x := x+3; }*
+    invariant [x > 0] [y > 0];
+}
+++
+{ y := x; }
+post [x > 0] [y > 0];

@@ -1,0 +1,11 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Prajna PhD Thesis 2-4-1 Page 31".
+# 
+# Description "Page 31".
+# Citation "Prajna, Stephen (2005) Optimization-based methods for nonlinear and hybrid systems verification. Dissertation (Ph.D.), California Institute of Technology.".
+# Link "http://resolver.caltech.edu/CaltechETD:etd-05272005-144358".
+
+pre [(-3/2 + x)^2 + y^2 <= 1/4];
+t := * (t >= 0); 
+{x_dot = x, y_dot = -x+x^3/3-y, t_dot = -1 & t > 0} 
+  invariant [x >= 0] {dbx};
+post [!((1 + x)^2 + (1 + y)^2 <= 4/25)];

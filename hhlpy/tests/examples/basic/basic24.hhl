@@ -1,0 +1,7 @@
+# ArchiveEntry "Benchmarks/Basic/Dynamics: Rotational dynamics (3)"
+
+pre [d1^2 + d2^2 == w^2 * p^2] [d1 == -w * x2] [d2 == w * x1];
+t := * (t >= 0);
+{x1_dot = d1, x2_dot = d2, d1_dot = -w * d2, d2_dot = w * d1, t_dot = -1 & t > 0}
+  invariant [d1^2 + d2^2 == w^2 * p^2] [d1 == -w * x2 && d2 == w * x1];
+post [d1^2 + d2^2 == w^2 * p^2] [d1 == -w * x2] [d2 == w * x1];

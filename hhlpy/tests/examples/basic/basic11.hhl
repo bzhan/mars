@@ -1,0 +1,7 @@
+# ArchiveEntry "Benchmarks/Basic/Dynamics: Single integrator time"
+
+pre [x == 0];
+t := * (t >= 0);
+{t_dot = -1, x_dot = 1 & t > 0}
+  invariant [x >= 0];
+post [x >= 0];

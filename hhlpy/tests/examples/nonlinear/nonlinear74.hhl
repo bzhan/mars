@@ -1,0 +1,13 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Alongi Nelson Ex_4_1_9 page 143".
+# 
+# Description "Ex 4.1.9 Page 143".
+# Citation "John M. Alongi and Gail S. Nelson. Recurrence and Topology".
+
+pre [x == 1] [y == 0] [z == 0];
+t := * (t >= 0); 
+{x_dot = x*z , y_dot = y*z , z_dot = -x^2-y^2, 
+ t_dot = -1 & t > 0} 
+invariant
+  [x^2+y^2+z^2 == 1] 
+  [x + y > 0] {dbx};
+post [!((x > -1 -> x^2 > 2) || z > 1)];

@@ -1,0 +1,156 @@
+%type: module
+
+module isollete():
+output c, q, v, lb, ub;
+# output v;
+begin
+lb := 95; ub := 101;
+c := 98; q := 98; v := -1;
+{
+    {c_dot = -0.026*(c-q), q_dot = v & true} |> [] (heatCommand?v --> skip;, boxTemp!c --> skip;)
+}*
+end
+endmodule
+
+
+module DIS_periodic(tid, period, phase):
+begin
+t := 0; {t_dot = 1 & t < phase}
+{
+    t := 0; dis[tid]!; {t_dot = 1 & t < period} |> [] (complete_comp[tid]? --> {t_dot = 1 & t < period})
+}*
+end
+endmodule
+
+
+module Sensor(sid, tid, bcet, wcet, deadline):
+output c;
+begin
+
+state := "wait";
+{
+    if (state == "wait") {
+        dis[tid]?; boxTemp?c;
+        t := 0; tt := 0; state := "ready";
+    }
+    else if (state == "ready") {
+        reqProcessor[sid][tid]!;
+        {t_dot = 1 & t < deadline} |> [] (run[sid][tid]? --> state := "running";)
+        if (state == "ready") {
+            exit[sid][tid]! --> state := "wait";
+            $
+            run[sid][tid]? --> state := "running";
+        }
+    }
+    else {
+        {t_dot = 1, tt_dot = 1 & tt < wcet && t < deadline} |> []
+          (
+          complete_exec[sid][tid]! -->
+            skip;
+            complete_comp[tid]!;
+            {t_dot = 1, tt_dot = 1 & tt < bcet && t < deadline}
+            if (tt >= bcet) {
+                measuredTemp!c;
+            }
+            free[sid][tid]!;
+            state := "wait";
+          )
+    }
+}*
+
+end
+endmodule
+
+
+module Controller(sid, tid, bcet, wcet, deadline):
+output c, v;
+begin
+v := -1;
+state := "wait";
+{
+    if (state == "wait") {
+        dis[tid]?; temperature?c;
+        t := 0; tt := 0; state := "ready";
+    }
+    else if (state == "ready") {
+        reqProcessor[sid][tid]!;
+        {t_dot = 1 & t < deadline} |> [] (run[sid][tid]? --> state := "running";)
+        if (state == "ready") {
+            exit[sid][tid]! --> state := "wait";
+            $
+            run[sid][tid]? --> state := "running";
+        }
+    }
+    else {
+        {t_dot = 1, tt_dot = 1 & tt < wcet && t < deadline} |> []
+          (
+          complete_exec[sid][tid]! -->
+            if (c > 98.5) {
+                v := -1;
+            }
+            else if (c < 97.5) {
+                v := 1;
+            }
+            complete_comp[tid]!;
+            {t_dot = 1, tt_dot = 1 & tt < bcet && t < deadline}
+            if (tt >= bcet) {
+                diff!v;
+            }
+            free[sid][tid]!;
+            state := "wait";
+          )
+    }
+}*
+end
+endmodule
+
+
+module Actuator(sid, tid, bcet, wcet, deadline):
+output v;
+begin
+state := "wait";
+{
+    if (state == "wait") {
+        dis[tid]?; command?v;
+        t := 0; tt := 0; state := "ready";
+    }
+    else if (state == "ready") {
+        reqProcessor[sid][tid]!;
+        {t_dot = 1 & t < deadline} |> [] (run[sid][tid]? --> state := "running";)
+        if (state == "ready") {
+            exit[sid][tid]! --> state := "wait";
+            $
+            run[sid][tid]? --> state := "running";
+        }
+    }
+    else {
+        {t_dot = 1, tt_dot = 1 & tt < wcet && t < deadline} |> []
+          (
+          complete_exec[sid][tid]! -->
+            skip;
+            complete_comp[tid]!;
+            {t_dot = 1, tt_dot = 1 & tt < bcet && t < deadline}
+            if (tt >= bcet) {
+                heatCommand!v;
+            }
+            free[sid][tid]!;
+            state := "wait";
+          )
+    }
+}*
+end
+endmodule
+
+module conn0():
+begin
+measuredTemp?c;
+{ measuredTemp?c --> skip; $ temperature!c --> skip; }*
+end
+endmodule
+
+module conn1():
+begin
+diff?v;
+{ diff?v --> skip; $ command!v --> skip; }*
+end
+endmodule

@@ -1,0 +1,15 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Product of Invariant 3-dim sphere and Invariant Clusters Example 4"
+
+pre [xleft == 1/4][yleft == 1/8][zleft == 1/10][xright == 1][yright == 2][zright == 3];
+
+t := *(t >= 0);
+{xleft_dot=xleft^2-xleft*(xleft^3+yleft^3+zleft^3),
+ yleft_dot=yleft^2-yleft*(xleft^3+yleft^3+zleft^3),
+ zleft_dot=zleft^2-zleft*(xleft^3+yleft^3+zleft^3),
+ xright_dot=yright*zright,
+ yright_dot=xright*zright,
+ zright_dot=xright*yright & t > 0}
+    invariant [xleft^2+yleft^2+zleft^2 < 1]{dbx}
+              [5+yright^2 == zright^2]{di};
+
+post [!(xleft>10 || yleft>5 || zleft<=-20)][!(xright==5 && yright^2==27 && zright^2==34)];

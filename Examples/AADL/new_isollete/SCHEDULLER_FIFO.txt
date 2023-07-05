@@ -1,0 +1,44 @@
+%type: module
+module SCHEDULLER_FIFO(sid):
+begin
+
+Queue := [];
+run_now := -1;
+{
+    reqProcessor[sid][_tid]? -->
+        if (run_now == -1) {
+            assert(len(Queue) == 0);
+            run_now := _tid;
+            run[sid][run_now]!;
+        }
+        else {
+            Queue := push(Queue, _tid);
+        }
+    $
+    free[sid][_tid]? -->
+        assert(_tid == run_now);
+        if (len(Queue) > 0) {
+            run_now := bottom(Queue);
+            Queue := get(Queue);
+            run[sid][run_now]!;
+        }
+        else {
+            run_now := -1;
+        }
+    $
+    exit[sid][_tid]? -->
+        temp := [];
+        {
+            head := bottom(Queue);
+            if (head != _tid) {
+                temp := push(temp, head);
+            }
+            Queue := get(Queue);
+        }*(len(Queue) > 0)
+        Queue := temp;
+    $
+    complete_exec[sid][_tid]? --> skip;
+}*
+
+end
+endmodule

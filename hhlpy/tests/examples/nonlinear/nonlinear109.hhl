@@ -1,0 +1,16 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Papachristodoulou Prajna 2002: Example 3 (Whirling Pendulum)"
+# 
+# Citation "Antonis Papachristodoulou, Stephen Prajna. On the Construction of Lyapunov Functions using the Sum of Squares Decomposition. 2002.".
+# Link "https://doi.org/10.1109/CDC.2002.1184414".
+
+pre [x2 > 0] [x2 < 1] [u1 > 0] [u1 < 1] [u2 > -1/2] [u2 < 1] 
+    [theta == 1] [lp == 1] [g == 10]
+    [u1^2+u2^2 == 1];
+t := * (t >= 0); 
+{x1_dot = x2, 
+ x2_dot = theta^2*u1*u2 - g/lp*u1, 
+ u1_dot = x2*u2, 
+ u2_dot = -x2*u1, 
+ t_dot = -1 & t > 0}
+invariant [((-20)+u2)*u2+x2^2<=45/4];
+post [!(u2 < -0.75 && x2 == 4)];

@@ -1,0 +1,18 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Ben Sassi Girard 20104 Moore-Greitzer Jet".
+# 
+# Description "6.1 Moore-Greitzer jet engine model".
+# Citation "Mohamed Amin Ben Sassi, Antoine Girard. Controller synthesis for robust invariance of polynomial dynamical systems using linear programming".
+# Link "https://doi.org/10.1016/j.sysconle.2012.01.004".
+
+pre [-1/5000 + (1/20+x)^2 + (3/200 + y)^2 <= 0];
+t := * (t >= 0);
+{x_dot = (-3 * x^2) / 2 - x^3 / 2 - y, y_dot = 3 * x - y, t_dot = -1 & t > 0} 
+  invariant 
+    [0.073036*x^6 - 0.014461*x^5*y + 0.059693*x^4*y^2 - 0.0063143*x^3*y^3
+    + 0.029392*x^2*y^4 + 0.0036316*y^6 + 0.064262*x^5 + 0.24065*x^4*y
+    - 0.082711*x^3*y^2 + 0.28107*x^2*y^3 - 0.015542*x*y^4 + 0.036437*y^5
+    + 0.47415*x^4 - 0.56542*x^3*y + 1.1849*x^2*y^2 - 0.22203*x*y^3 + 0.19053*y^4
+    - 0.59897*x^3 + 1.8838*x^2*y - 0.59653*x*y^2 + 0.47413*y^3 + 1.0534*x^2 
+    - 0.51581*x*y + 0.43393*y^2 - 0.35572*x - 0.11888*y - 0.25586 <= 0] {bc}
+    {{maintain: wolfram, init: wolfram}};
+post [!(49/100 + x + x^2 + y + y^2 <= 0)]{{exec: wolfram}};

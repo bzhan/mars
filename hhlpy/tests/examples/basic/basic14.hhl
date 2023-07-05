@@ -1,0 +1,7 @@
+# ArchiveEntry "Benchmarks/Basic/Dynamics: Triple integrator"
+
+pre [x >= 0] [y >= 0] [z >= 0] [j >= 0];
+t := * (t >= 0);
+{t_dot = -1, x_dot = y, y_dot = z, z_dot = j, j_dot = j * j & t > 0} 
+  invariant [j >= 0] [z >= 0] [y >= 0] [x >= 0];
+post [x >= 0];

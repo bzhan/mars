@@ -1,0 +1,18 @@
+# ArchiveEntry "Benchmarks/Nonlinear/Dai Gan Xia Zhan JSC14 Ex. 5".
+# 
+# Description "Example 5".
+# Citation "Liyun Dai, Ting Gan, Bican Xia, Naijun Zhan. Barrier certificates revisited. J. Symb. Comput.".
+# Link "https://doi.org/10.1016/j.jsc.2016.07.010".
+
+pre [(1+x)^2 + (-2+y)^2 <= 4/25];
+t := * (t >= 0);
+{x_dot = y, y_dot = 2*x-x^3-y-x^2*y, t_dot = -1 & t > 0} 
+invariant 
+  [0.23942*x^6 + 0.097208*x^5*y + 0.06013*x^4*y^2 - 0.0076888*x^3*y^3 
+  - 0.022097*x^2*y^4 + 0.067444*x*y^5 + 0.063249*y^6 - 0.11511*x^5
+  - 0.093461*x^4*y - 0.061763*x^3*y^2 + 0.065902*x^2*y^3 + 0.053766*x*y^4
+  - 0.1151*y^5 - 0.95442*x^4 + 0.38703*x^3*y + 0.46309*x^2*y^2 - 0.14691*x*y^3
+  + 0.11756*y^4 - 0.021196*x^3 - 0.40047*x^2*y - 0.28433*x*y^2 - 0.028468*y^3
+  - 0.020192*x^2 - 0.37629*x*y - 0.13713*y^2 + 1.9803*x - 1.4121*y
+  - 0.51895 <= 0] {bc} {{init: wolfram, maintain: wolfram}};
+post [!((-1+x)^2 + y^2 <= 1/25)] {{exec: wolfram }};

@@ -1,0 +1,8 @@
+# ArchiveEntry "Benchmarks/Basic/Dynamics: Exponential decay (3)"
+
+pre [x > 0] [y > 0];
+t := * (t >= 0);
+{x_dot = -y * x, t_dot = -1 & t > 0} 
+  invariant ghost z (z_dot = y * z / 2)
+            [x * z * z == 1];
+post [x > 0];
