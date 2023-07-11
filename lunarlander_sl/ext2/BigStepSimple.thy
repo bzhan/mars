@@ -8,19 +8,21 @@ subsection \<open>Extended state\<close>
 text \<open>Extended state is parameterized by a type 'a\<close>
 datatype 'a estate = EState (rp: state) (ep: 'a)
 
-text \<open>Expressions\<close>
+text \<open>Expressions on an extended state\<close>
 type_synonym 'a eexp = "'a estate \<Rightarrow> real"
 
-text \<open>Predicates\<close>
+text \<open>Predicates on an extended state\<close>
 type_synonym 'a eform = "'a estate \<Rightarrow> bool"
 
-text \<open>Updating real part of the state\<close>
+text \<open>Updating some variable in the real part of the state\<close>
 fun upd :: "'a estate \<Rightarrow> var \<Rightarrow> real \<Rightarrow> 'a estate" where
   "upd (EState r e) x v = EState (r(x := v)) e"
 
+text \<open>Updating entirety of the real part of the state\<close>
 fun updr :: "'a estate \<Rightarrow> state \<Rightarrow> 'a estate" where
   "updr (EState r e) r2 = EState r2 e"
 
+text \<open>Updating the extra part of the state\<close>
 fun upde :: "'a estate \<Rightarrow> 'a \<Rightarrow> 'a estate" where
   "upde (EState r e) e2 = EState r e2"
 
@@ -31,10 +33,14 @@ fun rpart :: "'a estate \<Rightarrow> state" where
 fun epart :: "'a estate \<Rightarrow> 'a" where
   "epart (EState r e) = e"
 
+fun val :: "'a estate \<Rightarrow> var \<Rightarrow> real" where
+  "val (EState r e) v = r v"
+
 declare upd.simps [simp del]
 declare updr.simps [simp del]
 declare rpart.simps [simp del]
 declare epart.simps [simp del]
+declare val.simps [simp del]
 
 subsection \<open>Syntax\<close>
 
@@ -74,13 +80,17 @@ datatype 'a pproc =
   Single pname "'a proc"
 | Parallel "'a pproc" "cname set" "'a pproc"
 
+text \<open>Set of process names of a parallel process\<close>
 fun proc_of_pproc :: "'a pproc \<Rightarrow> pname set" where
   "proc_of_pproc (Single pn c) = {pn}"
 | "proc_of_pproc (Parallel p1 chs p2) = proc_of_pproc p1 \<union> proc_of_pproc p2"
 
-text \<open>Global states\<close>
+text \<open>Global state.
+  This is represented as a partial mapping from process name to
+  extended state.\<close>
 type_synonym 'a gstate = "pname \<Rightarrow> 'a estate option"
 
+text \<open>Global state for a single process\<close>
 definition State :: "pname \<Rightarrow> 'a estate \<Rightarrow> 'a gstate" where
   "State p s = (\<lambda>p'. if p' = p then Some s else None)"
 
@@ -88,6 +98,12 @@ subsection \<open>Traces\<close>
 
 datatype comm_type = In | Out
 
+text \<open>Each trace block is either:
+  - Communication block, specified by communication type (In or Out),
+    name of the channel, and the communicated value.
+  - Wait block, specified by length of the wait, state as a function
+    of time during the wait, and set of ready communications.
+\<close>
 datatype 'a trace_block =
   CommBlock comm_type cname real
 | WaitBlock real "real \<Rightarrow> 'a estate" rdy_info
@@ -95,6 +111,7 @@ datatype 'a trace_block =
 abbreviation "InBlock ch v \<equiv> CommBlock In ch v"
 abbreviation "OutBlock ch v \<equiv> CommBlock Out ch v"
 
+text \<open>Trace is defined as an ordered list of trace blocks.\<close>
 type_synonym 'a trace = "'a trace_block list"
 
 
@@ -203,28 +220,47 @@ inductive_cases interruptE: "big_step (Interrupt ode b cs) s1 tr s2"
 subsection \<open>Validity\<close>
 
 text \<open>Assertion is a predicate on states and traces\<close>
-
 type_synonym 'a assn = "'a estate \<Rightarrow> 'a trace \<Rightarrow> bool"
+
+text \<open>We also define assertions parameterized by starting state.\<close>
 type_synonym 'a assn2 = "'a estate \<Rightarrow> 'a assn"
 
+text \<open>Assertion stating the trace is empty.\<close>
 definition emp :: "'a assn" where
   "emp = (\<lambda>s tr. tr = [])"
 
+text \<open>Quantifiers on assertions.\<close>
+definition forall_assn :: "('b \<Rightarrow> 'a assn) \<Rightarrow> 'a assn" (binder "\<forall>\<^sub>a" 10)where
+  "(\<forall>\<^sub>a n. P n) = (\<lambda>s tr. \<forall>n. P n s tr)"
+
+definition exists_assn :: "('b \<Rightarrow> 'a assn) \<Rightarrow> 'a assn" (binder "\<exists>\<^sub>a" 10)where
+  "(\<exists>\<^sub>a n. P n) = (\<lambda>s tr. \<exists>n. P n s tr)"
+
+text \<open>Substitution on assertions: real part.
+  Starting from a parameterized assertion P, let P act on the
+  state after making an assignment.
+\<close>
+definition subst_assn2 :: "'a assn2 \<Rightarrow> var \<Rightarrow> ('a estate \<Rightarrow> real) \<Rightarrow> 'a assn2" ("_ {{_ := _}}" [90,90,90] 91) where 
+  "P {{var := e}} = (\<lambda>s0. P (upd s0 var (e s0)))"
+
+text \<open>Substitution on assertions: extra part.
+  Starting from a parameterized assertion P, let P act on the
+  state after updating the extra part using function f.  
+\<close>
+definition subste_assn2 :: "'a assn2 \<Rightarrow> ('a estate \<Rightarrow> 'a) \<Rightarrow> 'a assn2" ("_ {{_}}" [90,90] 91) where 
+  "P {{f}} = (\<lambda>s0. P (upde s0 (f s0)))"
+
+text \<open>Definition of Hoare triple\<close>
 definition Valid :: "'a assn \<Rightarrow> 'a proc \<Rightarrow> 'a assn \<Rightarrow> bool" ("\<Turnstile> ({(1_)}/ (_)/ {(1_)})" 50) where
   "\<Turnstile> {P} c {Q} \<longleftrightarrow> (\<forall>s1 tr1 s2 tr2. P s1 tr1 \<longrightarrow> big_step c s1 tr2 s2 \<longrightarrow> Q s2 (tr1 @ tr2))"
 
+text \<open>Entailment relation between assertions\<close>
 definition entails :: "'a assn \<Rightarrow> 'a assn \<Rightarrow> bool" (infixr "\<Longrightarrow>\<^sub>A" 25) where
   "(P \<Longrightarrow>\<^sub>A Q) \<longleftrightarrow> (\<forall>s tr. P s tr \<longrightarrow> Q s tr)"
 
 theorem entails_triv:
   "P \<Longrightarrow>\<^sub>A P"
   unfolding entails_def by auto
-
-definition forall_assn :: "('b \<Rightarrow> 'a assn) \<Rightarrow> 'a assn" (binder "\<forall>\<^sub>a" 10)where
-  "(\<forall>\<^sub>a n. P n) = (\<lambda>s tr. \<forall>n. P n s tr)"
-
-definition exists_assn :: "('b \<Rightarrow> 'a assn) \<Rightarrow> 'a assn" (binder "\<exists>\<^sub>a" 10)where
-  "(\<exists>\<^sub>a n. P n) = (\<lambda>s tr. \<exists>n. P n s tr)"
 
 theorem strengthen_pre:
   "\<Turnstile> {P2} c {Q} \<Longrightarrow> P1 \<Longrightarrow>\<^sub>A P2 \<Longrightarrow> \<Turnstile> {P1} c {Q}"
@@ -234,23 +270,28 @@ theorem weaken_post:
   "\<Turnstile> {P} c {Q1} \<Longrightarrow> Q1 \<Longrightarrow>\<^sub>A Q2 \<Longrightarrow> \<Turnstile> {P} c {Q2}"
   unfolding Valid_def entails_def by metis
 
-text \<open>Receive input, then state and trace satisfies P\<close>
-inductive wait_in_c :: "cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
-  "P 0 v s0 s tr \<Longrightarrow> wait_in_c ch P s0 s (InBlock ch v # tr)"
-| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> wait_in_c ch P s0 s (WaitBlock d (\<lambda>_. s0) ({}, {ch}) # InBlock ch v # tr)"
-
-definition subst_assn2 :: "'a assn2 \<Rightarrow> var \<Rightarrow> ('a estate \<Rightarrow> real) \<Rightarrow> 'a assn2" ("_ {{_ := _}}" [90,90,90] 91) where 
-  "P {{var := e}} = (\<lambda>s0. P (upd s0 var (e s0)))"
-
-definition subste_assn2 :: "'a assn2 \<Rightarrow> ('a estate \<Rightarrow> 'a) \<Rightarrow> 'a assn2" ("_ {{_}}" [90,90] 91) where 
-  "P {{f}} = (\<lambda>s0. P (upde s0 (f s0)))"
-
-definition init :: "'a estate \<Rightarrow> 'a assn" where
+text \<open>Parameterized assertion, specifying the initial state to be s0.\<close>
+definition init :: "'a assn2" where
   "init s0 = (\<lambda>s tr. s = s0 \<and> tr = [])"
 
+text \<open>Specification of a single process\<close>
 definition spec_of :: "'a proc \<Rightarrow> 'a assn2 \<Rightarrow> bool" where
   "spec_of c Q \<longleftrightarrow> (\<forall>s0. \<Turnstile> {init s0} c {Q s0})"
 
+text \<open>Hoare rule for skip statement\<close>
+lemma spec_of_skip:
+  "spec_of Skip init"
+  unfolding Valid_def spec_of_def
+  by (auto elim: skipE)
+
+lemma Valid_skip_sp:
+  assumes "spec_of c Q"
+  shows "spec_of (Skip; c) Q"
+  unfolding Valid_def spec_of_def
+  apply (auto elim!: seqE skipE)
+  using assms unfolding spec_of_def Valid_def init_def by auto
+
+text \<open>Hoare rule for assign\<close>
 lemma spec_of_assign:
   "spec_of (var ::= e) (\<lambda>s0 s tr. s = upd s0 var (e s0))"
   unfolding Valid_def spec_of_def init_def
@@ -263,6 +304,7 @@ lemma Valid_assign_sp:
   apply (auto elim!: seqE assignE)
   using assms unfolding spec_of_def Valid_def init_def subst_assn2_def by auto
 
+text \<open>Hoare rule for updating the extra state\<close>
 lemma spec_of_basic:
   "spec_of (Basic f) (\<lambda>s0 s tr. s = upde s0 (f s0))"
   unfolding Valid_def spec_of_def init_def
@@ -275,6 +317,7 @@ lemma Valid_basic_sp:
   apply (auto elim!: seqE basicE)
   using assms unfolding spec_of_def Valid_def init_def subste_assn2_def by auto
 
+text \<open>Hoare rule for conditional\<close>
 definition cond_assn2 :: "'a eform \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2"
   ("IFA _ THEN _ ELSE _ FI" [95,94] 93) where
   "IFA b THEN Q1 ELSE Q2 FI = (\<lambda>s0 s tr. if b s0 then Q1 s0 s tr else Q2 s0 s tr)"
@@ -287,17 +330,14 @@ lemma spec_of_cond:
   apply (auto elim!: condE)
   using assms unfolding Valid_def spec_of_def init_def by auto
 
-lemma spec_of_skip:
-  "spec_of Skip init"
-  unfolding Valid_def spec_of_def
-  by (auto elim: skipE)
-
-lemma Valid_skip_sp:
-  assumes "spec_of c Q"
-  shows "spec_of (Skip; c) Q"
-  unfolding Valid_def spec_of_def
-  apply (auto elim!: seqE skipE)
-  using assms unfolding spec_of_def Valid_def init_def by auto
+text \<open>Hoare rule for input.
+  The corresponding assertion is divided into two cases, either the input
+  happens immediately, or after waiting for some time. The ensuing assertion
+  is parameterized by waiting time and communicated value.
+\<close>
+inductive wait_in_c :: "cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
+  "P 0 v s0 s tr \<Longrightarrow> wait_in_c ch P s0 s (InBlock ch v # tr)"
+| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> wait_in_c ch P s0 s (WaitBlock d (\<lambda>_. s0) ({}, {ch}) # InBlock ch v # tr)"
 
 lemma spec_of_receive:
   "spec_of (Cm (ch[?]var)) (wait_in_c ch (\<lambda>d v. init {{ var := (\<lambda>_. v) }}))"
@@ -318,6 +358,10 @@ lemma Valid_receive_sp:
   using Valid_def spec_of_def init_def assms apply auto[1]
   done
 
+text \<open>Hoare rule for output.
+  In the corresponding assertion, the communicated value is computed by the
+  function e. The ensuing assertion is parameterized by waiting time.
+\<close>
 inductive wait_out_c :: "cname \<Rightarrow> ('a estate \<Rightarrow> real) \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
   "P 0 s0 s tr \<Longrightarrow> wait_out_c ch e P s0 s (OutBlock ch (e s0) # tr)"
 | "0 < d \<Longrightarrow> P d s0 s tr \<Longrightarrow> wait_out_c ch e P s0 s (WaitBlock d (\<lambda>_. s0) ({ch}, {}) # OutBlock ch (e s0) # tr)"
@@ -341,6 +385,7 @@ lemma Valid_send_sp:
   using Valid_def spec_of_def init_def assms apply auto[1]
   done
 
+text \<open>Commutativity between assertions and quantifiers.\<close>
 lemma wait_in_c_exists:
   "wait_in_c ch (\<lambda>d v s0. \<exists>\<^sub>a n. P d v s0 n) s0 = (\<exists>\<^sub>a n. wait_in_c ch (\<lambda>d v s0. P d v s0 n) s0)"
   apply (rule ext) apply (rule ext)
@@ -397,49 +442,24 @@ lemma wait_out_c_exists:
     done
   done
 
-subsection \<open>Examples\<close>
-
-definition A :: char where "A = CHR ''a''"
-definition B :: char where "B = CHR ''b''"
-definition X :: char where "X = CHR ''x''"
-definition Y :: char where "Y = CHR ''y''"
-definition Z :: char where "Z = CHR ''z''"
-
-fun val :: "'a estate \<Rightarrow> var \<Rightarrow> real" where
-  "val (EState r e) v = r v"
-declare val.simps [simp del]
-
-lemma ex1a_sp:
-  "spec_of (Cm (ch1[?]X); Cm (ch2[!](\<lambda>s. val s X + 1)))
-           (wait_in_c ch1 (\<lambda>d v. wait_out_c ch2 (\<lambda>s. val s X + 1) (\<lambda>d. init) {{ X := (\<lambda>_. v) }}))"
-  apply (rule Valid_receive_sp)
-  apply (rule spec_of_send)
-  done
-
-lemma ex1b_sp:
-  "spec_of (Cm (ch1[!](\<lambda>_. 3)))
-           (wait_out_c ch1 (\<lambda>_. 3) (\<lambda>d. init))"
-  apply (rule spec_of_send)
-  done
-
-fun rinv_c :: "nat \<Rightarrow> cname \<Rightarrow> ('a estate \<Rightarrow> 'a assn) \<Rightarrow> ('a estate \<Rightarrow> 'a assn)" where
-  "rinv_c 0 ch Q = Q"
-| "rinv_c (Suc n) ch Q = wait_out_c ch (\<lambda>s. val s A) (\<lambda>d. rinv_c n ch Q {{ B := (\<lambda>s0. val s0 B + 1) }})"
-
+text \<open>Consequence rule\<close>
 lemma spec_of_post:
   "spec_of c Q1 \<Longrightarrow> \<forall>s0. Q1 s0 \<Longrightarrow>\<^sub>A Q2 s0 \<Longrightarrow> spec_of c Q2"
   unfolding spec_of_def using weaken_post by blast
 
+text \<open>Relation between quantifiers on assertions and usual quantifiers.\<close>
 lemma entails_exists:
   assumes "\<exists>n. P \<Longrightarrow>\<^sub>A Q n"
   shows "P \<Longrightarrow>\<^sub>A (\<exists>\<^sub>a n. Q n)"
   using assms unfolding exists_assn_def entails_def
   by auto
 
+text \<open>Repetition for n times.\<close>
 fun RepN :: "nat \<Rightarrow> 'a proc \<Rightarrow> 'a proc" where
   "RepN 0 c = Skip"
 | "RepN (Suc n) c = c; RepN n c"
 
+text \<open>Some rules about big-step operational semantics\<close>
 lemma big_step_rep:
   "big_step (Rep c) s1 tr1 s2 \<longleftrightarrow> (\<exists>n. big_step (RepN n c) s1 tr1 s2)"
 proof -
@@ -507,58 +527,11 @@ lemma spec_of_cond_distrib:
   unfolding spec_of_def Valid_def
   using big_step_cond_distrib by blast
 
-
 lemma spec_of_rep:
   assumes "\<And>n. spec_of (RepN n c) (Q n)"
   shows "spec_of (Rep c) (\<lambda>s0. \<exists>\<^sub>a n. Q n s0)"
   using assms unfolding spec_of_def Valid_def big_step_rep exists_assn_def
   by blast
-
-lemma ex3_c':
-  "spec_of (RepN n (Cm (ch1[!](\<lambda>s. val s A)); B ::= (\<lambda>s. val s B + 1)))
-           (rinv_c n ch1 init)"
-  apply (induction n)
-  apply simp apply (rule spec_of_skip)
-  subgoal premises pre for n
-    apply simp apply (rule spec_of_post)
-    apply (subst spec_of_seq_assoc)
-   apply (rule Valid_send_sp)
-   apply (rule Valid_assign_sp)
-     apply (rule pre) apply clarify
-    by (rule entails_triv)
-  done
-
-lemma ex3_c:
-  "spec_of (Rep (Cm (ch1[!](\<lambda>s. val s A)); B ::= (\<lambda>s. val s B + 1)))
-           (\<lambda>s0. \<exists>\<^sub>an. rinv_c n ch1 init s0)"
-  apply (rule spec_of_rep)
-  by (rule ex3_c')
-
-fun linv_c :: "nat \<Rightarrow> cname \<Rightarrow> ('a estate \<Rightarrow> 'a assn) \<Rightarrow> ('a estate \<Rightarrow> 'a assn)" where
-  "linv_c 0 ch Q = Q"
-| "linv_c (Suc n) ch Q = wait_in_c ch (\<lambda>d v. linv_c n ch Q {{Y := (\<lambda>s. val s Y + val s X)}} {{X := (\<lambda>_. v)}} )"
-
-lemma ex4_c':
-  "spec_of (RepN n (Cm (ch1[?]X); Y ::= (\<lambda>s. val s Y + val s X)))
-           (linv_c n ch1 init)"
-  apply (induction n)
-   apply simp apply (rule spec_of_skip)
-  subgoal premises pre for n
-    apply simp apply (rule spec_of_post)
-     apply (subst spec_of_seq_assoc)
-    apply (rule Valid_receive_sp)
-     apply (rule Valid_assign_sp)
-     apply (rule pre) apply clarify
-    apply (rule entails_triv)
-    done
-  done
-
-lemma ex4_c:
-  "spec_of (Rep (Cm (ch1[?]X); Y ::= (\<lambda>s. val s Y + val s X)))
-           (\<lambda>s0. \<exists>\<^sub>an. linv_c n ch1 init s0)"
-  apply (rule spec_of_rep)
-  by (rule ex4_c')
-
 
 subsection \<open>Combining two traces\<close>
 
@@ -570,6 +543,10 @@ text \<open>Merge two rdy infos\<close>
 fun merge_rdy :: "rdy_info \<Rightarrow> rdy_info \<Rightarrow> rdy_info" where
   "merge_rdy (r11, r12) (r21, r22) = (r11 \<union> r21, r12 \<union> r22)"
 
+text \<open>Trace blocks for a parallel process.
+  The only difference from trace blocks for a single process is that
+  the waiting blocks record states for parallel processes.
+\<close>
 datatype 'a ptrace_block = 
   CommBlockP comm_type cname real
 | WaitBlockP real "real \<Rightarrow> 'a gstate" rdy_info
@@ -577,8 +554,15 @@ datatype 'a ptrace_block =
 abbreviation "InBlockP ch v \<equiv> CommBlockP In ch v"
 abbreviation "OutBlockP ch v \<equiv> CommBlockP Out ch v"
 
+text \<open>Trace for parallel process consists of a list of trace blocks.\<close>
 type_synonym 'a ptrace = "'a ptrace_block list"
 
+text \<open>Merge of two states.
+  For each process name, first look up in the left state, if not
+  found look up in the right state. This is ''well-behaved'' only
+  if the states on the two sides have disjoint domains, an assumption
+  we will need to use frequently.
+\<close>
 definition merge_state :: "'a gstate \<Rightarrow> 'a gstate \<Rightarrow> 'a gstate" where
   "merge_state ps1 ps2 = (\<lambda>p. case ps1 p of None \<Rightarrow> ps2 p | Some s \<Rightarrow> Some s)"
 
@@ -637,16 +621,26 @@ inductive combine_blocks :: "cname set \<Rightarrow> 'a ptrace \<Rightarrow> 'a 
                         (WaitBlockP t2 hist2 rdy2 # blks2)
                         (WaitBlockP t2 hist rdy # blks)"
 
+text \<open>Conversion from trace for a single process to trace for
+  parallel processes.
+\<close>
 fun ptrace_of :: "pname \<Rightarrow> 'a trace \<Rightarrow> 'a ptrace" where
   "ptrace_of pn [] = []"
 | "ptrace_of pn (CommBlock ch_type ch v # tr) = CommBlockP ch_type ch v # ptrace_of pn tr"
 | "ptrace_of pn (WaitBlock d p rdy # tr) = WaitBlockP d (\<lambda>\<tau>. State pn (p \<tau>)) rdy # ptrace_of pn tr"
 
+text \<open>Set of processes in a parallel state.\<close>
 definition proc_set :: "'a gstate \<Rightarrow> pname set" where
   "proc_set gs = {pn. gs pn \<noteq> None}"
 
+text \<open>Definition of big-step operational semantics for parallel processes.
+  Note the restriction on disjoint condition for process names,
+  as needed for good behavior of merge_state.
+\<close>
 inductive par_big_step :: "'a pproc \<Rightarrow> 'a gstate \<Rightarrow> 'a ptrace \<Rightarrow> 'a gstate \<Rightarrow> bool" where
-  SingleB: "big_step p s1 tr s2 \<Longrightarrow> par_big_step (Single pn p) (State pn s1) (ptrace_of pn tr) (State pn s2)"
+  SingleB:
+    "big_step p s1 tr s2 \<Longrightarrow>
+     par_big_step (Single pn p) (State pn s1) (ptrace_of pn tr) (State pn s2)"
 | ParallelB:
     "par_big_step p1 s11 tr1 s12 \<Longrightarrow>
      par_big_step p2 s21 tr2 s22 \<Longrightarrow>
@@ -655,10 +649,7 @@ inductive par_big_step :: "'a pproc \<Rightarrow> 'a gstate \<Rightarrow> 'a ptr
      par_big_step (Parallel p1 chs p2) (merge_state s11 s21) tr (merge_state s12 s22)"
 
 inductive_cases SingleE: "par_big_step (Single pn p) s1 tr s2"
-thm SingleE
-
 inductive_cases ParallelE: "par_big_step (Parallel p1 ch p2) s1 tr s2"
-thm ParallelE
 
 lemma proc_set_State:
   "proc_set (State pn s) = {pn}"
@@ -752,22 +743,7 @@ lemma spec_of_global_post:
   "spec_of_global p Q1 \<Longrightarrow> \<forall>s0. Q1 s0 \<Longrightarrow>\<^sub>g Q2 s0 \<Longrightarrow> spec_of_global p Q2"
   unfolding spec_of_global_def using weaken_post_global by blast
 
-
-subsection \<open>Examples of using ParValid_parallel\<close>
-
-lemma ex1:
-  "spec_of_global
-    (Parallel (Single ''a'' (Cm (ch1[?]X); Cm (ch2[!](\<lambda>s. val s X + 1)))) {ch1}
-              (Single ''b'' (Cm (ch1[!](\<lambda>_. 3)))))
-    (sync_gassn {ch1} {''a''} {''b''}
-      (single_assn ''a'' (wait_in_c ch1 (\<lambda>d v. wait_out_c ch2 (\<lambda>s. val s X + 1) (\<lambda>d. init) {{ X := (\<lambda>_. v) }} )))
-      (single_assn ''b'' (wait_out_c ch1 (\<lambda>_. 3) (\<lambda>d. init))))"
-  apply (rule spec_of_parallel)
-   apply (rule spec_of_single)
-   apply (rule ex1a_sp)
-  apply (rule spec_of_single)
-    apply (rule ex1b_sp)
-  by auto
+subsection \<open>More assertions for parallel\<close>
 
 inductive wait_in_cg :: "cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> 'a gassn) \<Rightarrow> 'a gstate \<Rightarrow> 'a gassn" where
   "P 0 v s0 s tr \<Longrightarrow> wait_in_cg ch P s0 s (InBlockP ch v # tr)"
@@ -928,19 +904,6 @@ lemma single_assn_init:
       apply (rule single_assn.intros)
       by (auto simp add: init_def)
     done
-  done
-
-lemma ex1':
-  "spec_of_global
-    (Parallel (Single ''a'' (Cm (ch1[?]X); Cm (ch2[!](\<lambda>s. val s X + 1)))) {ch1}
-              (Single ''b'' (Cm (ch1[!](\<lambda>_. 3)))))
-    (sync_gassn {ch1} {''a''} {''b''}
-      (wait_in_cg ch1 (\<lambda>d v. wait_out_cg ch2 ''a'' (\<lambda>s. val s X + 1) (\<lambda>d. init_single {''a''}) {{X := (\<lambda>_. v)}}\<^sub>g at ''a''))
-      (wait_out_cg ch1 ''b'' (\<lambda>_. 3) (\<lambda>d. init_single {''b''})))"
-  apply (rule spec_of_global_post)
-   apply (rule ex1) apply clarify subgoal for s0
-    apply (auto simp: single_assn_wait_in single_assn_wait_out updg_subst2 single_assn_init)
-    by (rule entails_g_triv)
   done
 
 subsection \<open>Basic elimination rules\<close>
@@ -1366,41 +1329,7 @@ lemma wait_out_cg_entails:
     done
   done
 
-lemma ex1'':
-  "spec_of_global
-    (Parallel (Single ''a'' (Cm (''ch1''[?]X); Cm (''ch2''[!](\<lambda>s. val s X + 1)))) {''ch1''}
-              (Single ''b'' (Cm (''ch1''[!](\<lambda>_. 3)))))
-    (\<lambda>s0. wait_out_cg ''ch2'' ''a'' (\<lambda>s. val s X + 1) (\<lambda>d. init_single {''a'', ''b''})
-          (updg s0 ''a'' X 3))"
-  apply (rule spec_of_global_post)
-   apply (rule ex1') apply auto subgoal for s0
-    apply (rule entails_g_trans)
-      apply (rule sync_gassn_in_out) apply auto
-      apply (rule entails_g_trans)
-       apply (rule sync_gassn_subst_left) apply simp
-    apply (rule entails_g_trans)
-     apply (rule gassn_subst)
-    apply (rule entails_g_trans)
-     apply (rule sync_gassn_out_emp) apply auto
-    apply (rule wait_out_cg_entails)
-    subgoal for d s0
-      apply (rule sync_gassn_emp) by auto
-    done
-  done
-
-lemma ex2_c:
-  "spec_of (Cm (ch1[!](\<lambda>s. val s X)); Cm (ch2[?]Y))
-           (wait_out_c ch1 (\<lambda>s. val s X) (\<lambda>d. wait_in_c ch2 (\<lambda>d v. init {{Y := (\<lambda>_. v)}})))"
-  apply (rule Valid_send_sp)
-  apply (rule spec_of_receive)
-  done
-
-lemma ex2_c':
-  "spec_of (Cm (ch1[?]Z); Cm (ch2[!](\<lambda>s. val s Z + 1)))
-           (wait_in_c ch1 (\<lambda>d v. wait_out_c ch2 (\<lambda>s. val s Z + 1) (\<lambda>d. init) {{Z := (\<lambda>_. v)}}))"
-  apply (rule Valid_receive_sp)
-  apply (rule spec_of_send)
-  done
+subsection \<open>More definitions and lemmas\<close>
 
 definition valg :: "'a gstate \<Rightarrow> pname \<Rightarrow> var \<Rightarrow> real" where
   "valg gs pn v = val (the (gs pn)) v"
@@ -1434,163 +1363,6 @@ lemma sync_gassn_triv:
   apply (simp add: assms)
   by (rule entails_g_triv)
 
-lemma ex2:
-  "spec_of_global
-    (Parallel (Single ''a'' (Cm (''ch1''[!](\<lambda>s. val s X)); Cm (''ch2''[?]Y)))
-              {''ch1'', ''ch2''}
-              (Single ''b'' (Cm (''ch1''[?]Z); Cm (''ch2''[!](\<lambda>s. val s Z + 1)))))
-    (\<lambda>s0. init_single {''b'', ''a''}
-     (updg (updg s0 ''b'' Z (valg s0 ''a'' X)) ''a'' Y
-       (valg s0 ''a'' X + 1)))"
-proof -
-  have eq: "valg (updg s0 ''b'' Z (valg s0 ''a'' X)) ''b'' Z + 1 =
-        valg s0 ''a'' X + 1" for s0::"'a gstate"
-    by auto
-  show ?thesis
-  (* Stage 1: merge ex2_c and ex2_c' *)
-  apply (rule spec_of_global_post)
-   apply (rule spec_of_parallel)
-      apply (rule spec_of_single)
-      apply (rule ex2_c)
-  apply (rule spec_of_single)
-     apply (rule ex2_c')
-    apply simp apply simp
-  (* Stage 2: rewrite the assertions*)
-  apply auto subgoal for s0
-    apply (auto simp: single_assn_wait_in single_assn_wait_out updg_subst2 single_assn_init)
-  (* Stage 3: combine the two assertions *)
-    apply (rule entails_g_trans)
-     apply (rule sync_gassn_out_in) apply auto
-    apply (rule entails_g_trans)
-     apply (rule sync_gassn_subst_right) apply auto
-    apply (rule entails_g_trans)
-     apply (rule gassn_subst)
-    apply (rule entails_g_trans)
-     apply (rule sync_gassn_in_out) apply auto
-    apply (rule entails_g_trans)
-     apply (rule sync_gassn_subst_left) apply auto
-    apply (rule entails_g_trans)
-     apply (rule gassn_subst)
-    apply (rule entails_g_trans)
-       apply (rule sync_gassn_emp) apply simp
-      apply (simp only: valg_def[symmetric] eq)
-      by (rule entails_g_triv)
-    done
-qed
-
-definition ex3_inv :: "'a gstate \<Rightarrow> bool" where
-  "ex3_inv s0 \<longleftrightarrow> (valg s0 ''b'' Y = valg s0 ''a'' A * valg s0 ''a'' B)"
-
-lemma ex3':
-  assumes "ex3_inv s0"
-  shows
-  "\<exists>s1. ex3_inv s1 \<and>
-   (sync_gassn {''ch1''} {''a''} {''b''}
-     (single_assn ''a'' (rinv_c (Suc n1) ''ch1'' init))
-     (single_assn ''b'' (linv_c (Suc n2) ''ch1'' init)) s0 \<Longrightarrow>\<^sub>g
-    sync_gassn {''ch1''} {''a''} {''b''}
-     (single_assn ''a'' (rinv_c n1 ''ch1'' init))
-     (single_assn ''b'' (linv_c n2 ''ch1'' init)) s1)"
-proof -
-  have eq1: "updg (updg s0 ''b'' X (valg s0 ''a'' A)) ''a'' B
-              ((valg (updg s0 ''b'' X (valg s0 ''a'' A)) ''a'' B) + 1) =
-             updg (updg s0 ''b'' X (valg s0 ''a'' A)) ''a'' B (valg s0 ''a'' B + 1)"
-    by auto
-  let ?s1 = "updg (updg (updg s0 ''b'' X (valg s0 ''a'' A)) ''a'' B (valg s0 ''a'' B + 1)) ''b'' Y
-               (valg s0 ''b'' Y + valg s0 ''a'' A)"
-  show ?thesis
-  apply (rule exI[where x="?s1"])
-  apply (rule conjI)
-    subgoal using assms unfolding ex3_inv_def
-      apply (auto simp add: A_def B_def X_def Y_def)
-      by (auto simp add: algebra_simps)
-  subgoal
-    apply simp
-    apply (auto simp: single_assn_wait_in single_assn_wait_out updg_subst2)
-    apply (rule entails_g_trans)
-     apply (rule sync_gassn_out_in) apply auto
-    apply (rule entails_g_trans)
-     apply (rule sync_gassn_subst_right) apply auto
-    apply (rule entails_g_trans)
-     apply (rule gassn_subst)
-    apply (rule entails_g_trans)
-     apply (rule sync_gassn_subst_left) apply simp
-    apply (rule entails_g_trans)
-     apply (rule gassn_subst)
-    apply (simp only: valg_def[symmetric]) apply (subst eq1)
-    apply (rule entails_g_trans)
-     apply (rule sync_gassn_subst_right) apply auto
-    apply (rule entails_g_trans)
-     apply (rule gassn_subst)
-    apply (rule sync_gassn_triv)
-    apply (simp only: valg_def[symmetric])
-    by (auto simp add: X_def A_def B_def Y_def)
-  done
-qed
-
-lemma ex3'':
-  "ex3_inv s0 \<Longrightarrow>
-   \<exists>s1. ex3_inv s1 \<and>
-    (sync_gassn {''ch1''} {''a''} {''b''}
-      (single_assn ''a'' (rinv_c n1 ''ch1'' init))
-      (single_assn ''b'' (linv_c n2 ''ch1'' init)) s0 \<Longrightarrow>\<^sub>g
-    init_single {''b'', ''a''} s1)"
-proof (induction n1 n2 arbitrary: s0 rule: diff_induct)
-  case (1 n1)
-  show ?case
-  proof (cases n1)
-    case 0
-    show ?thesis
-      apply (subst 0)
-      apply (rule exI[where x=s0])
-      apply (rule conjI) using 1 apply simp
-      apply (rule entails_g_trans)
-      apply (auto simp add: single_assn_init)
-       apply (rule sync_gassn_emp) apply auto
-      by (rule entails_g_triv)
-  next
-    case (Suc n1)
-    show ?thesis
-      apply (subst Suc)
-      apply (rule exI[where x=s0])
-      apply (rule conjI) using 1 apply simp
-      apply auto
-       apply (auto simp add: single_assn_init single_assn_wait_out)
-       apply (rule sync_gassn_out_emp_unpair)
-      by auto
-  qed
-next
-  case (2 y)
-  show ?case
-    apply (rule exI[where x=s0])
-    apply (rule conjI) using 2 apply simp
-    apply auto
-    apply (auto simp add: single_assn_init single_assn_wait_in)
-    apply (rule sync_gassn_emp_in_unpair)
-    by auto
-next
-  case (3 n1 n2)
-  obtain s1 where s1: "ex3_inv s1"
-    "sync_gassn {''ch1''} {''a''} {''b''}
-      (single_assn ''a'' (rinv_c (Suc n1) ''ch1'' init))
-      (single_assn ''b'' (linv_c (Suc n2) ''ch1'' init)) s0 \<Longrightarrow>\<^sub>g
-     sync_gassn {''ch1''} {''a''} {''b''}
-      (single_assn ''a'' (rinv_c n1 ''ch1'' init))
-      (single_assn ''b'' (linv_c n2 ''ch1'' init)) s1"
-    using ex3' 3 by blast
-  obtain s2 where s2: "ex3_inv s2"
-    "sync_gassn {''ch1''} {''a''} {''b''} (single_assn ''a'' (rinv_c n1 ''ch1'' init))
-       (single_assn ''b'' (linv_c n2 ''ch1'' init)) s1 \<Longrightarrow>\<^sub>g
-     init_single {''b'', ''a''} s2"
-    using 3 s1(1) by blast 
-  show ?case
-    apply (rule exI[where x=s2])
-    apply (rule conjI) apply (rule s2)
-    apply (rule entails_g_trans)
-     apply (rule s1)
-    by (rule s2)
-qed
-
 definition exists_gassn :: "('b \<Rightarrow> 'a gassn) \<Rightarrow> 'a gassn" (binder "\<exists>\<^sub>g" 10)where
   "(\<exists>\<^sub>g n. P n) = (\<lambda>s tr. \<exists>n. P n s tr)"
 
@@ -1621,111 +1393,9 @@ lemma sync_gassn_exists_right:
     by (auto elim: sync_gassn.cases intro: sync_gassn.intros)
   done
 
-lemma ex3''':
-  "spec_of_global
-    (Parallel (Single ''a'' (Rep (Cm (ch1[!](\<lambda>s. val s A)); B ::= (\<lambda>s. val s B + 1))))
-              {''ch1''}
-              (Single ''b'' (Rep (Cm (ch1[?]X); Y ::= (\<lambda>s. val s Y + val s X)))))
-    (\<lambda>s0. \<exists>\<^sub>gn1 n2. sync_gassn {''ch1''} {''a''} {''b''}
-                    (single_assn ''a'' (rinv_c n1 ch1 init))
-                    (single_assn ''b'' (linv_c n2 ch1 init)) s0)"
-  (* Stage 1: merge ex3_c and ex4_c *)
-  apply (rule spec_of_global_post)
-   apply (rule spec_of_parallel)
-      apply (rule spec_of_single)
-  apply (rule ex3_c)
-     apply (rule spec_of_single)
-  apply (rule ex4_c) apply auto
-  apply (auto simp add: single_assn_exists sync_gassn_exists_left sync_gassn_exists_right)
-  by (rule entails_g_triv)
-
+text \<open>General specification\<close>
 definition spec_of_global_gen :: "('a gstate \<Rightarrow> bool) \<Rightarrow> 'a pproc \<Rightarrow> ('a gstate \<Rightarrow> 'a gassn) \<Rightarrow> bool" where
   "spec_of_global_gen P c Q \<longleftrightarrow> (\<forall>s0. P s0 \<longrightarrow> \<Turnstile>\<^sub>p {init_global s0} c {Q s0})"
 
-lemma ex3:
-  "ex3_inv s0 \<Longrightarrow>
-    \<Turnstile>\<^sub>p {init_global s0}
-        (Parallel (Single ''a'' (Rep (Cm (''ch1''[!](\<lambda>s. val s A)); B ::= (\<lambda>s. val s B + 1))))
-                  {''ch1''}
-                  (Single ''b'' (Rep (Cm (''ch1''[?]X); Y ::= (\<lambda>s. val s Y + val s X)))))
-       {\<exists>\<^sub>gs1. (\<lambda>s tr. ex3_inv s1 \<and> init_single {''b'', ''a''} s1 s tr)}"
-  apply (rule weaken_post_global[where R="\<exists>\<^sub>gn1 n2. sync_gassn {''ch1''} {''a''} {''b''}
-                    (single_assn ''a'' (rinv_c n1 ''ch1'' init))
-                    (single_assn ''b'' (linv_c n2 ''ch1'' init)) s0"])
-  subgoal by (auto simp: ex3'''[unfolded spec_of_global_def])
-  apply (auto simp add: exists_gassn_def entails_g_def)
-  subgoal for s tr n1 n2
-    using ex3''[of s0 n1 n2] unfolding entails_g_def
-    by auto
-  done
-
-text \<open>
-  We analyze the following program for transmitting a list
-  to another process.
-\<close>
-
-type_synonym ex5_state = "real list"
-
-definition ex5_left :: "cname \<Rightarrow> ex5_state proc" where
-  "ex5_left ch1 = Rep (IF (\<lambda>s. epart s \<noteq> []) THEN
-                         (Cm (ch1[!](\<lambda>s. hd (epart s))); Basic (\<lambda>s. tl (epart s)))
-                       ELSE Skip FI)"
-
-fun ex5_linv_c :: "nat \<Rightarrow> cname \<Rightarrow> ex5_state assn2 \<Rightarrow> ex5_state assn2" where
-  "ex5_linv_c 0 ch Q = Q"
-| "ex5_linv_c (Suc n) ch Q =
-   (IFA (\<lambda>s. epart s \<noteq> []) THEN
-      wait_out_c ch (\<lambda>s. hd (epart s)) (\<lambda>d. ex5_linv_c n ch Q {{ (\<lambda>s0. tl (epart s0)) }})
-    ELSE ex5_linv_c n ch Q FI)"
-
-lemma ex5_c:
-  "spec_of (RepN n (IF (\<lambda>s. epart s \<noteq> []) THEN
-                      (Cm (ch1[!](\<lambda>s. hd (epart s))); Basic (\<lambda>s. tl (epart s)))
-                    ELSE Skip FI))
-           (ex5_linv_c n ch1 init)"
-  apply (induction n)
-   apply simp apply (rule spec_of_skip)
-  subgoal premises pre for n
-    apply simp
-    apply (subst spec_of_cond_distrib)
-    apply (rule spec_of_cond)
-    subgoal
-      apply (rule spec_of_post)
-      apply (subst spec_of_seq_assoc)
-       apply (rule Valid_send_sp)
-       apply (rule Valid_basic_sp)
-      apply (rule pre) apply clarify
-      by (rule entails_triv)
-    subgoal
-      apply (rule spec_of_post)
-      apply (rule Valid_skip_sp)
-       apply (rule pre) apply clarify
-      by (rule entails_triv)
-    done
-  done
-
-definition ex5_right :: "cname \<Rightarrow> ex5_state proc" where
-  "ex5_right ch1 = Rep (Cm (ch1[?]X); Basic (\<lambda>s. val s X # epart s))"
-
-fun ex5_rinv_c :: "nat \<Rightarrow> cname \<Rightarrow> ex5_state assn2 \<Rightarrow> ex5_state assn2" where
-  "ex5_rinv_c 0 ch Q = Q"
-| "ex5_rinv_c (Suc n) ch Q =
-   wait_in_c ch (\<lambda>d v. ex5_rinv_c n ch Q {{ (\<lambda>s. val s X # epart s) }} {{ X := (\<lambda>_. v) }})"
-
-lemma ex5_c2:
-  "spec_of (RepN n (Cm (ch1[?]X); Basic (\<lambda>s. val s X # epart s)))
-           (ex5_rinv_c n ch1 init)"
-  apply (induction n)
-   apply simp apply (rule spec_of_skip)
-  subgoal premises pre for n
-    apply simp
-    apply (subst spec_of_seq_assoc)
-    apply (rule spec_of_post)
-     apply (rule Valid_receive_sp)
-     apply (rule Valid_basic_sp)
-     apply (rule pre) apply clarify
-    apply (rule entails_triv)      
-    done
-  done
 
 end
