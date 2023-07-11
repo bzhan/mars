@@ -165,6 +165,9 @@ qed
 subsubsection \<open>Example 3\<close>
 
 text \<open>
+  We analyze the following parallel program. The eventual aim
+  is to show that the invariant Y = A * B is preserved.
+
    (ch1!A; B := B + 1)*
 || (ch1?X; Y := Y + X)*
 \<close>
@@ -222,6 +225,11 @@ lemma ex3b_sp:
 definition ex3_inv :: "'a gstate \<Rightarrow> bool" where
   "ex3_inv s0 \<longleftrightarrow> (valg s0 ''b'' Y = valg s0 ''a'' A * valg s0 ''a'' B)"
 
+text \<open>This is the crucial lemma, stating that from a starting state s0
+  satisfying invariant ex3_inv, there is another state s1 also satisfying
+  invariant ex3_inv, that is reached after one iteration on both left
+  and right sides.
+\<close>
 lemma ex3':
   assumes "ex3_inv s0"
   shows
@@ -301,7 +309,7 @@ proof (induction n1 n2 arbitrary: s0 rule: diff_induct)
       by auto
   qed
 next
-  case (2 y)
+  case (2 n2)
   show ?case
     apply (rule exI[where x=s0])
     apply (rule conjI) using 2 apply simp
@@ -320,7 +328,8 @@ next
       (single_assn ''b'' (linv_c n2 init)) s1"
     using ex3' 3 by blast
   obtain s2 where s2: "ex3_inv s2"
-    "sync_gassn {ch1} {''a''} {''b''} (single_assn ''a'' (rinv_c n1 init))
+    "sync_gassn {ch1} {''a''} {''b''}
+       (single_assn ''a'' (rinv_c n1 init))
        (single_assn ''b'' (linv_c n2 init)) s1 \<Longrightarrow>\<^sub>g
      init_single {''b'', ''a''} s2"
     using 3 s1(1) by blast 
@@ -357,10 +366,8 @@ lemma ex3:
                   {ch1}
                   (Single ''b'' ex3b))
        {\<exists>\<^sub>gs1. (\<lambda>s tr. ex3_inv s1 \<and> init_single {''b'', ''a''} s1 s tr)}"
-  apply (rule weaken_post_global[where R="\<exists>\<^sub>gn1 n2. sync_gassn {ch1} {''a''} {''b''}
-                    (single_assn ''a'' (rinv_c n1 init))
-                    (single_assn ''b'' (linv_c n2 init)) s0"])
-  subgoal by (auto simp: ex3'''[unfolded spec_of_global_def])
+  apply (rule weaken_post_global)
+  apply (rule spec_of_globalE[OF ex3'''])
   apply (auto simp add: exists_gassn_def entails_g_def)
   subgoal for s tr n1 n2
     using ex3''[of s0 n1 n2] unfolding entails_g_def
@@ -376,71 +383,356 @@ text \<open>
   ( ch1!hd(ls); ls := tl ls )*
     ||
   ( ch1?X; ls := X # ls )*
+
+  The eventual goal is to show that the invariant
+  A.ls @ rev(B.ls) = ls0
 \<close>
 
 type_synonym ex5_state = "real list"
 
-definition ex5_left :: "ex5_state proc" where
-  "ex5_left = Rep (IF (\<lambda>s. epart s \<noteq> []) THEN
-                     (Cm (ch1[!](\<lambda>s. hd (epart s))); Basic (\<lambda>s. tl (epart s)))
-                   ELSE Skip FI)"
+definition ex5a :: "ex5_state proc" where
+  "ex5a = Rep (IF (\<lambda>s. epart s \<noteq> []) THEN
+                 (Cm (ch1[!](\<lambda>s. hd (epart s))); Basic (\<lambda>s. tl (epart s)))
+               ELSE Error FI)"
 
-fun ex5_linv_c :: "nat \<Rightarrow> ex5_state assn2 \<Rightarrow> ex5_state assn2" where
-  "ex5_linv_c 0 Q = Q"
-| "ex5_linv_c (Suc n) Q =
+fun ex5a_c :: "nat \<Rightarrow> ex5_state assn2 \<Rightarrow> ex5_state assn2" where
+  "ex5a_c 0 Q = Q"
+| "ex5a_c (Suc n) Q =
    (IFA (\<lambda>s. epart s \<noteq> []) THEN
-      wait_out_c ch1 (\<lambda>s. hd (epart s)) (\<lambda>d. ex5_linv_c n Q {{ (\<lambda>s0. tl (epart s0)) }})
-    ELSE ex5_linv_c n Q FI)"
+      wait_out_c ch1 (\<lambda>s. hd (epart s)) (\<lambda>d. ex5a_c n Q {{ (\<lambda>s0. tl (epart s0)) }})
+    ELSE false_assn2 FI)"
 
-lemma ex5_c:
-  "spec_of (RepN n (IF (\<lambda>s. epart s \<noteq> []) THEN
-                      (Cm (ch1[!](\<lambda>s. hd (epart s))); Basic (\<lambda>s. tl (epart s)))
-                    ELSE Skip FI))
-           (ex5_linv_c n init)"
-  apply (induction n)
-   apply simp apply (rule spec_of_skip)
-  subgoal premises pre for n
-    apply simp
-    apply (subst spec_of_cond_distrib)
-    apply (rule spec_of_cond)
-    subgoal
-      apply (rule spec_of_post)
+lemma ex5a_sp:
+  "spec_of ex5a
+           (\<lambda>s0. \<exists>\<^sub>an. ex5a_c n init s0)"
+  unfolding ex5a_def
+  apply (rule spec_of_rep)
+  subgoal for n
+    apply (induction n)
+     apply simp apply (rule spec_of_skip)
+    subgoal premises pre for n
+      apply simp
+      apply (subst spec_of_cond_distrib)
+      apply (rule spec_of_cond)
+      subgoal
+        apply (rule spec_of_post)
+         apply (subst spec_of_seq_assoc)
+         apply (rule Valid_send_sp)
+         apply (rule Valid_basic_sp)
+         apply (rule pre) apply clarify
+        by (rule entails_triv)
+      subgoal
+        apply (rule spec_of_post)
+         apply (rule Valid_error_sp)
+        apply clarify
+        by (rule entails_triv)
+      done
+    done
+  done
+
+definition ex5b :: "ex5_state proc" where
+  "ex5b = Rep (Cm (ch1[?]X); Basic (\<lambda>s. val s X # epart s))"
+
+fun ex5b_c :: "nat \<Rightarrow> ex5_state assn2 \<Rightarrow> ex5_state assn2" where
+  "ex5b_c 0 Q = Q"
+| "ex5b_c (Suc n) Q =
+   wait_in_c ch1 (\<lambda>d v. ex5b_c n Q {{ (\<lambda>s. val s X # epart s) }} {{ X := (\<lambda>_. v) }})"
+
+lemma ex5b_sp:
+  "spec_of ex5b
+           (\<lambda>s0. \<exists>\<^sub>an. ex5b_c n init s0)"
+  unfolding ex5b_def
+  apply (rule spec_of_rep)
+  subgoal for n
+    apply (induction n)
+     apply simp apply (rule spec_of_skip)
+    subgoal premises pre for n
+      apply simp
       apply (subst spec_of_seq_assoc)
-       apply (rule Valid_send_sp)
-       apply (rule Valid_basic_sp)
-      apply (rule pre) apply clarify
-      by (rule entails_triv)
-    subgoal
       apply (rule spec_of_post)
-      apply (rule Valid_skip_sp)
+       apply (rule Valid_receive_sp)
+       apply (rule Valid_basic_sp)
        apply (rule pre) apply clarify
-      by (rule entails_triv)
+      apply (rule entails_triv)      
+      done
     done
   done
 
-definition ex5_right :: "ex5_state proc" where
-  "ex5_right = Rep (Cm (ch1[?]X); Basic (\<lambda>s. val s X # epart s))"
-
-fun ex5_rinv_c :: "nat \<Rightarrow> ex5_state assn2 \<Rightarrow> ex5_state assn2" where
-  "ex5_rinv_c 0 Q = Q"
-| "ex5_rinv_c (Suc n) Q =
-   wait_in_c ch1 (\<lambda>d v. ex5_rinv_c n Q {{ (\<lambda>s. val s X # epart s) }} {{ X := (\<lambda>_. v) }})"
-
-lemma ex5_c2:
-  "spec_of (RepN n (Cm (ch1[?]X); Basic (\<lambda>s. val s X # epart s)))
-           (ex5_rinv_c n init)"
-  apply (induction n)
-   apply simp apply (rule spec_of_skip)
-  subgoal premises pre for n
-    apply simp
-    apply (subst spec_of_seq_assoc)
-    apply (rule spec_of_post)
-     apply (rule Valid_receive_sp)
-     apply (rule Valid_basic_sp)
-     apply (rule pre) apply clarify
-    apply (rule entails_triv)      
+lemma sync_gassn_ifg_left:
+  assumes
+    "b (the (s0 pn)) \<Longrightarrow> sync_gassn chs pns1 pns2 P1 Q s0 \<Longrightarrow>\<^sub>g R s0"
+    "\<not>b (the (s0 pn)) \<Longrightarrow> sync_gassn chs pns1 pns2 P2 Q s0 \<Longrightarrow>\<^sub>g R s0"
+    "pn \<in> pns1"
+  shows
+    "sync_gassn chs pns1 pns2 (IFG [pn] b THEN P1 ELSE P2 FI) Q s0 \<Longrightarrow>\<^sub>g R s0"
+  unfolding cond_gassn2_def entails_g_def
+  apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases) apply clarify
+    subgoal premises pre for s11 _ s12 _ s21 s22 _ tr1 _ tr2
+    proof (cases "b (the (s11 pn))")
+      case True
+      show ?thesis
+      proof -
+        have "b (the (s0 pn))"
+          unfolding pre(1) using assms(3)
+          by (simp add: True merge_state_eval1 pre(7))
+        moreover have "sync_gassn chs pns1 pns2 P1 Q s0 s tr"
+          unfolding pre(1,2)
+          apply (rule sync_gassn.intros)
+          using pre True by auto
+        ultimately show ?thesis
+          using assms(1)[unfolded cond_gassn2_def entails_g_def]
+          unfolding pre(1,2) by auto
+      qed
+    next
+      case False
+      show ?thesis
+      proof -
+        have "\<not>b (the (s0 pn))"
+          unfolding pre(1) using assms(3)
+          by (simp add: False merge_state_eval1 pre(7))
+        moreover have "sync_gassn chs pns1 pns2 P2 Q s0 s tr"
+          unfolding pre(1,2)
+          apply (rule sync_gassn.intros)
+          using pre False by auto
+        ultimately show ?thesis
+          using assms(2)[unfolded cond_gassn2_def entails_g_def]
+          unfolding pre(1,2) by auto
+      qed
+    qed
     done
   done
 
+definition epartg :: "'a gstate \<Rightarrow> pname \<Rightarrow> 'a" where
+  "epartg gs pn = epart (the (gs pn))"
+
+lemma epart_upd_simp [simp]:
+  "epart (upd s var v) = epart s"
+  apply (cases s)
+  by (auto simp add: upd.simps epart.simps)
+
+lemma epart_upde_simp [simp]:
+  "epart (upde s e) = e"
+  apply (cases s)
+  by (auto simp add: epart.simps)
+
+lemma epartg_upd_simp [simp]:
+  "epartg (updg s pn var v) pn2 = epartg s pn2"
+  unfolding epartg_def updg_def by auto
+
+lemma epartg_updeg_simp [simp]:
+  "epartg (updeg s pn e) pn = e"
+  unfolding epartg_def updeg_def by auto
+
+lemma epartg_updeg_simp2 [simp]:
+  "pn \<noteq> pn2 \<Longrightarrow> epartg (updeg s pn e) pn2 = epartg s pn2"
+  unfolding epartg_def updeg_def by auto
+
+definition ex5_inv :: "real list \<Rightarrow> ex5_state gstate \<Rightarrow> bool" where
+  "ex5_inv ls gs \<longleftrightarrow> (rev (epartg gs ''b'') @ epartg gs ''a'' = ls)"
+
+text \<open>This function models update to the whole state in one step\<close>
+definition ex5_one_step :: "ex5_state gstate \<Rightarrow> ex5_state gstate" where
+  "ex5_one_step gs =
+    updeg (updg (updeg gs ''a'' (tl (epartg gs ''a'')))
+                          ''b'' X (hd (epartg gs ''a'')))
+                          ''b'' (hd (epartg gs ''a'') # epartg gs ''b'')"
+
+text \<open>Preservation of invariant\<close>
+lemma ex5_inv_preserve:
+  assumes "ex5_inv ls gs"
+    and "epartg gs ''a'' \<noteq> []"
+  shows "ex5_inv ls (ex5_one_step gs)"
+  using assms unfolding ex5_one_step_def ex5_inv_def
+  by auto
+
+definition conj_gassn :: "'a gassn \<Rightarrow> 'a gassn \<Rightarrow> 'a gassn" (infixr "\<and>\<^sub>g" 35) where
+  "(P \<and>\<^sub>g Q) = (\<lambda>s tr. P s tr \<and> Q s tr)"
+
+definition pure_gassn :: "bool \<Rightarrow> 'a gassn" ("!\<^sub>g[_]" [71] 70) where
+  "(!\<^sub>g[b]) = (\<lambda>s tr. b)"
+
+lemma conj_gassn_intro:
+  assumes "P \<Longrightarrow>\<^sub>g Q" "P \<Longrightarrow>\<^sub>g R"
+  shows "P \<Longrightarrow>\<^sub>g Q \<and>\<^sub>g R"
+  using assms unfolding conj_gassn_def entails_g_def by auto
+
+lemma pure_gassn_intro:
+  assumes b
+  shows "P \<Longrightarrow>\<^sub>g !\<^sub>g[b]"
+  using assms unfolding pure_gassn_def entails_g_def by auto
+
+definition false_gassn :: "'a gassn2" where
+  "false_gassn s0 = (\<lambda>gs tr. False)"
+
+lemma single_assn_false:
+  "single_assn pn false_assn2 = false_gassn"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s0 s tr
+    apply (rule iffI)
+    subgoal apply (elim single_assn.cases)
+      unfolding false_assn2_def by auto
+    subgoal unfolding false_gassn_def by auto
+    done
+  done
+
+lemma sync_gassn_false_left:
+  "sync_gassn chs pns1 pns2 false_gassn Q s0 \<Longrightarrow>\<^sub>g R s0"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases)
+    unfolding false_gassn_def by auto
+  done
+
+lemma sync_gassn_false_right:
+  "sync_gassn chs pns1 pns2 P false_gassn s0 \<Longrightarrow>\<^sub>g R s0"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases)
+    unfolding false_gassn_def by auto
+  done
+
+lemma ex5':
+  assumes "ex5_inv ls s0"
+  shows
+  "(sync_gassn {ch1} {''a''} {''b''}
+    (single_assn ''a'' (ex5a_c (Suc n1) init))
+    (single_assn ''b'' (ex5b_c (Suc n2) init)) s0 \<Longrightarrow>\<^sub>g
+   (\<exists>\<^sub>gs1. (!\<^sub>g[ex5_inv ls s1]) \<and>\<^sub>g
+      sync_gassn {ch1} {''a''} {''b''}
+        (single_assn ''a'' (ex5a_c n1 init))
+        (single_assn ''b'' (ex5b_c n2 init)) s1))"
+  apply (auto simp: single_assn_cond)
+  apply (rule sync_gassn_ifg_left)
+  subgoal
+    apply (rule exists_gassn_intro)
+    apply (rule exI[where x="ex5_one_step s0"])
+    apply (rule conj_gassn_intro)
+     apply (rule pure_gassn_intro)
+    subgoal using ex5_inv_preserve[OF assms]
+      unfolding epartg_def by auto
+    subgoal
+      unfolding single_assn_wait_out single_assn_wait_in updg_subst2 updeg_subst2
+      apply (rule entails_g_trans)
+       apply (rule sync_gassn_out_in) apply auto
+      apply (rule entails_g_trans)
+       apply (rule sync_gassn_subste_left) apply auto
+      apply (rule entails_g_trans)
+       apply (rule gassn_subste)
+      apply (rule entails_g_trans)
+       apply (rule sync_gassn_subst_right) apply auto
+      apply (rule entails_g_trans)
+       apply (rule gassn_subst)
+      apply (rule entails_g_trans)
+       apply (rule sync_gassn_subste_right) apply auto
+      apply (rule entails_g_trans)
+       apply (rule gassn_subste)
+      apply (rule sync_gassn_triv)
+      apply (simp only: valg_def[symmetric] epartg_def[symmetric])
+      unfolding ex5_one_step_def by auto
+    done
+  subgoal unfolding single_assn_false
+    using sync_gassn_false_left by auto
+  subgoal by auto
+  done
+
+lemma exists_gassn_elim:
+  assumes "\<And>n. P n \<Longrightarrow>\<^sub>g Q"
+  shows "(\<exists>\<^sub>g n. P n) \<Longrightarrow>\<^sub>g Q"
+  using assms unfolding exists_gassn_def entails_g_def
+  by auto
+
+lemma conj_pure_gassn_elim:
+  assumes "R \<Longrightarrow> P \<Longrightarrow>\<^sub>g Q"
+  shows "(!\<^sub>g[R] \<and>\<^sub>g P) \<Longrightarrow>\<^sub>g Q"
+  using assms unfolding entails_g_def conj_gassn_def pure_gassn_def
+  by auto
+
+lemma ex5'':
+  "ex5_inv ls s0 \<Longrightarrow>
+  (sync_gassn {ch1} {''a''} {''b''}
+    (single_assn ''a'' (ex5a_c n1 init))
+    (single_assn ''b'' (ex5b_c n2 init)) s0 \<Longrightarrow>\<^sub>g
+  (\<exists>\<^sub>gs1. (!\<^sub>g[ex5_inv ls s1]) \<and>\<^sub>g
+         init_single {''b'', ''a''} s1))"
+proof (induction n1 n2 arbitrary: s0 rule: diff_induct)
+  case (1 n1)
+  show ?case
+    apply (rule exists_gassn_intro)
+    apply (rule exI[where x=s0])
+    unfolding ex5b_c.simps single_assn_init
+  proof (induction n1)
+    case 0
+    show ?case
+      apply (rule conj_gassn_intro)
+       apply (rule pure_gassn_intro)
+      using 1 apply simp
+      apply (rule entails_g_trans)
+      apply (auto simp add: single_assn_init)
+       apply (rule sync_gassn_emp) apply auto
+      by (rule entails_g_triv)
+  next
+    case (Suc n1)
+    show ?case
+      apply (auto simp add: single_assn_init single_assn_cond single_assn_wait_out)
+      apply (rule sync_gassn_ifg_left)
+      subgoal apply (rule sync_gassn_out_emp_unpair) by auto
+      subgoal apply (simp only: single_assn_false)
+        using sync_gassn_false_left by auto
+      subgoal by auto
+      done
+  qed
+next
+  case (2 n2)
+  show ?case
+    apply (rule exists_gassn_intro)
+    apply (rule exI[where x=s0])
+    apply (auto simp add: single_assn_init single_assn_wait_in)
+    apply (rule sync_gassn_emp_in_unpair)
+    by auto
+next
+  case (3 n1 n2)
+  show ?case
+    apply (rule entails_g_trans)
+     apply (rule ex5')
+    apply (rule 3(2))
+    apply (rule exists_gassn_elim)
+    subgoal for s1
+      apply (rule conj_pure_gassn_elim)
+      apply (rule 3(1))
+      by auto
+    done
+qed
+
+lemma ex5''':
+  "spec_of_global
+    (Parallel (Single ''a'' ex5a)
+              {ch1}
+              (Single ''b'' ex5b))
+    (\<lambda>s0. \<exists>\<^sub>gn1 n2. sync_gassn {ch1} {''a''} {''b''}
+                    (single_assn ''a'' (ex5a_c n1 init))
+                    (single_assn ''b'' (ex5b_c n2 init)) s0)"
+  (* Stage 1: merge ex5a_c and ex5b_c *)
+  apply (rule spec_of_global_post)
+   apply (rule spec_of_parallel)
+      apply (rule spec_of_single[OF ex5a_sp])
+     apply (rule spec_of_single[OF ex5b_sp])
+  apply auto
+  apply (auto simp add: single_assn_exists sync_gassn_exists_left sync_gassn_exists_right)
+  by (rule entails_g_triv)
+
+lemma ex5:
+  "ex5_inv ls s0 \<Longrightarrow>
+    \<Turnstile>\<^sub>p {init_global s0}
+         (Parallel (Single ''a'' ex5a)
+                   {ch1}
+                   (Single ''b'' ex5b))
+        {\<exists>\<^sub>gs1. !\<^sub>g[ex5_inv ls s1] \<and>\<^sub>g init_single {''b'', ''a''} s1}"
+  apply (rule weaken_post_global)
+   apply (rule spec_of_globalE[OF ex5'''])
+  apply (rule exists_gassn_elim)
+  apply (rule exists_gassn_elim)
+  using ex5'' by auto
 
 end
