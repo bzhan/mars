@@ -83,7 +83,7 @@ lemma ex1'':
     apply (rule entails_g_trans)
      apply (rule sync_gassn_out_emp)
       apply (auto simp add: ch1_def ch2_def)
-    apply (rule wait_out_cg_entails)
+    apply (rule wait_out_cg_mono)
     subgoal for d s0
       apply (rule sync_gassn_emp) by auto
     done
@@ -759,7 +759,7 @@ lemma ex6a_sp:
   apply (rule spec_of_post)
    apply (rule Valid_receive_sp)
    prefer 2 apply clarify
-  unfolding wait_in_c0_def
+  unfolding wait_in_c0_gen_def
    apply (rule wait_in_c_mono)
    apply (rule entails_assumption)
   apply (rule Valid_wait_sp)
