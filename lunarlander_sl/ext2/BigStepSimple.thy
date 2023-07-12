@@ -709,11 +709,11 @@ inductive par_big_step :: "'a pproc \<Rightarrow> 'a gstate \<Rightarrow> 'a ptr
 inductive_cases SingleE: "par_big_step (Single pn p) s1 tr s2"
 inductive_cases ParallelE: "par_big_step (Parallel p1 ch p2) s1 tr s2"
 
-lemma proc_set_State:
+lemma proc_set_State [simp]:
   "proc_set (State pn s) = {pn}"
   by (auto simp add: proc_set_def State_def)
 
-lemma proc_set_merge:
+lemma proc_set_merge [simp]:
   "proc_set (merge_state s1 s2) = proc_set s1 \<union> proc_set s2"
   apply (auto simp add: proc_set_def merge_state_def)
   subgoal for x y apply (cases "s1 x") by auto
@@ -721,8 +721,7 @@ lemma proc_set_merge:
 
 lemma proc_set_big_step:
   "par_big_step p s1 tr s2 \<Longrightarrow> proc_set s1 = proc_of_pproc p \<and> proc_set s2 = proc_of_pproc p"
-  apply (induction rule: par_big_step.induct)
-  by (auto simp add: proc_set_State proc_set_merge)
+  apply (induction rule: par_big_step.induct) by auto
 
 
 text \<open>Assertion on global state\<close>
@@ -796,7 +795,7 @@ lemma spec_of_parallel:
     apply (rule sync_gassn.intros)
     apply (auto simp add: assms(3,4) proc_set_big_step)
     using assms(1,2) unfolding spec_of_global_def ParValid_def init_global_def
-    by (auto simp add: proc_set_merge elim: proc_set_big_step)
+    by (auto elim: proc_set_big_step)
   done
 
 lemma weaken_post_global:
@@ -988,8 +987,7 @@ lemma single_assn_init:
     apply (rule iffI)
     subgoal apply (elim single_assn.cases)
       apply (auto simp add: init_def)
-      apply (rule init_single.intros)
-      by (auto simp add: proc_set_State)
+      apply (rule init_single.intros) by auto
     subgoal
       apply (elim init_single.cases) apply clarify
       apply (elim proc_set_single_elim) apply auto
@@ -1475,7 +1473,7 @@ lemma sync_gassn_emp:
       apply (elim init_single.cases) apply auto
       apply (frule combine_blocks_emptyE1) apply auto
       apply (rule init_single.intros)
-      by (auto simp add: assms proc_set_merge)
+      by (auto simp add: assms)
     done
   done
 
