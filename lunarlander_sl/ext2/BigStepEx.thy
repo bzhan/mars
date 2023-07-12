@@ -58,8 +58,8 @@ lemma ex1':
     (Parallel (Single ''a'' ex1a) {ch1}
               (Single ''b'' ex1b))
     (sync_gassn {ch1} {''a''} {''b''}
-      (wait_in_cg ch1 (\<lambda>d v. wait_out_cg ch2 ''a'' (\<lambda>s. val s X + 1) (\<lambda>d. init_single {''a''}) {{X := (\<lambda>_. v)}}\<^sub>g at ''a''))
-      (wait_out_cg ch1 ''b'' (\<lambda>_. 3) (\<lambda>d. init_single {''b''})))"
+      (wait_in_cg ch1 (\<lambda>d v. wait_out_cg ''a'' ch2 (\<lambda>s. val s X + 1) (\<lambda>d. init_single {''a''}) {{X := (\<lambda>_. v)}}\<^sub>g at ''a''))
+      (wait_out_cg ''b'' ch1 (\<lambda>_. 3) (\<lambda>d. init_single {''b''})))"
   apply (rule spec_of_global_post)
    apply (rule ex1) apply clarify subgoal for s0
     apply (auto simp: single_assn_wait_in single_assn_wait_out updg_subst2 single_assn_init)
@@ -70,7 +70,7 @@ lemma ex1'':
   "spec_of_global
     (Parallel (Single ''a'' ex1a) {ch1}
               (Single ''b'' ex1b))
-    (\<lambda>s0. wait_out_cg ch2 ''a'' (\<lambda>s. val s X + 1) (\<lambda>d. init_single {''a'', ''b''})
+    (\<lambda>s0. wait_out_cg ''a'' ch2 (\<lambda>s. val s X + 1) (\<lambda>d. init_single {''a'', ''b''})
           (updg s0 ''a'' X 3))"
   apply (rule spec_of_global_post)
    apply (rule ex1') apply auto subgoal for s0
@@ -751,189 +751,6 @@ text \<open>This example tests unmatched communications, and
 definition ex6a :: "'a proc" where
   "ex6a = (Cm (ch2[?]X); Wait (\<lambda>_. 1); Cm (ch1[!](\<lambda>s. val s X)))"
 
-text \<open>Waiting an amount of time, without state change\<close>
-inductive wait_c :: "'a eexp \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" where
-  "e s0 > 0 \<Longrightarrow> P s0 s tr \<Longrightarrow> wait_c e P s0 s (WaitBlock (e s0) (\<lambda>_. s0) ({}, {}) # tr)"
-| "\<not>e s0 > 0 \<Longrightarrow> P s0 s tr \<Longrightarrow> wait_c e P s0 s tr"
-
-inductive wait_cg :: "pname \<Rightarrow> 'a eexp \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2" where
-  "e (the (gs0 pn)) > 0 \<Longrightarrow> P gs0 gs tr \<Longrightarrow> wait_cg pn e P gs0 gs (WaitBlockP (e (the (gs0 pn))) (\<lambda>_. gs0) ({}, {}) # tr)"
-| "\<not>e (the (gs0 pn)) > 0 \<Longrightarrow> P gs0 gs tr \<Longrightarrow> wait_cg pn e P gs0 gs tr"
-
-lemma single_assn_wait:
-  "single_assn pn (wait_c e P) = wait_cg pn e (single_assn pn P)"
-  apply (rule ext) apply (rule ext) apply (rule ext)
-  subgoal for gs0 gs tr
-    apply (rule iffI)
-    subgoal apply (elim single_assn.cases) apply auto
-      subgoal for s0 s tr'
-        apply (cases "e s0 > 0")
-        subgoal premises pre
-        proof -
-          have es0: "e s0 = e (the ((State pn s0) pn))"
-            by auto
-          then show ?thesis
-            using pre apply (elim wait_c.cases) apply auto[2]
-            apply (subst es0) apply (rule wait_cg.intros(1))
-            by (auto intro: single_assn.intros)
-        qed
-        subgoal premises pre
-        proof -
-          have es0: "e s0 = e (the ((State pn s0) pn))"
-            by auto
-          then show ?thesis
-            using pre apply (elim wait_c.cases) apply auto[1]
-            apply (rule wait_cg.intros(2))
-            by (auto intro: single_assn.intros)
-        qed
-        done
-      done
-    subgoal apply (elim wait_cg.cases) apply auto
-      subgoal for tr'
-        apply (elim single_assn.cases) apply auto
-        subgoal for s0' s' tr''
-          apply (subst ptrace_of.simps[symmetric])
-          apply (rule single_assn.intros)
-          apply (rule wait_c.intros) by auto
-        done
-      subgoal
-        apply (elim single_assn.cases) apply auto
-        subgoal for s0' s' tr''
-          apply (rule single_assn.intros)
-          apply (rule wait_c.intros) by auto
-        done
-      done
-    done
-  done
-
-lemma spec_of_wait:
-  "spec_of (Wait e) (wait_c e init)"
-  unfolding Valid_def spec_of_def init_def
-  apply (auto elim!: waitE)
-   apply (rule wait_c.intros(1)) apply auto
-  apply (rule wait_c.intros(2)) by auto
-
-lemma Valid_wait_sp:
-  assumes "spec_of c Q"
-  shows "spec_of (Wait e; c) (wait_c e Q)"
-  using assms unfolding Valid_def spec_of_def init_def
-  apply (auto elim!: seqE waitE)
-   apply (rule wait_c.intros(1)) apply auto
-  apply (rule wait_c.intros(2)) by auto
-
-inductive true_assn2 :: "'a assn2" where
-  "true_assn2 s0 s tr"
-
-text \<open>Trace is compatible with a given set of procedure names\<close>
-inductive proc_set_trace :: "pname set \<Rightarrow> 'a ptrace \<Rightarrow> bool" where
-  "proc_set_trace pns []"
-| "proc_set_trace pns tr \<Longrightarrow> proc_set_trace pns (CommBlockP ctype ch v # tr)"
-| "proc_set_trace pns tr \<Longrightarrow> \<forall>t. proc_set (p t) = pns \<Longrightarrow>
-   proc_set_trace pns (WaitBlockP d p rdy # tr)"
-
-inductive_cases proc_set_trace_waitE: "proc_set_trace pns (WaitBlockP d p rdy # tr)"
-thm proc_set_trace_waitE
-
-lemma proc_set_trace_tl:
-  "proc_set_trace pns (blk # tr) \<Longrightarrow> proc_set_trace pns tr"
-  apply (induct rule: proc_set_trace.cases)
-  by auto
-
-lemma proc_set_trace_wait:
-  "proc_set_trace pns (WaitBlockP d p rdy # tr) \<Longrightarrow> proc_set (p t) = pns"
-  apply (elim proc_set_trace_waitE) by auto
-
-inductive true_gassn :: "pname set \<Rightarrow> 'a gassn2" where
-  "proc_set gs0 = pns \<Longrightarrow> proc_set gs = pns \<Longrightarrow> proc_set_trace pns tr \<Longrightarrow>
-   true_gassn pns gs0 gs tr"
-
-text \<open>The following two lemmas show that a trace is compatible with
-  a set of procedure names if and only if it can be created using ptrace_of.
-\<close>
-lemma proc_set_trace_single:
-  "proc_set_trace {pn} (ptrace_of pn tr)"
-proof (induction tr)
-  case Nil
-  then show ?case
-    by (auto intro: proc_set_trace.intros)
-next
-  case (Cons blk tr)
-  show ?case
-    apply (cases blk)
-    using Cons by (auto intro: proc_set_trace.intros)
-qed
-
-lemma proc_set_trace_is_single:
-  "proc_set_trace {pn} tr \<Longrightarrow> \<exists>tr'. tr = ptrace_of pn tr'"
-proof (induction tr)
-  case Nil
-  show ?case
-    apply (rule exI[where x="[]"])
-    by auto
-next
-  case (Cons blk tr)
-  have "proc_set_trace {pn} tr"
-    using Cons(2) proc_set_trace_tl by auto
-  then obtain tr' where tr': "tr = ptrace_of pn tr'"
-    using Cons(1) by auto
-  show ?case
-  proof (cases blk)
-    case (CommBlockP ctype ch v)
-    show ?thesis
-      unfolding CommBlockP
-      apply (rule exI[where x="CommBlock ctype ch v # tr'"])
-      using tr' by auto
-  next
-    case (WaitBlockP d p rdy)
-    have "proc_set_trace {pn} (WaitBlockP d p rdy # tr)"
-      using Cons(2)[unfolded WaitBlockP] by auto
-    then have "proc_set (p t) = {pn}" for t
-      using proc_set_trace_wait by blast
-    then have "\<exists>p'. p t = State pn p'" for t
-      by (metis proc_set_single_elim)
-    then obtain p' where p': "p = (\<lambda>\<tau>. State pn (p' \<tau>))"
-      by metis
-    show ?thesis
-      unfolding WaitBlockP
-      apply (rule exI[where x="WaitBlock d p' rdy # tr'"])
-      using tr' p' by auto
-  qed
-qed
-
-lemma single_assn_true:
-  "single_assn pn true_assn2 = true_gassn {pn}"
-  apply (rule ext) apply (rule ext) apply (rule ext)
-  subgoal for s0 s tr
-    apply (rule iffI)
-    subgoal apply (elim single_assn.cases)
-      apply auto apply (rule true_gassn.intros)
-      using proc_set_trace_single by auto
-    subgoal apply (elim true_gassn.cases)
-      apply clarify
-      apply (elim proc_set_single_elim)
-      apply auto
-      by (metis proc_set_trace_is_single single_assn.intros true_assn2.intros)
-    done
-  done
-
-lemma entails_assumption:
-  "P s \<Longrightarrow>\<^sub>A (IFA b THEN P ELSE true_assn2 FI) s"
-  unfolding cond_assn2_def entails_def
-  using true_assn2.intros by auto
-
-text \<open>Version of wait_in_c with assumption of immediate communication\<close>
-definition wait_in_c0 :: "cname \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
-  "wait_in_c0 ch P = wait_in_c ch (\<lambda>d v. IFA (\<lambda>s. d = 0) THEN P v ELSE true_assn2 FI)"
-
-definition wait_in_cg0 :: "pname \<Rightarrow> cname \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
-  "wait_in_cg0 pn ch P = wait_in_cg ch (\<lambda>d v. IFG [pn] (\<lambda>s. d = 0) THEN P v ELSE true_gassn {pn} FI)"
-
-lemma single_assn_wait_in0:
-  "single_assn pn (wait_in_c0 ch P) = wait_in_cg0 pn ch (\<lambda>v. single_assn pn (P v))"
-  unfolding wait_in_c0_def wait_in_cg0_def
-  apply (subst single_assn_wait_in)
-  unfolding single_assn_cond single_assn_true by auto
-
 lemma ex6a_sp:
   "spec_of ex6a
     (wait_in_c0 ch2 (\<lambda>v.
@@ -959,6 +776,7 @@ lemma ex6b_sp:
   apply (rule Valid_wait_sp)
   apply (rule spec_of_receive)
   done
+
 
 lemma ex6:
   "spec_of_global
