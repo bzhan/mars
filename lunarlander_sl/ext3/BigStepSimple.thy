@@ -47,31 +47,25 @@ datatype comm_type = In | Out | IO
 
 datatype trace_block =
   CommBlock comm_type cname real
-| WaitBlock ereal "real \<Rightarrow> gstate" rdy_info
+| WaitBlock real "real \<Rightarrow> gstate" rdy_info
 
 abbreviation "InBlock ch v \<equiv> CommBlock In ch v"
 abbreviation "OutBlock ch v \<equiv> CommBlock Out ch v"
 abbreviation "IOBlock ch v \<equiv> CommBlock IO ch v"
 
-fun WaitBlk :: "ereal \<Rightarrow> (real \<Rightarrow> gstate) \<Rightarrow> rdy_info \<Rightarrow> trace_block" where
-  "WaitBlk (ereal d) p rdy = WaitBlock (ereal d) (\<lambda>\<tau>\<in>{0..d}. p \<tau>) rdy"
-| "WaitBlk PInfty p rdy = WaitBlock PInfty (\<lambda>\<tau>\<in>{0..}. p \<tau>) rdy"
-| "WaitBlk MInfty p rdy = WaitBlock MInfty (\<lambda>_. undefined) rdy"
+fun WaitBlk :: "real \<Rightarrow> (real \<Rightarrow> gstate) \<Rightarrow> rdy_info \<Rightarrow> trace_block" where
+  "WaitBlk d p rdy = WaitBlock d (\<lambda>\<tau>\<in>{0..d}. p \<tau>) rdy"
 
 lemma WaitBlk_simps [simp]:
-  "WaitBlk (ereal d) p rdy = WaitBlock (ereal d) (\<lambda>\<tau>\<in>{0..d}. p \<tau>) rdy"
-  "WaitBlk \<infinity> p rdy = WaitBlock \<infinity> (\<lambda>\<tau>\<in>{0..}. p \<tau>) rdy"
-  "WaitBlk (-\<infinity>) p rdy = WaitBlock (-\<infinity>) (\<lambda>_. undefined) rdy"
-  apply auto
-  using WaitBlk.simps(2) infinity_ereal_def apply presburger
-  using WaitBlk.simps(3) by auto
+  "WaitBlk d p rdy = WaitBlock d (\<lambda>\<tau>\<in>{0..d}. p \<tau>) rdy"
+  by auto
 
 declare WaitBlk.simps [simp del]
 
 lemma WaitBlk_not_Comm [simp]:
   "WaitBlk d p rdy \<noteq> CommBlock ch_type ch v"
   "CommBlock ch_type ch v \<noteq> WaitBlk d p rdy"
-  by (cases d, auto)+
+  by (auto)+
 
 lemma restrict_cong_to_eq:
   fixes x :: real
@@ -84,25 +78,25 @@ lemma restrict_cong_to_eq2:
   apply (auto simp add: restrict_def) by metis
 
 lemma WaitBlk_ext:
-  fixes t1 t2 :: ereal
+  fixes t1 t2 :: real
     and hist1 hist2 :: "real \<Rightarrow> gstate"
   shows "t1 = t2 \<Longrightarrow>
    (\<And>\<tau>::real. 0 \<le> \<tau> \<Longrightarrow> \<tau> \<le> t1 \<Longrightarrow> hist1 \<tau> = hist2 \<tau>) \<Longrightarrow> rdy1 = rdy2 \<Longrightarrow>
    WaitBlk t1 hist1 rdy1 = WaitBlk t2 hist2 rdy2"
-  apply (cases t1)
   apply (auto simp add: restrict_def)
-  apply (rule ext) by auto
+  done
+  
 
 lemma WaitBlk_ext_real:
   fixes t1 :: real
     and t2 :: real
   shows "t1 = t2 \<Longrightarrow> (\<And>\<tau>. 0 \<le> \<tau> \<Longrightarrow> \<tau> \<le> t1 \<Longrightarrow> hist1 \<tau> = hist2 \<tau>) \<Longrightarrow> rdy1 = rdy2 \<Longrightarrow>
-         WaitBlk (ereal t1) hist1 rdy1 = WaitBlk (ereal t2) hist2 rdy2"
+         WaitBlk t1 hist1 rdy1 = WaitBlk t2 hist2 rdy2"
   by (auto simp add: restrict_def)
 
 lemma WaitBlk_cong:
   "WaitBlk t1 hist1 rdy1 = WaitBlk t2 hist2 rdy2 \<Longrightarrow> t1 = t2 \<and> rdy1 = rdy2"
-  apply (cases t1) by (cases t2, auto)+
+  by (auto)+
 
 lemma WaitBlk_cong2:
   assumes "WaitBlk t1 hist1 rdy1 = WaitBlk t2 hist2 rdy2"
@@ -110,82 +104,35 @@ lemma WaitBlk_cong2:
   shows "hist1 t = hist2 t"
 proof -
   have a: "t1 = t2" "rdy1 = rdy2"
-    using assms WaitBlk_cong by auto
+    using assms WaitBlk_cong 
+    by blast+
   show ?thesis
-  proof (cases t1)
-    case (real r)
-    have real2: "t2 = ereal r"
-      using real a by auto
-    show ?thesis
-      using assms(1)[unfolded real real2]
-      apply auto using restrict_cong_to_eq assms ereal_less_eq(3) real by blast
-  next
-    case PInf
-    have PInf2: "t2 = \<infinity>"
-      using PInf a by auto
-    show ?thesis
-      using assms(1)[unfolded PInf PInf2] restrict_cong_to_eq2 assms by auto
-  next
-    case MInf
-    show ?thesis
-      using assms MInf by auto
-  qed
+    using restrict_cong_to_eq assms 
+    by auto
 qed
 
 lemma WaitBlk_split1:
   fixes t1 :: real
   assumes "WaitBlk t p1 rdy = WaitBlk t p2 rdy"
-    and "0 < t1" "ereal t1 < t"
-  shows "WaitBlk (ereal t1) p1 rdy = WaitBlk (ereal t1) p2 rdy"
-proof (cases t)
-  case (real r)
-  show ?thesis
-    apply auto apply (rule ext) subgoal for x
-      using assms[unfolded real] 
-      using restrict_cong_to_eq[of p1 r p2 x] by auto
+    and "0 < t1" "t1 < t"
+  shows "WaitBlk t1 p1 rdy = WaitBlk t1 p2 rdy"
+  apply auto apply (rule ext) subgoal for x
+      using assms[unfolded ] 
+      using restrict_cong_to_eq[of p1 t p2 x] 
+      apply auto
     done
-next
-  case PInf
-  show ?thesis
-    apply auto apply (rule ext) subgoal for x
-      using assms[unfolded PInf] restrict_cong_to_eq2[of p1 p2 x] by auto
-    done
-next
-  case MInf
-  then show ?thesis
-    using assms by auto
-qed
+  done
 
 lemma WaitBlk_split2:
   fixes t1 :: real
   assumes "WaitBlk t p1 rdy = WaitBlk t p2 rdy"
-    and "0 < t1" "ereal t1 < t"
-  shows "WaitBlk (t - ereal t1) (\<lambda>\<tau>::real. p1 (\<tau> + t1)) rdy =
-         WaitBlk (t - ereal t1) (\<lambda>\<tau>::real. p2 (\<tau> + t1)) rdy"
-proof (cases t)
-  case (real r)
-  have a: "t - ereal t1 = ereal (r - t1)"
-    unfolding real by auto
-  show ?thesis
-    unfolding a apply auto apply (rule ext) subgoal for x
-      using assms[unfolded real]
-      using restrict_cong_to_eq[of p1 r p2 "x + t1"] by auto
+    and "0 < t1" "t1 < t"
+  shows "WaitBlk (t - t1) (\<lambda>\<tau>::real. p1 (\<tau> + t1)) rdy =
+         WaitBlk (t - t1) (\<lambda>\<tau>::real. p2 (\<tau> + t1)) rdy"
+  apply auto apply (rule ext) subgoal for x
+      using assms[unfolded ]
+      using restrict_cong_to_eq[of p1 t p2 "x + t1"] by auto
     done
-next
-  case PInf
-  have a: "t - ereal t1 = \<infinity>"
-    unfolding PInf by auto
-  show ?thesis
-    unfolding a
-    apply auto
-    apply (rule ext) subgoal for x
-      using assms[unfolded PInf] restrict_cong_to_eq2[of p1 p2 "x + t1"] by auto
-    done
-next
-  case MInf
-  then show ?thesis
-    using assms by auto
-qed
 
 lemmas WaitBlk_split = WaitBlk_split1 WaitBlk_split2
 declare WaitBlk_simps [simp del]
@@ -223,12 +170,10 @@ inductive big_step :: "proc \<Rightarrow> state \<Rightarrow> trace \<Rightarrow
 | sendB2: "(d::real) > 0 \<Longrightarrow> big_step (Cm (ch[!]e)) s
             [WaitBlk d (\<lambda>_. State s) ({ch}, {}),
              OutBlock ch (e s)] s"
-| sendB3: "big_step (Cm (ch[!]e)) s [WaitBlk \<infinity> (\<lambda>_. State s) ({ch}, {})] s"
 | receiveB1: "big_step (Cm (ch[?]var)) s [InBlock ch v] (s(var := v))"
 | receiveB2: "(d::real) > 0 \<Longrightarrow> big_step (Cm (ch[?]var)) s
             [WaitBlk d (\<lambda>_. State s) ({}, {ch}),
              InBlock ch v] (s(var := v))"
-| receiveB3: "big_step (Cm (ch[?]var)) s [WaitBlk \<infinity> (\<lambda>_. State s) ({}, {ch})] s"
 | IChoiceB1: "big_step p1 s1 tr s2 \<Longrightarrow> big_step (IChoice p1 p2) s1 tr s2"
 | IChoiceB2: "big_step p2 s1 tr s2 \<Longrightarrow> big_step (IChoice p1 p2) s1 tr s2"
 | EChoiceSendB1: "i < length cs \<Longrightarrow> cs ! i = (Send ch e, p2) \<Longrightarrow>
@@ -350,8 +295,7 @@ theorem Valid_assign:
 
 theorem Valid_send:
   "\<Turnstile> {\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]) \<and>
-              (\<forall>d::real>0. Q s (tr @ [WaitBlk d (\<lambda>_. State s) ({ch}, {}), OutBlock ch (e s)])) \<and>
-              Q s (tr @ [WaitBlk \<infinity> (\<lambda>_. State s) ({ch}, {})])}
+              (\<forall>d::real>0. Q s (tr @ [WaitBlk d (\<lambda>_. State s) ({ch}, {}), OutBlock ch (e s)]))}
        Cm (ch[!]e) {Q}"
   unfolding Valid_def
   by (auto elim: sendE)
@@ -359,8 +303,7 @@ theorem Valid_send:
 theorem Valid_receive:
   "\<Turnstile> {\<lambda>s tr. (\<forall>v. Q (s(var := v)) (tr @ [InBlock ch v])) \<and>
               (\<forall>d::real>0. \<forall>v. Q (s(var := v))
-                (tr @ [WaitBlk d (\<lambda>_. State s) ({}, {ch}), InBlock ch v])) \<and>
-              Q s (tr @ [WaitBlk \<infinity> (\<lambda>_. State s) ({}, {ch})])}
+                (tr @ [WaitBlk d (\<lambda>_. State s) ({}, {ch}), InBlock ch v]))}
        Cm (ch[?]var) {Q}"
   unfolding Valid_def
   by (auto elim: receiveE)
@@ -537,13 +480,11 @@ definition pure_assn :: "bool \<Rightarrow> tassn" ("\<up>") where
 
 inductive out_assn :: "gstate \<Rightarrow> cname \<Rightarrow> real \<Rightarrow> tassn" ("Out\<^sub>t") where
   "Out\<^sub>t s ch v [OutBlock ch v]"
-| "(d::real) > 0 \<Longrightarrow> Out\<^sub>t s ch v [WaitBlk (ereal d) (\<lambda>_. s) ({ch}, {}), OutBlock ch v]"
-| "Out\<^sub>t s ch v [WaitBlk \<infinity> (\<lambda>_. s) ({ch}, {})]"
+| "(d::real) > 0 \<Longrightarrow> Out\<^sub>t s ch v [WaitBlk d (\<lambda>_. s) ({ch}, {}), OutBlock ch v]"
 
 inductive in_assn :: "gstate \<Rightarrow> cname \<Rightarrow> real \<Rightarrow> tassn" ("In\<^sub>t") where
   "In\<^sub>t s ch v [InBlock ch v]"
-| "(d::real) > 0 \<Longrightarrow> In\<^sub>t s ch v [WaitBlk (ereal d) (\<lambda>_. s) ({}, {ch}), InBlock ch v]"
-| "In\<^sub>t s ch v [WaitBlk \<infinity> (\<lambda>_. s) ({}, {ch})]"
+| "(d::real) > 0 \<Longrightarrow> In\<^sub>t s ch v [WaitBlk d (\<lambda>_. s) ({}, {ch}), InBlock ch v]"
 
 inductive io_assn :: "cname \<Rightarrow> real \<Rightarrow> tassn" ("IO\<^sub>t") where
   "IO\<^sub>t ch v [IOBlock ch v]"
@@ -710,12 +651,7 @@ theorem Valid_receive_sp:
     apply (auto simp add: conj_assn_def pure_assn_def)
     apply (rule exI[where x=tr])
     apply auto apply (rule in_assn.intros) by auto
-  subgoal for s tr
-    apply (rule exI[where x="s var"])
-    apply (auto simp add: conj_assn_def pure_assn_def)
-    apply (rule exI[where x=tr])
-    apply auto by (rule in_assn.intros)
-  done
+    done
 
 theorem Valid_wait_sp:
   "\<Turnstile> {\<lambda>s t. P s t}
@@ -800,10 +736,6 @@ theorem Valid_receive_sp_st:
     apply (rule exI[where x=v])
     apply auto apply (rule exI[where x=tr])
     using in_assn.intros(2) by auto
-  subgoal for tr
-    apply (rule exI[where x="st var"])
-    apply auto apply (rule exI[where x=tr])
-    by (metis in_assn.intros(3) infinity_ereal_def)
   done
 
 
@@ -823,10 +755,6 @@ theorem Valid_receive_sp_bst:
     apply (rule exI[where x=v])
     apply auto apply (rule exI[where x=tr])
     using in_assn.intros(2) by auto
-  subgoal for tr
-    apply (rule exI[where x="st var"])
-    apply auto apply (rule exI[where x=tr])
-    by (metis in_assn.intros(3) infinity_ereal_def)
   done
 
 
