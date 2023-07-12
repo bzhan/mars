@@ -865,7 +865,7 @@ theorem Valid_inv_b_tr_ge_and_ge:
     ODEsol ode p d \<Longrightarrow>
     \<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> r1 < b1 (p t) \<and> r2 < b2 (p t) \<Longrightarrow>
     \<not>   r1 < b1 (p d) \<Longrightarrow> (P @\<^sub>t ode_inv_assn (\<lambda>s. r1 \<le> b1 s \<and> r2 \<le> b2 s))
-        (tr1 @ [WaitBlk (ereal d) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+        (tr1 @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
     apply(simp add: join_assn_def)
     apply(rule exI [where x="tr1"])
     apply auto
@@ -934,7 +934,7 @@ qed
     ODEsol ode p d \<Longrightarrow>
     \<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> r1 < b1 (p t) \<and> r2 < b2 (p t) \<Longrightarrow>
     \<not>   r2 < b2 (p d) \<Longrightarrow> (P @\<^sub>t ode_inv_assn (\<lambda>s. r1 \<le> b1 s \<and> r2 \<le> b2 s))
-        (tr1 @ [WaitBlk (ereal d) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+        (tr1 @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
     apply(simp add: join_assn_def)
     apply(rule exI [where x="tr1"])
     apply auto
@@ -1138,18 +1138,18 @@ theorem DC':
   apply (auto elim!: contE)
   subgoal premises pre for tr T p
   proof -
-    have 1:"big_step (Cont ode b) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+    have 1:"big_step (Cont ode b) (p 0) [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
       apply (rule big_step.intros)
       using pre by auto
-    have 2:"(P @\<^sub>t ode_inv_assn c) (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+    have 2:"(P @\<^sub>t ode_inv_assn c) (tr @ [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
       using assms(1) 1
       unfolding Valid_def using pre by auto
-    obtain tra1 tra2 where tra1:"P tra1" and tra2:"ode_inv_assn c tra2" and tra3:"tra1 @ tra2 = (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+    obtain tra1 tra2 where tra1:"P tra1" and tra2:"ode_inv_assn c tra2" and tra3:"tra1 @ tra2 = (tr @ [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
       using 2 unfolding join_assn_def by auto
-    obtain T' p' where Tp:"tra2 = [WaitBlk (ereal T') (\<lambda>\<tau>. State (p' \<tau>)) ({}, {})]"
+    obtain T' p' where Tp:"tra2 = [WaitBlk T' (\<lambda>\<tau>. State (p' \<tau>)) ({}, {})]"
       using tra2 apply (induct rule: ode_inv_assn.induct)
       by auto
-    have 3:"ode_inv_assn c [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
+    have 3:"ode_inv_assn c [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
       using Tp tra3 tra2 by auto
     have 4: "\<forall>t\<in>{0..T}. c (p t)"
       using 3 apply (elim ode_inv_assn_elim)
@@ -1159,7 +1159,7 @@ theorem DC':
         apply (frule WaitBlk_cong2)
         by auto
       done
-    have 5:"big_step (Cont ode (\<lambda>s. b s \<and> c s)) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+    have 5:"big_step (Cont ode (\<lambda>s. b s \<and> c s)) (p 0) [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
       apply (rule big_step.intros)
       using pre 4 by auto
     show ?thesis
@@ -1170,18 +1170,18 @@ theorem DC':
   qed
 subgoal premises pre for tr T p
   proof-
-    have 1:"big_step (Cont ode b) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+    have 1:"big_step (Cont ode b) (p 0) [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
       apply (rule big_step.intros)
       using pre by auto
-    have 2:"(P @\<^sub>t ode_inv_assn c) (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+    have 2:"(P @\<^sub>t ode_inv_assn c) (tr @ [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
       using assms(1) 1
       unfolding Valid_def using pre by auto
-    obtain tra1 tra2 where tra1:"P tra1" and tra2:"ode_inv_assn c tra2" and tra3:"tra1 @ tra2 = (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+    obtain tra1 tra2 where tra1:"P tra1" and tra2:"ode_inv_assn c tra2" and tra3:"tra1 @ tra2 = (tr @ [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
       using 2 unfolding join_assn_def by auto
-    obtain T' p' where Tp:"tra2 = [WaitBlk (ereal T') (\<lambda>\<tau>. State (p' \<tau>)) ({}, {})]"
+    obtain T' p' where Tp:"tra2 = [WaitBlk T' (\<lambda>\<tau>. State (p' \<tau>)) ({}, {})]"
       using tra2 apply (induct rule: ode_inv_assn.induct)
       by auto
-    have 3:"ode_inv_assn c [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
+    have 3:"ode_inv_assn c [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
       using Tp tra3 tra2 by auto
     have 4: "\<forall>t\<in>{0..T}. c (p t)"
       using 3 apply (elim ode_inv_assn_elim)
@@ -1191,7 +1191,7 @@ subgoal premises pre for tr T p
         apply (frule WaitBlk_cong2)
         by auto
       done
-    have 5:"big_step (Cont ode (\<lambda>s. b s \<and> c s)) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+    have 5:"big_step (Cont ode (\<lambda>s. b s \<and> c s)) (p 0) [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
       apply (rule big_step.intros)
       using pre 4 by auto
     show ?thesis
@@ -1222,18 +1222,18 @@ theorem DC'':
   apply (auto elim!: contE)
   subgoal premises pre for tr T p
   proof-
-    have 1:"big_step (Cont ode b) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+    have 1:"big_step (Cont ode b) (p 0) [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
       apply (rule big_step.intros)
       using pre by auto
-    have 2:"(P @\<^sub>t ode_inv_assn c) (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+    have 2:"(P @\<^sub>t ode_inv_assn c) (tr @ [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
       using assms(1) 1
       unfolding Valid_def using pre by auto
-    obtain tra1 tra2 where tra1:"P tra1" and tra2:"ode_inv_assn c tra2" and tra3:"tra1 @ tra2 = (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+    obtain tra1 tra2 where tra1:"P tra1" and tra2:"ode_inv_assn c tra2" and tra3:"tra1 @ tra2 = (tr @ [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
       using 2 unfolding join_assn_def by auto
-    obtain T' p' where Tp:"tra2 = [WaitBlk (ereal T') (\<lambda>\<tau>. State (p' \<tau>)) ({}, {})]"
+    obtain T' p' where Tp:"tra2 = [WaitBlk T' (\<lambda>\<tau>. State (p' \<tau>)) ({}, {})]"
       using tra2 apply (induct rule: ode_inv_assn.induct)
       by auto
-    have 3:"ode_inv_assn c [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
+    have 3:"ode_inv_assn c [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
       using Tp tra3 tra2 by auto
     have 4: "\<forall>t\<in>{0..T}. c (p t)"
       using 3 apply (elim ode_inv_assn_elim)
@@ -1243,7 +1243,7 @@ theorem DC'':
         apply (frule WaitBlk_cong2)
         by auto
       done
-    have 5:"big_step (Cont ode (\<lambda>s. b s \<and> c s)) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+    have 5:"big_step (Cont ode (\<lambda>s. b s \<and> c s)) (p 0) [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
       apply (rule big_step.intros)
       using pre 4 by auto
     show ?thesis
@@ -1271,18 +1271,18 @@ theorem DC''g:
   apply (auto elim!: contE)
   subgoal premises pre for tr T p
   proof-
-    have 1:"big_step (Cont ode b) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+    have 1:"big_step (Cont ode b) (p 0) [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
       apply (rule big_step.intros)
       using pre by auto
-    have 2:"(P @\<^sub>t ode_inv_assn c) (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+    have 2:"(P @\<^sub>t ode_inv_assn c) (tr @ [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
       using assms(1) 1
       unfolding Valid_def using pre by auto
-    obtain tra1 tra2 where tra1:"P tra1" and tra2:"ode_inv_assn c tra2" and tra3:"tra1 @ tra2 = (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+    obtain tra1 tra2 where tra1:"P tra1" and tra2:"ode_inv_assn c tra2" and tra3:"tra1 @ tra2 = (tr @ [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
       using 2 unfolding join_assn_def by auto
-    obtain T' p' where Tp:"tra2 = [WaitBlk (ereal T') (\<lambda>\<tau>. State (p' \<tau>)) ({}, {})]"
+    obtain T' p' where Tp:"tra2 = [WaitBlk T' (\<lambda>\<tau>. State (p' \<tau>)) ({}, {})]"
       using tra2 apply (induct rule: ode_inv_assn.induct)
       by auto
-    have 3:"ode_inv_assn c [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
+    have 3:"ode_inv_assn c [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
       using Tp tra3 tra2 by auto
     have 4: "\<forall>t\<in>{0..T}. c (p t)"
       using 3 apply (elim ode_inv_assn_elim)
@@ -1292,7 +1292,7 @@ theorem DC''g:
         apply (frule WaitBlk_cong2)
         by auto
       done
-    have 5:"big_step (Cont ode b) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+    have 5:"big_step (Cont ode b) (p 0) [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
       apply (rule big_step.intros)
       using pre 4 by auto
     show ?thesis
@@ -1323,18 +1323,18 @@ theorem DC''':
   apply (auto elim!: contE)
   subgoal premises pre for tr T p
   proof-
-    have 1:"big_step (Cont ode b) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+    have 1:"big_step (Cont ode b) (p 0) [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
       apply (rule big_step.intros)
       using pre by auto
-    have 2:"(P @\<^sub>t ode_inv_assn c) (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+    have 2:"(P @\<^sub>t ode_inv_assn c) (tr @ [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
       using assms(1) 1
       unfolding Valid_def using pre by auto
-    obtain tra1 tra2 where tra1:"P tra1" and tra2:"ode_inv_assn c tra2" and tra3:"tra1 @ tra2 = (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+    obtain tra1 tra2 where tra1:"P tra1" and tra2:"ode_inv_assn c tra2" and tra3:"tra1 @ tra2 = (tr @ [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
       using 2 unfolding join_assn_def by auto
-    obtain T' p' where Tp:"tra2 = [WaitBlk (ereal T') (\<lambda>\<tau>. State (p' \<tau>)) ({}, {})]"
+    obtain T' p' where Tp:"tra2 = [WaitBlk T' (\<lambda>\<tau>. State (p' \<tau>)) ({}, {})]"
       using tra2 apply (induct rule: ode_inv_assn.induct)
       by auto
-    have 3:"ode_inv_assn c [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
+    have 3:"ode_inv_assn c [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
       using Tp tra3 tra2 by auto
     have 4: "\<forall>t\<in>{0..T}. c (p t)"
       using 3 apply (elim ode_inv_assn_elim)
@@ -1344,7 +1344,7 @@ theorem DC''':
         apply (frule WaitBlk_cong2)
         by auto
       done
-    have 5:"big_step (Cont ode (\<lambda>s. b s \<and> c s)) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+    have 5:"big_step (Cont ode (\<lambda>s. b s \<and> c s)) (p 0) [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
       apply (rule big_step.intros)
       using pre 4 by auto
     show ?thesis
@@ -1355,18 +1355,18 @@ theorem DC''':
   qed
 subgoal premises pre for tr T p
   proof-
-    have 1:"big_step (Cont ode b) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+    have 1:"big_step (Cont ode b) (p 0) [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
       apply (rule big_step.intros)
       using pre by auto
-    have 2:"(P @\<^sub>t ode_inv_assn c) (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+    have 2:"(P @\<^sub>t ode_inv_assn c) (tr @ [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
       using assms(1) 1
       unfolding Valid_def using pre by auto
-    obtain tra1 tra2 where tra1:"P tra1" and tra2:"ode_inv_assn c tra2" and tra3:"tra1 @ tra2 = (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+    obtain tra1 tra2 where tra1:"P tra1" and tra2:"ode_inv_assn c tra2" and tra3:"tra1 @ tra2 = (tr @ [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
       using 2 unfolding join_assn_def by auto
-    obtain T' p' where Tp:"tra2 = [WaitBlk (ereal T') (\<lambda>\<tau>. State (p' \<tau>)) ({}, {})]"
+    obtain T' p' where Tp:"tra2 = [WaitBlk T' (\<lambda>\<tau>. State (p' \<tau>)) ({}, {})]"
       using tra2 apply (induct rule: ode_inv_assn.induct)
       by auto
-    have 3:"ode_inv_assn c [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
+    have 3:"ode_inv_assn c [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
       using Tp tra3 tra2 by auto
     have 4: "\<forall>t\<in>{0..T}. c (p t)"
       using 3 apply (elim ode_inv_assn_elim)
@@ -1376,7 +1376,7 @@ subgoal premises pre for tr T p
         apply (frule WaitBlk_cong2)
         by auto
       done
-    have 5:"big_step (Cont ode (\<lambda>s. b s \<and> c s)) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+    have 5:"big_step (Cont ode (\<lambda>s. b s \<and> c s)) (p 0) [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
       apply (rule big_step.intros)
       using pre 4 by auto
     show ?thesis
@@ -1404,18 +1404,18 @@ theorem DC'''g:
   apply (auto elim!: contE)
   subgoal premises pre for tr T p
   proof-
-    have 1:"big_step (Cont ode b) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+    have 1:"big_step (Cont ode b) (p 0) [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
       apply (rule big_step.intros)
       using pre by auto
-    have 2:"(P @\<^sub>t ode_inv_assn c) (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+    have 2:"(P @\<^sub>t ode_inv_assn c) (tr @ [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
       using assms(1) 1
       unfolding Valid_def using pre by auto
-    obtain tra1 tra2 where tra1:"P tra1" and tra2:"ode_inv_assn c tra2" and tra3:"tra1 @ tra2 = (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+    obtain tra1 tra2 where tra1:"P tra1" and tra2:"ode_inv_assn c tra2" and tra3:"tra1 @ tra2 = (tr @ [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
       using 2 unfolding join_assn_def by auto
-    obtain T' p' where Tp:"tra2 = [WaitBlk (ereal T') (\<lambda>\<tau>. State (p' \<tau>)) ({}, {})]"
+    obtain T' p' where Tp:"tra2 = [WaitBlk T' (\<lambda>\<tau>. State (p' \<tau>)) ({}, {})]"
       using tra2 apply (induct rule: ode_inv_assn.induct)
       by auto
-    have 3:"ode_inv_assn c [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
+    have 3:"ode_inv_assn c [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
       using Tp tra3 tra2 by auto
     have 4: "\<forall>t\<in>{0..T}. c (p t)"
       using 3 apply (elim ode_inv_assn_elim)
@@ -1425,7 +1425,7 @@ theorem DC'''g:
         apply (frule WaitBlk_cong2)
         by auto
       done
-    have 5:"big_step (Cont ode b) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+    have 5:"big_step (Cont ode b) (p 0) [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
       apply (rule big_step.intros)
       using pre 4 by auto
     show ?thesis
@@ -1436,18 +1436,18 @@ theorem DC'''g:
   qed
 subgoal premises pre for tr T p
   proof-
-    have 1:"big_step (Cont ode b) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+    have 1:"big_step (Cont ode b) (p 0) [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
       apply (rule big_step.intros)
       using pre by auto
-    have 2:"(P @\<^sub>t ode_inv_assn c) (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+    have 2:"(P @\<^sub>t ode_inv_assn c) (tr @ [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
       using assms(1) 1
       unfolding Valid_def using pre by auto
-    obtain tra1 tra2 where tra1:"P tra1" and tra2:"ode_inv_assn c tra2" and tra3:"tra1 @ tra2 = (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+    obtain tra1 tra2 where tra1:"P tra1" and tra2:"ode_inv_assn c tra2" and tra3:"tra1 @ tra2 = (tr @ [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
       using 2 unfolding join_assn_def by auto
-    obtain T' p' where Tp:"tra2 = [WaitBlk (ereal T') (\<lambda>\<tau>. State (p' \<tau>)) ({}, {})]"
+    obtain T' p' where Tp:"tra2 = [WaitBlk T' (\<lambda>\<tau>. State (p' \<tau>)) ({}, {})]"
       using tra2 apply (induct rule: ode_inv_assn.induct)
       by auto
-    have 3:"ode_inv_assn c [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
+    have 3:"ode_inv_assn c [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
       using Tp tra3 tra2 by auto
     have 4: "\<forall>t\<in>{0..T}. c (p t)"
       using 3 apply (elim ode_inv_assn_elim)
@@ -1457,7 +1457,7 @@ subgoal premises pre for tr T p
         apply (frule WaitBlk_cong2)
         by auto
       done
-    have 5:"big_step (Cont ode b) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+    have 5:"big_step (Cont ode b) (p 0) [WaitBlk T (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
       apply (rule big_step.intros)
       using pre 4 by auto
     show ?thesis

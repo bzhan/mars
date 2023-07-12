@@ -27,35 +27,12 @@ proof -
   have a3: "\<And>t. 0 \<le> t \<Longrightarrow> t \<le> d1 \<Longrightarrow> p2 t = p2' t"
     using assms(2) WaitBlk_cong2 by auto
   show ?thesis
-  proof (cases d1)
-    case (real r)
-    have b: "d1' = ereal r"
-      using real a1(1) by auto
-    show ?thesis
-      unfolding real b apply (auto simp add: WaitBlk_simps)
+    apply (auto simp add: WaitBlk_simps)
+    using a1 apply auto
        apply (rule ext) apply auto
-      subgoal for x apply (rule a2) by (auto simp add: real)
-      subgoal for x apply (rule a3) by (auto simp add: real)
-      using a1 by auto
-  next
-    case PInf
-    have b: "d1' = \<infinity>"
-      using PInf a1 by auto
-    show ?thesis
-      unfolding PInf b infinity_ereal_def
-      apply (auto simp: WaitBlk_simps)
-       apply (rule ext) apply auto
-      subgoal for x apply (rule a2) by (auto simp add: PInf)
-      subgoal for x apply (rule a3) by (auto simp add: PInf)
-      using a1 by auto
-  next
-    case MInf
-    have b: "d1' = - \<infinity>"
-      using MInf a1 by auto
-    show ?thesis
-      unfolding MInf b
-      by (auto simp: a1 WaitBlk_simps)
-  qed
+      subgoal for x apply (rule a2) by auto
+      subgoal for x apply (rule a3) by auto
+      done
 qed
 
 
@@ -335,11 +312,11 @@ next
       using WaitBlk_cong[of d p rdy t hist1 "(a, b)"] Suc
       by auto
     subgoal for t2 t1 hist2 a b blks2 blks aa ba hist1
-      using WaitBlk_cong[of d p rdy "(ereal t1)" hist1 "(aa, ba)"] Suc
+      using WaitBlk_cong[of d p rdy "t1" hist1 "(aa, ba)"] Suc
       by auto
     subgoal for t1 t2 hist1 a b blks2 blks aa ba hist2
       using WaitBlk_cong[of d p rdy t1 hist1 "(a, b)"] Suc
-      apply(cases t1) by auto
+      by auto
     done
 qed
 
@@ -361,9 +338,9 @@ next
       by auto
     subgoal for blks1 t2 t1 hist2 a b blks aa ba hist1
       using WaitBlk_cong[of d p rdy t2 hist2 "(a, b)"] Suc
-      apply(cases t2) by auto
+      by auto
     subgoal for t1 t2 hist1 a b blks2 blks aa ba hist2
-      using WaitBlk_cong[of d p rdy "(ereal t2)" hist2 "(aa, ba)"] Suc
+      using WaitBlk_cong[of d p rdy "t2" hist2 "(aa, ba)"] Suc
       by auto
     done
 qed
@@ -618,12 +595,10 @@ proof (cases "d > 0")
       then show ?thesis
       proof (elim disjE)
         assume d1: "d < d2"
-        have d1': "ereal d < ereal d2"
-          using d1 by auto
         show ?thesis
           using that(2)
           apply (elim combine_blocks_waitE3)
-            apply (rule True) apply (rule d1') using assms(2) apply simp
+            apply (rule True) apply (rule d1) using assms(2) apply simp
           subgoal for blks'
             apply (subst join_assn_def)
             apply (rule exI[where x="[WaitBlk d (\<lambda>t. ParState (p t) s) (merge_rdy rdy1 ({}, {ch}))]"])
@@ -673,49 +648,14 @@ proof (cases "d > 0")
           done
       next
         assume d3: "d > d2"
-        have d3': "ereal d > ereal d2"
-          using d3 by auto
         show ?thesis
           using that(2)
           apply (elim combine_blocks_waitE4)
-          apply (rule that(1)) apply (rule d3')
+          apply (rule that(1)) apply (rule d3)
            using assms(2) apply simp
           apply (elim combine_blocks_pairE2')
           using assms by auto
       qed
-    qed
-    have e: "(Wait\<^sub>t d (\<lambda>t. ParState (p t) s) (merge_rdy rdy1 ({}, {ch})) @\<^sub>t
-             combine_assn chs P (In\<^sub>t s ch v @\<^sub>t Q)) tr"
-      if "combine_blocks chs (WaitBlk d p rdy1 # tr12)
-          (WaitBlk \<infinity> (\<lambda>_. s) ({}, {ch}) # tr22) tr"
-    proof -
-      have e1: "\<infinity> - ereal d = \<infinity>"
-        by auto
-      show ?thesis
-        using that
-        apply (elim combine_blocks_waitE3)
-           apply (rule True) apply simp using assms(2) apply simp
-        subgoal for blks'
-          apply (subst join_assn_def)
-          apply (rule exI[where x="[WaitBlk d (\<lambda>t. ParState (p t) s) (merge_rdy rdy1 ({}, {ch}))]"])
-          apply (rule exI[where x=blks'])
-          apply (rule conjI)
-            subgoal using True by (simp add: wait_assn.simps)
-            apply (rule conjI)
-             prefer 2 apply simp
-            unfolding combine_assn_def
-            apply (rule exI[where x=tr12])
-            apply (rule exI[where x="WaitBlk \<infinity> (\<lambda>_. s) ({}, {ch}) # tr22"])
-            apply (rule conjI)
-            subgoal by (rule a(2))
-            apply (rule conjI)
-             prefer 2 apply auto
-            apply (subst join_assn_def)
-            apply (rule exI[where x="[WaitBlk \<infinity> (\<lambda>_. s) ({}, {ch})]"])
-            apply (rule exI[where x=tr22])
-            using b(2) apply (auto intro: in_assn.intros)
-          done
-        done
     qed
     show ?thesis
       using b(1) apply (cases rule: in_assn.cases)
@@ -724,9 +664,6 @@ proof (cases "d > 0")
       subgoal for d2
         using that(3) unfolding a(3) b(3) c
         using d assms(2) by auto
-      subgoal
-        using that(3) unfolding a(3) b(3) c
-        using e assms(2) by auto
       done
   qed
   show ?thesis
@@ -773,12 +710,10 @@ proof -
       then show ?thesis
       proof (elim disjE)
         assume d1: "d < d2"
-        have d1': "ereal d < ereal d2"
-          using d1 by auto
         show ?thesis
           using that(2)
           apply (elim combine_blocks_waitE3) apply (rule that(1))
-            apply (rule d1') apply (rule assms(2))
+            apply (rule d1) apply (rule assms(2))
           using assms(1) combine_blocks_pairE2 by blast
       next
         assume d2: "d = d2"
@@ -811,12 +746,10 @@ proof -
           done
       next
         assume d3: "d > d2"
-        have d3': "ereal d > ereal d2"
-          using d3 by auto
         show ?thesis
           using that(2)
           apply (elim combine_blocks_waitE4) apply (rule \<open>0 < d2\<close>)
-            apply (rule d3') apply (rule assms(2))
+            apply (rule d3) apply (rule assms(2))
           subgoal for blks'
             unfolding pure_assn_def conj_assn_def
             apply (rule conjI)
@@ -894,16 +827,11 @@ proof -
         subgoal
           using that(3) unfolding a(3) b(3) apply auto
           apply (elim combine_blocks_pairE2) by (rule assms)
-        subgoal
-          using that(3) unfolding a(3) b(3) apply auto
-          apply (elim combine_blocks_pairE2) by (rule assms)
         done
       using b(1) apply (cases rule: in_assn.cases)
       using that(3) unfolding a(3) b(3) apply auto
       subgoal apply (elim combine_blocks_pairE2') by (rule assms)
       subgoal for d' apply (elim combine_blocks_waitE1)
-        using assms(2) apply (cases rdy) by auto
-      subgoal apply (elim combine_blocks_waitE1)
         using assms(2) apply (cases rdy) by auto
       done
   qed

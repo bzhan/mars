@@ -182,7 +182,7 @@ inductive ode_out_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightar
 | "0 < (d::real) \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = s \<Longrightarrow>
     \<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t) \<Longrightarrow>
     ODEout\<^sub>t s ode b (p d) ch e rdy
-      [WaitBlk (ereal d) (\<lambda>\<tau>. State (p \<tau>)) rdy, OutBlock ch (e (p d))]"
+      [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) rdy, OutBlock ch (e (p d))]"
 
 text \<open>ODE with interrupt, but reached boundary\<close>
 inductive ode_rdy_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightarrow> state \<Rightarrow> rdy_info \<Rightarrow> tassn" ("ODErdy\<^sub>t") where
@@ -591,7 +591,7 @@ theorem Valid_interrupt_Out_sp2:
       using 1 pre cond assms(3) unfolding supp_def by auto
     have 3:"ODEout\<^sub>t st (ODE ode) (\<lambda>_. True) s ch e ({ch}, {}) tr2 \<Longrightarrow> tr2 \<noteq>  [OutBlock ch (e s)] \<Longrightarrow>
 \<exists> p d. (0 < (d::real) \<and>  ODEsol (ODE ode) p d \<and> p 0 = st \<and>
-    s = p d \<and> tr2 = [WaitBlk (ereal d) (\<lambda>\<tau>. State (p \<tau>)) ({ch}, {}), OutBlock ch (e (p d))])"
+    s = p d \<and> tr2 = [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({ch}, {}), OutBlock ch (e (p d))])"
       apply (induct rule: ode_out_assn.induct) by auto
     have 4:"ODEout\<^sub>t st (ODE ode) (\<lambda>_. True) s ch e ({ch}, {}) tr2 \<Longrightarrow> tr2 \<noteq>  [OutBlock ch (e s)] \<Longrightarrow>False"
       subgoal premises pre1
