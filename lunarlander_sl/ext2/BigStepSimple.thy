@@ -727,7 +727,6 @@ lemma proc_set_big_step:
   "par_big_step p s1 tr s2 \<Longrightarrow> proc_set s1 = proc_of_pproc p \<and> proc_set s2 = proc_of_pproc p"
   apply (induction rule: par_big_step.induct) by auto
 
-
 text \<open>Assertion on global state\<close>
 type_synonym 'a gs_assn = "'a gstate \<Rightarrow> bool"
 
@@ -788,13 +787,85 @@ lemma proc_set_trace_wait:
   "proc_set_trace pns (WaitBlockP d p rdy # tr) \<Longrightarrow> proc_set (p t) = pns"
   apply (elim proc_set_trace_waitE) by auto
 
+lemma proc_set_trace_combine:
+  "combine_blocks chs tr1 tr2 tr \<Longrightarrow>
+   proc_set_trace pns1 tr1 \<Longrightarrow> proc_set_trace pns2 tr2 \<Longrightarrow>
+   proc_set_trace (pns1 \<union> pns2) tr"
+proof (induction rule: combine_blocks.induct)
+  case (combine_blocks_empty comms)
+  then show ?case
+    by (auto intro: proc_set_trace.intros)
+next
+  case (combine_blocks_pair1 ch comms blks1 blks2 blks v)
+  then show ?case
+    using proc_set_trace_tl by auto
+next
+  case (combine_blocks_pair2 ch comms blks1 blks2 blks v)
+  then show ?case
+    using proc_set_trace_tl by auto
+next
+  case (combine_blocks_unpair1 ch comms blks1 blks2 blks ch_type v)
+  show ?case
+    apply (rule proc_set_trace.intros(2))
+    using combine_blocks_unpair1 proc_set_trace_tl by auto
+next
+  case (combine_blocks_unpair2 ch comms blks1 blks2 blks ch_type v)
+  show ?case
+    apply (rule proc_set_trace.intros(2))
+    using combine_blocks_unpair2 proc_set_trace_tl by auto
+next
+  case (combine_blocks_wait1 comms blks1 blks2 blks rdy1 rdy2 hist hist1 hist2 rdy t)
+  show ?case
+    apply (rule proc_set_trace.intros(3))
+    subgoal using combine_blocks_wait1 proc_set_trace_tl by auto
+    using combine_blocks_wait1 proc_set_merge proc_set_trace_wait by blast
+next
+  case (combine_blocks_wait2 comms blks1 t2 t1 hist2 rdy2 blks2 blks rdy1 hist hist1 rdy)
+  show ?case
+    apply (rule proc_set_trace.intros(3))
+    subgoal apply (rule combine_blocks_wait2(7))
+      subgoal using combine_blocks_wait2 proc_set_trace_tl by auto
+      apply (rule proc_set_trace.intros(3))
+      using combine_blocks_wait2 proc_set_trace_tl apply auto[1]
+      using proc_set_trace_wait[OF combine_blocks_wait2(9)] by auto
+    using combine_blocks_wait2 proc_set_merge proc_set_trace_wait by blast
+next
+  case (combine_blocks_wait3 comms t1 t2 hist1 rdy1 blks1 blks2 blks rdy2 hist hist2 rdy)
+  show ?case
+    apply (rule proc_set_trace.intros(3))
+    subgoal apply (rule combine_blocks_wait3(7))
+      apply (rule proc_set_trace.intros(3))
+      using combine_blocks_wait3 proc_set_trace_tl apply auto[1]
+      using proc_set_trace_wait[OF combine_blocks_wait3(8)] apply auto[1]
+      subgoal using combine_blocks_wait3 proc_set_trace_tl by auto
+      done
+    using combine_blocks_wait3 proc_set_merge proc_set_trace_wait by blast
+qed
+
+text \<open>An assertion is compatible with a set of procedures, if\<close>
+definition proc_set_gassn :: "pname set \<Rightarrow> 'a gassn2 \<Rightarrow> bool" where
+  "proc_set_gassn pns P \<longleftrightarrow>
+    (\<forall>gs0 gs tr. P gs0 gs tr \<longrightarrow> proc_set gs0 = pns \<and> proc_set gs = pns \<and> proc_set_trace pns tr)"
+
 inductive sync_gassn :: "cname set \<Rightarrow> pname set \<Rightarrow> pname set \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2" where
   "proc_set s11 = pns1 \<Longrightarrow> proc_set s12 = pns2 \<Longrightarrow>
    proc_set s21 = pns1 \<Longrightarrow> proc_set s22 = pns2 \<Longrightarrow>
    P s11 s21 tr1 \<Longrightarrow> Q s12 s22 tr2 \<Longrightarrow>
-\<comment> \<open>proc_set_trace pns1 tr1 \<Longrightarrow> proc_set_trace pns2 tr2 \<Longrightarrow>\<close>
    combine_blocks chs tr1 tr2 tr \<Longrightarrow>
    sync_gassn chs pns1 pns2 P Q (merge_state s11 s12) (merge_state s21 s22) tr"
+
+lemma proc_set_sync_gassn:
+  assumes "proc_set_gassn pns1 P"
+    and "proc_set_gassn pns2 Q"
+  shows "proc_set_gassn (pns1 \<union> pns2) (sync_gassn chs pns1 pns2 P Q)"
+  unfolding proc_set_gassn_def apply clarify
+  apply (elim sync_gassn.cases) apply clarify
+  apply simp
+  subgoal for s11 s12 s21 s22 tr1 tr2 tr'
+    apply (rule proc_set_trace_combine[of chs tr1 tr2])
+      apply auto using assms(1)[unfolded proc_set_gassn_def] apply blast
+    using assms(2)[unfolded proc_set_gassn_def] by blast
+  done
 
 lemma spec_of_single:
   fixes Q :: "'a assn2"
@@ -836,6 +907,22 @@ inductive wait_in_cg_gen :: "cname \<Rightarrow> rdy_info \<Rightarrow> (real \<
   "P 0 v s0 s tr \<Longrightarrow> wait_in_cg_gen ch rdy P s0 s (InBlockP ch v # tr)"
 | "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> wait_in_cg_gen ch rdy P s0 s (WaitBlockP d (\<lambda>_. s0) rdy # InBlockP ch v # tr)"
 
+lemma proc_set_wait_in_cg_gen:
+  assumes "\<And>d v. proc_set_gassn pns (P d v)"
+  shows "proc_set_gassn pns (wait_in_cg_gen ch rdy P)"
+  unfolding proc_set_gassn_def apply clarify
+  subgoal for gs0 gs tr
+    apply (elim wait_in_cg_gen.cases) apply clarify
+    subgoal for _ v s0 s tr' ch' a b
+      using assms[of 0 v] unfolding proc_set_gassn_def apply auto
+      apply (rule proc_set_trace.intros) by blast
+    subgoal for d P' v s0 s tr' ch' rdy'
+      using assms[of d v] unfolding proc_set_gassn_def apply auto
+      apply (rule proc_set_trace.intros) apply auto
+      apply (rule proc_set_trace.intros) by blast
+    done
+  done
+
 abbreviation "wait_in_cg ch P s0 s tr \<equiv> wait_in_cg_gen ch ({}, {ch}) P s0 s tr"
 
 lemma single_assn_wait_in:
@@ -868,11 +955,27 @@ lemma single_assn_wait_in:
   done
 
 inductive wait_out_cg_gen :: "pname \<Rightarrow> cname \<Rightarrow> rdy_info \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
-  "P 0 s0 s tr \<Longrightarrow> v = e (the (s0 pn)) \<Longrightarrow>  wait_out_cg_gen pn ch rdy e P s0 s (OutBlockP ch v # tr)"
+  "P 0 s0 s tr \<Longrightarrow> v = e (the (s0 pn)) \<Longrightarrow> wait_out_cg_gen pn ch rdy e P s0 s (OutBlockP ch v # tr)"
 | "0 < d \<Longrightarrow> P d s0 s tr \<Longrightarrow> v = e (the (s0 pn)) \<Longrightarrow>
    wait_out_cg_gen pn ch rdy e P s0 s (WaitBlockP d (\<lambda>_. s0) rdy # OutBlockP ch v # tr)"
 
 abbreviation "wait_out_cg pn ch e P s0 s tr \<equiv> wait_out_cg_gen pn ch ({ch}, {}) e P s0 s tr"
+
+lemma proc_set_wait_out_cg_gen:
+  assumes "\<And>d v. proc_set_gassn pns (P d)"
+  shows "proc_set_gassn pns (wait_out_cg_gen pn ch rdy e P)"
+  unfolding proc_set_gassn_def apply clarify
+  subgoal for gs0 gs tr
+    apply (elim wait_out_cg_gen.cases) apply clarify
+    subgoal for _ v s0 s tr' ch' a b
+      using assms[of 0] unfolding proc_set_gassn_def apply auto
+      apply (rule proc_set_trace.intros) by blast
+    subgoal for d P' v s0 s tr' ch' rdy'
+      using assms[of d] unfolding proc_set_gassn_def apply auto
+      apply (rule proc_set_trace.intros) apply auto
+      apply (rule proc_set_trace.intros) by blast
+    done
+  done
 
 lemma single_assn_wait_out:
   "single_assn pn (wait_out_c_gen ch1 rdy e P) = wait_out_cg_gen pn ch1 rdy e (\<lambda>d. single_assn pn (P d))"
@@ -1682,8 +1785,16 @@ lemma cond_gassn_false:
   unfolding cond_gassn2_def by auto
 
 lemma sync_gassn_true_left:
-  "sync_gassn chs pns1 pns2 (true_gassn pns1) Q s0 \<Longrightarrow>\<^sub>g true_gassn (pns1 \<union> pns2) s0"
-  sorry
+  assumes "proc_set_gassn pns2 Q"
+  shows "sync_gassn chs pns1 pns2 (true_gassn pns1) Q s0 \<Longrightarrow>\<^sub>g true_gassn (pns1 \<union> pns2) s0"
+  unfolding entails_g_def apply auto
+  apply (elim sync_gassn.cases)
+  apply auto apply (rule true_gassn.intros)
+    apply auto subgoal for s11 s12 s21 s22 tr1 tr2 tr'
+    apply (rule proc_set_trace_combine[of chs tr1 tr2])
+      apply auto apply (elim true_gassn.cases) apply blast
+    using assms[unfolded proc_set_gassn_def] by blast
+  done
 
 lemma sync_gassn_out_unpair0:
   "ch1 \<notin> chs \<Longrightarrow>
@@ -1691,6 +1802,7 @@ lemma sync_gassn_out_unpair0:
    pn \<in> pns1 \<Longrightarrow>
    pns1 \<inter> pns2 = {} \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
+   (\<And>d. proc_set_gassn pns2 (Q d)) \<Longrightarrow>
    sync_gassn chs pns1 pns2
      (wait_in_cg_gen ch1 rdy1 (\<lambda>d v. IFG [pn] (\<lambda>_. d = 0) THEN P v ELSE true_gassn pns1 FI))
      (wait_out_cg_gen pn2 ch2 rdy2 e Q) s0 \<Longrightarrow>\<^sub>g
@@ -1710,7 +1822,8 @@ lemma sync_gassn_out_unpair0:
     subgoal unfolding cond_gassn_true
       apply simp by (rule entails_g_triv)
     subgoal unfolding cond_gassn_false
-      by (rule sync_gassn_true_left)
+      apply (rule sync_gassn_true_left)
+      apply (rule proc_set_wait_out_cg_gen) by auto
     subgoal by auto
     done
   done
@@ -1900,6 +2013,5 @@ lemma sync_gassn_exists_right:
 text \<open>General specification\<close>
 definition spec_of_global_gen :: "('a gstate \<Rightarrow> bool) \<Rightarrow> 'a pproc \<Rightarrow> ('a gstate \<Rightarrow> 'a gassn) \<Rightarrow> bool" where
   "spec_of_global_gen P c Q \<longleftrightarrow> (\<forall>s0. P s0 \<longrightarrow> \<Turnstile>\<^sub>p {init_global s0} c {Q s0})"
-
 
 end
