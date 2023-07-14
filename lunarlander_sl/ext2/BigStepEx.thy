@@ -732,13 +732,58 @@ lemma cond_gassn_mono:
     apply auto using assms unfolding entails_g_def by auto
   done
 
+lemma sync_gassn_wait_same:
+  "pns1 \<inter> pns2 = {} \<Longrightarrow>
+   sync_gassn chs pns1 pns2 (wait_cg pn1 (\<lambda>_. v) P) (wait_cg pn2 (\<lambda>_. v) Q) s0 \<Longrightarrow>\<^sub>g
+   wait_cg pn1 (\<lambda>_. v) (sync_gassn chs pns1 pns2 P Q) s0"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases) apply auto
+    subgoal for s11 s12 s21 s22 tr1 tr2
+      apply (elim wait_cg.cases) apply auto
+      subgoal for tr1' tr2'
+        apply (elim combine_blocks_waitE2) apply auto
+        apply (rule wait_cg.intros(1)) apply auto
+        apply (intro sync_gassn.intros) by auto
+      subgoal
+        apply (rule wait_cg.intros(2)) apply auto
+        apply (intro sync_gassn.intros) by auto
+      done
+    done
+  done
+
+lemma wait_cg_mono:
+  assumes "P s0 \<Longrightarrow>\<^sub>g Q s0"
+  shows "wait_cg pn e P s0 \<Longrightarrow>\<^sub>g wait_cg pn e Q s0"
+  apply (auto simp add: entails_g_def)
+  subgoal for s tr
+    apply (elim wait_cg.cases) apply auto
+    subgoal apply (rule wait_cg.intros)
+       using assms unfolding entails_g_def by auto
+    subgoal apply (rule wait_cg.intros)
+      using assms unfolding entails_g_def by auto
+    done
+  done
+
+lemma updg_mono:
+  assumes "P (updg s0 pn v (e (the (s0 pn)))) \<Longrightarrow>\<^sub>g Q (updg s0 pn v (e (the (s0 pn))))"
+  shows "(P {{v := e}}\<^sub>g at pn) s0 \<Longrightarrow>\<^sub>g (Q {{v := e}}\<^sub>g at pn) s0"
+  apply (auto simp add: entails_g_def)
+  subgoal for s tr
+    unfolding updg_assn2_def
+    using assms unfolding entails_g_def by auto
+  done
+
 lemma ex6:
   "spec_of_global
     (Parallel (Single ''a'' ex6a)
               {ch1}
               (Single ''b'' ex6b))
-    (wait_in_cg_alt ''ch2'' ''b'' (\<lambda>_. 1) ({}, {''ch2''})
-      (\<lambda>d v. IFG [''a''] (\<lambda>s. d = 0) THEN P d v
+    (wait_in_cg_alt ch2 ''b'' (\<lambda>_. 1) ({}, {ch2})
+      (\<lambda>d v. IFG [''a''] (\<lambda>s. d = 0) THEN
+               ((wait_cg ''a'' (\<lambda>_. 1)
+                   (init_single {''b'', ''a''} {{X := (\<lambda>_. v)}}\<^sub>g at ''b'')
+                   {{ X := (\<lambda>_. v) }}\<^sub>g at ''a''))
              ELSE true_gassn {''b'', ''a''} FI)
       (\<lambda>v. true_gassn {''b'', ''a''}))"
   (* Stage 1: merge ex6a_sp and ex6b_sp *)
@@ -770,11 +815,114 @@ lemma ex6:
     subgoal for d v s0
       apply (rule cond_gassn_mono)
       subgoal
-        sorry
+        apply (rule entails_g_trans)
+         apply (rule sync_gassn_subst_left) apply auto
+        apply (rule updg_mono)
+        apply (rule entails_g_trans)
+         apply (rule sync_gassn_wait_same) apply auto
+         apply (rule wait_cg_mono)
+        apply (rule entails_g_trans)
+         apply (rule sync_gassn_out_in) apply auto
+        apply (rule entails_g_trans)
+         apply (rule sync_gassn_subst_right) apply auto
+        apply (simp only: valg_def[symmetric]) apply auto
+        apply (rule updg_mono)
+        apply (rule sync_gassn_emp) by auto
       by (rule entails_g_triv)
     subgoal for d s0
       by (rule entails_g_triv)
     done
+  done
+
+lemma sync_gassn_in_alt_out:
+  "ch \<in> chs \<Longrightarrow>
+   pn1 \<in> pns1 \<Longrightarrow>
+   pn2 \<in> pns1 \<Longrightarrow>
+   pn3 \<in> pns2 \<Longrightarrow>
+   pns1 \<inter> pns2 = {} \<Longrightarrow>
+   d > 0 \<Longrightarrow>
+   sync_gassn chs pns1 pns2
+      (wait_in_cg_alt ch pn1 (\<lambda>_. d) ({}, {ch})
+        (\<lambda>d v. IFG [pn2] (\<lambda>s. d = 0) THEN P v ELSE true_gassn pns1 FI)
+        (\<lambda>v. true_gassn pns1))
+      (wait_out_cg pn3 ch e Q) s0 \<Longrightarrow>\<^sub>g
+   sync_gassn chs pns1 pns2 (P (e (the (s0 pn3)))) (Q 0) s0"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases) apply auto
+    subgoal for s11 s12 s21 s22 tr1 tr2
+      apply (elim wait_in_cg_alt.cases) apply auto
+      subgoal for v tr1'
+        apply (elim wait_out_cg_gen.cases) apply auto
+        subgoal for tr2'
+          apply (elim combine_blocks_pairE)
+            apply (auto simp add: merge_state_eval2 cond_gassn_true)
+          apply (rule sync_gassn.intros) by auto
+        subgoal for d tr2'
+          apply (elim sync_elims) by auto
+        done
+      subgoal for d v tr1'
+        apply (elim wait_out_cg_gen.cases) apply auto
+        subgoal for tr2'
+          apply (elim sync_elims) by auto
+        subgoal for d' tr2'
+          apply (elim sync_elims) by auto
+        done
+      subgoal for d tr1'
+        apply (elim wait_out_cg_gen.cases) apply auto
+        subgoal for tr2'
+          apply (elim sync_elims) by auto
+        subgoal for d' tr2'
+          apply (elim sync_elims) by auto
+        done
+      done
+    done
+  done
+
+text \<open>
+  We next compose the above example with ch2!1. The overall program is
+
+   ch2?X; wait(1); ch1!X  (''a'')
+|| wait(1); ch1?X         (''b'')
+|| ch2!v; wait(1)         (''c'')
+
+   The result assigns value v to variable X in ''a'' and (after
+   waiting for 1 time unit) in ''b''.
+\<close>
+lemma ex6_full:
+  "spec_of_global
+    (Parallel (Parallel (Single ''a'' ex6a) {ch1} (Single ''b'' ex6b))
+              {ch2}
+              (Single ''c'' (Cm (ch2[!](\<lambda>_. v)); Wait (\<lambda>_. 1))))
+    (\<lambda>s0. wait_cg ''a'' (\<lambda>_. 1) (init_single {''c'', ''b'', ''a''} {{X := (\<lambda>_. v)}}\<^sub>g at ''b'')
+        (updg s0 ''a'' X v))"
+  (* Stage 1: merge with ex6 *)
+  apply (rule spec_of_global_post)
+   apply (rule spec_of_parallel)
+      apply (rule ex6)
+     apply (rule spec_of_single)
+     apply (rule Valid_send_sp)
+     apply (rule spec_of_wait)
+    apply simp apply simp
+  (* Stage 2: rewrite the assertions *)
+  apply auto subgoal for s0
+    apply (auto simp add: single_assn_wait_out single_assn_wait single_assn_init)
+  (* Stage 3: combine the two assertions *)
+    apply (rule entails_g_trans)
+     apply (rule sync_gassn_in_alt_out) apply auto
+    apply (rule entails_g_trans)
+     apply (rule sync_gassn_subst_left) apply auto
+    apply (rule entails_g_trans)
+     apply (rule gassn_subst)
+    apply (rule entails_g_trans)
+     apply (rule sync_gassn_wait_same) apply auto
+    apply (rule wait_cg_mono)
+    apply (rule entails_g_trans)
+     apply (rule sync_gassn_subst_left) apply auto
+    apply (rule updg_mono)
+    apply (rule entails_g_trans)
+     apply (rule sync_gassn_emp) apply auto
+    by (rule entails_g_triv)
   done
 
 end
