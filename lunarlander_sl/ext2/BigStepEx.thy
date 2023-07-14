@@ -4,8 +4,6 @@ begin
 
 subsection \<open>Examples\<close>
 
-definition A :: char where "A = CHR ''a''"
-definition B :: char where "B = CHR ''b''"
 definition X :: char where "X = CHR ''x''"
 definition Y :: char where "Y = CHR ''y''"
 definition Z :: char where "Z = CHR ''z''"
@@ -172,11 +170,11 @@ text \<open>
 || (ch1?X; Y := Y + X)*
 \<close>
 definition ex3a :: "'a proc" where
-  "ex3a = (Rep (Cm (ch1[!](\<lambda>s. val s A)); B ::= (\<lambda>s. val s B + 1)))"
+  "ex3a = (Rep (Cm (ch1[!](\<lambda>s. val s X)); Y ::= (\<lambda>s. val s Y + 1)))"
 
 fun rinv_c :: "nat \<Rightarrow> ('a estate \<Rightarrow> 'a assn) \<Rightarrow> ('a estate \<Rightarrow> 'a assn)" where
   "rinv_c 0 Q = Q"
-| "rinv_c (Suc n) Q = wait_out_c ch1 (\<lambda>s. val s A) (\<lambda>d. rinv_c n Q {{ B := (\<lambda>s0. val s0 B + 1) }})"
+| "rinv_c (Suc n) Q = wait_out_c ch1 (\<lambda>s. val s X) (\<lambda>d. rinv_c n Q {{ Y := (\<lambda>s0. val s0 Y + 1) }})"
 
 lemma ex3a_sp:
   "spec_of ex3a
@@ -223,7 +221,7 @@ lemma ex3b_sp:
   done
 
 definition ex3_inv :: "'a gstate \<Rightarrow> bool" where
-  "ex3_inv s0 \<longleftrightarrow> (valg s0 ''b'' Y = valg s0 ''a'' A * valg s0 ''a'' B)"
+  "ex3_inv s0 \<longleftrightarrow> (valg s0 ''b'' Y = valg s0 ''a'' X * valg s0 ''a'' Y)"
 
 text \<open>This is the crucial lemma, stating that from a starting state s0
   satisfying invariant ex3_inv, there is another state s1 also satisfying
@@ -241,17 +239,17 @@ lemma ex3':
      (single_assn ''a'' (rinv_c n1 init))
      (single_assn ''b'' (linv_c n2 init)) s1)"
 proof -
-  have eq1: "updg (updg s0 ''b'' X (valg s0 ''a'' A)) ''a'' B
-              ((valg (updg s0 ''b'' X (valg s0 ''a'' A)) ''a'' B) + 1) =
-             updg (updg s0 ''b'' X (valg s0 ''a'' A)) ''a'' B (valg s0 ''a'' B + 1)"
+  have eq1: "updg (updg s0 ''b'' X (valg s0 ''a'' X)) ''a'' Y
+              ((valg (updg s0 ''b'' X (valg s0 ''a'' X)) ''a'' Y) + 1) =
+             updg (updg s0 ''b'' X (valg s0 ''a'' X)) ''a'' Y (valg s0 ''a'' Y + 1)"
     by auto
-  let ?s1 = "updg (updg (updg s0 ''b'' X (valg s0 ''a'' A)) ''a'' B (valg s0 ''a'' B + 1)) ''b'' Y
-               (valg s0 ''b'' Y + valg s0 ''a'' A)"
+  let ?s1 = "updg (updg (updg s0 ''b'' X (valg s0 ''a'' X)) ''a'' Y (valg s0 ''a'' Y + 1)) ''b'' Y
+               (valg s0 ''b'' Y + valg s0 ''a'' X)"
   show ?thesis
   apply (rule exI[where x="?s1"])
   apply (rule conjI)
     subgoal using assms unfolding ex3_inv_def
-      apply (auto simp add: A_def B_def X_def Y_def)
+      apply (auto simp add: X_def Y_def)
       by (auto simp add: algebra_simps)
   subgoal
     apply simp
@@ -273,7 +271,7 @@ proof -
      apply (rule gassn_subst)
     apply (rule sync_gassn_triv)
     apply (simp only: valg_def[symmetric])
-    by (auto simp add: X_def A_def B_def Y_def)
+    by (auto simp add: X_def Y_def)
   done
 qed
 
@@ -476,52 +474,6 @@ lemma ex5_inv_preserve:
   using assms unfolding ex5_one_step_def ex5_inv_def
   by auto
 
-definition conj_gassn :: "'a gassn \<Rightarrow> 'a gassn \<Rightarrow> 'a gassn" (infixr "\<and>\<^sub>g" 35) where
-  "(P \<and>\<^sub>g Q) = (\<lambda>s tr. P s tr \<and> Q s tr)"
-
-definition pure_gassn :: "bool \<Rightarrow> 'a gassn" ("!\<^sub>g[_]" [71] 70) where
-  "(!\<^sub>g[b]) = (\<lambda>s tr. b)"
-
-lemma conj_gassn_intro:
-  assumes "P \<Longrightarrow>\<^sub>g Q" "P \<Longrightarrow>\<^sub>g R"
-  shows "P \<Longrightarrow>\<^sub>g Q \<and>\<^sub>g R"
-  using assms unfolding conj_gassn_def entails_g_def by auto
-
-lemma pure_gassn_intro:
-  assumes b
-  shows "P \<Longrightarrow>\<^sub>g !\<^sub>g[b]"
-  using assms unfolding pure_gassn_def entails_g_def by auto
-
-definition false_gassn :: "'a gassn2" where
-  "false_gassn s0 = (\<lambda>gs tr. False)"
-
-lemma single_assn_false:
-  "single_assn pn false_assn2 = false_gassn"
-  apply (rule ext) apply (rule ext) apply (rule ext)
-  subgoal for s0 s tr
-    apply (rule iffI)
-    subgoal apply (elim single_assn.cases)
-      unfolding false_assn2_def by auto
-    subgoal unfolding false_gassn_def by auto
-    done
-  done
-
-lemma sync_gassn_false_left:
-  "sync_gassn chs pns1 pns2 false_gassn Q s0 \<Longrightarrow>\<^sub>g R s0"
-  unfolding entails_g_def apply auto
-  subgoal for s tr
-    apply (elim sync_gassn.cases)
-    unfolding false_gassn_def by auto
-  done
-
-lemma sync_gassn_false_right:
-  "sync_gassn chs pns1 pns2 P false_gassn s0 \<Longrightarrow>\<^sub>g R s0"
-  unfolding entails_g_def apply auto
-  subgoal for s tr
-    apply (elim sync_gassn.cases)
-    unfolding false_gassn_def by auto
-  done
-
 lemma ex5':
   assumes "ex5_inv ls s0"
   shows
@@ -565,18 +517,6 @@ lemma ex5':
     using sync_gassn_false_left by auto
   subgoal by auto
   done
-
-lemma exists_gassn_elim:
-  assumes "\<And>n. P n \<Longrightarrow>\<^sub>g Q"
-  shows "(\<exists>\<^sub>g n. P n) \<Longrightarrow>\<^sub>g Q"
-  using assms unfolding exists_gassn_def entails_g_def
-  by auto
-
-lemma conj_pure_gassn_elim:
-  assumes "R \<Longrightarrow> P \<Longrightarrow>\<^sub>g Q"
-  shows "(!\<^sub>g[R] \<and>\<^sub>g P) \<Longrightarrow>\<^sub>g Q"
-  using assms unfolding entails_g_def conj_gassn_def pure_gassn_def
-  by auto
 
 lemma ex5'':
   "ex5_inv ls s0 \<Longrightarrow>
@@ -706,74 +646,6 @@ lemma ex6b_sp:
   apply (rule spec_of_receive)
   done
 
-lemma proc_set_updg_subst:
-  assumes "proc_set_gassn pns P"
-    and "pn \<in> pns"
-  shows "proc_set_gassn pns (P {{ x := v }}\<^sub>g at pn)"
-  unfolding proc_set_gassn_def apply clarify
-  unfolding updg_assn2_def using assms unfolding proc_set_gassn_def
-  by (metis (mono_tags, lifting) mem_Collect_eq proc_set_def updg_proc_set)
-
-lemma proc_set_init_single:
-  "proc_set_gassn pn (init_single pn)"
-  unfolding proc_set_gassn_def apply clarify
-  subgoal for gs0 gs tr
-    apply (induct rule: init_single.induct)
-    by (auto intro: proc_set_trace.intros)
-  done
-
-lemma cond_gassn_mono:
-  assumes "P1 s0 \<Longrightarrow>\<^sub>g P2 s0"
-    and "Q1 s0 \<Longrightarrow>\<^sub>g Q2 s0"
-  shows "(IFG [pn] b THEN P1 ELSE Q1 FI) s0 \<Longrightarrow>\<^sub>g (IFG [pn] b THEN P2 ELSE Q2 FI) s0"
-  unfolding entails_g_def apply clarify
-  subgoal for s tr
-    unfolding cond_gassn2_def
-    apply auto using assms unfolding entails_g_def by auto
-  done
-
-lemma sync_gassn_wait_same:
-  "pns1 \<inter> pns2 = {} \<Longrightarrow>
-   sync_gassn chs pns1 pns2 (wait_cg pn1 (\<lambda>_. v) P) (wait_cg pn2 (\<lambda>_. v) Q) s0 \<Longrightarrow>\<^sub>g
-   wait_cg pn1 (\<lambda>_. v) (sync_gassn chs pns1 pns2 P Q) s0"
-  unfolding entails_g_def apply auto
-  subgoal for s tr
-    apply (elim sync_gassn.cases) apply auto
-    subgoal for s11 s12 s21 s22 tr1 tr2
-      apply (elim wait_cg.cases) apply auto
-      subgoal for tr1' tr2'
-        apply (elim combine_blocks_waitE2) apply auto
-        apply (rule wait_cg.intros(1)) apply auto
-        apply (intro sync_gassn.intros) by auto
-      subgoal
-        apply (rule wait_cg.intros(2)) apply auto
-        apply (intro sync_gassn.intros) by auto
-      done
-    done
-  done
-
-lemma wait_cg_mono:
-  assumes "P s0 \<Longrightarrow>\<^sub>g Q s0"
-  shows "wait_cg pn e P s0 \<Longrightarrow>\<^sub>g wait_cg pn e Q s0"
-  apply (auto simp add: entails_g_def)
-  subgoal for s tr
-    apply (elim wait_cg.cases) apply auto
-    subgoal apply (rule wait_cg.intros)
-       using assms unfolding entails_g_def by auto
-    subgoal apply (rule wait_cg.intros)
-      using assms unfolding entails_g_def by auto
-    done
-  done
-
-lemma updg_mono:
-  assumes "P (updg s0 pn v (e (the (s0 pn)))) \<Longrightarrow>\<^sub>g Q (updg s0 pn v (e (the (s0 pn))))"
-  shows "(P {{v := e}}\<^sub>g at pn) s0 \<Longrightarrow>\<^sub>g (Q {{v := e}}\<^sub>g at pn) s0"
-  apply (auto simp add: entails_g_def)
-  subgoal for s tr
-    unfolding updg_assn2_def
-    using assms unfolding entails_g_def by auto
-  done
-
 lemma ex6:
   "spec_of_global
     (Parallel (Single ''a'' ex6a)
@@ -831,51 +703,6 @@ lemma ex6:
       by (rule entails_g_triv)
     subgoal for d s0
       by (rule entails_g_triv)
-    done
-  done
-
-lemma sync_gassn_in_alt_out:
-  "ch \<in> chs \<Longrightarrow>
-   pn1 \<in> pns1 \<Longrightarrow>
-   pn2 \<in> pns1 \<Longrightarrow>
-   pn3 \<in> pns2 \<Longrightarrow>
-   pns1 \<inter> pns2 = {} \<Longrightarrow>
-   d > 0 \<Longrightarrow>
-   sync_gassn chs pns1 pns2
-      (wait_in_cg_alt ch pn1 (\<lambda>_. d) ({}, {ch})
-        (\<lambda>d v. IFG [pn2] (\<lambda>s. d = 0) THEN P v ELSE true_gassn pns1 FI)
-        (\<lambda>v. true_gassn pns1))
-      (wait_out_cg pn3 ch e Q) s0 \<Longrightarrow>\<^sub>g
-   sync_gassn chs pns1 pns2 (P (e (the (s0 pn3)))) (Q 0) s0"
-  unfolding entails_g_def apply auto
-  subgoal for s tr
-    apply (elim sync_gassn.cases) apply auto
-    subgoal for s11 s12 s21 s22 tr1 tr2
-      apply (elim wait_in_cg_alt.cases) apply auto
-      subgoal for v tr1'
-        apply (elim wait_out_cg_gen.cases) apply auto
-        subgoal for tr2'
-          apply (elim combine_blocks_pairE)
-            apply (auto simp add: merge_state_eval2 cond_gassn_true)
-          apply (rule sync_gassn.intros) by auto
-        subgoal for d tr2'
-          apply (elim sync_elims) by auto
-        done
-      subgoal for d v tr1'
-        apply (elim wait_out_cg_gen.cases) apply auto
-        subgoal for tr2'
-          apply (elim sync_elims) by auto
-        subgoal for d' tr2'
-          apply (elim sync_elims) by auto
-        done
-      subgoal for d tr1'
-        apply (elim wait_out_cg_gen.cases) apply auto
-        subgoal for tr2'
-          apply (elim sync_elims) by auto
-        subgoal for d' tr2'
-          apply (elim sync_elims) by auto
-        done
-      done
     done
   done
 

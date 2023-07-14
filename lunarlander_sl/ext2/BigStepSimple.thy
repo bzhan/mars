@@ -5,7 +5,10 @@ begin
 
 subsection \<open>Extended state\<close>
 
-text \<open>Extended state is parameterized by a type 'a\<close>
+text \<open>The state of each process consists of the real part, which
+  is a mapping from variable names to real numbers, and an extra
+  part, which can be of arbitrary type 'a.
+\<close>
 datatype 'a estate = EState (rp: state) (ep: 'a)
 
 text \<open>Expressions on an extended state\<close>
@@ -26,15 +29,40 @@ text \<open>Updating the extra part of the state\<close>
 fun upde :: "'a estate \<Rightarrow> 'a \<Rightarrow> 'a estate" where
   "upde (EState r e) e2 = EState r e2"
 
-text \<open>Taking the real part and extra part of the state\<close>
+text \<open>Obtain the value of some variable in the real part of the state\<close>
+fun val :: "'a estate \<Rightarrow> var \<Rightarrow> real" where
+  "val (EState r e) v = r v"
+
+text \<open>Taking the real part of the state\<close>
 fun rpart :: "'a estate \<Rightarrow> state" where
   "rpart (EState r e) = r"
 
+text \<open>Taking the extra part of the state\<close>
 fun epart :: "'a estate \<Rightarrow> 'a" where
   "epart (EState r e) = e"
 
-fun val :: "'a estate \<Rightarrow> var \<Rightarrow> real" where
-  "val (EState r e) v = r v"
+text \<open>The following rules allow to simplify expressions
+  involving evaluation and updating the extended state.
+\<close>
+lemma val_upd_simp [simp]:
+  "val (upd s var v) var = v"
+  apply (cases s) by auto
+
+lemma val_upd_simp2 [simp]:
+  "var \<noteq> var2 \<Longrightarrow> val (upd s var v) var2 = val s var2"
+  apply (cases s) by auto
+
+lemma val_upde_simp [simp]:
+  "val (upde s e) var = val s var"
+  apply (cases s) by auto
+
+lemma epart_upd_simp [simp]:
+  "epart (upd s var v) = epart s"
+  apply (cases s) by auto
+
+lemma epart_upde_simp [simp]:
+  "epart (upde s e) = e"
+  apply (cases s) by auto
 
 declare upd.simps [simp del]
 declare updr.simps [simp del]
@@ -42,7 +70,7 @@ declare rpart.simps [simp del]
 declare epart.simps [simp del]
 declare val.simps [simp del]
 
-subsection \<open>Syntax\<close>
+subsection \<open>Syntax of HCSP\<close>
 
 text \<open>Channel names\<close>
 type_synonym cname = string
@@ -50,9 +78,10 @@ type_synonym cname = string
 text \<open>Process names\<close>
 type_synonym pname = string
 
-text \<open>Ready information.
+text \<open>Readiness information.
   First component is set of channels that are ready to output.
-  Second component is set of channels that are ready to input.\<close>
+  Second component is set of channels that are ready to input.
+\<close>
 type_synonym rdy_info = "cname set \<times> cname set"
 
 text \<open>Communications\<close>
@@ -87,8 +116,10 @@ fun proc_of_pproc :: "'a pproc \<Rightarrow> pname set" where
 | "proc_of_pproc (Parallel p1 chs p2) = proc_of_pproc p1 \<union> proc_of_pproc p2"
 
 text \<open>Global state.
-  This is represented as a partial mapping from process name to
-  extended state.\<close>
+
+  The global state of a parallel process is represented as a
+  partial mapping from process name to extended state.
+\<close>
 type_synonym 'a gstate = "pname \<Rightarrow> 'a estate option"
 
 text \<open>Global state for a single process\<close>
@@ -99,13 +130,15 @@ lemma State_eval [simp]:
   "State p s p = Some s"
   by (auto simp add: State_def)
 
-subsection \<open>Traces\<close>
+subsection \<open>Traces of sequential programs\<close>
 
 datatype comm_type = In | Out
 
 text \<open>Each trace block is either:
+
   - Communication block, specified by communication type (In or Out),
     name of the channel, and the communicated value.
+
   - Wait block, specified by length of the wait, state as a function
     of time during the wait, and set of ready communications.
 \<close>
@@ -132,8 +165,9 @@ fun rdy_of_echoice :: "('a comm \<times> 'a proc) list \<Rightarrow> rdy_info" w
     let rdy = rdy_of_echoice rest in
       (fst rdy, insert ch (snd rdy)))"
 
-text \<open>big_step p s1 tr s2 means executing p starting from state s1 results
-in a trace tr and final state s2.\<close>
+text \<open>big_step p s1 tr s2 means executing p starting from
+  state s1 results in a trace tr and final state s2.
+\<close>
 inductive big_step :: "'a proc \<Rightarrow> 'a estate \<Rightarrow> 'a trace \<Rightarrow> 'a estate \<Rightarrow> bool" where
   skipB: "big_step Skip s [] s"
 | assignB: "big_step (var ::= e) s [] (upd s var (e s))"
@@ -205,10 +239,6 @@ inductive big_step :: "'a proc \<Rightarrow> 'a estate \<Rightarrow> 'a trace \<
     rdy = rdy_of_echoice cs \<Longrightarrow>
     big_step (Interrupt ode b cs) s1 [WaitBlock d (\<lambda>\<tau>. updr s1 (p \<tau>)) rdy] s2"
 
-lemma big_step_cong:
-  "big_step c s1 tr s2 \<Longrightarrow> tr = tr' \<Longrightarrow> s2 = s2' \<Longrightarrow> big_step c s1 tr' s2'"
-  by auto
-
 inductive_cases skipE: "big_step Skip s1 tr s2"
 inductive_cases assignE: "big_step (Assign var e) s1 tr s2"
 inductive_cases basicE: "big_step (Basic f) s1 tr s2"
@@ -223,17 +253,21 @@ inductive_cases ichoiceE: "big_step (IChoice p1 p2) s1 tr s2"
 inductive_cases contE: "big_step (Cont ode b) s1 tr s2"
 inductive_cases interruptE: "big_step (Interrupt ode b cs) s1 tr s2"
 
-subsection \<open>Validity\<close>
+subsection \<open>Assertions on sequential processes\<close>
 
 text \<open>Assertion is a predicate on states and traces\<close>
 type_synonym 'a assn = "'a estate \<Rightarrow> 'a trace \<Rightarrow> bool"
 
-text \<open>We also define assertions parameterized by starting state.\<close>
+text \<open>We also define assertions parameterized by starting state\<close>
 type_synonym 'a assn2 = "'a estate \<Rightarrow> 'a assn"
 
-text \<open>Assertion stating the trace is empty.\<close>
+text \<open>Assertion stating the trace is empty\<close>
 definition emp :: "'a assn" where
   "emp = (\<lambda>s tr. tr = [])"
+
+text \<open>True and false assertions\<close>
+inductive true_assn2 :: "'a assn2" where
+  "true_assn2 s0 s tr"
 
 definition false_assn2 :: "'a assn2" where
   "false_assn2 = (\<lambda>s0 s tr. False)"
@@ -261,10 +295,6 @@ definition subste_assn2 :: "'a assn2 \<Rightarrow> ('a estate \<Rightarrow> 'a) 
   ("_ {{_}}" [90,90] 91) where 
   "P {{f}} = (\<lambda>s0. P (upde s0 (f s0)))"
 
-text \<open>Definition of Hoare triple\<close>
-definition Valid :: "'a assn \<Rightarrow> 'a proc \<Rightarrow> 'a assn \<Rightarrow> bool" ("\<Turnstile> ({(1_)}/ (_)/ {(1_)})" 50) where
-  "\<Turnstile> {P} c {Q} \<longleftrightarrow> (\<forall>s1 tr1 s2 tr2. P s1 tr1 \<longrightarrow> big_step c s1 tr2 s2 \<longrightarrow> Q s2 (tr1 @ tr2))"
-
 text \<open>Entailment relation between assertions\<close>
 definition entails :: "'a assn \<Rightarrow> 'a assn \<Rightarrow> bool" (infixr "\<Longrightarrow>\<^sub>A" 25) where
   "(P \<Longrightarrow>\<^sub>A Q) \<longleftrightarrow> (\<forall>s tr. P s tr \<longrightarrow> Q s tr)"
@@ -277,89 +307,22 @@ lemma entails_trans:
   "P \<Longrightarrow>\<^sub>A Q \<Longrightarrow> Q \<Longrightarrow>\<^sub>A R \<Longrightarrow> P \<Longrightarrow>\<^sub>A R"
   unfolding entails_def by auto
 
-theorem strengthen_pre:
-  "\<Turnstile> {P2} c {Q} \<Longrightarrow> P1 \<Longrightarrow>\<^sub>A P2 \<Longrightarrow> \<Turnstile> {P1} c {Q}"
-  unfolding Valid_def entails_def by metis
-
-theorem weaken_post:
-  "\<Turnstile> {P} c {Q1} \<Longrightarrow> Q1 \<Longrightarrow>\<^sub>A Q2 \<Longrightarrow> \<Turnstile> {P} c {Q2}"
-  unfolding Valid_def entails_def by metis
-
-text \<open>Parameterized assertion, specifying the initial state to be s0.\<close>
+text \<open>Parameterized assertion specifying the initial condition
+  with starting state s0 and empty trace.
+\<close>
 definition init :: "'a assn2" where
   "init s0 = (\<lambda>s tr. s = s0 \<and> tr = [])"
 
-text \<open>Specification of a single process\<close>
-definition spec_of :: "'a proc \<Rightarrow> 'a assn2 \<Rightarrow> bool" where
-  "spec_of c Q \<longleftrightarrow> (\<forall>s0. \<Turnstile> {init s0} c {Q s0})"
-
-text \<open>Hoare rule for skip statement\<close>
-lemma spec_of_skip:
-  "spec_of Skip init"
-  unfolding Valid_def spec_of_def
-  by (auto elim: skipE)
-
-lemma Valid_skip_sp:
-  assumes "spec_of c Q"
-  shows "spec_of (Skip; c) Q"
-  unfolding Valid_def spec_of_def
-  apply (auto elim!: seqE skipE)
-  using assms unfolding spec_of_def Valid_def init_def by auto
-
-text \<open>Hoare rule for assign\<close>
-lemma spec_of_assign:
-  "spec_of (var ::= e) (\<lambda>s0 s tr. s = upd s0 var (e s0))"
-  unfolding Valid_def spec_of_def init_def
-  by (auto elim!: assignE)
-
-lemma Valid_assign_sp:
-  assumes "spec_of c Q"
-  shows "spec_of (var ::= e; c) (Q {{ var := e }})"
-  unfolding Valid_def spec_of_def
-  apply (auto elim!: seqE assignE)
-  using assms unfolding spec_of_def Valid_def init_def subst_assn2_def by auto
-
-text \<open>Hoare rule for updating the extra state\<close>
-lemma spec_of_basic:
-  "spec_of (Basic f) (\<lambda>s0 s tr. s = upde s0 (f s0))"
-  unfolding Valid_def spec_of_def init_def
-  by (auto elim: basicE)
-
-lemma Valid_basic_sp:
-  assumes "spec_of c Q"
-  shows "spec_of (Basic f; c) (Q {{ f }})"
-  unfolding Valid_def spec_of_def
-  apply (auto elim!: seqE basicE)
-  using assms unfolding spec_of_def Valid_def init_def subste_assn2_def by auto
-
-text \<open>Hoare rule for error\<close>
-lemma spec_of_error:
-  "spec_of Error P"
-  unfolding Valid_def spec_of_def init_def
-  by (auto elim: errorE)
-
-lemma Valid_error_sp:
-  "spec_of (Error; c) Q"
-  unfolding Valid_def spec_of_def
-  by (auto elim: seqE errorE)
-
-text \<open>Hoare rule for conditional\<close>
+text \<open>Conditional assertion\<close>
 definition cond_assn2 :: "'a eform \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2"
   ("IFA _ THEN _ ELSE _ FI" [95,94] 93) where
   "IFA b THEN Q1 ELSE Q2 FI = (\<lambda>s0 s tr. if b s0 then Q1 s0 s tr else Q2 s0 s tr)"
 
-lemma spec_of_cond:
-  assumes "spec_of c1 Q1"
-    and "spec_of c2 Q2"
-  shows "spec_of (IF b THEN c1 ELSE c2 FI) (IFA b THEN Q1 ELSE Q2 FI)"
-  unfolding Valid_def spec_of_def init_def cond_assn2_def
-  apply (auto elim!: condE)
-  using assms unfolding Valid_def spec_of_def init_def by auto
+text \<open>Assertion for input.
 
-text \<open>Hoare rule for input.
-  The corresponding assertion is divided into two cases, either the input
-  happens immediately, or after waiting for some time. The ensuing assertion
-  is parameterized by waiting time and communicated value.
+  There are two cases, either the input happens immediately,
+  or after waiting for some time. The ensuing assertion is
+  parameterized by waiting time and communicated value.
 \<close>
 inductive wait_in_c_gen :: "cname \<Rightarrow> rdy_info \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
   "P 0 v s0 s tr \<Longrightarrow> wait_in_c_gen ch rdy P s0 s (InBlock ch v # tr)"
@@ -367,28 +330,12 @@ inductive wait_in_c_gen :: "cname \<Rightarrow> rdy_info \<Rightarrow> (real \<R
 
 abbreviation "wait_in_c ch P s0 s tr \<equiv> wait_in_c_gen ch ({}, {ch}) P s0 s tr"
 
-lemma spec_of_receive:
-  "spec_of (Cm (ch[?]var)) (wait_in_c ch (\<lambda>d v. init {{ var := (\<lambda>_. v) }}))"
-  unfolding Valid_def spec_of_def init_def subst_assn2_def
-  apply (auto elim!: receiveE)
-   apply (rule wait_in_c_gen.intros(1)) apply auto[1]
-  apply (rule wait_in_c_gen.intros(2)) by auto
+text \<open>Assertion for output.
 
-lemma Valid_receive_sp:
-  assumes "spec_of c Q"
-  shows "spec_of (Cm (ch[?]var); c)
-                 (wait_in_c ch (\<lambda>d v. Q {{ var := (\<lambda>_. v) }}))"
-  using assms unfolding Valid_def spec_of_def init_def subst_assn2_def
-  apply (auto elim!: seqE receiveE)
-  apply (rule wait_in_c_gen.intros(1)) apply auto[1]
-  using Valid_def spec_of_def init_def assms apply auto[1]
-  apply (rule wait_in_c_gen.intros(2)) apply auto[1]
-  using Valid_def spec_of_def init_def assms apply auto[1]
-  done
-
-text \<open>Hoare rule for output.
-  In the corresponding assertion, the communicated value is computed by the
-  function e. The ensuing assertion is parameterized by waiting time.
+  There are two cases, either the output happens immediately,
+  or after waiting for some time. The communicated value is
+  computed by the function e. The ensuing assertion is
+  parameterized by waiting time.
 \<close>
 inductive wait_out_c_gen :: "cname \<Rightarrow> rdy_info \<Rightarrow> ('a estate \<Rightarrow> real) \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
   "P 0 s0 s tr \<Longrightarrow> wait_out_c_gen ch rdy e P s0 s (OutBlock ch (e s0) # tr)"
@@ -396,26 +343,29 @@ inductive wait_out_c_gen :: "cname \<Rightarrow> rdy_info \<Rightarrow> ('a esta
 
 abbreviation "wait_out_c ch e P s0 s tr \<equiv> wait_out_c_gen ch ({ch}, {}) e P s0 s tr"
 
-lemma spec_of_send:
-  "spec_of (Cm (ch[!]e)) (wait_out_c ch e (\<lambda>d. init))"
-  unfolding Valid_def spec_of_def init_def
-  apply (auto elim!: sendE)
-   apply (rule wait_out_c_gen.intros(1)) apply auto[1]
-  apply (rule wait_out_c_gen.intros(2)) by auto
+text \<open>Waiting an amount of time, without state change\<close>
+inductive wait_c :: "'a eexp \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" where
+  "e s0 > 0 \<Longrightarrow> P s0 s tr \<Longrightarrow> wait_c e P s0 s (WaitBlock (e s0) (\<lambda>_. s0) ({}, {}) # tr)"
+| "\<not>e s0 > 0 \<Longrightarrow> P s0 s tr \<Longrightarrow> wait_c e P s0 s tr"
 
-lemma Valid_send_sp:
-  assumes "spec_of c Q"
-  shows "spec_of (Cm (ch[!]e); c)
-                 (wait_out_c ch e (\<lambda>d s0. Q s0))"
-  using assms unfolding Valid_def spec_of_def init_def
-  apply (auto elim!: seqE sendE)
-   apply (rule wait_out_c_gen.intros(1))
-  using Valid_def spec_of_def init_def assms apply auto[1]
-  apply (rule wait_out_c_gen.intros(2)) apply auto[1]
-  using Valid_def spec_of_def init_def assms apply auto[1]
-  done
+subsubsection \<open>Various rules about entailment\<close>
 
-text \<open>Commutativity between assertions and quantifiers.\<close>
+lemma entails_exists:
+  assumes "\<exists>n. P \<Longrightarrow>\<^sub>A Q n"
+  shows "P \<Longrightarrow>\<^sub>A (\<exists>\<^sub>a n. Q n)"
+  using assms unfolding exists_assn_def entails_def
+  by auto
+
+lemma entails_assumption:
+  "P s \<Longrightarrow>\<^sub>A (IFA b THEN P ELSE true_assn2 FI) s"
+  unfolding cond_assn2_def entails_def
+  using true_assn2.intros by auto
+
+subsubsection \<open>Commutativity rules\<close>
+
+text \<open>The following rules state commutativity between
+  assertions and quantifiers.
+\<close>
 lemma wait_in_c_exists:
   "wait_in_c_gen ch rdy (\<lambda>d v s0. \<exists>\<^sub>an. P d v s0 n) s0 = (\<exists>\<^sub>an. wait_in_c_gen ch rdy (\<lambda>d v s0. P d v s0 n) s0)"
   apply (rule ext) apply (rule ext)
@@ -472,7 +422,9 @@ lemma wait_out_c_exists:
     done
   done
 
-text \<open>Monotonicity rules\<close>
+subsubsection \<open>Monotonicity rules\<close>
+
+text \<open>The following rules state monotonicity of assertions\<close>
 lemma wait_in_c_mono:
   assumes "\<And>d v s. P1 d v s \<Longrightarrow>\<^sub>A P2 d v s"
   shows "wait_in_c_gen ch rdy P1 s0 \<Longrightarrow>\<^sub>A wait_in_c_gen ch rdy P2 s0"
@@ -503,25 +455,164 @@ lemma wait_out_c_mono:
     done
   done
 
+subsection \<open>Hoare logic for sequential processes\<close>
 
-text \<open>Consequence rule\<close>
+text \<open>Definition of Hoare triple\<close>
+definition Valid :: "'a assn \<Rightarrow> 'a proc \<Rightarrow> 'a assn \<Rightarrow> bool" ("\<Turnstile> ({(1_)}/ (_)/ {(1_)})" 50) where
+  "\<Turnstile> {P} c {Q} \<longleftrightarrow> (\<forall>s1 tr1 s2 tr2. P s1 tr1 \<longrightarrow> big_step c s1 tr2 s2 \<longrightarrow> Q s2 (tr1 @ tr2))"
+
+theorem strengthen_pre:
+  "\<Turnstile> {P2} c {Q} \<Longrightarrow> P1 \<Longrightarrow>\<^sub>A P2 \<Longrightarrow> \<Turnstile> {P1} c {Q}"
+  unfolding Valid_def entails_def by metis
+
+theorem weaken_post:
+  "\<Turnstile> {P} c {Q1} \<Longrightarrow> Q1 \<Longrightarrow>\<^sub>A Q2 \<Longrightarrow> \<Turnstile> {P} c {Q2}"
+  unfolding Valid_def entails_def by metis
+
+text \<open>Specification of a single process.
+
+  Each HCSP process can be specified using a parameterized
+  assertion, which for each starting state provides an assertion
+  on the ending state and trace.
+\<close>
+definition spec_of :: "'a proc \<Rightarrow> 'a assn2 \<Rightarrow> bool" where
+  "spec_of c Q \<longleftrightarrow> (\<forall>s0. \<Turnstile> {init s0} c {Q s0})"
+
+text \<open>Consequence rule for spec_of\<close>
 lemma spec_of_post:
   "spec_of c Q1 \<Longrightarrow> \<forall>s0. Q1 s0 \<Longrightarrow>\<^sub>A Q2 s0 \<Longrightarrow> spec_of c Q2"
   unfolding spec_of_def using weaken_post by blast
 
-text \<open>Relation between quantifiers on assertions and usual quantifiers.\<close>
-lemma entails_exists:
-  assumes "\<exists>n. P \<Longrightarrow>\<^sub>A Q n"
-  shows "P \<Longrightarrow>\<^sub>A (\<exists>\<^sub>a n. Q n)"
-  using assms unfolding exists_assn_def entails_def
-  by auto
+subsubsection \<open>Hoare rules for basic commands\<close>
 
-text \<open>Repetition for n times.\<close>
+text \<open>For each command, we state two versions of the rules,
+  one for the command alone, and one for the command followed
+  by an arbitrary process.
+\<close>
+
+text \<open>Hoare rule for skip statement\<close>
+lemma spec_of_skip:
+  "spec_of Skip init"
+  unfolding Valid_def spec_of_def
+  by (auto elim: skipE)
+
+lemma Valid_skip_sp:
+  assumes "spec_of c Q"
+  shows "spec_of (Skip; c) Q"
+  unfolding Valid_def spec_of_def
+  apply (auto elim!: seqE skipE)
+  using assms unfolding spec_of_def Valid_def init_def by auto
+
+text \<open>Hoare rule for assign\<close>
+lemma spec_of_assign:
+  "spec_of (var ::= e) (\<lambda>s0 s tr. s = upd s0 var (e s0))"
+  unfolding Valid_def spec_of_def init_def
+  by (auto elim!: assignE)
+
+lemma Valid_assign_sp:
+  assumes "spec_of c Q"
+  shows "spec_of (var ::= e; c) (Q {{ var := e }})"
+  unfolding Valid_def spec_of_def
+  apply (auto elim!: seqE assignE)
+  using assms unfolding spec_of_def Valid_def init_def subst_assn2_def by auto
+
+text \<open>Hoare rule for updating the extra state\<close>
+lemma spec_of_basic:
+  "spec_of (Basic f) (\<lambda>s0 s tr. s = upde s0 (f s0))"
+  unfolding Valid_def spec_of_def init_def
+  by (auto elim: basicE)
+
+lemma Valid_basic_sp:
+  assumes "spec_of c Q"
+  shows "spec_of (Basic f; c) (Q {{ f }})"
+  unfolding Valid_def spec_of_def
+  apply (auto elim!: seqE basicE)
+  using assms unfolding spec_of_def Valid_def init_def subste_assn2_def by auto
+
+text \<open>Hoare rule for error\<close>
+lemma spec_of_error:
+  "spec_of Error P"
+  unfolding Valid_def spec_of_def init_def
+  by (auto elim: errorE)
+
+lemma Valid_error_sp:
+  "spec_of (Error; c) Q"
+  unfolding Valid_def spec_of_def
+  by (auto elim: seqE errorE)
+
+text \<open>Hoare rules for conditional\<close>
+lemma spec_of_cond:
+  assumes "spec_of c1 Q1"
+    and "spec_of c2 Q2"
+  shows "spec_of (IF b THEN c1 ELSE c2 FI) (IFA b THEN Q1 ELSE Q2 FI)"
+  unfolding Valid_def spec_of_def init_def cond_assn2_def
+  apply (auto elim!: condE)
+  using assms unfolding Valid_def spec_of_def init_def by auto
+
+text \<open>Hoare rule for input\<close>
+lemma spec_of_receive:
+  "spec_of (Cm (ch[?]var)) (wait_in_c ch (\<lambda>d v. init {{ var := (\<lambda>_. v) }}))"
+  unfolding Valid_def spec_of_def init_def subst_assn2_def
+  apply (auto elim!: receiveE)
+   apply (rule wait_in_c_gen.intros(1)) apply auto[1]
+  apply (rule wait_in_c_gen.intros(2)) by auto
+
+lemma Valid_receive_sp:
+  assumes "spec_of c Q"
+  shows "spec_of (Cm (ch[?]var); c)
+                 (wait_in_c ch (\<lambda>d v. Q {{ var := (\<lambda>_. v) }}))"
+  using assms unfolding Valid_def spec_of_def init_def subst_assn2_def
+  apply (auto elim!: seqE receiveE)
+  apply (rule wait_in_c_gen.intros(1)) apply auto[1]
+  using Valid_def spec_of_def init_def assms apply auto[1]
+  apply (rule wait_in_c_gen.intros(2)) apply auto[1]
+  using Valid_def spec_of_def init_def assms apply auto[1]
+  done
+
+text \<open>Hoare rule for output\<close>
+lemma spec_of_send:
+  "spec_of (Cm (ch[!]e)) (wait_out_c ch e (\<lambda>d. init))"
+  unfolding Valid_def spec_of_def init_def
+  apply (auto elim!: sendE)
+   apply (rule wait_out_c_gen.intros(1)) apply auto[1]
+  apply (rule wait_out_c_gen.intros(2)) by auto
+
+lemma Valid_send_sp:
+  assumes "spec_of c Q"
+  shows "spec_of (Cm (ch[!]e); c)
+                 (wait_out_c ch e (\<lambda>d s0. Q s0))"
+  using assms unfolding Valid_def spec_of_def init_def
+  apply (auto elim!: seqE sendE)
+   apply (rule wait_out_c_gen.intros(1))
+  using Valid_def spec_of_def init_def assms apply auto[1]
+  apply (rule wait_out_c_gen.intros(2)) apply auto[1]
+  using Valid_def spec_of_def init_def assms apply auto[1]
+  done
+
+text \<open>Hoare rules for wait\<close>
+lemma spec_of_wait:
+  "spec_of (Wait e) (wait_c e init)"
+  unfolding Valid_def spec_of_def init_def
+  apply (auto elim!: waitE)
+   apply (rule wait_c.intros(1)) apply auto
+  apply (rule wait_c.intros(2)) by auto
+
+lemma Valid_wait_sp:
+  assumes "spec_of c Q"
+  shows "spec_of (Wait e; c) (wait_c e Q)"
+  using assms unfolding Valid_def spec_of_def init_def
+  apply (auto elim!: seqE waitE)
+   apply (rule wait_c.intros(1)) apply auto
+  apply (rule wait_c.intros(2)) by auto
+
+
+subsection \<open>Rewrite rules for big-step semantics\<close>
+
+text \<open>Repetition for n times\<close>
 fun RepN :: "nat \<Rightarrow> 'a proc \<Rightarrow> 'a proc" where
   "RepN 0 c = Skip"
 | "RepN (Suc n) c = c; RepN n c"
 
-text \<open>Some rules about big-step operational semantics\<close>
 lemma big_step_rep:
   "big_step (Rep c) s1 tr1 s2 \<longleftrightarrow> (\<exists>n. big_step (RepN n c) s1 tr1 s2)"
 proof -
@@ -541,6 +632,12 @@ proof -
   ultimately show ?thesis
     by auto
 qed
+
+lemma spec_of_rep:
+  assumes "\<And>n. spec_of (RepN n c) (Q n)"
+  shows "spec_of (Rep c) (\<lambda>s0. \<exists>\<^sub>a n. Q n s0)"
+  using assms unfolding spec_of_def Valid_def big_step_rep exists_assn_def
+  by blast
 
 lemma big_step_seq_assoc:
   "big_step ((p1; p2); p3) s1 tr s2 \<longleftrightarrow> big_step (p1; p2; p3) s1 tr s2"
@@ -589,15 +686,168 @@ lemma spec_of_cond_distrib:
   unfolding spec_of_def Valid_def
   using big_step_cond_distrib by blast
 
-lemma spec_of_rep:
-  assumes "\<And>n. spec_of (RepN n c) (Q n)"
-  shows "spec_of (Rep c) (\<lambda>s0. \<exists>\<^sub>a n. Q n s0)"
-  using assms unfolding spec_of_def Valid_def big_step_rep exists_assn_def
-  by blast
+subsection \<open>States for parallel programs\<close>
 
-subsection \<open>Combining two traces\<close>
+text \<open>Merge of two states.
+  For each process name, first look up in the left state, if not
+  found look up in the right state. This is ''well-behaved'' only
+  if the states on the two sides have disjoint domains, an assumption
+  we will need to use frequently.
+\<close>
+definition merge_state :: "'a gstate \<Rightarrow> 'a gstate \<Rightarrow> 'a gstate" where
+  "merge_state ps1 ps2 = (\<lambda>p. case ps1 p of None \<Rightarrow> ps2 p | Some s \<Rightarrow> Some s)"
 
-text \<open>Whether two rdy_infos from different processes are compatible.\<close>
+text \<open>Set of processes in a parallel state.\<close>
+definition proc_set :: "'a gstate \<Rightarrow> pname set" where
+  "proc_set gs = {pn. gs pn \<noteq> None}"
+
+lemma proc_set_State [simp]:
+  "proc_set (State pn s) = {pn}"
+  by (auto simp add: proc_set_def State_def)
+
+lemma proc_set_merge [simp]:
+  "proc_set (merge_state s1 s2) = proc_set s1 \<union> proc_set s2"
+  apply (auto simp add: proc_set_def merge_state_def)
+  subgoal for x y apply (cases "s1 x") by auto
+  done
+
+text \<open>Updating the global state: real part\<close>
+definition updg :: "'a gstate \<Rightarrow> pname \<Rightarrow> var \<Rightarrow> real \<Rightarrow> 'a gstate" where
+  "updg gs pn x v = gs (pn \<mapsto> upd (the (gs pn)) x v)"
+
+text \<open>Updating the global state: extra part\<close>
+definition updeg :: "'a gstate \<Rightarrow> pname \<Rightarrow> 'a \<Rightarrow> 'a gstate" where
+  "updeg gs pn e = gs (pn \<mapsto> upde (the (gs pn)) e)"
+
+lemma updg_proc_set [simp]:
+  assumes "pn \<in> proc_set gs"
+  shows "proc_set (updg gs pn var e) = proc_set gs"
+  using assms by (auto simp add: updg_def proc_set_def)
+
+lemma updeg_proc_set [simp]:
+  assumes "pn \<in> proc_set gs"
+  shows "proc_set (updeg gs pn f) = proc_set gs"
+  using assms by (auto simp add: updeg_def proc_set_def)
+
+text \<open>Access functions on global state\<close>
+
+definition valg :: "'a gstate \<Rightarrow> pname \<Rightarrow> var \<Rightarrow> real" where
+  "valg gs pn v = val (the (gs pn)) v"
+
+lemma valg_updg_simp [simp]:
+  "valg (updg s pn var v) pn var = v"
+  unfolding valg_def updg_def by auto
+
+lemma valg_updg_simp2 [simp]:
+  "pn \<noteq> pn2 \<Longrightarrow> valg (updg s pn var v) pn2 var2 = valg s pn2 var2"
+  unfolding valg_def updg_def by auto
+
+lemma valg_updg_simp3 [simp]:
+  "var \<noteq> var2 \<Longrightarrow> valg (updg s pn var v) pn var2 = valg s pn var2"
+  unfolding valg_def updg_def by auto
+
+lemma valg_updeg_simp [simp]:
+  "valg (updeg s pn e) pn2 var = valg s pn2 var"
+  unfolding valg_def updeg_def by auto
+
+definition epartg :: "'a gstate \<Rightarrow> pname \<Rightarrow> 'a" where
+  "epartg gs pn = epart (the (gs pn))"
+
+lemma epartg_upd_simp [simp]:
+  "epartg (updg s pn var v) pn2 = epartg s pn2"
+  unfolding epartg_def updg_def by auto
+
+lemma epartg_updeg_simp [simp]:
+  "epartg (updeg s pn e) pn = e"
+  unfolding epartg_def updeg_def by auto
+
+lemma epartg_updeg_simp2 [simp]:
+  "pn \<noteq> pn2 \<Longrightarrow> epartg (updeg s pn e) pn2 = epartg s pn2"
+  unfolding epartg_def updeg_def by auto
+
+text \<open>Some lemmas about updating a single state\<close>
+lemma subst_State:
+  "State pn s(pn \<mapsto> s') = State pn s'"
+  by (auto simp add: State_def)
+
+lemma subst_State_elim:
+  "s0 pn = Some s0' \<Longrightarrow> s0(pn \<mapsto> s1') = State pn s2' \<Longrightarrow> s0 = State pn s0'"
+  apply (auto simp add: State_def fun_upd_def) by metis
+
+text \<open>A state whose proc_set is singleton\<close>
+lemma proc_set_single_elim:
+  assumes "proc_set gs = {pn}"
+    and "(\<And>s. gs = State pn s \<Longrightarrow> P)"
+  shows "P"
+proof -
+  have 1: "x \<in> proc_set gs \<longleftrightarrow> x = pn" for x
+    using eqset_imp_iff[OF assms(1)] by auto
+  show ?thesis
+    apply (rule assms(2)[of "the (gs pn)"])
+    apply (rule ext) subgoal for pn'
+      apply (auto simp add: State_def)
+      using 1 apply (auto simp add: proc_set_def)
+      by fastforce
+    done
+qed
+
+text \<open>Some lemmas about merge of two states\<close>
+
+lemma merge_state_eval1:
+  assumes "pn \<in> proc_set s11"
+  shows "merge_state s11 s12 pn = s11 pn"
+  using assms by (auto simp add: merge_state_def proc_set_def)
+
+lemma merge_state_eval2:
+  assumes "pn \<in> proc_set s12"
+    and "proc_set s11 \<inter> proc_set s12 = {}"
+  shows "merge_state s11 s12 pn = s12 pn"
+  using assms apply (auto simp add: merge_state_def proc_set_def)
+  apply (cases "s11 pn") by auto
+
+lemma single_subst_merge_state1:
+  assumes "pn \<in> proc_set s11"
+  shows "updg (merge_state s11 s12) pn var e = merge_state (updg s11 pn var e) s12"
+  apply (auto simp add: updg_def merge_state_def)
+  apply (rule ext) apply auto
+  apply (cases "s11 pn") apply auto
+  using assms unfolding proc_set_def by auto
+
+lemma single_subst_merge_state2:
+  assumes "pn \<in> proc_set s12"
+    and "proc_set s11 \<inter> proc_set s12 = {}"
+  shows "updg (merge_state s11 s12) pn var e = merge_state s11 (updg s12 pn var e)"
+  apply (auto simp add: updg_def merge_state_def)
+  apply (rule ext) apply auto
+  subgoal apply (cases "s11 pn") 
+    using assms by (auto simp add: proc_set_def)
+  subgoal for pn'
+    apply (cases "s11 pn'") by auto
+  done
+
+lemma single_subste_merge_state1:
+  assumes "pn \<in> proc_set s11"
+  shows "updeg (merge_state s11 s12) pn f = merge_state (updeg s11 pn f) s12"
+  apply (auto simp add: updeg_def merge_state_def)
+  apply (rule ext) apply auto
+  apply (cases "s11 pn") apply auto
+  using assms unfolding proc_set_def by auto
+
+lemma single_subste_merge_state2:
+  assumes "pn \<in> proc_set s12"
+    and "proc_set s11 \<inter> proc_set s12 = {}"
+  shows "updeg (merge_state s11 s12) pn f = merge_state s11 (updeg s12 pn f)"
+  apply (auto simp add: updeg_def merge_state_def)
+  apply (rule ext) apply auto
+  subgoal apply (cases "s11 pn") 
+    using assms by (auto simp add: proc_set_def)
+  subgoal for pn'
+    apply (cases "s11 pn'") by auto
+  done
+
+subsection \<open>Semantics of parallel processes\<close>
+
+text \<open>Whether two rdy_infos from different processes are compatible\<close>
 fun compat_rdy :: "rdy_info \<Rightarrow> rdy_info \<Rightarrow> bool" where
   "compat_rdy (r11, r12) (r21, r22) = (r11 \<inter> r22 = {} \<and> r12 \<inter> r21 = {})"
 
@@ -618,15 +868,6 @@ abbreviation "OutBlockP ch v \<equiv> CommBlockP Out ch v"
 
 text \<open>Trace for parallel process consists of a list of trace blocks.\<close>
 type_synonym 'a ptrace = "'a ptrace_block list"
-
-text \<open>Merge of two states.
-  For each process name, first look up in the left state, if not
-  found look up in the right state. This is ''well-behaved'' only
-  if the states on the two sides have disjoint domains, an assumption
-  we will need to use frequently.
-\<close>
-definition merge_state :: "'a gstate \<Rightarrow> 'a gstate \<Rightarrow> 'a gstate" where
-  "merge_state ps1 ps2 = (\<lambda>p. case ps1 p of None \<Rightarrow> ps2 p | Some s \<Rightarrow> Some s)"
 
 text \<open>combine_blocks comms tr1 tr2 tr means tr1 and tr2 combines to tr, where
   comms is the list of internal communication channels.\<close>
@@ -691,10 +932,6 @@ fun ptrace_of :: "pname \<Rightarrow> 'a trace \<Rightarrow> 'a ptrace" where
 | "ptrace_of pn (CommBlock ch_type ch v # tr) = CommBlockP ch_type ch v # ptrace_of pn tr"
 | "ptrace_of pn (WaitBlock d p rdy # tr) = WaitBlockP d (\<lambda>\<tau>. State pn (p \<tau>)) rdy # ptrace_of pn tr"
 
-text \<open>Set of processes in a parallel state.\<close>
-definition proc_set :: "'a gstate \<Rightarrow> pname set" where
-  "proc_set gs = {pn. gs pn \<noteq> None}"
-
 text \<open>Definition of big-step operational semantics for parallel processes.
   Note the restriction on disjoint condition for process names,
   as needed for good behavior of merge_state.
@@ -713,60 +950,9 @@ inductive par_big_step :: "'a pproc \<Rightarrow> 'a gstate \<Rightarrow> 'a ptr
 inductive_cases SingleE: "par_big_step (Single pn p) s1 tr s2"
 inductive_cases ParallelE: "par_big_step (Parallel p1 ch p2) s1 tr s2"
 
-lemma proc_set_State [simp]:
-  "proc_set (State pn s) = {pn}"
-  by (auto simp add: proc_set_def State_def)
-
-lemma proc_set_merge [simp]:
-  "proc_set (merge_state s1 s2) = proc_set s1 \<union> proc_set s2"
-  apply (auto simp add: proc_set_def merge_state_def)
-  subgoal for x y apply (cases "s1 x") by auto
-  done
-
 lemma proc_set_big_step:
   "par_big_step p s1 tr s2 \<Longrightarrow> proc_set s1 = proc_of_pproc p \<and> proc_set s2 = proc_of_pproc p"
   apply (induction rule: par_big_step.induct) by auto
-
-text \<open>Assertion on global state\<close>
-type_synonym 'a gs_assn = "'a gstate \<Rightarrow> bool"
-
-text \<open>Assertion on global state and trace\<close>
-type_synonym 'a gassn = "'a gstate \<Rightarrow> 'a ptrace \<Rightarrow> bool"
-
-text \<open>Parameterized assertions on global state and trace\<close>
-type_synonym 'a gassn2 = "'a gstate \<Rightarrow> 'a gassn"
-
-definition entails_g :: "'a gassn \<Rightarrow> 'a gassn \<Rightarrow> bool" (infixr "\<Longrightarrow>\<^sub>g" 25) where
-  "(P \<Longrightarrow>\<^sub>g Q) \<longleftrightarrow> (\<forall>s tr. P s tr \<longrightarrow> Q s tr)"
-
-lemma entails_g_triv:
-  "P \<Longrightarrow>\<^sub>g P"
-  unfolding entails_g_def by auto
-
-lemma entails_g_trans:
-  "P \<Longrightarrow>\<^sub>g Q \<Longrightarrow> Q \<Longrightarrow>\<^sub>g R \<Longrightarrow> P \<Longrightarrow>\<^sub>g R"
-  unfolding entails_g_def by auto
-
-definition ParValid :: "'a gs_assn \<Rightarrow> 'a pproc \<Rightarrow> 'a gassn \<Rightarrow> bool" ("\<Turnstile>\<^sub>p ({(1_)}/ (_)/ {(1_)})" 50) where
-  "(\<Turnstile>\<^sub>p {P} c {Q}) \<longleftrightarrow> (\<forall>s1 s2 tr2. P s1 \<longrightarrow> par_big_step c s1 tr2 s2 \<longrightarrow> Q s2 tr2)"
-
-definition init_global :: "'a gstate \<Rightarrow> 'a gs_assn" where
-  "init_global s0 = (\<lambda>s. s = s0)"
-
-lemma init_global_parallel:
-  "init_global s0 (merge_state s1 s2) \<Longrightarrow>
-   (\<And>s01 s02. s0 = merge_state s01 s02 \<Longrightarrow> init_global s01 s1 \<Longrightarrow> init_global s02 s2 \<Longrightarrow> P) \<Longrightarrow> P"
-  unfolding init_global_def by auto
-
-definition spec_of_global :: "'a pproc \<Rightarrow> 'a gassn2 \<Rightarrow> bool" where
-  "spec_of_global c Q \<longleftrightarrow> (\<forall>s0. \<Turnstile>\<^sub>p {init_global s0} c {Q s0})"
-
-lemma spec_of_globalE:
-  "spec_of_global c Q \<Longrightarrow> \<Turnstile>\<^sub>p {init_global s0} c {Q s0}"
-  unfolding spec_of_global_def by auto
-
-inductive single_assn :: "pname \<Rightarrow> 'a assn2 \<Rightarrow> 'a gassn2" where
-  "Q s s' tr \<Longrightarrow> single_assn pn Q (State pn s) (State pn s') (ptrace_of pn tr)"
 
 text \<open>Trace is compatible with a given set of procedure names\<close>
 inductive proc_set_trace :: "pname set \<Rightarrow> 'a ptrace \<Rightarrow> bool" where
@@ -776,7 +962,6 @@ inductive proc_set_trace :: "pname set \<Rightarrow> 'a ptrace \<Rightarrow> boo
    proc_set_trace pns (WaitBlockP d p rdy # tr)"
 
 inductive_cases proc_set_trace_waitE: "proc_set_trace pns (WaitBlockP d p rdy # tr)"
-thm proc_set_trace_waitE
 
 lemma proc_set_trace_tl:
   "proc_set_trace pns (blk # tr) \<Longrightarrow> proc_set_trace pns tr"
@@ -787,6 +972,7 @@ lemma proc_set_trace_wait:
   "proc_set_trace pns (WaitBlockP d p rdy # tr) \<Longrightarrow> proc_set (p t) = pns"
   apply (elim proc_set_trace_waitE) by auto
 
+text \<open>Action of proc_set on synchronization of traces\<close>
 lemma proc_set_trace_combine:
   "combine_blocks chs tr1 tr2 tr \<Longrightarrow>
    proc_set_trace pns1 tr1 \<Longrightarrow> proc_set_trace pns2 tr2 \<Longrightarrow>
@@ -842,10 +1028,95 @@ next
     using combine_blocks_wait3 proc_set_merge proc_set_trace_wait by blast
 qed
 
-text \<open>An assertion is compatible with a set of procedures, if\<close>
-definition proc_set_gassn :: "pname set \<Rightarrow> 'a gassn2 \<Rightarrow> bool" where
-  "proc_set_gassn pns P \<longleftrightarrow>
-    (\<forall>gs0 gs tr. P gs0 gs tr \<longrightarrow> proc_set gs0 = pns \<and> proc_set gs = pns \<and> proc_set_trace pns tr)"
+text \<open>The following two lemmas show that a trace is compatible with
+  a set of procedure names if and only if it can be created using ptrace_of.
+\<close>
+lemma proc_set_trace_single:
+  "proc_set_trace {pn} (ptrace_of pn tr)"
+proof (induction tr)
+  case Nil
+  then show ?case
+    by (auto intro: proc_set_trace.intros)
+next
+  case (Cons blk tr)
+  show ?case
+    apply (cases blk)
+    using Cons by (auto intro: proc_set_trace.intros)
+qed
+
+lemma proc_set_trace_is_single:
+  "proc_set_trace {pn} tr \<Longrightarrow> \<exists>tr'. tr = ptrace_of pn tr'"
+proof (induction tr)
+  case Nil
+  show ?case
+    apply (rule exI[where x="[]"])
+    by auto
+next
+  case (Cons blk tr)
+  have "proc_set_trace {pn} tr"
+    using Cons(2) proc_set_trace_tl by auto
+  then obtain tr' where tr': "tr = ptrace_of pn tr'"
+    using Cons(1) by auto
+  show ?case
+  proof (cases blk)
+    case (CommBlockP ctype ch v)
+    show ?thesis
+      unfolding CommBlockP
+      apply (rule exI[where x="CommBlock ctype ch v # tr'"])
+      using tr' by auto
+  next
+    case (WaitBlockP d p rdy)
+    have "proc_set_trace {pn} (WaitBlockP d p rdy # tr)"
+      using Cons(2)[unfolded WaitBlockP] by auto
+    then have "proc_set (p t) = {pn}" for t
+      using proc_set_trace_wait by blast
+    then have "\<exists>p'. p t = State pn p'" for t
+      by (metis proc_set_single_elim)
+    then obtain p' where p': "p = (\<lambda>\<tau>. State pn (p' \<tau>))"
+      by metis
+    show ?thesis
+      unfolding WaitBlockP
+      apply (rule exI[where x="WaitBlock d p' rdy # tr'"])
+      using tr' p' by auto
+  qed
+qed
+
+subsection \<open>Assertions on parallel processes\<close>
+
+text \<open>Assertion on global state\<close>
+type_synonym 'a gs_assn = "'a gstate \<Rightarrow> bool"
+
+text \<open>Assertion on global state and trace\<close>
+type_synonym 'a gassn = "'a gstate \<Rightarrow> 'a ptrace \<Rightarrow> bool"
+
+text \<open>Parameterized assertions on global state and trace\<close>
+type_synonym 'a gassn2 = "'a gstate \<Rightarrow> 'a gassn"
+
+definition entails_g :: "'a gassn \<Rightarrow> 'a gassn \<Rightarrow> bool" (infixr "\<Longrightarrow>\<^sub>g" 25) where
+  "(P \<Longrightarrow>\<^sub>g Q) \<longleftrightarrow> (\<forall>s tr. P s tr \<longrightarrow> Q s tr)"
+
+lemma entails_g_triv:
+  "P \<Longrightarrow>\<^sub>g P"
+  unfolding entails_g_def by auto
+
+lemma entails_g_trans:
+  "P \<Longrightarrow>\<^sub>g Q \<Longrightarrow> Q \<Longrightarrow>\<^sub>g R \<Longrightarrow> P \<Longrightarrow>\<^sub>g R"
+  unfolding entails_g_def by auto
+
+inductive true_gassn :: "pname set \<Rightarrow> 'a gassn2" where
+  "proc_set gs0 = pns \<Longrightarrow> proc_set gs = pns \<Longrightarrow> proc_set_trace pns tr \<Longrightarrow>
+   true_gassn pns gs0 gs tr"
+
+definition false_gassn :: "'a gassn2" where
+  "false_gassn s0 = (\<lambda>gs tr. False)"
+
+definition init_global :: "'a gstate \<Rightarrow> 'a gs_assn" where
+  "init_global s0 = (\<lambda>s. s = s0)"
+
+lemma init_global_parallel:
+  "init_global s0 (merge_state s1 s2) \<Longrightarrow>
+   (\<And>s01 s02. s0 = merge_state s01 s02 \<Longrightarrow> init_global s01 s1 \<Longrightarrow> init_global s02 s2 \<Longrightarrow> P) \<Longrightarrow> P"
+  unfolding init_global_def by auto
 
 inductive sync_gassn :: "cname set \<Rightarrow> pname set \<Rightarrow> pname set \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2" where
   "proc_set s11 = pns1 \<Longrightarrow> proc_set s12 = pns2 \<Longrightarrow>
@@ -854,76 +1125,112 @@ inductive sync_gassn :: "cname set \<Rightarrow> pname set \<Rightarrow> pname s
    combine_blocks chs tr1 tr2 tr \<Longrightarrow>
    sync_gassn chs pns1 pns2 P Q (merge_state s11 s12) (merge_state s21 s22) tr"
 
-lemma proc_set_sync_gassn:
-  assumes "proc_set_gassn pns1 P"
-    and "proc_set_gassn pns2 Q"
-  shows "proc_set_gassn (pns1 \<union> pns2) (sync_gassn chs pns1 pns2 P Q)"
-  unfolding proc_set_gassn_def apply clarify
-  apply (elim sync_gassn.cases) apply clarify
-  apply simp
-  subgoal for s11 s12 s21 s22 tr1 tr2 tr'
-    apply (rule proc_set_trace_combine[of chs tr1 tr2])
-      apply auto using assms(1)[unfolded proc_set_gassn_def] apply blast
-    using assms(2)[unfolded proc_set_gassn_def] by blast
-  done
+inductive init_single :: "pname set \<Rightarrow> 'a gassn2" where
+  "proc_set gs = pns \<Longrightarrow> init_single pns gs gs []"
 
-lemma spec_of_single:
-  fixes Q :: "'a assn2"
-  assumes "spec_of c Q"
-  shows "spec_of_global (Single pn c) (single_assn pn Q)"
-  unfolding spec_of_global_def ParValid_def init_global_def apply auto
-  apply (elim SingleE) 
-  using assms unfolding spec_of_def Valid_def init_def
-  by (auto intro: single_assn.intros)
+definition cond_gassn2 :: "pname \<Rightarrow> ('a estate \<Rightarrow> bool) \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2"
+  ("IFG [_] _ THEN _ ELSE _ FI" [95,95,94] 93) where
+  "IFG [pn] b THEN Q1 ELSE Q2 FI = (\<lambda>s0 s tr. if b (the (s0 pn)) then Q1 s0 s tr else Q2 s0 s tr)"
 
-lemma spec_of_parallel:
-  fixes P Q :: "'a gassn2"
-  assumes "spec_of_global p1 P"
-    and "spec_of_global p2 Q"
-    and "proc_of_pproc p1 = pns1"
-    and "proc_of_pproc p2 = pns2"
-  shows "spec_of_global (Parallel p1 chs p2) (sync_gassn chs pns1 pns2 P Q)"
-  unfolding spec_of_global_def ParValid_def apply auto
-  apply (elim ParallelE) apply auto
-  apply (elim init_global_parallel) apply (auto simp add: init_global_def)
-  subgoal for tr' tr1 s12 tr2 s22 s01 s02
-    apply (rule sync_gassn.intros)
-    apply (auto simp add: assms(3,4) proc_set_big_step)
-    using assms(1,2) unfolding spec_of_global_def ParValid_def init_global_def
-    by (auto elim: proc_set_big_step)
-  done
+definition conj_gassn :: "'a gassn \<Rightarrow> 'a gassn \<Rightarrow> 'a gassn" (infixr "\<and>\<^sub>g" 35) where
+  "(P \<and>\<^sub>g Q) = (\<lambda>s tr. P s tr \<and> Q s tr)"
 
-lemma weaken_post_global:
-  "\<Turnstile>\<^sub>p {P} c {R} \<Longrightarrow> R \<Longrightarrow>\<^sub>g Q \<Longrightarrow> \<Turnstile>\<^sub>p {P} c {Q}"
-  unfolding ParValid_def entails_g_def by auto
+definition pure_gassn :: "bool \<Rightarrow> 'a gassn" ("!\<^sub>g[_]" [71] 70) where
+  "(!\<^sub>g[b]) = (\<lambda>s tr. b)"
 
-lemma spec_of_global_post:
-  "spec_of_global p Q1 \<Longrightarrow> \<forall>s0. Q1 s0 \<Longrightarrow>\<^sub>g Q2 s0 \<Longrightarrow> spec_of_global p Q2"
-  unfolding spec_of_global_def using weaken_post_global by blast
+text \<open>Quantifiers on parallel assertions\<close>
+definition exists_gassn :: "('b \<Rightarrow> 'a gassn) \<Rightarrow> 'a gassn" (binder "\<exists>\<^sub>g" 10)where
+  "(\<exists>\<^sub>g n. P n) = (\<lambda>s tr. \<exists>n. P n s tr)"
 
-subsection \<open>More assertions for parallel\<close>
-
+text \<open>Assertion for input\<close>
 inductive wait_in_cg_gen :: "cname \<Rightarrow> rdy_info \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
   "P 0 v s0 s tr \<Longrightarrow> wait_in_cg_gen ch rdy P s0 s (InBlockP ch v # tr)"
 | "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> wait_in_cg_gen ch rdy P s0 s (WaitBlockP d (\<lambda>_. s0) rdy # InBlockP ch v # tr)"
 
-lemma proc_set_wait_in_cg_gen:
-  assumes "\<And>d v. proc_set_gassn pns (P d v)"
-  shows "proc_set_gassn pns (wait_in_cg_gen ch rdy P)"
-  unfolding proc_set_gassn_def apply clarify
-  subgoal for gs0 gs tr
-    apply (elim wait_in_cg_gen.cases) apply clarify
-    subgoal for _ v s0 s tr' ch' a b
-      using assms[of 0 v] unfolding proc_set_gassn_def apply auto
-      apply (rule proc_set_trace.intros) by blast
-    subgoal for d P' v s0 s tr' ch' rdy'
-      using assms[of d v] unfolding proc_set_gassn_def apply auto
-      apply (rule proc_set_trace.intros) apply auto
-      apply (rule proc_set_trace.intros) by blast
+abbreviation "wait_in_cg ch P s0 s tr \<equiv> wait_in_cg_gen ch ({}, {ch}) P s0 s tr"
+
+text \<open>Assertion for output\<close>
+inductive wait_out_cg_gen :: "pname \<Rightarrow> cname \<Rightarrow> rdy_info \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
+  "P 0 s0 s tr \<Longrightarrow> v = e (the (s0 pn)) \<Longrightarrow> wait_out_cg_gen pn ch rdy e P s0 s (OutBlockP ch v # tr)"
+| "0 < d \<Longrightarrow> P d s0 s tr \<Longrightarrow> v = e (the (s0 pn)) \<Longrightarrow>
+   wait_out_cg_gen pn ch rdy e P s0 s (WaitBlockP d (\<lambda>_. s0) rdy # OutBlockP ch v # tr)"
+
+abbreviation "wait_out_cg pn ch e P s0 s tr \<equiv> wait_out_cg_gen pn ch ({ch}, {}) e P s0 s tr"
+
+text \<open>Assertion for wait\<close>
+inductive wait_cg :: "pname \<Rightarrow> 'a eexp \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2" where
+  "e (the (gs0 pn)) > 0 \<Longrightarrow> P gs0 gs tr \<Longrightarrow> wait_cg pn e P gs0 gs (WaitBlockP (e (the (gs0 pn))) (\<lambda>_. gs0) ({}, {}) # tr)"
+| "\<not>e (the (gs0 pn)) > 0 \<Longrightarrow> P gs0 gs tr \<Longrightarrow> wait_cg pn e P gs0 gs tr"
+
+text \<open>Action of an assertion on updated state: real part\<close>
+definition updg_assn2 :: "'a gassn2 \<Rightarrow> var \<Rightarrow> 'a eexp \<Rightarrow> pname \<Rightarrow> 'a gassn2"
+  ("_ {{_ := _}}\<^sub>g at _" [90,90,90,90] 91) where
+  "P {{var := e}}\<^sub>g at pn = (\<lambda>ps s tr. ps pn \<noteq> None \<and> P (updg ps pn var (e (the (ps pn)))) s tr)"
+
+text \<open>Action of an assertion on updated state: extra part\<close>
+definition updeg_assn2 :: "'a gassn2 \<Rightarrow> ('a estate \<Rightarrow> 'a) \<Rightarrow> pname \<Rightarrow> 'a gassn2"
+  ("_ {{_}}\<^sub>g at _" [90,90,90] 91) where
+  "P {{f}}\<^sub>g at pn = (\<lambda>ps s tr. ps pn \<noteq> None \<and> P (updeg ps pn (f (the (ps pn)))) s tr)"
+
+text \<open>Another generalization of wait_in_c\<close>
+inductive wait_in_cg_alt :: "cname \<Rightarrow> pname \<Rightarrow> 'a eexp \<Rightarrow> rdy_info \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a gassn2) \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
+  "P 0 v s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e rdy P Q s0 s (InBlockP ch v # tr)"
+| "0 < d \<Longrightarrow> d \<le> e (the (s0 pn)) \<Longrightarrow> P d v s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e rdy P Q s0 s (WaitBlockP d (\<lambda>_. s0) rdy # InBlockP ch v # tr)"
+| "0 < e (the (s0 pn)) \<Longrightarrow> d \<ge> e (the (s0 pn)) \<Longrightarrow> Q d s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e rdy P Q s0 s (WaitBlockP d (\<lambda>_. s0) rdy # tr)"
+| "\<not>0 < e (the (s0 pn)) \<Longrightarrow> Q 0 s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e rdy P Q s0 s tr"
+
+text \<open>Version of wait_in_c with assumption of immediate communication\<close>
+definition wait_in_c0_gen :: "cname \<Rightarrow> rdy_info \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
+  "wait_in_c0_gen ch rdy P = wait_in_c_gen ch rdy (\<lambda>d v.
+    IFA (\<lambda>s. d = 0) THEN P v ELSE true_assn2 FI)"
+
+definition wait_in_cg0_gen :: "pname \<Rightarrow> cname \<Rightarrow> rdy_info \<Rightarrow> pname set \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
+  "wait_in_cg0_gen pn ch rdy pns P = wait_in_cg_gen ch rdy (\<lambda>d v.
+    IFG [pn] (\<lambda>s. d = 0) THEN P v ELSE true_gassn pns FI)"
+
+abbreviation "wait_in_c0 ch P \<equiv> wait_in_c0_gen ch ({}, {ch}) P"
+abbreviation "wait_in_cg0 pn ch P \<equiv> wait_in_cg0_gen pn ch ({}, {ch}) {pn} P"
+
+subsubsection \<open>Conversion from sequential to parallel assertions\<close>
+
+inductive single_assn :: "pname \<Rightarrow> 'a assn2 \<Rightarrow> 'a gassn2" where
+  "Q s s' tr \<Longrightarrow> single_assn pn Q (State pn s) (State pn s') (ptrace_of pn tr)"
+
+lemma single_assn_true:
+  "single_assn pn true_assn2 = true_gassn {pn}"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s0 s tr
+    apply (rule iffI)
+    subgoal apply (elim single_assn.cases)
+      apply auto apply (rule true_gassn.intros)
+      using proc_set_trace_single by auto
+    subgoal apply (elim true_gassn.cases)
+      apply clarify
+      apply (elim proc_set_single_elim)
+      apply auto
+      by (metis proc_set_trace_is_single single_assn.intros true_assn2.intros)
     done
   done
 
-abbreviation "wait_in_cg ch P s0 s tr \<equiv> wait_in_cg_gen ch ({}, {ch}) P s0 s tr"
+lemma single_assn_false:
+  "single_assn pn false_assn2 = false_gassn"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s0 s tr
+    apply (rule iffI)
+    subgoal apply (elim single_assn.cases)
+      unfolding false_assn2_def by auto
+    subgoal unfolding false_gassn_def by auto
+    done
+  done
+
+lemma single_assn_exists:
+  "single_assn pn (\<lambda>s0. \<exists>\<^sub>an. P n s0) = (\<lambda>s0. (\<exists>\<^sub>g n. single_assn pn (P n) s0))"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s tr s0
+    apply (rule iffI)
+    apply (auto simp add: exists_gassn_def exists_assn_def)
+      by (auto elim: single_assn.cases intro: single_assn.intros)
+    done
 
 lemma single_assn_wait_in:
   "single_assn pn (wait_in_c_gen ch1 rdy P) = wait_in_cg_gen ch1 rdy (\<lambda>d v. single_assn pn (P d v))"
@@ -951,29 +1258,6 @@ lemma single_assn_wait_in:
           apply (rule wait_in_c_gen.intros) by auto
         done
       done
-    done
-  done
-
-inductive wait_out_cg_gen :: "pname \<Rightarrow> cname \<Rightarrow> rdy_info \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
-  "P 0 s0 s tr \<Longrightarrow> v = e (the (s0 pn)) \<Longrightarrow> wait_out_cg_gen pn ch rdy e P s0 s (OutBlockP ch v # tr)"
-| "0 < d \<Longrightarrow> P d s0 s tr \<Longrightarrow> v = e (the (s0 pn)) \<Longrightarrow>
-   wait_out_cg_gen pn ch rdy e P s0 s (WaitBlockP d (\<lambda>_. s0) rdy # OutBlockP ch v # tr)"
-
-abbreviation "wait_out_cg pn ch e P s0 s tr \<equiv> wait_out_cg_gen pn ch ({ch}, {}) e P s0 s tr"
-
-lemma proc_set_wait_out_cg_gen:
-  assumes "\<And>d v. proc_set_gassn pns (P d)"
-  shows "proc_set_gassn pns (wait_out_cg_gen pn ch rdy e P)"
-  unfolding proc_set_gassn_def apply clarify
-  subgoal for gs0 gs tr
-    apply (elim wait_out_cg_gen.cases) apply clarify
-    subgoal for _ v s0 s tr' ch' a b
-      using assms[of 0] unfolding proc_set_gassn_def apply auto
-      apply (rule proc_set_trace.intros) by blast
-    subgoal for d P' v s0 s tr' ch' rdy'
-      using assms[of d] unfolding proc_set_gassn_def apply auto
-      apply (rule proc_set_trace.intros) apply auto
-      apply (rule proc_set_trace.intros) by blast
     done
   done
 
@@ -1014,37 +1298,51 @@ lemma single_assn_wait_out:
     done
   done
 
-definition updg :: "'a gstate \<Rightarrow> pname \<Rightarrow> var \<Rightarrow> real \<Rightarrow> 'a gstate" where
-  "updg gs pn x v = gs (pn \<mapsto> upd (the (gs pn)) x v)"
-
-definition updeg :: "'a gstate \<Rightarrow> pname \<Rightarrow> 'a \<Rightarrow> 'a gstate" where
-  "updeg gs pn e = gs (pn \<mapsto> upde (the (gs pn)) e)"
-
-definition updg_assn2 :: "'a gassn2 \<Rightarrow> var \<Rightarrow> 'a eexp \<Rightarrow> pname \<Rightarrow> 'a gassn2"
-  ("_ {{_ := _}}\<^sub>g at _" [90,90,90,90] 91) where
-  "P {{var := e}}\<^sub>g at pn = (\<lambda>ps s tr. ps pn \<noteq> None \<and> P (updg ps pn var (e (the (ps pn)))) s tr)"
-
-definition updeg_assn2 :: "'a gassn2 \<Rightarrow> ('a estate \<Rightarrow> 'a) \<Rightarrow> pname \<Rightarrow> 'a gassn2"
-  ("_ {{_}}\<^sub>g at _" [90,90,90] 91) where
-  "P {{f}}\<^sub>g at pn = (\<lambda>ps s tr. ps pn \<noteq> None \<and> P (updeg ps pn (f (the (ps pn)))) s tr)"
-
-lemma subst_State:
-  "State pn s(pn \<mapsto> s') = State pn s'"
-  by (auto simp add: State_def)
-
-lemma subst_State_elim:
-  "s0 pn = Some s0' \<Longrightarrow> s0(pn \<mapsto> s1') = State pn s2' \<Longrightarrow> s0 = State pn s0'"
-  apply (auto simp add: State_def fun_upd_def) by metis
-
-lemma updg_proc_set [simp]:
-  assumes "pn \<in> proc_set gs"
-  shows "proc_set (updg gs pn var e) = proc_set gs"
-  using assms by (auto simp add: updg_def proc_set_def)
-
-lemma updeg_proc_set [simp]:
-  assumes "pn \<in> proc_set gs"
-  shows "proc_set (updeg gs pn f) = proc_set gs"
-  using assms by (auto simp add: updeg_def proc_set_def)
+lemma single_assn_wait:
+  "single_assn pn (wait_c e P) = wait_cg pn e (single_assn pn P)"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for gs0 gs tr
+    apply (rule iffI)
+    subgoal apply (elim single_assn.cases) apply auto
+      subgoal for s0 s tr'
+        apply (cases "e s0 > 0")
+        subgoal premises pre
+        proof -
+          have es0: "e s0 = e (the ((State pn s0) pn))"
+            by auto
+          then show ?thesis
+            using pre apply (elim wait_c.cases) apply auto[2]
+            apply (subst es0) apply (rule wait_cg.intros(1))
+            by (auto intro: single_assn.intros)
+        qed
+        subgoal premises pre
+        proof -
+          have es0: "e s0 = e (the ((State pn s0) pn))"
+            by auto
+          then show ?thesis
+            using pre apply (elim wait_c.cases) apply auto[1]
+            apply (rule wait_cg.intros(2))
+            by (auto intro: single_assn.intros)
+        qed
+        done
+      done
+    subgoal apply (elim wait_cg.cases) apply auto
+      subgoal for tr'
+        apply (elim single_assn.cases) apply auto
+        subgoal for s0' s' tr''
+          apply (subst ptrace_of.simps[symmetric])
+          apply (rule single_assn.intros)
+          apply (rule wait_c.intros) by auto
+        done
+      subgoal
+        apply (elim single_assn.cases) apply auto
+        subgoal for s0' s' tr''
+          apply (rule single_assn.intros)
+          apply (rule wait_c.intros) by auto
+        done
+      done
+    done
+  done
 
 lemma updg_subst2:
   "single_assn pn (P {{ var := e }}) = (single_assn pn P) {{ var := e }}\<^sub>g at pn"
@@ -1092,25 +1390,6 @@ lemma updeg_subst2:
     done
   done
 
-inductive init_single :: "pname set \<Rightarrow> 'a gassn2" where
-  "proc_set gs = pns \<Longrightarrow> init_single pns gs gs []"
-
-lemma proc_set_single_elim:
-  assumes "proc_set gs = {pn}"
-    and "(\<And>s. gs = State pn s \<Longrightarrow> P)"
-  shows "P"
-proof -
-  have 1: "x \<in> proc_set gs \<longleftrightarrow> x = pn" for x
-    using eqset_imp_iff[OF assms(1)] by auto
-  show ?thesis
-    apply (rule assms(2)[of "the (gs pn)"])
-    apply (rule ext) subgoal for pn'
-      apply (auto simp add: State_def)
-      using 1 apply (auto simp add: proc_set_def)
-      by fastforce
-    done
-qed
-
 lemma single_assn_init:
   "single_assn pn init = init_single {pn}"
   apply (rule ext) apply (rule ext) apply (rule ext)
@@ -1128,10 +1407,6 @@ lemma single_assn_init:
     done
   done
 
-definition cond_gassn2 :: "pname \<Rightarrow> ('a estate \<Rightarrow> bool) \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2"
-  ("IFG [_] _ THEN _ ELSE _ FI" [95,95,94] 93) where
-  "IFG [pn] b THEN Q1 ELSE Q2 FI = (\<lambda>s0 s tr. if b (the (s0 pn)) then Q1 s0 s tr else Q2 s0 s tr)"
-
 lemma single_assn_cond:
   "single_assn pn (IFA b THEN a1 ELSE a2 FI) =
     (IFG [pn] b THEN single_assn pn a1 ELSE single_assn pn a2 FI)"
@@ -1148,7 +1423,476 @@ lemma single_assn_cond:
     done
   done
 
-subsection \<open>Basic elimination rules\<close>
+lemma single_assn_wait_in0:
+  "single_assn pn (wait_in_c0_gen ch rdy P) = wait_in_cg0_gen pn ch rdy {pn} (\<lambda>v. single_assn pn (P v))"
+  unfolding wait_in_c0_gen_def wait_in_cg0_gen_def
+  apply (subst single_assn_wait_in)
+  unfolding single_assn_cond single_assn_true by auto
+
+subsubsection \<open>Set of procedure names for an assertion\<close>
+
+text \<open>An assertion is compatible with a set of procedure names,
+  if it holds only on those traces whose proc_set is exactly
+  that set.
+\<close>
+definition proc_set_gassn :: "pname set \<Rightarrow> 'a gassn2 \<Rightarrow> bool" where
+  "proc_set_gassn pns P \<longleftrightarrow>
+    (\<forall>gs0 gs tr. P gs0 gs tr \<longrightarrow> proc_set gs0 = pns \<and> proc_set gs = pns \<and> proc_set_trace pns tr)"
+
+lemma proc_set_sync_gassn:
+  assumes "proc_set_gassn pns1 P"
+    and "proc_set_gassn pns2 Q"
+  shows "proc_set_gassn (pns1 \<union> pns2) (sync_gassn chs pns1 pns2 P Q)"
+  unfolding proc_set_gassn_def apply clarify
+  apply (elim sync_gassn.cases) apply clarify
+  apply simp
+  subgoal for s11 s12 s21 s22 tr1 tr2 tr'
+    apply (rule proc_set_trace_combine[of chs tr1 tr2])
+      apply auto using assms(1)[unfolded proc_set_gassn_def] apply blast
+    using assms(2)[unfolded proc_set_gassn_def] by blast
+  done
+
+lemma proc_set_wait_in_cg_gen:
+  assumes "\<And>d v. proc_set_gassn pns (P d v)"
+  shows "proc_set_gassn pns (wait_in_cg_gen ch rdy P)"
+  unfolding proc_set_gassn_def apply clarify
+  subgoal for gs0 gs tr
+    apply (elim wait_in_cg_gen.cases) apply clarify
+    subgoal for _ v s0 s tr' ch' a b
+      using assms[of 0 v] unfolding proc_set_gassn_def apply auto
+      apply (rule proc_set_trace.intros) by blast
+    subgoal for d P' v s0 s tr' ch' rdy'
+      using assms[of d v] unfolding proc_set_gassn_def apply auto
+      apply (rule proc_set_trace.intros) apply auto
+      apply (rule proc_set_trace.intros) by blast
+    done
+  done
+
+lemma proc_set_wait_out_cg_gen:
+  assumes "\<And>d v. proc_set_gassn pns (P d)"
+  shows "proc_set_gassn pns (wait_out_cg_gen pn ch rdy e P)"
+  unfolding proc_set_gassn_def apply clarify
+  subgoal for gs0 gs tr
+    apply (elim wait_out_cg_gen.cases) apply clarify
+    subgoal for _ v s0 s tr' ch' a b
+      using assms[of 0] unfolding proc_set_gassn_def apply auto
+      apply (rule proc_set_trace.intros) by blast
+    subgoal for d P' v s0 s tr' ch' rdy'
+      using assms[of d] unfolding proc_set_gassn_def apply auto
+      apply (rule proc_set_trace.intros) apply auto
+      apply (rule proc_set_trace.intros) by blast
+    done
+  done
+
+lemma proc_set_wait_cg:
+  assumes "proc_set_gassn pns P"
+  shows "proc_set_gassn pns (wait_cg pn e P)"
+  unfolding proc_set_gassn_def apply clarify
+  subgoal for gs0 gs tr
+    apply (elim wait_cg.cases) apply clarify
+    using assms unfolding proc_set_gassn_def apply auto
+    apply (rule proc_set_trace.intros) by auto
+  done
+
+lemma proc_set_cond_gassn:
+  assumes "proc_set_gassn pns P"
+    and "proc_set_gassn pns Q"
+  shows "proc_set_gassn pns (IFG [pn] b THEN P ELSE Q FI)"
+  unfolding proc_set_gassn_def apply clarify
+  subgoal for gs0 gs tr
+    unfolding cond_gassn2_def
+    apply (cases "b (the (gs0 pn))")
+    subgoal using assms(1) unfolding proc_set_gassn_def by auto
+    subgoal using assms(2) unfolding proc_set_gassn_def by auto
+    done
+  done
+
+lemma proc_set_true_gassn:
+  "proc_set_gassn pns (true_gassn pns)"
+  unfolding proc_set_gassn_def apply clarify
+  apply (elim true_gassn.cases) by auto
+
+lemma proc_set_updg_subst:
+  assumes "proc_set_gassn pns P"
+    and "pn \<in> pns"
+  shows "proc_set_gassn pns (P {{ x := v }}\<^sub>g at pn)"
+  unfolding proc_set_gassn_def apply clarify
+  unfolding updg_assn2_def using assms unfolding proc_set_gassn_def
+  by (metis (mono_tags, lifting) mem_Collect_eq proc_set_def updg_proc_set)
+
+lemma proc_set_init_single:
+  "proc_set_gassn pn (init_single pn)"
+  unfolding proc_set_gassn_def apply clarify
+  subgoal for gs0 gs tr
+    apply (induct rule: init_single.induct)
+    by (auto intro: proc_set_trace.intros)
+  done
+
+subsubsection \<open>Entailments on parallel assertions\<close>
+
+lemma conj_gassn_intro:
+  assumes "P \<Longrightarrow>\<^sub>g Q" "P \<Longrightarrow>\<^sub>g R"
+  shows "P \<Longrightarrow>\<^sub>g Q \<and>\<^sub>g R"
+  using assms unfolding conj_gassn_def entails_g_def by auto
+
+lemma pure_gassn_intro:
+  assumes b
+  shows "P \<Longrightarrow>\<^sub>g !\<^sub>g[b]"
+  using assms unfolding pure_gassn_def entails_g_def by auto
+
+lemma sync_gassn_false_left:
+  "sync_gassn chs pns1 pns2 false_gassn Q s0 \<Longrightarrow>\<^sub>g R s0"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases)
+    unfolding false_gassn_def by auto
+  done
+
+lemma sync_gassn_false_right:
+  "sync_gassn chs pns1 pns2 P false_gassn s0 \<Longrightarrow>\<^sub>g R s0"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases)
+    unfolding false_gassn_def by auto
+  done
+
+lemma exists_gassn_elim:
+  assumes "\<And>n. P n \<Longrightarrow>\<^sub>g Q"
+  shows "(\<exists>\<^sub>g n. P n) \<Longrightarrow>\<^sub>g Q"
+  using assms unfolding exists_gassn_def entails_g_def
+  by auto
+
+lemma conj_pure_gassn_elim:
+  assumes "R \<Longrightarrow> P \<Longrightarrow>\<^sub>g Q"
+  shows "(!\<^sub>g[R] \<and>\<^sub>g P) \<Longrightarrow>\<^sub>g Q"
+  using assms unfolding entails_g_def conj_gassn_def pure_gassn_def
+  by auto
+
+lemma sync_gassn_ifg_left:
+  assumes
+    "b (the (s0 pn)) \<Longrightarrow> sync_gassn chs pns1 pns2 P1 Q s0 \<Longrightarrow>\<^sub>g R s0"
+    "\<not>b (the (s0 pn)) \<Longrightarrow> sync_gassn chs pns1 pns2 P2 Q s0 \<Longrightarrow>\<^sub>g R s0"
+    "pn \<in> pns1"
+  shows
+    "sync_gassn chs pns1 pns2 (IFG [pn] b THEN P1 ELSE P2 FI) Q s0 \<Longrightarrow>\<^sub>g R s0"
+  unfolding cond_gassn2_def entails_g_def
+  apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases) apply clarify
+    subgoal premises pre for s11 _ s12 _ s21 s22 _ tr1 _ tr2 _ tr'
+    proof (cases "b (the (s11 pn))")
+      case True
+      show ?thesis
+      proof -
+        have "b (the (s0 pn))"
+          unfolding pre(1) using assms(3)
+          by (simp add: True merge_state_eval1 pre(7))
+        moreover have "sync_gassn chs pns1 pns2 P1 Q s0 s tr"
+          unfolding pre(1,2)
+          apply (rule sync_gassn.intros)
+          using pre True by auto
+        ultimately show ?thesis
+          using assms(1)[unfolded cond_gassn2_def entails_g_def]
+          unfolding pre(1,2) by auto
+      qed
+    next
+      case False
+      show ?thesis
+      proof -
+        have "\<not>b (the (s0 pn))"
+          unfolding pre(1) using assms(3)
+          by (simp add: False merge_state_eval1 pre(7))
+        moreover have "sync_gassn chs pns1 pns2 P2 Q s0 s tr"
+          unfolding pre(1,2)
+          apply (rule sync_gassn.intros)
+          using pre False by auto
+        ultimately show ?thesis
+          using assms(2)[unfolded cond_gassn2_def entails_g_def]
+          unfolding pre(1,2) by auto
+      qed
+    qed
+    done
+  done
+
+lemma cond_gassn_true:
+  "b \<Longrightarrow> (IFG [pn] (\<lambda>_. b) THEN P ELSE Q FI = P)"
+  unfolding cond_gassn2_def by auto
+
+lemma cond_gassn_false:
+  "\<not>b \<Longrightarrow> (IFG [pn] (\<lambda>_. b) THEN P ELSE Q FI = Q)"
+  unfolding cond_gassn2_def by auto
+
+lemma sync_gassn_true_left:
+  assumes "proc_set_gassn pns2 Q"
+  shows "sync_gassn chs pns1 pns2 (true_gassn pns1) Q s0 \<Longrightarrow>\<^sub>g true_gassn (pns1 \<union> pns2) s0"
+  unfolding entails_g_def apply auto
+  apply (elim sync_gassn.cases)
+  apply auto apply (rule true_gassn.intros)
+    apply auto subgoal for s11 s12 s21 s22 tr1 tr2 tr'
+    apply (rule proc_set_trace_combine[of chs tr1 tr2])
+      apply auto apply (elim true_gassn.cases) apply blast
+    using assms[unfolded proc_set_gassn_def] by blast
+  done
+
+lemma sync_gassn_true_left':
+  assumes "proc_set_gassn pns2 Q"
+  shows "sync_gassn chs pns1 pns2 (true_gassn pns1) Q s0 s tr \<Longrightarrow> true_gassn (pns1 \<union> pns2) s0 s tr"
+  using sync_gassn_true_left[OF assms] unfolding entails_g_def by auto
+
+lemma entails_true_gassn:
+  assumes "proc_set_gassn pns P"
+  shows "P s0 \<Longrightarrow>\<^sub>g true_gassn pns s0"
+  unfolding entails_g_def apply auto
+  apply (intro true_gassn.intros)
+  using assms unfolding proc_set_gassn_def by auto
+
+lemma sync_gassn_subst_left:
+  assumes "pn \<in> pns1"
+  shows "sync_gassn chs pns1 pns2 (P {{ var := e }}\<^sub>g at pn) Q s0 \<Longrightarrow>\<^sub>g
+         (sync_gassn chs pns1 pns2 P Q {{ var := e }}\<^sub>g at pn) s0"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases) apply auto
+    subgoal for s11 s12 s21 s22 tr1 tr2
+      apply (auto simp add: updg_assn2_def)
+      subgoal using assms by (auto simp add: merge_state_eval1)
+      subgoal for s11'
+        apply (subst single_subst_merge_state1)
+        using assms apply simp
+        apply (rule sync_gassn.intros)
+        using assms by (auto simp add: merge_state_eval1)
+      done
+    done
+  done
+
+lemma sync_gassn_subst_right:
+  assumes "pn \<in> pns2"
+    and "pns1 \<inter> pns2 = {}"
+  shows "sync_gassn chs pns1 pns2 Q (P {{ var := e }}\<^sub>g at pn) s0 \<Longrightarrow>\<^sub>g
+         (sync_gassn chs pns1 pns2 Q P {{ var := e }}\<^sub>g at pn) s0"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases) apply auto
+    subgoal for s11 s12 s21 s22 tr1 tr2
+      apply (auto simp add: updg_assn2_def)
+      subgoal using assms by (auto simp add: merge_state_eval2)
+      subgoal for s11'
+        apply (subst single_subst_merge_state2)
+        using assms apply auto
+        apply (rule sync_gassn.intros)
+        using assms by (auto simp add: merge_state_eval2)
+      done
+    done
+  done
+
+lemma sync_gassn_subste_left:
+  assumes "pn \<in> pns1"
+  shows "sync_gassn chs pns1 pns2 (P {{ f }}\<^sub>g at pn) Q s0 \<Longrightarrow>\<^sub>g
+         (sync_gassn chs pns1 pns2 P Q {{ f }}\<^sub>g at pn) s0"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases) apply auto
+    subgoal for s11 s12 s21 s22 tr1 tr2
+      apply (auto simp add: updeg_assn2_def)
+      subgoal using assms by (auto simp add: merge_state_eval1)
+      subgoal for s11'
+        apply (subst single_subste_merge_state1)
+        using assms apply simp
+        apply (rule sync_gassn.intros)
+        using assms by (auto simp add: merge_state_eval1)
+      done
+    done
+  done
+
+lemma sync_gassn_subste_right:
+  assumes "pn \<in> pns2"
+    and "pns1 \<inter> pns2 = {}"
+  shows "sync_gassn chs pns1 pns2 Q (P {{ f }}\<^sub>g at pn) s0 \<Longrightarrow>\<^sub>g
+         (sync_gassn chs pns1 pns2 Q P {{ f }}\<^sub>g at pn) s0"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases) apply auto
+    subgoal for s11 s12 s21 s22 tr1 tr2
+      apply (auto simp add: updeg_assn2_def)
+      subgoal using assms by (auto simp add: merge_state_eval2)
+      subgoal for s11'
+        apply (subst single_subste_merge_state2)
+        using assms apply auto
+        apply (rule sync_gassn.intros)
+        using assms by (auto simp add: merge_state_eval2)
+      done
+    done
+  done
+
+lemma gassn_subst:
+  "(P {{ var := e }}\<^sub>g at pn) s0 \<Longrightarrow>\<^sub>g P (updg s0 pn var (e (the (s0 pn))))"
+  unfolding entails_g_def
+  by (auto simp add: updg_assn2_def)
+
+lemma gassn_subste:
+  "(P {{ f }}\<^sub>g at pn) s0 \<Longrightarrow>\<^sub>g P (updeg s0 pn (f (the (s0 pn))))"
+  unfolding entails_g_def
+  by (auto simp add: updeg_assn2_def)
+
+lemma sync_gassn_triv:
+  assumes "s1 = s2"
+  shows "sync_gassn chs pns1 pns2 P Q s1 \<Longrightarrow>\<^sub>g sync_gassn chs pns1 pns2 P Q s2"
+  apply (simp add: assms)
+  by (rule entails_g_triv)
+
+lemma exists_gassn_intro:
+  assumes "\<exists>n. P \<Longrightarrow>\<^sub>g Q n"
+  shows "P \<Longrightarrow>\<^sub>g (\<exists>\<^sub>g n. Q n)"
+  using assms unfolding exists_gassn_def entails_g_def
+  by auto
+
+lemma sync_gassn_exists_left:
+  "sync_gassn chs pns1 pns2 (\<lambda>s0. \<exists>\<^sub>gn. P n s0) Q = (\<lambda>s0. \<exists>\<^sub>g n. sync_gassn chs pns1 pns2 (P n) Q s0)"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s tr s0
+    apply (rule iffI)
+     apply (auto simp add: exists_gassn_def)
+    by (auto elim: sync_gassn.cases intro: sync_gassn.intros)
+  done
+
+lemma sync_gassn_exists_right:
+  "sync_gassn chs pns1 pns2 P (\<lambda>s0. \<exists>\<^sub>gn. Q n s0) = (\<lambda>s0. \<exists>\<^sub>g n. sync_gassn chs pns1 pns2 P (Q n) s0)"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s tr s0
+    apply (rule iffI)
+     apply (auto simp add: exists_gassn_def)
+    by (auto elim: sync_gassn.cases intro: sync_gassn.intros)
+  done
+
+subsubsection \<open>Monotonicity rules\<close>
+
+lemma cond_gassn_mono:
+  assumes "P1 s0 \<Longrightarrow>\<^sub>g P2 s0"
+    and "Q1 s0 \<Longrightarrow>\<^sub>g Q2 s0"
+  shows "(IFG [pn] b THEN P1 ELSE Q1 FI) s0 \<Longrightarrow>\<^sub>g (IFG [pn] b THEN P2 ELSE Q2 FI) s0"
+  unfolding entails_g_def apply clarify
+  subgoal for s tr
+    unfolding cond_gassn2_def
+    apply auto using assms unfolding entails_g_def by auto
+  done
+
+lemma updg_mono:
+  assumes "P (updg s0 pn v (e (the (s0 pn)))) \<Longrightarrow>\<^sub>g Q (updg s0 pn v (e (the (s0 pn))))"
+  shows "(P {{v := e}}\<^sub>g at pn) s0 \<Longrightarrow>\<^sub>g (Q {{v := e}}\<^sub>g at pn) s0"
+  apply (auto simp add: entails_g_def)
+  subgoal for s tr
+    unfolding updg_assn2_def
+    using assms unfolding entails_g_def by auto
+  done
+
+lemma wait_out_cg_mono:
+  assumes "\<And>d s0. P d s0 \<Longrightarrow>\<^sub>g Q d s0"
+  shows "wait_out_cg_gen pn ch rdy e P s0 \<Longrightarrow>\<^sub>g wait_out_cg_gen pn ch rdy e Q s0"
+  apply (auto simp add: entails_g_def)
+  subgoal for s tr
+    apply (elim wait_out_cg_gen.cases) apply auto
+    subgoal apply (rule wait_out_cg_gen.intros)
+      using assms unfolding entails_g_def by auto
+    subgoal apply (rule wait_out_cg_gen.intros)
+      using assms unfolding entails_g_def by auto
+    done
+  done
+
+lemma wait_in_cg_mono:
+  assumes "\<And>d v s0. P d v s0 \<Longrightarrow>\<^sub>g Q d v s0"
+  shows "wait_in_cg_gen ch rdy P s0 \<Longrightarrow>\<^sub>g wait_in_cg_gen ch rdy Q s0"
+  apply (auto simp add: entails_g_def)
+  subgoal for s tr
+    apply (elim wait_in_cg_gen.cases) apply auto
+    subgoal apply (rule wait_in_cg_gen.intros)
+      using assms unfolding entails_g_def by auto
+    subgoal apply (rule wait_in_cg_gen.intros)
+      using assms unfolding entails_g_def by auto
+    done
+  done
+
+lemma wait_cg_mono:
+  assumes "P s0 \<Longrightarrow>\<^sub>g Q s0"
+  shows "wait_cg pn e P s0 \<Longrightarrow>\<^sub>g wait_cg pn e Q s0"
+  apply (auto simp add: entails_g_def)
+  subgoal for s tr
+    apply (elim wait_cg.cases) apply auto
+    subgoal apply (rule wait_cg.intros)
+       using assms unfolding entails_g_def by auto
+    subgoal apply (rule wait_cg.intros)
+      using assms unfolding entails_g_def by auto
+    done
+  done
+
+lemma wait_in_cg_alt_mono:
+  assumes "\<And>d v s0. P1 d v s0 \<Longrightarrow>\<^sub>g P2 d v s0"
+    and "\<And>d s0. Q1 d s0 \<Longrightarrow>\<^sub>g Q2 d s0"
+  shows "wait_in_cg_alt ch pn e rdy P1 Q1 s0 \<Longrightarrow>\<^sub>g wait_in_cg_alt ch pn e rdy P2 Q2 s0"
+  apply (auto simp add: entails_g_def)
+  subgoal for s tr
+    apply (elim wait_in_cg_alt.cases) apply auto
+    subgoal for v tr' a b
+      apply (rule wait_in_cg_alt.intros)
+      using assms(1) unfolding entails_g_def by auto
+    subgoal for v tr' a b
+      apply (rule wait_in_cg_alt.intros)
+      using assms(1) unfolding entails_g_def by auto
+    subgoal for v tr' a b
+      apply (rule wait_in_cg_alt.intros)
+      using assms(2) unfolding entails_g_def by auto
+    subgoal for a b
+      apply (rule wait_in_cg_alt.intros)
+      using assms(2) unfolding entails_g_def by auto
+    done
+  done
+
+subsection \<open>Hoare logic for parallel programs\<close>
+
+definition ParValid :: "'a gs_assn \<Rightarrow> 'a pproc \<Rightarrow> 'a gassn \<Rightarrow> bool" ("\<Turnstile>\<^sub>p ({(1_)}/ (_)/ {(1_)})" 50) where
+  "(\<Turnstile>\<^sub>p {P} c {Q}) \<longleftrightarrow> (\<forall>s1 s2 tr2. P s1 \<longrightarrow> par_big_step c s1 tr2 s2 \<longrightarrow> Q s2 tr2)"
+
+definition spec_of_global :: "'a pproc \<Rightarrow> 'a gassn2 \<Rightarrow> bool" where
+  "spec_of_global c Q \<longleftrightarrow> (\<forall>s0. \<Turnstile>\<^sub>p {init_global s0} c {Q s0})"
+
+lemma spec_of_globalE:
+  "spec_of_global c Q \<Longrightarrow> \<Turnstile>\<^sub>p {init_global s0} c {Q s0}"
+  unfolding spec_of_global_def by auto
+
+lemma spec_of_single:
+  fixes Q :: "'a assn2"
+  assumes "spec_of c Q"
+  shows "spec_of_global (Single pn c) (single_assn pn Q)"
+  unfolding spec_of_global_def ParValid_def init_global_def apply auto
+  apply (elim SingleE) 
+  using assms unfolding spec_of_def Valid_def init_def
+  by (auto intro: single_assn.intros)
+
+lemma spec_of_parallel:
+  fixes P Q :: "'a gassn2"
+  assumes "spec_of_global p1 P"
+    and "spec_of_global p2 Q"
+    and "proc_of_pproc p1 = pns1"
+    and "proc_of_pproc p2 = pns2"
+  shows "spec_of_global (Parallel p1 chs p2) (sync_gassn chs pns1 pns2 P Q)"
+  unfolding spec_of_global_def ParValid_def apply auto
+  apply (elim ParallelE) apply auto
+  apply (elim init_global_parallel) apply (auto simp add: init_global_def)
+  subgoal for tr' tr1 s12 tr2 s22 s01 s02
+    apply (rule sync_gassn.intros)
+    apply (auto simp add: assms(3,4) proc_set_big_step)
+    using assms(1,2) unfolding spec_of_global_def ParValid_def init_global_def
+    by (auto elim: proc_set_big_step)
+  done
+
+lemma weaken_post_global:
+  "\<Turnstile>\<^sub>p {P} c {R} \<Longrightarrow> R \<Longrightarrow>\<^sub>g Q \<Longrightarrow> \<Turnstile>\<^sub>p {P} c {Q}"
+  unfolding ParValid_def entails_g_def by auto
+
+lemma spec_of_global_post:
+  "spec_of_global p Q1 \<Longrightarrow> \<forall>s0. Q1 s0 \<Longrightarrow>\<^sub>g Q2 s0 \<Longrightarrow> spec_of_global p Q2"
+  unfolding spec_of_global_def using weaken_post_global by blast
+
+subsection \<open>Elimination rules for synchronization\<close>
 
 named_theorems sync_elims
 
@@ -1258,59 +2002,21 @@ lemma combine_blocks_emptyE3' [sync_elims]:
            combine_blocks comms [] tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
-
 subsection \<open>Synchronization of two assertions\<close>
 
-lemma merge_state_eval1:
-  assumes "pn \<in> proc_set s11"
-  shows "merge_state s11 s12 pn = s11 pn"
-  using assms by (auto simp add: merge_state_def proc_set_def)
-
-lemma merge_state_eval2:
-  assumes "pn \<in> proc_set s12"
-    and "proc_set s11 \<inter> proc_set s12 = {}"
-  shows "merge_state s11 s12 pn = s12 pn"
-  using assms apply (auto simp add: merge_state_def proc_set_def)
-  apply (cases "s11 pn") by auto
-
-lemma single_subst_merge_state1:
-  assumes "pn \<in> proc_set s11"
-  shows "updg (merge_state s11 s12) pn var e = merge_state (updg s11 pn var e) s12"
-  apply (auto simp add: updg_def merge_state_def)
-  apply (rule ext) apply auto
-  apply (cases "s11 pn") apply auto
-  using assms unfolding proc_set_def by auto
-
-lemma single_subst_merge_state2:
-  assumes "pn \<in> proc_set s12"
-    and "proc_set s11 \<inter> proc_set s12 = {}"
-  shows "updg (merge_state s11 s12) pn var e = merge_state s11 (updg s12 pn var e)"
-  apply (auto simp add: updg_def merge_state_def)
-  apply (rule ext) apply auto
-  subgoal apply (cases "s11 pn") 
-    using assms by (auto simp add: proc_set_def)
-  subgoal for pn'
-    apply (cases "s11 pn'") by auto
-  done
-
-lemma single_subste_merge_state1:
-  assumes "pn \<in> proc_set s11"
-  shows "updeg (merge_state s11 s12) pn f = merge_state (updeg s11 pn f) s12"
-  apply (auto simp add: updeg_def merge_state_def)
-  apply (rule ext) apply auto
-  apply (cases "s11 pn") apply auto
-  using assms unfolding proc_set_def by auto
-
-lemma single_subste_merge_state2:
-  assumes "pn \<in> proc_set s12"
-    and "proc_set s11 \<inter> proc_set s12 = {}"
-  shows "updeg (merge_state s11 s12) pn f = merge_state s11 (updeg s12 pn f)"
-  apply (auto simp add: updeg_def merge_state_def)
-  apply (rule ext) apply auto
-  subgoal apply (cases "s11 pn") 
-    using assms by (auto simp add: proc_set_def)
-  subgoal for pn'
-    apply (cases "s11 pn'") by auto
+lemma sync_gassn_emp:
+  assumes "pns = pns1 \<union> pns2"
+  shows "sync_gassn chs pns1 pns2 (init_single pns1) (init_single pns2) s0 \<Longrightarrow>\<^sub>g
+         init_single pns s0"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases) apply auto
+    subgoal for s11 s12 s21 s22 tr1 tr2
+      apply (elim init_single.cases) apply auto
+      apply (frule combine_blocks_emptyE1) apply auto
+      apply (rule init_single.intros)
+      by (auto simp add: assms)
+    done
   done
 
 lemma sync_gassn_in_out:
@@ -1455,199 +2161,6 @@ lemma sync_gassn_emp_in_unpair:
     done
   done
 
-text \<open>Waiting an amount of time, without state change\<close>
-inductive wait_c :: "'a eexp \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" where
-  "e s0 > 0 \<Longrightarrow> P s0 s tr \<Longrightarrow> wait_c e P s0 s (WaitBlock (e s0) (\<lambda>_. s0) ({}, {}) # tr)"
-| "\<not>e s0 > 0 \<Longrightarrow> P s0 s tr \<Longrightarrow> wait_c e P s0 s tr"
-
-inductive wait_cg :: "pname \<Rightarrow> 'a eexp \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2" where
-  "e (the (gs0 pn)) > 0 \<Longrightarrow> P gs0 gs tr \<Longrightarrow> wait_cg pn e P gs0 gs (WaitBlockP (e (the (gs0 pn))) (\<lambda>_. gs0) ({}, {}) # tr)"
-| "\<not>e (the (gs0 pn)) > 0 \<Longrightarrow> P gs0 gs tr \<Longrightarrow> wait_cg pn e P gs0 gs tr"
-
-lemma single_assn_wait:
-  "single_assn pn (wait_c e P) = wait_cg pn e (single_assn pn P)"
-  apply (rule ext) apply (rule ext) apply (rule ext)
-  subgoal for gs0 gs tr
-    apply (rule iffI)
-    subgoal apply (elim single_assn.cases) apply auto
-      subgoal for s0 s tr'
-        apply (cases "e s0 > 0")
-        subgoal premises pre
-        proof -
-          have es0: "e s0 = e (the ((State pn s0) pn))"
-            by auto
-          then show ?thesis
-            using pre apply (elim wait_c.cases) apply auto[2]
-            apply (subst es0) apply (rule wait_cg.intros(1))
-            by (auto intro: single_assn.intros)
-        qed
-        subgoal premises pre
-        proof -
-          have es0: "e s0 = e (the ((State pn s0) pn))"
-            by auto
-          then show ?thesis
-            using pre apply (elim wait_c.cases) apply auto[1]
-            apply (rule wait_cg.intros(2))
-            by (auto intro: single_assn.intros)
-        qed
-        done
-      done
-    subgoal apply (elim wait_cg.cases) apply auto
-      subgoal for tr'
-        apply (elim single_assn.cases) apply auto
-        subgoal for s0' s' tr''
-          apply (subst ptrace_of.simps[symmetric])
-          apply (rule single_assn.intros)
-          apply (rule wait_c.intros) by auto
-        done
-      subgoal
-        apply (elim single_assn.cases) apply auto
-        subgoal for s0' s' tr''
-          apply (rule single_assn.intros)
-          apply (rule wait_c.intros) by auto
-        done
-      done
-    done
-  done
-
-lemma spec_of_wait:
-  "spec_of (Wait e) (wait_c e init)"
-  unfolding Valid_def spec_of_def init_def
-  apply (auto elim!: waitE)
-   apply (rule wait_c.intros(1)) apply auto
-  apply (rule wait_c.intros(2)) by auto
-
-lemma Valid_wait_sp:
-  assumes "spec_of c Q"
-  shows "spec_of (Wait e; c) (wait_c e Q)"
-  using assms unfolding Valid_def spec_of_def init_def
-  apply (auto elim!: seqE waitE)
-   apply (rule wait_c.intros(1)) apply auto
-  apply (rule wait_c.intros(2)) by auto
-
-inductive true_assn2 :: "'a assn2" where
-  "true_assn2 s0 s tr"
-
-inductive true_gassn :: "pname set \<Rightarrow> 'a gassn2" where
-  "proc_set gs0 = pns \<Longrightarrow> proc_set gs = pns \<Longrightarrow> proc_set_trace pns tr \<Longrightarrow>
-   true_gassn pns gs0 gs tr"
-
-text \<open>The following two lemmas show that a trace is compatible with
-  a set of procedure names if and only if it can be created using ptrace_of.
-\<close>
-lemma proc_set_trace_single:
-  "proc_set_trace {pn} (ptrace_of pn tr)"
-proof (induction tr)
-  case Nil
-  then show ?case
-    by (auto intro: proc_set_trace.intros)
-next
-  case (Cons blk tr)
-  show ?case
-    apply (cases blk)
-    using Cons by (auto intro: proc_set_trace.intros)
-qed
-
-lemma proc_set_trace_is_single:
-  "proc_set_trace {pn} tr \<Longrightarrow> \<exists>tr'. tr = ptrace_of pn tr'"
-proof (induction tr)
-  case Nil
-  show ?case
-    apply (rule exI[where x="[]"])
-    by auto
-next
-  case (Cons blk tr)
-  have "proc_set_trace {pn} tr"
-    using Cons(2) proc_set_trace_tl by auto
-  then obtain tr' where tr': "tr = ptrace_of pn tr'"
-    using Cons(1) by auto
-  show ?case
-  proof (cases blk)
-    case (CommBlockP ctype ch v)
-    show ?thesis
-      unfolding CommBlockP
-      apply (rule exI[where x="CommBlock ctype ch v # tr'"])
-      using tr' by auto
-  next
-    case (WaitBlockP d p rdy)
-    have "proc_set_trace {pn} (WaitBlockP d p rdy # tr)"
-      using Cons(2)[unfolded WaitBlockP] by auto
-    then have "proc_set (p t) = {pn}" for t
-      using proc_set_trace_wait by blast
-    then have "\<exists>p'. p t = State pn p'" for t
-      by (metis proc_set_single_elim)
-    then obtain p' where p': "p = (\<lambda>\<tau>. State pn (p' \<tau>))"
-      by metis
-    show ?thesis
-      unfolding WaitBlockP
-      apply (rule exI[where x="WaitBlock d p' rdy # tr'"])
-      using tr' p' by auto
-  qed
-qed
-
-lemma single_assn_true:
-  "single_assn pn true_assn2 = true_gassn {pn}"
-  apply (rule ext) apply (rule ext) apply (rule ext)
-  subgoal for s0 s tr
-    apply (rule iffI)
-    subgoal apply (elim single_assn.cases)
-      apply auto apply (rule true_gassn.intros)
-      using proc_set_trace_single by auto
-    subgoal apply (elim true_gassn.cases)
-      apply clarify
-      apply (elim proc_set_single_elim)
-      apply auto
-      by (metis proc_set_trace_is_single single_assn.intros true_assn2.intros)
-    done
-  done
-
-lemma entails_assumption:
-  "P s \<Longrightarrow>\<^sub>A (IFA b THEN P ELSE true_assn2 FI) s"
-  unfolding cond_assn2_def entails_def
-  using true_assn2.intros by auto
-
-text \<open>Version of wait_in_c with assumption of immediate communication\<close>
-definition wait_in_c0_gen :: "cname \<Rightarrow> rdy_info \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
-  "wait_in_c0_gen ch rdy P = wait_in_c_gen ch rdy (\<lambda>d v. IFA (\<lambda>s. d = 0) THEN P v ELSE true_assn2 FI)"
-
-definition wait_in_cg0_gen :: "pname \<Rightarrow> cname \<Rightarrow> rdy_info \<Rightarrow> pname set \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
-  "wait_in_cg0_gen pn ch rdy pns P = wait_in_cg_gen ch rdy (\<lambda>d v. IFG [pn] (\<lambda>s. d = 0) THEN P v ELSE true_gassn pns FI)"
-
-abbreviation "wait_in_c0 ch P \<equiv> wait_in_c0_gen ch ({}, {ch}) P"
-abbreviation "wait_in_cg0 pn ch P \<equiv> wait_in_cg0_gen pn ch ({}, {ch}) {pn} P"
-
-lemma single_assn_wait_in0:
-  "single_assn pn (wait_in_c0_gen ch rdy P) = wait_in_cg0_gen pn ch rdy {pn} (\<lambda>v. single_assn pn (P v))"
-  unfolding wait_in_c0_gen_def wait_in_cg0_gen_def
-  apply (subst single_assn_wait_in)
-  unfolding single_assn_cond single_assn_true by auto
-
-lemma wait_out_cg_mono:
-  assumes "\<And>d s0. P d s0 \<Longrightarrow>\<^sub>g Q d s0"
-  shows "wait_out_cg_gen pn ch rdy e P s0 \<Longrightarrow>\<^sub>g wait_out_cg_gen pn ch rdy e Q s0"
-  apply (auto simp add: entails_g_def)
-  subgoal for s tr
-    apply (elim wait_out_cg_gen.cases) apply auto
-    subgoal apply (rule wait_out_cg_gen.intros)
-      using assms unfolding entails_g_def by auto
-    subgoal apply (rule wait_out_cg_gen.intros)
-      using assms unfolding entails_g_def by auto
-    done
-  done
-
-lemma wait_in_cg_mono:
-  assumes "\<And>d v s0. P d v s0 \<Longrightarrow>\<^sub>g Q d v s0"
-  shows "wait_in_cg_gen ch rdy P s0 \<Longrightarrow>\<^sub>g wait_in_cg_gen ch rdy Q s0"
-  apply (auto simp add: entails_g_def)
-  subgoal for s tr
-    apply (elim wait_in_cg_gen.cases) apply auto
-    subgoal apply (rule wait_in_cg_gen.intros)
-      using assms unfolding entails_g_def by auto
-    subgoal apply (rule wait_in_cg_gen.intros)
-      using assms unfolding entails_g_def by auto
-    done
-  done
-
 text \<open>Left side has unpaired input, right side is communication\<close>
 lemma sync_gassn_in_unpair_left:
   "ch1 \<notin> chs \<Longrightarrow>
@@ -1704,40 +2217,7 @@ lemma sync_gassn_in_unpair_left:
     done
   done
 
-inductive wait_in_cg_alt :: "cname \<Rightarrow> pname \<Rightarrow> 'a eexp \<Rightarrow> rdy_info \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a gassn2) \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
-  "P 0 v s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e rdy P Q s0 s (InBlockP ch v # tr)"
-| "0 < d \<Longrightarrow> d \<le> e (the (s0 pn)) \<Longrightarrow> P d v s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e rdy P Q s0 s (WaitBlockP d (\<lambda>_. s0) rdy # InBlockP ch v # tr)"
-| "0 < e (the (s0 pn)) \<Longrightarrow> d \<ge> e (the (s0 pn)) \<Longrightarrow> Q d s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e rdy P Q s0 s (WaitBlockP d (\<lambda>_. s0) rdy # tr)"
-| "\<not>0 < e (the (s0 pn)) \<Longrightarrow> Q 0 s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e rdy P Q s0 s tr"
-
-lemma wait_in_cg_alt_mono:
-  assumes "\<And>d v s0. P1 d v s0 \<Longrightarrow>\<^sub>g P2 d v s0"
-    and "\<And>d s0. Q1 d s0 \<Longrightarrow>\<^sub>g Q2 d s0"
-  shows "wait_in_cg_alt ch pn e rdy P1 Q1 s0 \<Longrightarrow>\<^sub>g wait_in_cg_alt ch pn e rdy P2 Q2 s0"
-  apply (auto simp add: entails_g_def)
-  subgoal for s tr
-    apply (elim wait_in_cg_alt.cases) apply auto
-    subgoal for v tr' a b
-      apply (rule wait_in_cg_alt.intros)
-      using assms(1) unfolding entails_g_def by auto
-    subgoal for v tr' a b
-      apply (rule wait_in_cg_alt.intros)
-      using assms(1) unfolding entails_g_def by auto
-    subgoal for v tr' a b
-      apply (rule wait_in_cg_alt.intros)
-      using assms(2) unfolding entails_g_def by auto
-    subgoal for a b
-      apply (rule wait_in_cg_alt.intros)
-      using assms(2) unfolding entails_g_def by auto
-    done
-  done
-
-text \<open>Left side has unpaired input, right side is wait
-  There are three cases to consider:
-  1. waiting time for communication on the left is less than the
-     waiting time on the right, in which case the wait on the
-     right is not consumed.
-\<close>
+text \<open>Left side has unpaired input, right side is wait\<close>
 lemma sync_gassn_in_unpair_left_wait:
   "ch1 \<notin> chs \<Longrightarrow>
    pn \<in> pns2 \<Longrightarrow>
@@ -1795,107 +2275,9 @@ lemma sync_gassn_in_unpair_left_wait:
     done
   done
 
-lemma sync_gassn_ifg_left:
-  assumes
-    "b (the (s0 pn)) \<Longrightarrow> sync_gassn chs pns1 pns2 P1 Q s0 \<Longrightarrow>\<^sub>g R s0"
-    "\<not>b (the (s0 pn)) \<Longrightarrow> sync_gassn chs pns1 pns2 P2 Q s0 \<Longrightarrow>\<^sub>g R s0"
-    "pn \<in> pns1"
-  shows
-    "sync_gassn chs pns1 pns2 (IFG [pn] b THEN P1 ELSE P2 FI) Q s0 \<Longrightarrow>\<^sub>g R s0"
-  unfolding cond_gassn2_def entails_g_def
-  apply auto
-  subgoal for s tr
-    apply (elim sync_gassn.cases) apply clarify
-    subgoal premises pre for s11 _ s12 _ s21 s22 _ tr1 _ tr2 _ tr'
-    proof (cases "b (the (s11 pn))")
-      case True
-      show ?thesis
-      proof -
-        have "b (the (s0 pn))"
-          unfolding pre(1) using assms(3)
-          by (simp add: True merge_state_eval1 pre(7))
-        moreover have "sync_gassn chs pns1 pns2 P1 Q s0 s tr"
-          unfolding pre(1,2)
-          apply (rule sync_gassn.intros)
-          using pre True by auto
-        ultimately show ?thesis
-          using assms(1)[unfolded cond_gassn2_def entails_g_def]
-          unfolding pre(1,2) by auto
-      qed
-    next
-      case False
-      show ?thesis
-      proof -
-        have "\<not>b (the (s0 pn))"
-          unfolding pre(1) using assms(3)
-          by (simp add: False merge_state_eval1 pre(7))
-        moreover have "sync_gassn chs pns1 pns2 P2 Q s0 s tr"
-          unfolding pre(1,2)
-          apply (rule sync_gassn.intros)
-          using pre False by auto
-        ultimately show ?thesis
-          using assms(2)[unfolded cond_gassn2_def entails_g_def]
-          unfolding pre(1,2) by auto
-      qed
-    qed
-    done
-  done
-
-definition epartg :: "'a gstate \<Rightarrow> pname \<Rightarrow> 'a" where
-  "epartg gs pn = epart (the (gs pn))"
-
-lemma epart_upd_simp [simp]:
-  "epart (upd s var v) = epart s"
-  apply (cases s)
-  by (auto simp add: upd.simps epart.simps)
-
-lemma epart_upde_simp [simp]:
-  "epart (upde s e) = e"
-  apply (cases s)
-  by (auto simp add: epart.simps)
-
-lemma epartg_upd_simp [simp]:
-  "epartg (updg s pn var v) pn2 = epartg s pn2"
-  unfolding epartg_def updg_def by auto
-
-lemma epartg_updeg_simp [simp]:
-  "epartg (updeg s pn e) pn = e"
-  unfolding epartg_def updeg_def by auto
-
-lemma epartg_updeg_simp2 [simp]:
-  "pn \<noteq> pn2 \<Longrightarrow> epartg (updeg s pn e) pn2 = epartg s pn2"
-  unfolding epartg_def updeg_def by auto
-
-lemma cond_gassn_true:
-  "b \<Longrightarrow> (IFG [pn] (\<lambda>_. b) THEN P ELSE Q FI = P)"
-  unfolding cond_gassn2_def by auto
-
-lemma cond_gassn_false:
-  "\<not>b \<Longrightarrow> (IFG [pn] (\<lambda>_. b) THEN P ELSE Q FI = Q)"
-  unfolding cond_gassn2_def by auto
-
-lemma proc_set_wait_cg:
-  assumes "proc_set_gassn pns P"
-  shows "proc_set_gassn pns (wait_cg pn e P)"
-  unfolding proc_set_gassn_def apply clarify
-  subgoal for gs0 gs tr
-    apply (elim wait_cg.cases) apply clarify
-    using assms unfolding proc_set_gassn_def apply auto
-    apply (rule proc_set_trace.intros) by auto
-  done
-
-lemma sync_gassn_true_left:
-  assumes "proc_set_gassn pns2 Q"
-  shows "sync_gassn chs pns1 pns2 (true_gassn pns1) Q s0 \<Longrightarrow>\<^sub>g true_gassn (pns1 \<union> pns2) s0"
-  unfolding entails_g_def apply auto
-  apply (elim sync_gassn.cases)
-  apply auto apply (rule true_gassn.intros)
-    apply auto subgoal for s11 s12 s21 s22 tr1 tr2 tr'
-    apply (rule proc_set_trace_combine[of chs tr1 tr2])
-      apply auto apply (elim true_gassn.cases) apply blast
-    using assms[unfolded proc_set_gassn_def] by blast
-  done
-
+text \<open>Specialization of sync_gassn_in_unpair_left, when assuming
+  immediate communication.
+\<close>
 lemma sync_gassn_out_unpair0:
   "ch1 \<notin> chs \<Longrightarrow>
    ch2 \<in> chs \<Longrightarrow>
@@ -1925,48 +2307,9 @@ lemma sync_gassn_out_unpair0:
     done
   done
 
-lemma sync_gassn_true_left':
-  assumes "proc_set_gassn pns2 Q"
-  shows "sync_gassn chs pns1 pns2 (true_gassn pns1) Q s0 s tr \<Longrightarrow> true_gassn (pns1 \<union> pns2) s0 s tr"
-  using sync_gassn_true_left[OF assms] unfolding entails_g_def by auto
-
-lemma "sync_gassn chs pns1 pns2 (IFG [pn] (\<lambda>s. d = 0) THEN P v ELSE true_gassn pns1 FI)
-            (wait_cg pn (\<lambda>s. e s - d) Q) s0 \<Longrightarrow>\<^sub>g
-       (IFG [pn] (\<lambda>s. d = 0) THEN sync_gassn chs pns1 pns2 (P v) (wait_cg pn e Q) ELSE true_gassn (pns1 \<union> pns2) FI) s0"
-  apply (rule sync_gassn_ifg_left) apply auto
-  subgoal apply (simp add: cond_gassn_true)
-    by (rule entails_g_triv)
-  subgoal apply (simp add: cond_gassn_false)
-    apply (rule sync_gassn_true_left)
-    apply (rule proc_set_wait_cg)
-    sorry
-  sorry
-
-lemma entails_true_gassn:
-  assumes "proc_set_gassn pns P"
-  shows "P s0 \<Longrightarrow>\<^sub>g true_gassn pns s0"
-  unfolding entails_g_def apply auto
-  apply (intro true_gassn.intros)
-  using assms unfolding proc_set_gassn_def by auto
-
-lemma proc_set_cond_gassn:
-  assumes "proc_set_gassn pns P"
-    and "proc_set_gassn pns Q"
-  shows "proc_set_gassn pns (IFG [pn] b THEN P ELSE Q FI)"
-  unfolding proc_set_gassn_def apply clarify
-  subgoal for gs0 gs tr
-    unfolding cond_gassn2_def
-    apply (cases "b (the (gs0 pn))")
-    subgoal using assms(1) unfolding proc_set_gassn_def by auto
-    subgoal using assms(2) unfolding proc_set_gassn_def by auto
-    done
-  done
-
-lemma proc_set_true_gassn:
-  "proc_set_gassn pns (true_gassn pns)"
-  unfolding proc_set_gassn_def apply clarify
-  apply (elim true_gassn.cases) by auto
-
+text \<open>Specialization of sync_gassn_in_unpair_left_wait, when
+  assuming immediate communication.
+\<close>
 lemma sync_gassn_out_unpair_wait0:
   "ch1 \<notin> chs \<Longrightarrow>
    pn1 \<in> pns1 \<Longrightarrow>
@@ -2001,189 +2344,73 @@ lemma sync_gassn_out_unpair_wait0:
     done
   done
 
-lemma sync_gassn_subst_left:
-  assumes "pn \<in> pns1"
-  shows "sync_gassn chs pns1 pns2 (P {{ var := e }}\<^sub>g at pn) Q s0 \<Longrightarrow>\<^sub>g
-         (sync_gassn chs pns1 pns2 P Q {{ var := e }}\<^sub>g at pn) s0"
+lemma sync_gassn_wait_same:
+  "pns1 \<inter> pns2 = {} \<Longrightarrow>
+   sync_gassn chs pns1 pns2 (wait_cg pn1 (\<lambda>_. v) P) (wait_cg pn2 (\<lambda>_. v) Q) s0 \<Longrightarrow>\<^sub>g
+   wait_cg pn1 (\<lambda>_. v) (sync_gassn chs pns1 pns2 P Q) s0"
   unfolding entails_g_def apply auto
   subgoal for s tr
     apply (elim sync_gassn.cases) apply auto
     subgoal for s11 s12 s21 s22 tr1 tr2
-      apply (auto simp add: updg_assn2_def)
-      subgoal using assms by (auto simp add: merge_state_eval1)
-      subgoal for s11'
-        apply (subst single_subst_merge_state1)
-        using assms apply simp
-        apply (rule sync_gassn.intros)
-        using assms by (auto simp add: merge_state_eval1)
+      apply (elim wait_cg.cases) apply auto
+      subgoal for tr1' tr2'
+        apply (elim combine_blocks_waitE2) apply auto
+        apply (rule wait_cg.intros(1)) apply auto
+        apply (intro sync_gassn.intros) by auto
+      subgoal
+        apply (rule wait_cg.intros(2)) apply auto
+        apply (intro sync_gassn.intros) by auto
       done
     done
   done
 
-lemma sync_gassn_subst_right:
-  assumes "pn \<in> pns2"
-    and "pns1 \<inter> pns2 = {}"
-  shows "sync_gassn chs pns1 pns2 Q (P {{ var := e }}\<^sub>g at pn) s0 \<Longrightarrow>\<^sub>g
-         (sync_gassn chs pns1 pns2 Q P {{ var := e }}\<^sub>g at pn) s0"
+lemma sync_gassn_in_alt_out:
+  "ch \<in> chs \<Longrightarrow>
+   pn1 \<in> pns1 \<Longrightarrow>
+   pn2 \<in> pns1 \<Longrightarrow>
+   pn3 \<in> pns2 \<Longrightarrow>
+   pns1 \<inter> pns2 = {} \<Longrightarrow>
+   d > 0 \<Longrightarrow>
+   sync_gassn chs pns1 pns2
+      (wait_in_cg_alt ch pn1 (\<lambda>_. d) ({}, {ch})
+        (\<lambda>d v. IFG [pn2] (\<lambda>s. d = 0) THEN P v ELSE true_gassn pns1 FI)
+        (\<lambda>v. true_gassn pns1))
+      (wait_out_cg pn3 ch e Q) s0 \<Longrightarrow>\<^sub>g
+   sync_gassn chs pns1 pns2 (P (e (the (s0 pn3)))) (Q 0) s0"
   unfolding entails_g_def apply auto
   subgoal for s tr
     apply (elim sync_gassn.cases) apply auto
     subgoal for s11 s12 s21 s22 tr1 tr2
-      apply (auto simp add: updg_assn2_def)
-      subgoal using assms by (auto simp add: merge_state_eval2)
-      subgoal for s11'
-        apply (subst single_subst_merge_state2)
-        using assms apply auto
-        apply (rule sync_gassn.intros)
-        using assms by (auto simp add: merge_state_eval2)
+      apply (elim wait_in_cg_alt.cases) apply auto
+      subgoal for v tr1'
+        apply (elim wait_out_cg_gen.cases) apply auto
+        subgoal for tr2'
+          apply (elim combine_blocks_pairE)
+            apply (auto simp add: merge_state_eval2 cond_gassn_true)
+          apply (rule sync_gassn.intros) by auto
+        subgoal for d tr2'
+          apply (elim sync_elims) by auto
+        done
+      subgoal for d v tr1'
+        apply (elim wait_out_cg_gen.cases) apply auto
+        subgoal for tr2'
+          apply (elim sync_elims) by auto
+        subgoal for d' tr2'
+          apply (elim sync_elims) by auto
+        done
+      subgoal for d tr1'
+        apply (elim wait_out_cg_gen.cases) apply auto
+        subgoal for tr2'
+          apply (elim sync_elims) by auto
+        subgoal for d' tr2'
+          apply (elim sync_elims) by auto
+        done
       done
     done
   done
 
-lemma sync_gassn_subste_left:
-  assumes "pn \<in> pns1"
-  shows "sync_gassn chs pns1 pns2 (P {{ f }}\<^sub>g at pn) Q s0 \<Longrightarrow>\<^sub>g
-         (sync_gassn chs pns1 pns2 P Q {{ f }}\<^sub>g at pn) s0"
-  unfolding entails_g_def apply auto
-  subgoal for s tr
-    apply (elim sync_gassn.cases) apply auto
-    subgoal for s11 s12 s21 s22 tr1 tr2
-      apply (auto simp add: updeg_assn2_def)
-      subgoal using assms by (auto simp add: merge_state_eval1)
-      subgoal for s11'
-        apply (subst single_subste_merge_state1)
-        using assms apply simp
-        apply (rule sync_gassn.intros)
-        using assms by (auto simp add: merge_state_eval1)
-      done
-    done
-  done
+subsection \<open>General specification\<close>
 
-lemma sync_gassn_subste_right:
-  assumes "pn \<in> pns2"
-    and "pns1 \<inter> pns2 = {}"
-  shows "sync_gassn chs pns1 pns2 Q (P {{ f }}\<^sub>g at pn) s0 \<Longrightarrow>\<^sub>g
-         (sync_gassn chs pns1 pns2 Q P {{ f }}\<^sub>g at pn) s0"
-  unfolding entails_g_def apply auto
-  subgoal for s tr
-    apply (elim sync_gassn.cases) apply auto
-    subgoal for s11 s12 s21 s22 tr1 tr2
-      apply (auto simp add: updeg_assn2_def)
-      subgoal using assms by (auto simp add: merge_state_eval2)
-      subgoal for s11'
-        apply (subst single_subste_merge_state2)
-        using assms apply auto
-        apply (rule sync_gassn.intros)
-        using assms by (auto simp add: merge_state_eval2)
-      done
-    done
-  done
-
-lemma sync_gassn_emp:
-  assumes "pns = pns1 \<union> pns2"
-  shows "sync_gassn chs pns1 pns2 (init_single pns1) (init_single pns2) s0 \<Longrightarrow>\<^sub>g
-         init_single pns s0"
-  unfolding entails_g_def apply auto
-  subgoal for s tr
-    apply (elim sync_gassn.cases) apply auto
-    subgoal for s11 s12 s21 s22 tr1 tr2
-      apply (elim init_single.cases) apply auto
-      apply (frule combine_blocks_emptyE1) apply auto
-      apply (rule init_single.intros)
-      by (auto simp add: assms)
-    done
-  done
-
-lemma gassn_subst:
-  "(P {{ var := e }}\<^sub>g at pn) s0 \<Longrightarrow>\<^sub>g P (updg s0 pn var (e (the (s0 pn))))"
-  unfolding entails_g_def
-  by (auto simp add: updg_assn2_def)
-
-lemma gassn_subste:
-  "(P {{ f }}\<^sub>g at pn) s0 \<Longrightarrow>\<^sub>g P (updeg s0 pn (f (the (s0 pn))))"
-  unfolding entails_g_def
-  by (auto simp add: updeg_assn2_def)
-
-subsection \<open>More definitions and lemmas\<close>
-
-definition valg :: "'a gstate \<Rightarrow> pname \<Rightarrow> var \<Rightarrow> real" where
-  "valg gs pn v = val (the (gs pn)) v"
-
-lemma val_upd_simp [simp]:
-  "val (upd s var v) var = v"
-  apply (cases s)
-  by (auto simp add: upd.simps val.simps)
-
-lemma val_upd_simp2 [simp]:
-  "var \<noteq> var2 \<Longrightarrow> val (upd s var v) var2 = val s var2"
-  apply (cases s)
-  by (auto simp add: upd.simps val.simps)
-
-lemma val_upde_simp [simp]:
-  "val (upde s e) var = val s var"
-  apply (cases s)
-  by (auto simp add: val.simps)
-
-lemma valg_updg_simp [simp]:
-  "valg (updg s pn var v) pn var = v"
-  unfolding valg_def updg_def by auto
-
-lemma valg_updg_simp2 [simp]:
-  "pn \<noteq> pn2 \<Longrightarrow> valg (updg s pn var v) pn2 var2 = valg s pn2 var2"
-  unfolding valg_def updg_def by auto
-
-lemma valg_updg_simp3 [simp]:
-  "var \<noteq> var2 \<Longrightarrow> valg (updg s pn var v) pn var2 = valg s pn var2"
-  unfolding valg_def updg_def by auto
-
-lemma valg_updeg_simp [simp]:
-  "valg (updeg s pn e) pn2 var = valg s pn2 var"
-  unfolding valg_def updeg_def by auto
-
-lemma sync_gassn_triv:
-  assumes "s1 = s2"
-  shows "sync_gassn chs pns1 pns2 P Q s1 \<Longrightarrow>\<^sub>g 
-         sync_gassn chs pns1 pns2 P Q s2"
-  apply (simp add: assms)
-  by (rule entails_g_triv)
-
-definition exists_gassn :: "('b \<Rightarrow> 'a gassn) \<Rightarrow> 'a gassn" (binder "\<exists>\<^sub>g" 10)where
-  "(\<exists>\<^sub>g n. P n) = (\<lambda>s tr. \<exists>n. P n s tr)"
-
-lemma exists_gassn_intro:
-  assumes "\<exists>n. P \<Longrightarrow>\<^sub>g Q n"
-  shows "P \<Longrightarrow>\<^sub>g (\<exists>\<^sub>g n. Q n)"
-  using assms unfolding exists_gassn_def entails_g_def
-  by auto
-
-lemma single_assn_exists:
-  "single_assn pn (\<lambda>s0. \<exists>\<^sub>an. P n s0) = (\<lambda>s0. (\<exists>\<^sub>g n. single_assn pn (P n) s0))"
-  apply (rule ext) apply (rule ext) apply (rule ext)
-  subgoal for s tr s0
-    apply (rule iffI)
-    apply (auto simp add: exists_gassn_def exists_assn_def)
-      by (auto elim: single_assn.cases intro: single_assn.intros)
-    done
-
-lemma sync_gassn_exists_left:
-  "sync_gassn chs pns1 pns2 (\<lambda>s0. \<exists>\<^sub>gn. P n s0) Q = (\<lambda>s0. \<exists>\<^sub>g n. sync_gassn chs pns1 pns2 (P n) Q s0)"
-  apply (rule ext) apply (rule ext) apply (rule ext)
-  subgoal for s tr s0
-    apply (rule iffI)
-     apply (auto simp add: exists_gassn_def)
-    by (auto elim: sync_gassn.cases intro: sync_gassn.intros)
-  done
-
-lemma sync_gassn_exists_right:
-  "sync_gassn chs pns1 pns2 P (\<lambda>s0. \<exists>\<^sub>gn. Q n s0) = (\<lambda>s0. \<exists>\<^sub>g n. sync_gassn chs pns1 pns2 P (Q n) s0)"
-  apply (rule ext) apply (rule ext) apply (rule ext)
-  subgoal for s tr s0
-    apply (rule iffI)
-     apply (auto simp add: exists_gassn_def)
-    by (auto elim: sync_gassn.cases intro: sync_gassn.intros)
-  done
-
-text \<open>General specification\<close>
 definition spec_of_global_gen :: "('a gstate \<Rightarrow> bool) \<Rightarrow> 'a pproc \<Rightarrow> ('a gstate \<Rightarrow> 'a gassn) \<Rightarrow> bool" where
   "spec_of_global_gen P c Q \<longleftrightarrow> (\<forall>s0. P s0 \<longrightarrow> \<Turnstile>\<^sub>p {init_global s0} c {Q s0})"
 
