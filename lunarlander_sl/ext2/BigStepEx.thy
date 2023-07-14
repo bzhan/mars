@@ -706,13 +706,41 @@ lemma ex6b_sp:
   apply (rule spec_of_receive)
   done
 
+lemma proc_set_updg_subst:
+  assumes "proc_set_gassn pns P"
+    and "pn \<in> pns"
+  shows "proc_set_gassn pns (P {{ x := v }}\<^sub>g at pn)"
+  unfolding proc_set_gassn_def apply clarify
+  unfolding updg_assn2_def using assms unfolding proc_set_gassn_def
+  by (metis (mono_tags, lifting) mem_Collect_eq proc_set_def updg_proc_set)
+
+lemma proc_set_init_single:
+  "proc_set_gassn pn (init_single pn)"
+  unfolding proc_set_gassn_def apply clarify
+  subgoal for gs0 gs tr
+    apply (induct rule: init_single.induct)
+    by (auto intro: proc_set_trace.intros)
+  done
+
+lemma cond_gassn_mono:
+  assumes "P1 s0 \<Longrightarrow>\<^sub>g P2 s0"
+    and "Q1 s0 \<Longrightarrow>\<^sub>g Q2 s0"
+  shows "(IFG [pn] b THEN P1 ELSE Q1 FI) s0 \<Longrightarrow>\<^sub>g (IFG [pn] b THEN P2 ELSE Q2 FI) s0"
+  unfolding entails_g_def apply clarify
+  subgoal for s tr
+    unfolding cond_gassn2_def
+    apply auto using assms unfolding entails_g_def by auto
+  done
 
 lemma ex6:
   "spec_of_global
     (Parallel (Single ''a'' ex6a)
               {ch1}
               (Single ''b'' ex6b))
-    Q"
+    (wait_in_cg_alt ''ch2'' ''b'' (\<lambda>_. 1) ({}, {''ch2''})
+      (\<lambda>d v. IFG [''a''] (\<lambda>s. d = 0) THEN P d v
+             ELSE true_gassn {''b'', ''a''} FI)
+      (\<lambda>v. true_gassn {''b'', ''a''}))"
   (* Stage 1: merge ex6a_sp and ex6b_sp *)
   apply (rule spec_of_global_post)
    apply (rule spec_of_parallel)
@@ -727,6 +755,26 @@ lemma ex6:
                           single_assn_wait_out single_assn_wait_in single_assn_init)
   (* Stage 3: combine the two assertions *)
     apply (rule entails_g_trans)
-
+     apply (rule sync_gassn_out_unpair_wait0)
+    apply (auto simp add: ch1_def ch2_def)
+    subgoal for v
+      apply (rule proc_set_updg_subst)
+       apply (rule proc_set_wait_cg)
+       apply (rule proc_set_wait_out_cg_gen)
+      apply (rule proc_set_init_single) by auto
+    subgoal
+      apply (rule proc_set_wait_in_cg_gen)
+      apply (rule proc_set_updg_subst)
+       apply (rule proc_set_init_single) by auto
+    apply (rule wait_in_cg_alt_mono)
+    subgoal for d v s0
+      apply (rule cond_gassn_mono)
+      subgoal
+        sorry
+      by (rule entails_g_triv)
+    subgoal for d s0
+      by (rule entails_g_triv)
+    done
+  done
 
 end
