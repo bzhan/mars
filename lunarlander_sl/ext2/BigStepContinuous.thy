@@ -6,11 +6,10 @@ subsection \<open>Continuous evolution\<close>
 
 inductive ode_c :: "ODE \<Rightarrow> 'a eform \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" where
   "\<not>b s0 \<Longrightarrow> P s0 s tr \<Longrightarrow> ode_c ode b P s0 s tr"
-| "d > 0 \<Longrightarrow> P s' s tr \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
+| "0 < d \<Longrightarrow> P (updr s0 (p d)) s tr \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
    p 0 = rpart s0 \<Longrightarrow>
    (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (updr s0 (p t))) \<Longrightarrow>
    \<not>b (updr s0 (p d)) \<Longrightarrow>
-   s' = updr s0 (p d) \<Longrightarrow>
    ode_c ode b P s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p \<tau>)) ({}, {}) # tr)"
 
 text \<open>Hoare rules for ODE\<close>
@@ -157,7 +156,7 @@ proof -
       subgoal
         apply (rule wait_sol_c.intros)
         using assms(1) unfolding paramODEsol_def by auto
-      subgoal premises pre for d' tr' p'
+      subgoal premises pre for d' p' tr'
       proof -
         have "b (updr s0 (p' 0))"
           using pre(2,5,6) by auto
@@ -257,5 +256,140 @@ proof -
     done
 qed
 
+subsection \<open>Interrupt\<close>
+
+text \<open>We define the general form of assertion for interrupt
+
+  Each input/output is specified by channel name, communicated function,
+  and ensuing assertion.
+\<close>
+datatype 'a comm_spec =
+  InSpec cname var "'a assn2"
+| OutSpec cname "'a eexp" "'a assn2"
+
+inductive interrupt_c :: "ODE \<Rightarrow> 'a eform \<Rightarrow> rdy_info \<Rightarrow> 'a assn2 \<Rightarrow> 'a comm_spec list \<Rightarrow> 'a assn2" where
+  "\<not>b s0 \<Longrightarrow> P s0 s tr \<Longrightarrow> interrupt_c ode b rdy P specs s0 s tr"
+| "0 < d \<Longrightarrow> P (updr s0 (p d)) s tr \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
+   p 0 = rpart s0 \<Longrightarrow>
+   (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (updr s0 (p t))) \<Longrightarrow>
+   \<not>b (updr s0 (p d)) \<Longrightarrow>
+   interrupt_c ode b rdy P specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p \<tau>)) rdy # tr)"
+| "i < length specs \<Longrightarrow> specs ! i = InSpec ch var Q \<Longrightarrow>
+   Q (upd s0 var v) s tr \<Longrightarrow> interrupt_c ode b rdy P specs s0 s (InBlock ch v # tr)"
+| "i < length specs \<Longrightarrow> specs ! i = InSpec ch var Q \<Longrightarrow>
+   0 < d \<Longrightarrow> Q (updr s0 ((p d)(var := v))) s tr \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
+   p 0 = rpart s0 \<Longrightarrow>
+   (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (updr s0 (p t))) \<Longrightarrow>
+   interrupt_c ode b rdy P specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p \<tau>)) rdy # InBlock ch v # tr)"
+| "i < length specs \<Longrightarrow> specs ! i = OutSpec ch e Q \<Longrightarrow>
+   Q s0 s tr \<Longrightarrow> interrupt_c ode b rdy P specs s0 s (OutBlock ch (e s0) # tr)"
+| "i < length specs \<Longrightarrow> specs ! i = OutSpec ch e Q \<Longrightarrow>
+   0 < d \<Longrightarrow> Q (updr s0 (p d)) s tr \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
+   p 0 = rpart s0 \<Longrightarrow>
+   (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (updr s0 (p t))) \<Longrightarrow>
+   interrupt_c ode b rdy P specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p \<tau>)) rdy # OutBlock ch (e (updr s0 (p d))) # tr)"
+
+text \<open>Special case of one receive communication\<close>
+inductive ode_in_c :: "ODE \<Rightarrow> 'a eform \<Rightarrow> cname \<Rightarrow> rdy_info \<Rightarrow> 'a assn2 \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
+  "\<not>b s0 \<Longrightarrow> P s0 s tr \<Longrightarrow> ode_in_c ode b ch rdy P Q s0 s tr"
+| "0 < d \<Longrightarrow> P (updr s0 (p d)) s tr \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
+   p 0 = rpart s0 \<Longrightarrow>
+   (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (updr s0 (p t))) \<Longrightarrow>
+   \<not>b (updr s0 (p d)) \<Longrightarrow>
+   ode_in_c ode b ch rdy P Q s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p \<tau>)) rdy # tr)"
+| "Q 0 v s0 s tr \<Longrightarrow> ode_in_c ode b ch rdy P Q s0 s (InBlock ch v # tr)"
+| "0 < d \<Longrightarrow> Q d v (updr s0 (p d)) s tr \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
+   p 0 = rpart s0 \<Longrightarrow>
+   (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (updr s0 (p t))) \<Longrightarrow>
+   ode_in_c ode b ch rdy P Q s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p \<tau>)) rdy # InBlock ch v # tr)"
+
+text \<open>Special case of one send communication\<close>
+inductive ode_out_c :: "ODE \<Rightarrow> 'a eform \<Rightarrow> cname \<Rightarrow> rdy_info \<Rightarrow> ('a estate \<Rightarrow> real) \<Rightarrow> 'a assn2 \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
+  "\<not>b s0 \<Longrightarrow> P s0 s tr \<Longrightarrow> ode_out_c ode b ch rdy e P Q s0 s tr"
+| "0 < d \<Longrightarrow> P (updr s0 (p d)) s tr \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
+   p 0 = rpart s0 \<Longrightarrow>
+   (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (updr s0 (p t))) \<Longrightarrow>
+   \<not>b (updr s0 (p d)) \<Longrightarrow>
+   ode_out_c ode b ch rdy e P Q s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p \<tau>)) rdy # tr)"
+| "Q 0 s0 s tr \<Longrightarrow> ode_out_c ode b ch rdy e P Q s0 s (OutBlock ch (e s0) # tr)"
+| "0 < d \<Longrightarrow> Q d (updr s0 (p d)) s tr \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
+   p 0 = rpart s0 \<Longrightarrow>
+   (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (updr s0 (p t))) \<Longrightarrow>
+   ode_out_c ode b ch rdy e P Q s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p \<tau>)) rdy # OutBlock ch (e s0) # tr)"
+
+
+text \<open>Hoare rules for interrupt\<close>
+
+inductive spec_of_es :: "'a comm \<times> 'a proc \<Rightarrow> 'a comm_spec \<Rightarrow> bool" where
+  "spec_of c Q \<Longrightarrow> spec_of_es (ch[?]var, c) (InSpec ch var Q)"
+| "spec_of c Q \<Longrightarrow> spec_of_es (ch[!]e, c) (OutSpec ch e Q)"
+
+lemma spec_of_interrupt:
+  assumes "length es = length specs"
+    and "\<forall>i. i < length es \<longrightarrow> spec_of_es (es ! i) (specs ! i)"
+  shows
+  "spec_of (Interrupt ode b es)
+           (interrupt_c ode b (rdy_of_echoice es) init specs)"
+  unfolding Valid_def spec_of_def init_def apply clarify
+  apply (auto elim!: interruptE)
+  subgoal premises pre for s0 s2 i ch e p2 tr2
+  proof -
+    have "spec_of_es (es ! i) (specs ! i)"
+      using assms(2) pre(1) by auto
+    then obtain Q where Q: "specs ! i = OutSpec ch e Q" "spec_of p2 Q"
+      apply (cases rule: spec_of_es.cases) using pre by auto
+    show ?thesis
+      apply (rule interrupt_c.intros(5))
+      using assms pre(1) apply auto[1]
+      using Q(1) apply auto[1]
+      using pre(3) Q(2) unfolding spec_of_def Valid_def init_def by auto
+  qed
+  subgoal premises pre for s0 s2 d p i ch e p2 tr2
+  proof -
+    have "spec_of_es (es ! i) (specs ! i)"
+      using assms(2) pre(5) by auto
+    then obtain Q where Q: "specs ! i = OutSpec ch e Q" "spec_of p2 Q"
+      apply (cases rule: spec_of_es.cases) using pre by auto
+    show ?thesis
+      apply (rule interrupt_c.intros(6))
+      using assms pre(5) apply auto[1]
+      using Q(1) apply auto[1]
+      using pre(1) apply auto[1]
+      using pre(7) Q(2) unfolding spec_of_def Valid_def init_def apply auto[1]
+      using pre by auto
+  qed
+  subgoal premises pre for s0 s2 i ch var p2 v tr2
+  proof -
+    have "spec_of_es (es ! i) (specs ! i)"
+      using assms(2) pre(1) by auto
+    then obtain Q where Q: "specs ! i = InSpec ch var Q" "spec_of p2 Q"
+      apply (cases rule: spec_of_es.cases) using pre by auto
+    show ?thesis
+      apply (rule interrupt_c.intros(3))
+      using assms pre(1) apply auto[1]
+      using Q(1) apply auto[1]
+      using pre(3) Q(2) unfolding spec_of_def Valid_def init_def by auto
+  qed
+  subgoal premises pre for s0 s2 d p i ch var p2 v tr2
+  proof -
+    have "spec_of_es (es ! i) (specs ! i)"
+      using assms(2) pre(5) by auto
+    then obtain Q where Q: "specs ! i = InSpec ch var Q" "spec_of p2 Q"
+      apply (cases rule: spec_of_es.cases) using pre by auto
+    show ?thesis
+      apply (rule interrupt_c.intros(4))
+      using assms pre(5) apply auto[1]
+      using Q(1) apply auto[1]
+      using pre(1) apply auto[1]
+      using pre(7) Q(2) unfolding spec_of_def Valid_def init_def apply auto[1]
+      using pre by auto
+  qed
+  subgoal premises pre for s0
+    apply (rule interrupt_c.intros(1))
+    using pre by auto
+  subgoal premises pre for s0 d p
+    apply (rule interrupt_c.intros(2))
+    using pre by auto
+  done
 
 end

@@ -220,7 +220,7 @@ inductive big_step :: "'a proc \<Rightarrow> 'a estate \<Rightarrow> 'a trace \<
     i < length cs \<Longrightarrow> cs ! i = (Send ch e, p2) \<Longrightarrow>
     rdy = rdy_of_echoice cs \<Longrightarrow>
     big_step p2 (updr s1 (p d)) tr2 s2 \<Longrightarrow>
-    big_step (Interrupt ode b cs) s1 (WaitBlock d (\<lambda>\<tau>. updr s1 (p \<tau>)) rdy #
+    big_step (Interrupt ode b cs) s1 (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s1 (p \<tau>)) rdy #
                                       OutBlock ch (e (updr s1 (p d))) # tr2) s2"
 | InterruptReceiveB1: "i < length cs \<Longrightarrow> cs ! i = (Receive ch var, p2) \<Longrightarrow>
     big_step p2 (upd s var v) tr2 s2 \<Longrightarrow>
@@ -230,14 +230,14 @@ inductive big_step :: "'a proc \<Rightarrow> 'a estate \<Rightarrow> 'a trace \<
     i < length cs \<Longrightarrow> cs ! i = (Receive ch var, p2) \<Longrightarrow>
     rdy = rdy_of_echoice cs \<Longrightarrow>
     big_step p2 (updr s1 ((p d)(var := v))) tr2 s2 \<Longrightarrow>
-    big_step (Interrupt ode b cs) s1 (WaitBlock d (\<lambda>\<tau>. updr s1 (p \<tau>)) rdy #
+    big_step (Interrupt ode b cs) s1 (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s1 (p \<tau>)) rdy #
                                       InBlock ch v # tr2) s2"
 | InterruptB1: "\<not>b s \<Longrightarrow> big_step (Interrupt ode b cs) s [] s"
 | InterruptB2: "d > 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
     (\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (updr s1 (p t))) \<Longrightarrow>
-    \<not>b (updr s1 (p d)) \<Longrightarrow> p 0 = rpart s1 \<Longrightarrow> p d = rpart s2 \<Longrightarrow>
+    \<not>b (updr s1 (p d)) \<Longrightarrow> p 0 = rpart s1 \<Longrightarrow>
     rdy = rdy_of_echoice cs \<Longrightarrow>
-    big_step (Interrupt ode b cs) s1 [WaitBlock d (\<lambda>\<tau>. updr s1 (p \<tau>)) rdy] s2"
+    big_step (Interrupt ode b cs) s1 [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s1 (p \<tau>)) rdy] (updr s1 (p d))"
 
 inductive_cases skipE: "big_step Skip s1 tr s2"
 inductive_cases assignE: "big_step (Assign var e) s1 tr s2"
