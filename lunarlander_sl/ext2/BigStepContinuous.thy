@@ -4,9 +4,9 @@ begin
 
 subsection \<open>Continuous evolution\<close>
 
-inductive ode_c :: "ODE \<Rightarrow> 'a eform \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
-  "\<not>b s0 \<Longrightarrow> P 0 s0 s tr \<Longrightarrow> ode_c ode b P s0 s tr"
-| "d > 0 \<Longrightarrow> P d s' s tr \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
+inductive ode_c :: "ODE \<Rightarrow> 'a eform \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" where
+  "\<not>b s0 \<Longrightarrow> P s0 s tr \<Longrightarrow> ode_c ode b P s0 s tr"
+| "d > 0 \<Longrightarrow> P s' s tr \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
    p 0 = rpart s0 \<Longrightarrow>
    (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (updr s0 (p t))) \<Longrightarrow>
    \<not>b (updr s0 (p d)) \<Longrightarrow>
@@ -16,7 +16,7 @@ inductive ode_c :: "ODE \<Rightarrow> 'a eform \<Rightarrow> (real \<Rightarrow>
 text \<open>Hoare rules for ODE\<close>
 
 lemma spec_of_cont:
-  "spec_of (Cont ode b) (ode_c ode b (\<lambda>d. init))"
+  "spec_of (Cont ode b) (ode_c ode b init)"
   unfolding Valid_def spec_of_def init_def
   apply (auto elim!: contE)
   subgoal for s0
@@ -28,7 +28,7 @@ lemma spec_of_cont:
 lemma Valid_cont_sp:
   assumes "spec_of c Q"
   shows "spec_of (Cont ode b; c)
-                 (ode_c ode b (\<lambda>d. Q))"
+                 (ode_c ode b Q)"
   using assms unfolding Valid_def spec_of_def init_def
   apply (auto elim!: seqE contE)
   subgoal for s0 s' tr'
@@ -46,10 +46,25 @@ text \<open>Waiting while the state is characterized by a particular solution.
        is only used in the time interval between 0 and d for any initial
        state.
 \<close>
-inductive wait_sol_c :: "('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
-  "d s0 > 0 \<Longrightarrow> P (d s0) (updr s0 (p s0 (d s0))) s tr \<Longrightarrow>
+inductive wait_sol_c :: "('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow> 'a eexp \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" where
+  "d s0 > 0 \<Longrightarrow> P s0 s tr \<Longrightarrow>
    wait_sol_c p d P s0 s (WaitBlock (d s0) (\<lambda>t\<in>{0..d s0}. updr s0 (p s0 t)) ({}, {}) # tr)"
-| "\<not>d s0 > 0 \<Longrightarrow> P 0 s0 s tr \<Longrightarrow> wait_sol_c p d P s0 s tr"
+| "\<not>d s0 > 0 \<Longrightarrow> P s0 s tr \<Longrightarrow> wait_sol_c p d P s0 s tr"
+
+lemma wait_sol_mono:
+  assumes "\<And>s0. P s0 \<Longrightarrow>\<^sub>A Q s0"
+  shows "wait_sol_c p d P s0 \<Longrightarrow>\<^sub>A wait_sol_c p d Q s0"
+  unfolding entails_def apply auto
+  subgoal for s tr
+    apply (induct rule: wait_sol_c.cases) apply auto
+    subgoal for tr'
+      apply (rule wait_sol_c.intros(1))
+      using assms unfolding entails_def by auto
+    subgoal
+      apply (rule wait_sol_c.intros(2))
+      using assms unfolding entails_def by auto
+    done
+  done
 
 definition paramODEsol :: "ODE \<Rightarrow> 'a eform \<Rightarrow> ('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow> 'a eexp \<Rightarrow> bool" where
   "paramODEsol ode b p d \<longleftrightarrow>
@@ -74,7 +89,7 @@ lemma ode_c_unique:
     "paramODEsol ode b p d"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
   shows
-    "ode_c ode b P s0 \<Longrightarrow>\<^sub>A wait_sol_c p d P s0"
+    "ode_c ode b P s0 \<Longrightarrow>\<^sub>A wait_sol_c p d (\<lambda>s. if d s > 0 then P (updr s (p s (d s))) else P s) s0"
 proof -
   \<comment> \<open>The key result is to show that, for any other solution satisfying
       the ODE, it must be equal to the solution given by d, p.\<close>
@@ -169,26 +184,31 @@ lemma spec_of_cont_unique:
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
   shows
     "spec_of (Cont ode b)
-             (wait_sol_c p d (\<lambda>_. init))"
+             (wait_sol_c p d (\<lambda>s. if 0 < d s then init (updr s (p s (d s))) else init s))"
   apply (rule spec_of_post)
    apply (rule spec_of_cont) apply auto
-  apply (rule ode_c_unique)
-  using assms by auto
+  apply (rule entails_trans)
+   apply (rule ode_c_unique[OF assms])
+  by (rule entails_triv)
 
 lemma Valid_cont_unique_sp:
   assumes "spec_of c Q"
     "paramODEsol ode b p d"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
   shows "spec_of (Cont ode b; c)
-                 (wait_sol_c p d (\<lambda>d. Q))"
+                 (wait_sol_c p d (\<lambda>s. if 0 < d s then Q (updr s (p s (d s))) else Q s))"
   apply (rule spec_of_post)
-  apply (rule Valid_cont_sp[OF assms(1)]) apply auto
-  apply (rule ode_c_unique)
-  using assms by auto
+   apply (rule Valid_cont_sp[OF assms(1)]) apply auto
+  apply (rule entails_trans)
+  apply (rule ode_c_unique[OF assms(2,3)])
+  by (rule entails_triv)
 
 lemma test1:
-  "spec_of (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. val s X < 1))
-           (wait_sol_c (\<lambda>s0 t. (rpart s0)(X := val s0 X + t)) (\<lambda>s0. 1 - val s0 X) (\<lambda>_. init))"
+  assumes "spec_of c Q"
+  shows
+  "spec_of (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. val s X < 1); c)
+           (wait_sol_c (\<lambda>s0 t. (rpart s0)(X := val s0 X + t)) (\<lambda>s0. 1 - val s0 X)
+                       (\<lambda>s. if val s X < 1 then Q (upd s X 1) else Q s))"
 proof -
   have 1: "paramODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>s. val s X < 1)
                        (\<lambda>s0 t. (rpart s0)(X := val s0 X + t)) (\<lambda>s0. 1 - val s0 X)"
@@ -227,9 +247,14 @@ proof -
   qed
   show ?thesis
     apply (rule spec_of_post)
-     apply (rule spec_of_cont_unique)
-    apply (rule 1) apply (rule 2)
-    apply clarify by (rule entails_triv)
+     apply (rule Valid_cont_unique_sp)
+    apply (rule assms)
+      apply (rule 1) apply (rule 2)
+    apply clarify apply (rule wait_sol_mono) subgoal for _ s
+      apply auto apply (cases s) apply (auto simp add: updr.simps rpart.simps upd.simps)
+      apply (rule entails_triv)
+      by (rule entails_triv)
+    done
 qed
 
 
