@@ -211,7 +211,7 @@ inductive big_step :: "'a proc \<Rightarrow> 'a estate \<Rightarrow> 'a trace \<
 | ContB2: "d > 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
     (\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (updr s1 (p t))) \<Longrightarrow>
     \<not>b (updr s1 (p d)) \<Longrightarrow> p 0 = rpart s1 \<Longrightarrow>
-    big_step (Cont ode b) s1 [WaitBlock d (\<lambda>\<tau>. updr s1 (p \<tau>)) ({}, {})] (updr s1 (p d))"
+    big_step (Cont ode b) s1 [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s1 (p \<tau>)) ({}, {})] (updr s1 (p d))"
 | InterruptSendB1: "i < length cs \<Longrightarrow> cs ! i = (Send ch e, p2) \<Longrightarrow>
     big_step p2 s tr2 s2 \<Longrightarrow>
     big_step (Interrupt ode b cs) s (OutBlock ch (e s) # tr2) s2"
@@ -2413,5 +2413,6 @@ subsection \<open>General specification\<close>
 
 definition spec_of_global_gen :: "('a gstate \<Rightarrow> bool) \<Rightarrow> 'a pproc \<Rightarrow> ('a gstate \<Rightarrow> 'a gassn) \<Rightarrow> bool" where
   "spec_of_global_gen P c Q \<longleftrightarrow> (\<forall>s0. P s0 \<longrightarrow> \<Turnstile>\<^sub>p {init_global s0} c {Q s0})"
+  
 
 end

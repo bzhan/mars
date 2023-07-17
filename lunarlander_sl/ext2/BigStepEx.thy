@@ -22,56 +22,27 @@ definition ex1a :: "'a proc" where
 definition ex1b :: "'a proc" where
   "ex1b = (Cm (ch1[!](\<lambda>_. 3)))"
 
-lemma ex1a_sp:
-  "spec_of ex1a
-           (wait_in_c ch1 (\<lambda>d v. wait_out_c ch2 (\<lambda>s. val s X + 1) (\<lambda>d. init) {{ X := (\<lambda>_. v) }}))"
-  unfolding ex1a_def
-  apply (rule Valid_receive_sp)
-  apply (rule spec_of_send)
-  done
-
-lemma ex1b_sp:
-  "spec_of ex1b
-           (wait_out_c ch1 (\<lambda>_. 3) (\<lambda>d. init))"
-  unfolding ex1b_def
-  apply (rule spec_of_send)
-  done
-
 lemma ex1:
-  "spec_of_global
-    (Parallel (Single ''a'' ex1a) {ch1}
-              (Single ''b'' ex1b))
-    (sync_gassn {ch1} {''a''} {''b''}
-      (single_assn ''a'' (wait_in_c ch1 (\<lambda>d v. wait_out_c ch2 (\<lambda>s. val s X + 1) (\<lambda>d. init) {{ X := (\<lambda>_. v) }} )))
-      (single_assn ''b'' (wait_out_c ch1 (\<lambda>_. 3) (\<lambda>d. init))))"
-  apply (rule spec_of_parallel)
-     apply (rule spec_of_single)
-     apply (rule ex1a_sp)
-    apply (rule spec_of_single)
-    apply (rule ex1b_sp)
-  by auto
-
-lemma ex1':
-  "spec_of_global
-    (Parallel (Single ''a'' ex1a) {ch1}
-              (Single ''b'' ex1b))
-    (sync_gassn {ch1} {''a''} {''b''}
-      (wait_in_cg ch1 (\<lambda>d v. wait_out_cg ''a'' ch2 (\<lambda>s. val s X + 1) (\<lambda>d. init_single {''a''}) {{X := (\<lambda>_. v)}}\<^sub>g at ''a''))
-      (wait_out_cg ''b'' ch1 (\<lambda>_. 3) (\<lambda>d. init_single {''b''})))"
-  apply (rule spec_of_global_post)
-   apply (rule ex1) apply clarify subgoal for s0
-    apply (auto simp: single_assn_wait_in single_assn_wait_out updg_subst2 single_assn_init)
-    by (rule entails_g_triv)
-  done
-
-lemma ex1'':
   "spec_of_global
     (Parallel (Single ''a'' ex1a) {ch1}
               (Single ''b'' ex1b))
     (\<lambda>s0. wait_out_cg ''a'' ch2 (\<lambda>s. val s X + 1) (\<lambda>d. init_single {''a'', ''b''})
           (updg s0 ''a'' X 3))"
   apply (rule spec_of_global_post)
-   apply (rule ex1') apply auto subgoal for s0
+  (* Stage 1: obtain spec for both sides *)
+   apply (rule spec_of_parallel)
+    (* ex1a *)
+      apply (rule spec_of_single) unfolding ex1a_def
+      apply (rule Valid_receive_sp)
+      apply (rule spec_of_send)
+    (* ex1b *)
+     apply (rule spec_of_single) unfolding ex1b_def
+     apply (rule spec_of_send)
+    apply simp apply simp apply auto
+  (* Stage 2: simplify assertion *)
+  subgoal for s0
+    apply (auto simp: single_assn_wait_in single_assn_wait_out updg_subst2 single_assn_init)
+  (* Stage 3: perform merge *)
     apply (rule entails_g_trans)
      apply (rule sync_gassn_in_out) apply auto
     apply (rule entails_g_trans)
@@ -97,24 +68,8 @@ text \<open>
 definition ex2a :: "'a proc" where
   "ex2a = (Cm (ch1[!](\<lambda>s. val s X)); Cm (ch2[?]Y))"
 
-lemma ex2a_sp:
-  "spec_of ex2a
-           (wait_out_c ch1 (\<lambda>s. val s X) (\<lambda>d. wait_in_c ch2 (\<lambda>d v. init {{Y := (\<lambda>_. v)}})))"
-  unfolding ex2a_def
-  apply (rule Valid_send_sp)
-  apply (rule spec_of_receive)
-  done
-
 definition ex2b :: "'a proc" where
   "ex2b = (Cm (ch1[?]Z); Cm (ch2[!](\<lambda>s. val s Z + 1)))"
-
-lemma ex2b_sp:
-  "spec_of ex2b
-           (wait_in_c ch1 (\<lambda>d v. wait_out_c ch2 (\<lambda>s. val s Z + 1) (\<lambda>d. init) {{Z := (\<lambda>_. v)}}))"
-  unfolding ex2b_def
-  apply (rule Valid_receive_sp)
-  apply (rule spec_of_send)
-  done
 
 lemma ex2:
   "spec_of_global
@@ -122,25 +77,24 @@ lemma ex2:
               {ch1, ch2}
               (Single ''b'' ex2b))
     (\<lambda>s0. init_single {''b'', ''a''}
-     (updg (updg s0 ''b'' Z (valg s0 ''a'' X)) ''a'' Y
-       (valg s0 ''a'' X + 1)))"
-proof -
-  have eq: "valg (updg s0 ''b'' Z (valg s0 ''a'' X)) ''b'' Z + 1 =
-        valg s0 ''a'' X + 1" for s0::"'a gstate"
-    by auto
-  show ?thesis
+       (updg (updg s0 ''b'' Z (valg s0 ''a'' X))
+                      ''a'' Y (valg s0 ''a'' X + 1)))"
   (* Stage 1: merge ex2a_sp and ex2b_sp *)
   apply (rule spec_of_global_post)
    apply (rule spec_of_parallel)
-      apply (rule spec_of_single)
-      apply (rule ex2a_sp)
-  apply (rule spec_of_single)
-     apply (rule ex2b_sp)
+    (* ex2a *)
+      apply (rule spec_of_single) unfolding ex2a_def
+      apply (rule Valid_send_sp)
+      apply (rule spec_of_receive)
+    (* ex2b *)
+     apply (rule spec_of_single) unfolding ex2b_def
+     apply (rule Valid_receive_sp)
+     apply (rule spec_of_send)
     apply simp apply simp
-  (* Stage 2: rewrite the assertions *)
+    (* Stage 2: rewrite the assertions *)
   apply auto subgoal for s0
     apply (auto simp: single_assn_wait_in single_assn_wait_out updg_subst2 single_assn_init)
-  (* Stage 3: combine the two assertions *)
+      (* Stage 3: combine the two assertions *)
     apply (rule entails_g_trans)
      apply (rule sync_gassn_out_in) apply auto
     apply (rule entails_g_trans)
@@ -154,11 +108,10 @@ proof -
     apply (rule entails_g_trans)
      apply (rule gassn_subst)
     apply (rule entails_g_trans)
-       apply (rule sync_gassn_emp) apply simp
-      apply (simp only: valg_def[symmetric] eq)
-      by (rule entails_g_triv)
-    done
-qed
+     apply (rule sync_gassn_emp) apply simp
+    apply (simp only: valg_def[symmetric]) apply auto
+    by (rule entails_g_triv)
+  done
 
 subsubsection \<open>Example 3\<close>
 
@@ -223,6 +176,12 @@ lemma ex3b_sp:
 definition ex3_inv :: "'a gstate \<Rightarrow> bool" where
   "ex3_inv s0 \<longleftrightarrow> (valg s0 ''b'' Y = valg s0 ''a'' X * valg s0 ''a'' Y)"
 
+definition ex3_one_step :: "'a gstate \<Rightarrow> 'a gstate" where
+  "ex3_one_step s0 =
+      updg (updg (updg s0 ''b'' X (valg s0 ''a'' X))
+                          ''a'' Y (valg s0 ''a'' Y + 1))
+                          ''b'' Y (valg s0 ''b'' Y + valg s0 ''a'' X)"
+
 text \<open>This is the crucial lemma, stating that from a starting state s0
   satisfying invariant ex3_inv, there is another state s1 also satisfying
   invariant ex3_inv, that is reached after one iteration on both left
@@ -238,19 +197,11 @@ lemma ex3':
     sync_gassn {ch1} {''a''} {''b''}
      (single_assn ''a'' (rinv_c n1 init))
      (single_assn ''b'' (linv_c n2 init)) s1)"
-proof -
-  have eq1: "updg (updg s0 ''b'' X (valg s0 ''a'' X)) ''a'' Y
-              ((valg (updg s0 ''b'' X (valg s0 ''a'' X)) ''a'' Y) + 1) =
-             updg (updg s0 ''b'' X (valg s0 ''a'' X)) ''a'' Y (valg s0 ''a'' Y + 1)"
-    by auto
-  let ?s1 = "updg (updg (updg s0 ''b'' X (valg s0 ''a'' X)) ''a'' Y (valg s0 ''a'' Y + 1)) ''b'' Y
-               (valg s0 ''b'' Y + valg s0 ''a'' X)"
-  show ?thesis
-  apply (rule exI[where x="?s1"])
+  apply (rule exI[where x="ex3_one_step s0"])
   apply (rule conjI)
-    subgoal using assms unfolding ex3_inv_def
-      apply (auto simp add: X_def Y_def)
-      by (auto simp add: algebra_simps)
+  subgoal using assms unfolding ex3_one_step_def ex3_inv_def
+    apply (auto simp add: X_def Y_def)
+    by (auto simp add: algebra_simps)
   subgoal
     apply simp
     apply (auto simp: single_assn_wait_in single_assn_wait_out updg_subst2)
@@ -264,16 +215,15 @@ proof -
      apply (rule sync_gassn_subst_left) apply simp
     apply (rule entails_g_trans)
      apply (rule gassn_subst)
-    apply (simp only: valg_def[symmetric]) apply (subst eq1)
+    apply (simp only: valg_def[symmetric]) apply auto
     apply (rule entails_g_trans)
      apply (rule sync_gassn_subst_right) apply auto
     apply (rule entails_g_trans)
      apply (rule gassn_subst)
     apply (rule sync_gassn_triv)
     apply (simp only: valg_def[symmetric])
-    by (auto simp add: X_def Y_def)
+    by (auto simp add: ex3_one_step_def X_def Y_def)
   done
-qed
 
 lemma ex3'':
   "ex3_inv s0 \<Longrightarrow>
