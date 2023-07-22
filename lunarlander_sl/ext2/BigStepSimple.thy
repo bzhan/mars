@@ -902,27 +902,27 @@ inductive combine_blocks :: "cname set \<Rightarrow> 'a ptrace \<Rightarrow> 'a 
    compat_rdy rdy1 rdy2 \<Longrightarrow>
    hist = (\<lambda>\<tau>. merge_state (hist1 \<tau>) (hist2 \<tau>)) \<Longrightarrow>
    rdy = merge_rdy rdy1 rdy2 \<Longrightarrow>
-   combine_blocks comms (WaitBlockP t hist1 rdy1 # blks1)
-                        (WaitBlockP t hist2 rdy2 # blks2)
-                        (WaitBlockP t hist rdy # blks)"
+   combine_blocks comms (WaitBlockP t (\<lambda>\<tau>\<in>{0..t}. hist1 \<tau>) rdy1 # blks1)
+                        (WaitBlockP t (\<lambda>\<tau>\<in>{0..t}. hist2 \<tau>) rdy2 # blks2)
+                        (WaitBlockP t (\<lambda>\<tau>\<in>{0..t}. hist \<tau>) rdy # blks)"
 | combine_blocks_wait2:
-  "combine_blocks comms blks1 (WaitBlockP (t2 - t1) (\<lambda>\<tau>. hist2 (\<tau> + t1)) rdy2 # blks2) blks \<Longrightarrow>
+  "combine_blocks comms blks1 (WaitBlockP (t2 - t1) (\<lambda>\<tau>\<in>{0..t2-t1}. hist2 (\<tau> + t1)) rdy2 # blks2) blks \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
    t1 < t2 \<Longrightarrow> t1 > 0 \<Longrightarrow>
    hist = (\<lambda>\<tau>. merge_state (hist1 \<tau>) (hist2 \<tau>)) \<Longrightarrow>
    rdy = merge_rdy rdy1 rdy2 \<Longrightarrow>
-   combine_blocks comms (WaitBlockP t1 hist1 rdy1 # blks1)
-                        (WaitBlockP t2 hist2 rdy2 # blks2)
-                        (WaitBlockP t1 hist rdy # blks)"
+   combine_blocks comms (WaitBlockP t1 (\<lambda>\<tau>\<in>{0..t1}. hist1 \<tau>) rdy1 # blks1)
+                        (WaitBlockP t2 (\<lambda>\<tau>\<in>{0..t2}. hist2 \<tau>) rdy2 # blks2)
+                        (WaitBlockP t1 (\<lambda>\<tau>\<in>{0..t1}. hist \<tau>) rdy # blks)"
 | combine_blocks_wait3:
-  "combine_blocks comms (WaitBlockP (t1 - t2) (\<lambda>\<tau>. hist1 (\<tau> + t2)) rdy1 # blks1) blks2 blks \<Longrightarrow>
+  "combine_blocks comms (WaitBlockP (t1 - t2) (\<lambda>\<tau>\<in>{0..t1-t2}. hist1 (\<tau> + t2)) rdy1 # blks1) blks2 blks \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
    t1 > t2 \<Longrightarrow> t2 > 0 \<Longrightarrow>
    hist = (\<lambda>\<tau>. merge_state (hist1 \<tau>) (hist2 \<tau>)) \<Longrightarrow>
    rdy = merge_rdy rdy1 rdy2 \<Longrightarrow>
-   combine_blocks comms (WaitBlockP t1 hist1 rdy1 # blks1)
-                        (WaitBlockP t2 hist2 rdy2 # blks2)
-                        (WaitBlockP t2 hist rdy # blks)"
+   combine_blocks comms (WaitBlockP t1 (\<lambda>\<tau>\<in>{0..t1}. hist1 \<tau>) rdy1 # blks1)
+                        (WaitBlockP t2 (\<lambda>\<tau>\<in>{0..t2}. hist2 \<tau>) rdy2 # blks2)
+                        (WaitBlockP t2 (\<lambda>\<tau>\<in>{0..t2}. hist \<tau>) rdy # blks)"
 
 text \<open>Conversion from trace for a single process to trace for
   parallel processes.
@@ -930,7 +930,11 @@ text \<open>Conversion from trace for a single process to trace for
 fun ptrace_of :: "pname \<Rightarrow> 'a trace \<Rightarrow> 'a ptrace" where
   "ptrace_of pn [] = []"
 | "ptrace_of pn (CommBlock ch_type ch v # tr) = CommBlockP ch_type ch v # ptrace_of pn tr"
-| "ptrace_of pn (WaitBlock d p rdy # tr) = WaitBlockP d (\<lambda>\<tau>. State pn (p \<tau>)) rdy # ptrace_of pn tr"
+| "ptrace_of pn (WaitBlock d p rdy # tr) = WaitBlockP d (\<lambda>\<tau>\<in>{0..d}. State pn (p \<tau>)) rdy # ptrace_of pn tr"
+
+lemma ptrace_of_simp3:
+  "ptrace_of pn (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. p \<tau>) rdy # tr) = WaitBlockP d (\<lambda>\<tau>\<in>{0..d}. State pn (p \<tau>)) rdy # ptrace_of pn tr"
+  by auto
 
 text \<open>Definition of big-step operational semantics for parallel processes.
   Note the restriction on disjoint condition for process names,
@@ -958,8 +962,8 @@ text \<open>Trace is compatible with a given set of procedure names\<close>
 inductive proc_set_trace :: "pname set \<Rightarrow> 'a ptrace \<Rightarrow> bool" where
   "proc_set_trace pns []"
 | "proc_set_trace pns tr \<Longrightarrow> proc_set_trace pns (CommBlockP ctype ch v # tr)"
-| "proc_set_trace pns tr \<Longrightarrow> \<forall>t. proc_set (p t) = pns \<Longrightarrow>
-   proc_set_trace pns (WaitBlockP d p rdy # tr)"
+| "proc_set_trace pns tr \<Longrightarrow> \<forall>t\<in>{0..d}. proc_set (p t) = pns \<Longrightarrow>
+   proc_set_trace pns (WaitBlockP d (\<lambda>\<tau>\<in>{0..d}. p \<tau>) rdy # tr)"
 
 inductive_cases proc_set_trace_waitE: "proc_set_trace pns (WaitBlockP d p rdy # tr)"
 
@@ -969,8 +973,9 @@ lemma proc_set_trace_tl:
   by auto
 
 lemma proc_set_trace_wait:
-  "proc_set_trace pns (WaitBlockP d p rdy # tr) \<Longrightarrow> proc_set (p t) = pns"
-  apply (elim proc_set_trace_waitE) by auto
+  "proc_set_trace pns (WaitBlockP d (\<lambda>\<tau>\<in>{0..d}. p \<tau>) rdy # tr) \<Longrightarrow> t \<in> {0..d} \<Longrightarrow> proc_set (p t) = pns"
+  apply (elim proc_set_trace_waitE)
+  by (metis restrict_apply')
 
 text \<open>Action of proc_set on synchronization of traces\<close>
 lemma proc_set_trace_combine:
@@ -1013,8 +1018,10 @@ next
       subgoal using combine_blocks_wait2 proc_set_trace_tl by auto
       apply (rule proc_set_trace.intros(3))
       using combine_blocks_wait2 proc_set_trace_tl apply auto[1]
-      using proc_set_trace_wait[OF combine_blocks_wait2(9)] by auto
-    using combine_blocks_wait2 proc_set_merge proc_set_trace_wait by blast
+      using proc_set_trace_wait[OF combine_blocks_wait2(9)]
+      using combine_blocks_wait2(4) by auto
+    using combine_blocks_wait2(3,4,5) proc_set_merge proc_set_trace_wait[OF combine_blocks_wait2(8)]
+      proc_set_trace_wait[OF combine_blocks_wait2(9)] by auto
 next
   case (combine_blocks_wait3 comms t1 t2 hist1 rdy1 blks1 blks2 blks rdy2 hist hist2 rdy)
   show ?case
@@ -1022,10 +1029,12 @@ next
     subgoal apply (rule combine_blocks_wait3(7))
       apply (rule proc_set_trace.intros(3))
       using combine_blocks_wait3 proc_set_trace_tl apply auto[1]
-      using proc_set_trace_wait[OF combine_blocks_wait3(8)] apply auto[1]
+      using proc_set_trace_wait[OF combine_blocks_wait3(8)]
+       using combine_blocks_wait3(4) apply auto[1]
       subgoal using combine_blocks_wait3 proc_set_trace_tl by auto
       done
-    using combine_blocks_wait3 proc_set_merge proc_set_trace_wait by blast
+    using combine_blocks_wait3(3,4,5) proc_set_merge proc_set_trace_wait[OF combine_blocks_wait3(8)]
+      proc_set_trace_wait[OF combine_blocks_wait3(9)] by auto
 qed
 
 text \<open>The following two lemmas show that a trace is compatible with
@@ -1046,39 +1055,38 @@ qed
 
 lemma proc_set_trace_is_single:
   "proc_set_trace {pn} tr \<Longrightarrow> \<exists>tr'. tr = ptrace_of pn tr'"
-proof (induction tr)
-  case Nil
+proof (induction "{pn}" tr rule: proc_set_trace.induct)
+  case 1
   show ?case
     apply (rule exI[where x="[]"])
     by auto
 next
-  case (Cons blk tr)
-  have "proc_set_trace {pn} tr"
-    using Cons(2) proc_set_trace_tl by auto
-  then obtain tr' where tr': "tr = ptrace_of pn tr'"
-    using Cons(1) by auto
+  case (2 tr ctype ch v)
+  obtain tr' where tr': "tr = ptrace_of pn tr'"
+    using 2(2) by auto
   show ?case
-  proof (cases blk)
-    case (CommBlockP ctype ch v)
-    show ?thesis
-      unfolding CommBlockP
-      apply (rule exI[where x="CommBlock ctype ch v # tr'"])
-      using tr' by auto
-  next
-    case (WaitBlockP d p rdy)
-    have "proc_set_trace {pn} (WaitBlockP d p rdy # tr)"
-      using Cons(2)[unfolded WaitBlockP] by auto
-    then have "proc_set (p t) = {pn}" for t
-      using proc_set_trace_wait by blast
-    then have "\<exists>p'. p t = State pn p'" for t
-      by (metis proc_set_single_elim)
-    then obtain p' where p': "p = (\<lambda>\<tau>. State pn (p' \<tau>))"
-      by metis
-    show ?thesis
-      unfolding WaitBlockP
-      apply (rule exI[where x="WaitBlock d p' rdy # tr'"])
-      using tr' p' by auto
-  qed
+    apply (rule exI[where x="CommBlock ctype ch v # tr'"])
+    using tr' by auto
+next
+  case (3 tr d p rdy)
+  obtain tr' where tr': "tr = ptrace_of pn tr'"
+    using 3(2) by auto
+  have "proc_set (p t) = {pn}" if "t \<in> {0..d}" for t
+    using 3(3) that by auto
+  then have p': "\<exists>p'. p t = State pn p'" if "t \<in> {0..d}" for t
+    by (meson proc_set_single_elim that)
+  show ?case
+    apply (rule exI[where x="WaitBlock d (\<lambda>\<tau>\<in>{0..d}. SOME p'. p \<tau> = State pn p') rdy # tr'"])
+    apply auto apply (rule ext) using tr' apply auto
+    subgoal premises pre for t
+    proof -
+      obtain p' where "p t = State pn p'"
+        using p' pre(2,3) by auto
+      then show ?thesis
+        apply auto apply (rule someI)
+        by auto
+    qed
+    done
 qed
 
 subsection \<open>Assertions on parallel processes\<close>
@@ -1145,7 +1153,7 @@ definition exists_gassn :: "('b \<Rightarrow> 'a gassn) \<Rightarrow> 'a gassn" 
 text \<open>Assertion for input\<close>
 inductive wait_in_cg_gen :: "cname \<Rightarrow> rdy_info \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
   "P 0 v s0 s tr \<Longrightarrow> wait_in_cg_gen ch rdy P s0 s (InBlockP ch v # tr)"
-| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> wait_in_cg_gen ch rdy P s0 s (WaitBlockP d (\<lambda>_. s0) rdy # InBlockP ch v # tr)"
+| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> wait_in_cg_gen ch rdy P s0 s (WaitBlockP d (\<lambda>\<tau>\<in>{0..d}. s0) rdy # InBlockP ch v # tr)"
 
 abbreviation "wait_in_cg ch P s0 s tr \<equiv> wait_in_cg_gen ch ({}, {ch}) P s0 s tr"
 
@@ -1153,13 +1161,14 @@ text \<open>Assertion for output\<close>
 inductive wait_out_cg_gen :: "pname \<Rightarrow> cname \<Rightarrow> rdy_info \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
   "P 0 s0 s tr \<Longrightarrow> v = e (the (s0 pn)) \<Longrightarrow> wait_out_cg_gen pn ch rdy e P s0 s (OutBlockP ch v # tr)"
 | "0 < d \<Longrightarrow> P d s0 s tr \<Longrightarrow> v = e (the (s0 pn)) \<Longrightarrow>
-   wait_out_cg_gen pn ch rdy e P s0 s (WaitBlockP d (\<lambda>_. s0) rdy # OutBlockP ch v # tr)"
+   wait_out_cg_gen pn ch rdy e P s0 s (WaitBlockP d (\<lambda>\<tau>\<in>{0..d}. s0) rdy # OutBlockP ch v # tr)"
 
 abbreviation "wait_out_cg pn ch e P s0 s tr \<equiv> wait_out_cg_gen pn ch ({ch}, {}) e P s0 s tr"
 
 text \<open>Assertion for wait\<close>
 inductive wait_cg :: "pname \<Rightarrow> 'a eexp \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2" where
-  "e (the (gs0 pn)) > 0 \<Longrightarrow> P gs0 gs tr \<Longrightarrow> wait_cg pn e P gs0 gs (WaitBlockP (e (the (gs0 pn))) (\<lambda>_. gs0) ({}, {}) # tr)"
+  "e (the (gs0 pn)) > 0 \<Longrightarrow> P gs0 gs tr \<Longrightarrow> d = e (the (gs0 pn)) \<Longrightarrow>
+   wait_cg pn e P gs0 gs (WaitBlockP d (\<lambda>\<tau>\<in>{0..d}. gs0) ({}, {}) # tr)"
 | "\<not>e (the (gs0 pn)) > 0 \<Longrightarrow> P gs0 gs tr \<Longrightarrow> wait_cg pn e P gs0 gs tr"
 
 text \<open>Action of an assertion on updated state: real part\<close>
@@ -1175,8 +1184,8 @@ definition updeg_assn2 :: "'a gassn2 \<Rightarrow> ('a estate \<Rightarrow> 'a) 
 text \<open>Another generalization of wait_in_c\<close>
 inductive wait_in_cg_alt :: "cname \<Rightarrow> pname \<Rightarrow> 'a eexp \<Rightarrow> rdy_info \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a gassn2) \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
   "P 0 v s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e rdy P Q s0 s (InBlockP ch v # tr)"
-| "0 < d \<Longrightarrow> d \<le> e (the (s0 pn)) \<Longrightarrow> P d v s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e rdy P Q s0 s (WaitBlockP d (\<lambda>_. s0) rdy # InBlockP ch v # tr)"
-| "0 < e (the (s0 pn)) \<Longrightarrow> d \<ge> e (the (s0 pn)) \<Longrightarrow> Q d s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e rdy P Q s0 s (WaitBlockP d (\<lambda>_. s0) rdy # tr)"
+| "0 < d \<Longrightarrow> d \<le> e (the (s0 pn)) \<Longrightarrow> P d v s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e rdy P Q s0 s (WaitBlockP d (\<lambda>\<tau>\<in>{0..d}. s0) rdy # InBlockP ch v # tr)"
+| "0 < e (the (s0 pn)) \<Longrightarrow> d \<ge> e (the (s0 pn)) \<Longrightarrow> Q d s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e rdy P Q s0 s (WaitBlockP d (\<lambda>\<tau>\<in>{0..d}. s0) rdy # tr)"
 | "\<not>0 < e (the (s0 pn)) \<Longrightarrow> Q 0 s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e rdy P Q s0 s tr"
 
 text \<open>Version of wait_in_c with assumption of immediate communication\<close>
@@ -1243,7 +1252,7 @@ lemma single_assn_wait_in:
         by (auto intro: wait_in_cg_gen.intros single_assn.intros)
       done
     subgoal apply (elim wait_in_cg_gen.cases) apply auto
-      subgoal for v tr'
+      subgoal for v tr' a b
         apply (elim single_assn.cases) apply auto
         subgoal for s0' s' tr''
           apply (subst ptrace_of.simps[symmetric])
@@ -1312,7 +1321,7 @@ lemma single_assn_wait:
             by auto
           then show ?thesis
             using pre apply (elim wait_c.cases) apply auto[2]
-            apply (subst es0) apply (rule wait_cg.intros(1))
+            apply (subst es0) apply auto apply (rule wait_cg.intros(1))
             by (auto intro: single_assn.intros)
         qed
         subgoal premises pre
@@ -1955,28 +1964,92 @@ lemma combine_blocks_waitE1 [sync_elims]:
    \<not>compat_rdy rdy1 rdy2 \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
+lemma merge_state_cong:
+  assumes "(\<lambda>\<tau>\<in>{0..d}. p1 \<tau>) = (\<lambda>\<tau>\<in>{0..d}. p3 \<tau>)"
+    and "(\<lambda>\<tau>\<in>{0..d}. p2 \<tau>) = (\<lambda>\<tau>\<in>{0..d}. p4 \<tau>)"
+  shows "(\<lambda>\<tau>\<in>{0..d}. merge_state (p1 \<tau>) (p2 \<tau>)) =
+         (\<lambda>\<tau>\<in>{0..d}. merge_state (p3 \<tau>) (p4 \<tau>))"
+proof -
+  have 1: "p1 t = p3 t" if "t \<in> {0..d}" for t
+    using assms(1) unfolding restrict_def using that by meson
+  have 2: "p2 t = p4 t" if "t \<in> {0..d}" for t
+    using assms(2) unfolding restrict_def using that by meson
+  show ?thesis
+    apply (rule ext) by (simp add: 1 2)
+qed
+
+lemma restrict_cong_less:
+  assumes "(\<lambda>\<tau>\<in>{0..d2::real}. p1 \<tau>) = (\<lambda>\<tau>\<in>{0..d2}. p2 \<tau>)"
+    and "d1 < d2"
+  shows "(\<lambda>\<tau>\<in>{0..d1}. p1 \<tau>) = (\<lambda>\<tau>\<in>{0..d1}. p2 \<tau>)"
+  sorry  
+
+lemma restrict_cong_less2:
+  assumes "(\<lambda>\<tau>\<in>{0..d2::real}. p1 \<tau>) = (\<lambda>\<tau>\<in>{0..d2}. p2 \<tau>)"
+    and "0 < d1" "d1 < d2"
+  shows "(\<lambda>\<tau>\<in>{0..d2 - d1}. p1 (\<tau> + d1)) = (\<lambda>\<tau>\<in>{0..d2 - d1}. p2 (\<tau> + d1))"
+proof -
+  have 1: "p1 t = p2 t" if "t \<in> {0..d2}" for t
+    using assms unfolding restrict_def using that by meson
+  show ?thesis
+    apply (rule ext) apply auto
+    apply (rule 1) using assms(2,3) by auto
+qed
+
 lemma combine_blocks_waitE2 [sync_elims]:
-  "combine_blocks comms (WaitBlockP d p1 rdy1 # tr1) (WaitBlockP d p2 rdy2 # tr2) tr \<Longrightarrow>
+  "combine_blocks comms (WaitBlockP d (\<lambda>t\<in>{0..d}. p1 t) rdy1 # tr1) (WaitBlockP d (\<lambda>t\<in>{0..d}. p2 t) rdy2 # tr2) tr \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
-   (\<And>tr'. tr = WaitBlockP d (\<lambda>t. merge_state (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # tr' \<Longrightarrow>
+   (\<And>tr'. tr = WaitBlockP d (\<lambda>t\<in>{0..d}. merge_state (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # tr' \<Longrightarrow>
            combine_blocks comms tr1 tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
-  by (induct rule: combine_blocks.cases, auto)
+  apply (induct rule: combine_blocks.cases, auto)
+  subgoal premises pre for blks hist1 hist2 a b
+    apply (rule pre(7)) apply (rule merge_state_cong)
+    using pre by auto
+  done
 
 lemma combine_blocks_waitE3 [sync_elims]:
-  "combine_blocks comms (WaitBlockP d1 p1 rdy1 # tr1) (WaitBlockP d2 p2 rdy2 # tr2) tr \<Longrightarrow>
+  "combine_blocks comms (WaitBlockP d1 (\<lambda>t\<in>{0..d1}. p1 t) rdy1 # tr1) (WaitBlockP d2 (\<lambda>t\<in>{0..d2}. p2 t) rdy2 # tr2) tr \<Longrightarrow>
    0 < d1 \<Longrightarrow> d1 < d2 \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
-   (\<And>tr'. tr = WaitBlockP d1 (\<lambda>t. merge_state (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # tr' \<Longrightarrow>
-           combine_blocks comms tr1 (WaitBlockP (d2 - d1) (\<lambda>t. p2 (t + d1)) rdy2 # tr2) tr' \<Longrightarrow> P) \<Longrightarrow> P"
-  by (induct rule: combine_blocks.cases, auto)
+   (\<And>tr'. tr = WaitBlockP d1 (\<lambda>t\<in>{0..d1}. merge_state (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # tr' \<Longrightarrow>
+           combine_blocks comms tr1 (WaitBlockP (d2 - d1) (\<lambda>t\<in>{0..d2-d1}. p2 (t + d1)) rdy2 # tr2) tr' \<Longrightarrow> P) \<Longrightarrow> P"
+  apply (induct rule: combine_blocks.cases, auto)
+  subgoal premises pre for hist2 blks hist1 a b
+    apply (rule pre(9)) apply (rule merge_state_cong)
+    subgoal using pre(1) by auto
+    subgoal apply (rule restrict_cong_less[OF _ pre(8)])
+      using pre(2) by auto
+    subgoal proof -
+      have "(\<lambda>t\<in>{0..d2 - d1}. p2 (t + d1)) = (\<lambda>t\<in>{0..d2 - d1}. hist2 (t + d1))"
+        apply (rule restrict_cong_less2)
+        using pre(2,7,8) by auto
+      then show ?thesis
+        using pre(4) by auto
+    qed
+    done
+  done
 
 lemma combine_blocks_waitE4 [sync_elims]:
-  "combine_blocks comms (WaitBlockP d1 p1 rdy1 # tr1) (WaitBlockP d2 p2 rdy2 # tr2) tr \<Longrightarrow>
+  "combine_blocks comms (WaitBlockP d1 (\<lambda>t\<in>{0..d1}. p1 t) rdy1 # tr1) (WaitBlockP d2 (\<lambda>t\<in>{0..d2}. p2 t) rdy2 # tr2) tr \<Longrightarrow>
    0 < d2 \<Longrightarrow> d2 < d1 \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
-   (\<And>tr'. tr = WaitBlockP d2 (\<lambda>t. merge_state (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # tr' \<Longrightarrow>
-           combine_blocks comms (WaitBlockP (d1 - d2) (\<lambda>t. p1 (t + d2)) rdy1 # tr1) tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
-  by (induct rule: combine_blocks.cases, auto)
+   (\<And>tr'. tr = WaitBlockP d2 (\<lambda>t\<in>{0..d2}. merge_state (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # tr' \<Longrightarrow>
+           combine_blocks comms (WaitBlockP (d1 - d2) (\<lambda>t\<in>{0..d1-d2}. p1 (t + d2)) rdy1 # tr1) tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
+  apply (induct rule: combine_blocks.cases, auto)
+  subgoal premises pre for hist1 blks hist2 a b
+    apply (rule pre(9)) apply (rule merge_state_cong)
+    subgoal apply (rule restrict_cong_less[OF _ pre(8)])
+      using pre(1) by auto
+    subgoal using pre(2) by auto
+    subgoal proof -
+      have "(\<lambda>t\<in>{0..d1 - d2}. p1 (t + d2)) = (\<lambda>t\<in>{0..d1 - d2}. hist1 (t + d2))"
+        apply (rule restrict_cong_less2)
+        using pre(1,7,8) by auto
+      then show ?thesis
+        using pre(4) by auto
+    qed
+    done
+  done
 
 lemma combine_blocks_emptyE1 [sync_elims]:
   "combine_blocks comms [] [] tr \<Longrightarrow> tr = []"
@@ -2413,6 +2486,5 @@ subsection \<open>General specification\<close>
 
 definition spec_of_global_gen :: "('a gstate \<Rightarrow> bool) \<Rightarrow> 'a pproc \<Rightarrow> ('a gstate \<Rightarrow> 'a gassn) \<Rightarrow> bool" where
   "spec_of_global_gen P c Q \<longleftrightarrow> (\<forall>s0. P s0 \<longrightarrow> \<Turnstile>\<^sub>p {init_global s0} c {Q s0})"
-  
 
 end

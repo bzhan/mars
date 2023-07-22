@@ -897,55 +897,15 @@ lemma interrupt_solInf_mono:
     done
   done
 
-lemma test3:
-  "spec_of (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True)
-                      [(dh[?]Y, Skip)])
-           (interrupt_solInf_c (\<lambda>s0 t. (rpart s0)(X := val s0 X + t))
-                               ({}, {dh})
-                               [InSpec2 dh (\<lambda>d v s. init (upd (upd s X (val s X + d)) Y v))])"
-proof -
-  have 1: "paramODEsolInf (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))
-                       (\<lambda>s0 t. (rpart s0)(X := val s0 X + t))"
-    unfolding paramODEsolInf_def apply clarify
-    subgoal for s
-      apply (rule conjI)
-      subgoal apply (cases s)
-        by (auto simp add: rpart.simps val.simps)
-      unfolding ODEsolInf_def solves_ode_def has_vderiv_on_def
-      apply auto
-      apply (rule exI[where x="1"])
-      apply auto
-      apply (rule has_vector_derivative_projI)
-      apply (auto simp add: state2vec_def)
-      apply (rule has_vector_derivative_eq_rhs)
-       apply (auto intro!: derivative_intros)[1]
-      by simp
-    done
-  have 2: "local_lipschitz {- 1<..} UNIV (\<lambda>t v. ODE2Vec (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v))"
-  proof -
-    have eq: "(\<chi> a. (if a = X then \<lambda>_. 1 else (\<lambda>_. 0)) (($) v)) = (\<chi> a. if a = X then 1 else 0)" for v::vec
-      by auto
-    show ?thesis
-      unfolding fun_upd_def vec2state_def
-      apply (auto simp add: state2vec_def eq)
-      by (rule local_lipschitz_constI)
-  qed
-  let ?specs = "[InSpec dh Y init]"
-  show ?thesis
-    apply (rule spec_of_post)
-     apply (rule spec_of_interrupt_inf_unique[where specs="?specs"])
-        apply (rule 1) apply (rule 2)
-      apply auto apply (rule spec_of_es.intros)
-     apply (rule spec_of_skip)
-    subgoal for s0
-      apply (rule interrupt_solInf_mono)
-       apply auto
-      apply (intro spec2_entails.intros)
-      subgoal for d v s0
-        apply (cases s0) apply (auto simp add: updr.simps rpart.simps val.simps upd.simps)
-        by (rule entails_triv)
-      done
-    done
-qed
+definition disj_assn2 :: "'a assn2 \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" (infixr "\<or>\<^sub>a" 35) where
+  "(P \<or>\<^sub>a Q) s0 = (\<lambda>s tr. P s0 s tr \<or> Q s0 s tr)"
+
+lemma spec_of_ichoice:
+  assumes "spec_of c1 Q1"
+    and "spec_of c2 Q2"
+  shows "spec_of (IChoice c1 c2) (Q1 \<or>\<^sub>a Q2)"
+  unfolding Valid_def spec_of_def
+  apply (auto elim!: ichoiceE)
+  using assms unfolding spec_of_def Valid_def disj_assn2_def by auto
 
 end
