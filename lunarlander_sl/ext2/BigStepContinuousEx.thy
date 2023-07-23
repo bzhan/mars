@@ -709,4 +709,61 @@ lemma ex1b:
     done
   done
 
+
+text \<open>Basic assertion for invariants: wait for the specified amount of time,
+  while all states in the path satisfy the given invariant, then the remaining
+  trace satisfy the following assertion.
+\<close>
+inductive wait_inv_cg :: "('a gstate \<Rightarrow> bool) \<Rightarrow> real \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2" where
+  "d > 0 \<Longrightarrow> rdy = ({}, {}) \<Longrightarrow> \<forall>t\<in>{0..d}. I (p t) \<Longrightarrow> P gs0 gs tr \<Longrightarrow>
+   wait_inv_cg I d P gs0 gs (WaitBlockP d (\<lambda>t\<in>{0..d}. p t) rdy # tr)"
+
+lemma wait_inv_cgI:
+  assumes "e (the (gs0 pn)) = d"
+    and "d > 0"
+    and "\<forall>t\<in>{0..d}. I (p gs0 t)"
+  shows "wait_sol_cg p pn e P gs0 \<Longrightarrow>\<^sub>g wait_inv_cg I d (P d) gs0"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim wait_sol_cg.cases) apply auto
+    using assms by (auto intro: wait_inv_cg.intros)
+  done
+
+lemma wait_inv_cg_mono:
+  assumes "P1 s0 \<Longrightarrow>\<^sub>g P2 s0"
+  shows "wait_inv_cg I d P1 s0 \<Longrightarrow>\<^sub>g wait_inv_cg I d P2 s0"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim wait_inv_cg.cases) apply auto
+    apply (rule wait_inv_cg.intros) apply auto
+    using assms unfolding entails_g_def by auto
+  done
+
+lemma test:
+  "((wait_sol_cg
+      (merge_path {''a''} {''b''} (single_path ''a'' (\<lambda>s0 t. (rpart s0)(X := val s0 X + 2 * t))) id_path)
+      ''b'' (\<lambda>s. val s Y)
+      (\<lambda>d. (init_single {''b'', ''a''} {{Y := (\<lambda>_. 0)}}\<^sub>g at ''a'')
+                                       {{X := (\<lambda>s. val s X + 2 * d)}}\<^sub>g at ''a'')
+        {{Y := (\<lambda>_. 1)}}\<^sub>g at ''b'') {{X := (\<lambda>_. 0)}}\<^sub>g at ''a'') s0 \<Longrightarrow>\<^sub>g
+    (wait_inv_cg (\<lambda>gs. valg gs ''a'' X \<in> {0..2}) 1
+        (\<lambda>s0. init_single {''b'', ''a''} (updg (updg s0 ''a'' X 2) ''a'' Y 0)))
+        ((updg (updg s0 ''a'' X 0) ''b'' Y 1))"
+  apply (rule entails_g_trans)
+   apply (rule gassn_subst)
+  apply (rule entails_g_trans)
+   apply (rule gassn_subst)
+  apply (rule entails_g_trans)
+   apply (rule wait_inv_cgI[where d=1 and I="\<lambda>gs. valg gs ''a'' X \<in> {0..2}"])
+     apply (simp only: valg_def[symmetric]) apply auto[1]
+  apply auto[1]
+  subgoal sorry
+  apply (rule wait_inv_cg_mono)
+  apply (rule entails_g_trans)
+   apply (rule gassn_subst)
+  apply (rule entails_g_trans)
+   apply (rule gassn_subst)
+  apply (simp only: valg_def[symmetric]) apply auto
+  by (rule entails_g_triv)
+
 end
