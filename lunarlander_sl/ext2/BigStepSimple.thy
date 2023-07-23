@@ -1982,7 +1982,13 @@ lemma restrict_cong_less:
   assumes "(\<lambda>\<tau>\<in>{0..d2::real}. p1 \<tau>) = (\<lambda>\<tau>\<in>{0..d2}. p2 \<tau>)"
     and "d1 < d2"
   shows "(\<lambda>\<tau>\<in>{0..d1}. p1 \<tau>) = (\<lambda>\<tau>\<in>{0..d1}. p2 \<tau>)"
-  sorry  
+proof -
+  have 1: "p1 t = p2 t" if "t \<in> {0..d2}" for t
+    using assms unfolding restrict_def using that by meson
+  show ?thesis
+    apply (rule ext) apply auto
+    apply (rule 1) using assms(2) by auto
+qed
 
 lemma restrict_cong_less2:
   assumes "(\<lambda>\<tau>\<in>{0..d2::real}. p1 \<tau>) = (\<lambda>\<tau>\<in>{0..d2}. p2 \<tau>)"

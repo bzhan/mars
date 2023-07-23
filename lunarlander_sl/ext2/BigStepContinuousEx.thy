@@ -146,11 +146,11 @@ lemma ex1a_sp:
   apply auto by (rule entails_triv)
 
 definition ex1b :: "'a proc" where
-  "ex1b = (Cm (ch2[?]Y); Wait (\<lambda>s. val s Y); Cm (ch2[!](\<lambda>_. 0)))"
+  "ex1b = (Cm (ch1[?]Y); Wait (\<lambda>s. val s Y); Cm (ch2[!](\<lambda>_. 0)))"
 
 lemma ex1b_sp:
   "spec_of ex1b
-           (wait_in_c ch2 (\<lambda>d v.
+           (wait_in_c ch1 (\<lambda>d v.
               wait_c (\<lambda>s. val s Y) (
                 wait_out_c ch2 (\<lambda>_. 0) (\<lambda>d. init)) {{Y := (\<lambda>_. v)}}))"
   unfolding ex1b_def
@@ -162,7 +162,7 @@ lemma ex1b_sp:
 
 datatype 'a comm_specg2 =
   InSpecg2 cname "real \<Rightarrow> real \<Rightarrow> 'a gassn2"
-| OutSpecg2 cname pname "'a eexp" "real \<Rightarrow> 'a gassn2"
+| OutSpecg2 cname "real \<Rightarrow> 'a gstate \<Rightarrow> real" "real \<Rightarrow> 'a gassn2"
 
 text \<open>Mapping from path on a single state to path on general states\<close>
 definition single_path :: "pname \<Rightarrow> ('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow> 'a gstate \<Rightarrow> real \<Rightarrow> 'a gstate" where
@@ -173,27 +173,75 @@ lemma single_path_State:
   unfolding single_path_def
   by (auto simp add: State_def)
 
+text \<open>Merging two paths\<close>
+definition restrict_state :: "pname set \<Rightarrow> 'a gstate \<Rightarrow> 'a gstate" where
+  "restrict_state pns gs = (\<lambda>pn. if pn \<in> pns then gs pn else None)"
+
+definition merge_path :: "pname set \<Rightarrow> pname set \<Rightarrow>
+                          ('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate) \<Rightarrow> ('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate) \<Rightarrow>
+                          ('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate)" where
+  "merge_path pns1 pns2 p1 p2 = (\<lambda>gs t.
+     merge_state (p1 (restrict_state pns1 gs) t) (p2 (restrict_state pns2 gs) t))"
+
+fun delay_path :: "real \<Rightarrow> ('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate) \<Rightarrow> ('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate)" where
+  "delay_path d p gs d' = p gs (d' + d)"
+
+lemma restrict_state_eval1:
+  assumes "proc_set gs1 = pns1"
+  shows "restrict_state pns1 (merge_state gs1 gs2) = gs1"
+  apply (rule ext) subgoal for pn
+    unfolding restrict_state_def apply auto
+     apply (subst merge_state_eval1) using assms apply auto
+    unfolding proc_set_def by auto
+  done
+
+lemma restrict_state_eval2:
+  assumes "proc_set gs1 = pns1"
+    and "proc_set gs2 = pns2"
+    and "pns1 \<inter> pns2 = {}"
+  shows "restrict_state pns2 (merge_state gs1 gs2) = gs2"
+  apply (rule ext) subgoal for pn
+    unfolding restrict_state_def apply auto
+     apply (subst merge_state_eval2) using assms apply auto
+    unfolding proc_set_def by auto
+  done
+
+lemma merge_path_eval:
+  assumes "proc_set gs1 = pns1"
+    and "proc_set gs2 = pns2"
+    and "pns1 \<inter> pns2 = {}"
+  shows
+  "merge_path pns1 pns2 p1 p2 (merge_state gs1 gs2) t = merge_state (p1 gs1 t) (p2 gs2 t)"
+  unfolding merge_path_def
+  by (auto simp add: restrict_state_eval1 restrict_state_eval2 assms)
+
+fun id_path :: "'a gstate \<Rightarrow> real \<Rightarrow> 'a gstate" where
+  "id_path gs t = gs"
+
+fun single_val :: "pname \<Rightarrow> 'a eexp \<Rightarrow> 'a gstate \<Rightarrow> real" where
+  "single_val pn e gs = e (the (gs pn))"
+
 text \<open>Mapping from specification on single state to specification
   on general states.
 \<close>
 fun gassn_of :: "pname \<Rightarrow> 'a comm_spec2 \<Rightarrow> 'a comm_specg2" where
   "gassn_of pn (InSpec2 ch Q) = InSpecg2 ch (\<lambda>d v. single_assn pn (Q d v))"
-| "gassn_of pn (OutSpec2 ch e Q) = OutSpecg2 ch pn e (\<lambda>d. single_assn pn (Q d))"
+| "gassn_of pn (OutSpec2 ch e Q) = OutSpecg2 ch (\<lambda>d. single_val pn (e d)) (\<lambda>d. single_assn pn (Q d))"
 
 inductive interrupt_solInf_cg :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate) \<Rightarrow> rdy_info \<Rightarrow>
   'a comm_specg2 list \<Rightarrow> 'a gassn2" where
   "i < length specs \<Longrightarrow> specs ! i = InSpecg2 ch Q \<Longrightarrow>
    Q 0 v gs0 gs tr \<Longrightarrow> interrupt_solInf_cg p rdy specs gs0 gs (InBlockP ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = InSpecg2 ch Q \<Longrightarrow>
-   0 < d \<Longrightarrow> Q d v gs0 gs tr \<Longrightarrow>
-   interrupt_solInf_cg p rdy specs gs0 gs (WaitBlockP d (\<lambda>\<tau>\<in>{0..d}. p gs0 \<tau>) rdy # InBlockP ch v # tr)"
-| "i < length specs \<Longrightarrow> specs ! i = OutSpecg2 ch pn e Q \<Longrightarrow>
-   v = e (the (gs0 pn)) \<Longrightarrow>
+   0 < d \<Longrightarrow> Q d v gs0 gs tr \<Longrightarrow> p' = (\<lambda>\<tau>\<in>{0..d}. p gs0 \<tau>) \<Longrightarrow>
+   interrupt_solInf_cg p rdy specs gs0 gs (WaitBlockP d p' rdy # InBlockP ch v # tr)"
+| "i < length specs \<Longrightarrow> specs ! i = OutSpecg2 ch e Q \<Longrightarrow>
+   v = e 0 gs0 \<Longrightarrow>
    Q 0 gs0 gs tr \<Longrightarrow> interrupt_solInf_cg p rdy specs gs0 gs (OutBlockP ch v # tr)"
-| "i < length specs \<Longrightarrow> specs ! i = OutSpecg2 ch pn e Q \<Longrightarrow>
-   0 < d \<Longrightarrow> Q d gs0 gs tr \<Longrightarrow>
-   v = e (the (p gs0 d pn)) \<Longrightarrow>
-   interrupt_solInf_cg p rdy specs gs0 gs (WaitBlockP d (\<lambda>\<tau>\<in>{0..d}. p gs0 \<tau>) rdy # OutBlockP ch v # tr)"
+| "i < length specs \<Longrightarrow> specs ! i = OutSpecg2 ch e Q \<Longrightarrow>
+   0 < d \<Longrightarrow> Q d gs0 gs tr \<Longrightarrow> p' = (\<lambda>\<tau>\<in>{0..d}. p gs0 \<tau>) \<Longrightarrow>
+   v = e d gs0 \<Longrightarrow>
+   interrupt_solInf_cg p rdy specs gs0 gs (WaitBlockP d p' rdy # OutBlockP ch v # tr)"
 
 lemma single_assn_interrupt_solInf:
   "single_assn pn (interrupt_solInf_c p rdy specs) =
@@ -208,28 +256,16 @@ lemma single_assn_interrupt_solInf:
           apply (rule interrupt_solInf_cg.intros(1)[of i _ _ "(\<lambda>d v. single_assn pn (Q d v))"])
           by (auto intro: single_assn.intros)
         subgoal premises pre for i ch Q d v tr'' a b
-        proof -
-          have 1: "(\<lambda>\<tau>\<in>{0..d}. State pn (if 0 \<le> \<tau> \<and> \<tau> \<le> d then updr s0' (p s0' \<tau>) else undefined)) =
-                   (\<lambda>\<tau>\<in>{0..d}. single_path pn p (State pn s0') \<tau>)"
-            unfolding single_path_State by auto
-          show ?thesis
-            unfolding 1
-            apply (rule interrupt_solInf_cg.intros(2)[of i _ _ "(\<lambda>d v. single_assn pn (Q d v))"])
-            using pre by (auto intro: single_assn.intros)
-        qed
+          apply (rule interrupt_solInf_cg.intros(2)[of i _ _ "(\<lambda>d v. single_assn pn (Q d v))"])
+          unfolding single_path_State
+          using pre by (auto intro: single_assn.intros)
         subgoal for i ch e Q tr'' a b
-          apply (rule interrupt_solInf_cg.intros(3)[of i _ _ pn e "(\<lambda>d. single_assn pn (Q d))" ])
+          apply (rule interrupt_solInf_cg.intros(3)[of i _ _ "(\<lambda>d. single_val pn (e d))" "(\<lambda>d. single_assn pn (Q d))" ])
           by (auto intro: single_assn.intros)
         subgoal premises pre for i ch e Q d tr'' a b
-        proof -
-          have 1: "(\<lambda>\<tau>\<in>{0..d}. State pn (if 0 \<le> \<tau> \<and> \<tau> \<le> d then updr s0' (p s0' \<tau>) else undefined)) =
-                   (\<lambda>\<tau>\<in>{0..d}. single_path pn p (State pn s0') \<tau>)"
-            unfolding single_path_State by auto
-          show ?thesis
-            unfolding 1
-            apply (rule interrupt_solInf_cg.intros(4)[of i _ _ pn e "(\<lambda>d. single_assn pn (Q d))"])
-            using pre by (auto intro: single_assn.intros simp: single_path_State)
-        qed
+          apply (rule interrupt_solInf_cg.intros(4)[of i _ _ "(\<lambda>d. single_val pn (e d))" "(\<lambda>d. single_assn pn (Q d))"])
+          unfolding single_path_State
+          using pre by (auto intro: single_assn.intros)
         done
       done
     subgoal apply (elim interrupt_solInf_cg.cases) apply auto
@@ -251,18 +287,18 @@ lemma single_assn_interrupt_solInf:
           apply (rule single_assn.intros)
           apply (rule interrupt_solInf_c.intros(2)[of i _ _ Q']) by auto
         done
-      subgoal for i ch pn e Q tr' a b
+      subgoal for i ch e Q tr' a b
         apply (cases "specs ! i") apply auto
         apply (elim single_assn.cases) apply auto
-        subgoal for Q' s0'' s' tr''
+        subgoal for e' Q' s0'' s' tr''
           apply (subst ptrace_of.simps[symmetric])
           apply (rule single_assn.intros)
           apply (rule interrupt_solInf_c.intros(3)[of i _ _ _ Q']) by auto
         done
-      subgoal for i ch pn e Q d tr' a b
+      subgoal for i ch e Q d tr' a b
         apply (cases "specs ! i") apply auto
         apply (elim single_assn.cases) apply auto
-        subgoal for Q' s0'' s' tr''
+        subgoal for e' Q' s0'' s' tr''
           unfolding single_path_State
           apply (subst ptrace_of.simps[symmetric])
           apply (subst ptrace_of_simp3[symmetric])
@@ -292,6 +328,185 @@ lemma single_assn_disj:
     done
   done
 
+lemma sync_gassn_disj:
+  assumes "sync_gassn chs pns1 pns2 P1 Q gs0 \<Longrightarrow>\<^sub>g R"
+    and "sync_gassn chs pns1 pns2 P2 Q gs0 \<Longrightarrow>\<^sub>g R"
+  shows "sync_gassn chs pns1 pns2 (P1 \<or>\<^sub>g P2) Q gs0 \<Longrightarrow>\<^sub>g R"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases) apply auto
+    using assms unfolding disj_gassn_def entails_g_def
+    by (auto simp add: sync_gassn.intros)
+  done
+
+lemma sync_gassn_disj2:
+  assumes "sync_gassn chs pns1 pns2 P1 Q gs0 \<Longrightarrow>\<^sub>g R1 gs0"
+    and "sync_gassn chs pns1 pns2 P2 Q gs0 \<Longrightarrow>\<^sub>g R2 gs0"
+  shows "sync_gassn chs pns1 pns2 (P1 \<or>\<^sub>g P2) Q gs0 \<Longrightarrow>\<^sub>g (R1 \<or>\<^sub>g R2) gs0"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases) apply auto
+    using assms unfolding disj_gassn_def entails_g_def
+    by (auto simp add: sync_gassn.intros)
+  done
+
+lemma entails_g_disj2:
+  assumes "P1 gs0 \<Longrightarrow>\<^sub>g R1 gs0"
+    and "P2 gs0 \<Longrightarrow>\<^sub>g R2 gs0"
+  shows "(P1 \<or>\<^sub>g P2) gs0 \<Longrightarrow>\<^sub>g (R1 \<or>\<^sub>g R2) gs0"
+  using assms unfolding entails_g_def disj_gassn_def by auto
+
+fun spec_wait_of :: "real \<Rightarrow> ('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate) \<Rightarrow> 'a comm_specg2 \<Rightarrow> 'a comm_specg2" where
+  "spec_wait_of d p (InSpecg2 ch P) = InSpecg2 ch (\<lambda>d' v. P (d + d') v)"
+| "spec_wait_of d p (OutSpecg2 ch e P) = OutSpecg2 ch (\<lambda>d' gs. e (d + d') gs) (\<lambda>d'. P (d + d'))"
+
+inductive wait_sol_cg :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate) \<Rightarrow> pname \<Rightarrow> 'a eexp \<Rightarrow> rdy_info \<Rightarrow>
+                          (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
+  "e (the (gs0 pn)) > 0 \<Longrightarrow> d = e (the (gs0 pn)) \<Longrightarrow> p' = (\<lambda>t\<in>{0..d}. p gs0 t) \<Longrightarrow> P d gs0 gs tr \<Longrightarrow>
+   wait_sol_cg p pn e rdy P gs0 gs (WaitBlockP d p' rdy # tr)"
+| "\<not>e (the (gs0 pn)) > 0 \<Longrightarrow> P 0 gs0 gs tr \<Longrightarrow> wait_sol_cg p pn e rdy P gs0 gs tr"
+
+lemma sync_gassn_interrupt_solInf_wait:
+  assumes "pn2 \<in> pns2"
+    and "pns1 \<inter> pns2 = {}"
+    and "\<And>i. i < length specs \<Longrightarrow>
+          case specs ! i of InSpecg2 ch P \<Rightarrow> ch \<in> chs
+                          | OutSpecg2 ch e P \<Rightarrow> ch \<in> chs \<and> pn \<in> pns1"
+  shows
+  "sync_gassn chs pns1 pns2 (interrupt_solInf_cg p rdy specs) (wait_cg pn2 e Q) s0 \<Longrightarrow>\<^sub>g
+   wait_sol_cg (merge_path pns1 pns2 p id_path) pn2 e rdy
+    (\<lambda>d. sync_gassn chs pns1 pns2 (interrupt_solInf_cg (delay_path d p) rdy (map (spec_wait_of d p) specs)) Q) s0"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases) apply auto
+    subgoal for s11 s12 s21 s22 tr1 tr2
+      apply (elim interrupt_solInf_cg.cases) apply auto
+      subgoal for i ch Q' v tr' a b
+        apply (elim wait_cg.cases) apply auto
+        subgoal for tr''
+          apply (elim combine_blocks_pairE2)
+          using assms(3)[of i] by auto
+        subgoal
+          apply (rule wait_sol_cg.intros(2))
+          apply (subst merge_state_eval2)
+          using assms apply auto
+          apply (rule sync_gassn.intros) apply auto
+          apply (rule interrupt_solInf_cg.intros(1)[of i _ _ Q'])
+          by auto
+        done
+      subgoal for i ch Q' d' v tr' a b
+        apply (elim wait_cg.cases) apply auto
+        subgoal for tr''
+          apply (cases rule: linorder_cases[of d' "e (the (s12 pn2))"])
+          subgoal
+            apply (elim combine_blocks_waitE3) apply auto
+            apply (elim combine_blocks_pairE2)
+            using assms(3)[of i] by auto
+          subgoal apply auto
+            apply (elim combine_blocks_waitE2) apply auto
+            subgoal for tr'''
+              apply (rule wait_sol_cg.intros(1))
+              subgoal apply (subst merge_state_eval2)
+                using assms(1,2) by auto
+              subgoal apply (subst merge_state_eval2)
+                using assms(1,2) by auto
+              subgoal apply (rule ext) apply auto
+                apply (subst merge_path_eval)
+                using assms by auto
+              apply (rule sync_gassn.intros) apply auto
+              apply (rule interrupt_solInf_cg.intros(1)[of i _ _ "\<lambda>d' v. Q' (e (the (s12 pn2)) + d') v"])
+              by auto
+            done
+          subgoal
+            apply (elim combine_blocks_waitE4) apply auto
+            subgoal for tr'''
+              apply (rule wait_sol_cg.intros(1))
+              subgoal apply (subst merge_state_eval2)
+                using assms(1,2) by auto
+              subgoal apply (subst merge_state_eval2)
+                using assms(1,2) by auto
+              subgoal apply (rule ext) apply auto
+                apply (subst merge_path_eval)
+                using assms by auto
+              apply (rule sync_gassn.intros) apply auto
+              apply (rule interrupt_solInf_cg.intros(2)[of i _ _ "\<lambda>d' v. Q' (e (the (s12 pn2)) + d') v"])
+              by auto
+            done
+          done
+        subgoal
+          apply (rule wait_sol_cg.intros(2))
+          subgoal apply (subst merge_state_eval2)
+            using assms(1,2) by auto
+          apply (rule sync_gassn.intros) apply auto
+          apply (rule interrupt_solInf_cg.intros(2)[of i _ _ Q'])
+          by auto
+        done
+      subgoal for i ch e Q' tr' a b
+        apply (elim wait_cg.cases) apply auto
+        subgoal for tr''
+          apply (elim combine_blocks_pairE2)
+          using assms(3)[of i] by auto
+        subgoal
+          apply (rule wait_sol_cg.intros(2))
+          apply (subst merge_state_eval2)
+          using assms apply auto
+          apply (rule sync_gassn.intros) apply auto
+          apply (rule interrupt_solInf_cg.intros(3)[of i _ _ e Q'])
+          by auto
+        done
+      subgoal for i ch e' Q' d' tr' a b
+        apply (elim wait_cg.cases) apply auto
+        subgoal for tr''
+          apply (cases rule: linorder_cases[of d' "e (the (s12 pn2))"])
+          subgoal
+            apply (elim combine_blocks_waitE3) apply auto
+            apply (elim combine_blocks_pairE2)
+            using assms(3)[of i] by auto
+          subgoal apply auto
+            apply (elim combine_blocks_waitE2) apply auto
+            subgoal for tr'''
+              apply (rule wait_sol_cg.intros(1))
+              subgoal apply (subst merge_state_eval2)
+                using assms(1,2) by auto
+              subgoal apply (subst merge_state_eval2)
+                using assms(1,2) by auto
+              subgoal apply (rule ext) apply auto
+                apply (subst merge_path_eval)
+                using assms by auto
+              apply (rule sync_gassn.intros) apply auto
+              apply (rule interrupt_solInf_cg.intros(3)[of i _ _ "\<lambda>d'. e' (e (the (s12 pn2)) + d')"
+                                                                 "\<lambda>d'. Q' (e (the (s12 pn2)) + d')"])
+              by auto
+            done
+          subgoal
+            apply (elim combine_blocks_waitE4) apply auto
+            subgoal for tr'''
+              apply (rule wait_sol_cg.intros(1))
+              subgoal apply (subst merge_state_eval2)
+                using assms(1,2) by auto
+              subgoal apply (subst merge_state_eval2)
+                using assms(1,2) by auto
+              subgoal apply (rule ext) apply auto
+                apply (subst merge_path_eval)
+                using assms by auto
+              apply (rule sync_gassn.intros) apply auto
+              apply (rule interrupt_solInf_cg.intros(4)[of i _ _ "\<lambda>d'. e' (e (the (s12 pn2)) + d')"
+                                                                 "\<lambda>d' v. Q' (e (the (s12 pn2)) + d') v"])
+              by auto
+            done
+          done
+        subgoal
+          apply (rule wait_sol_cg.intros(2))
+          subgoal apply (subst merge_state_eval2)
+            using assms(1,2) by auto
+          apply (rule sync_gassn.intros) apply auto
+              apply (rule interrupt_solInf_cg.intros(4)[of i _ _ e' Q'])
+          by auto
+        done
+      done
+    done
+  done
+
 lemma ex1b:
   "spec_of_global
     (Parallel (Single ''a'' ex1a)
@@ -307,6 +522,27 @@ lemma ex1b:
     apply auto subgoal for s0
     apply (auto simp: single_assn_wait_in single_assn_wait single_assn_wait_out
                       single_assn_init single_assn_interrupt_solInf single_assn_disj updg_subst2)
+  (* Stage 3: merge the assertions *)
+    apply (rule entails_g_trans)
+     apply (rule sync_gassn_subst_left) apply auto
+    apply (rule entails_g_trans)
+     apply (rule gassn_subst)
+    apply (rule entails_g_trans)
+     apply (rule sync_gassn_disj2)
+      apply (rule sync_gassn_out_in) apply auto
+     apply (rule sync_gassn_out_in) apply auto
+    apply (rule entails_g_trans)
+     apply (rule entails_g_disj2)
+      apply (rule sync_gassn_subst_right) apply auto
+     apply (rule sync_gassn_subst_right) apply auto
+    apply (rule entails_g_trans)
+     apply (rule entails_g_disj2)
+      apply (rule updg_mono)
+      apply (rule sync_gassn_interrupt_solInf_wait)
+        apply auto
+     apply (rule updg_mono)
+     apply (rule sync_gassn_interrupt_solInf_wait)
+       apply auto
 
 
 end
