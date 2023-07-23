@@ -578,7 +578,7 @@ lemma ex6a_sp:
   apply (rule spec_of_post)
    apply (rule Valid_receive_sp)
    prefer 2 apply clarify
-  unfolding wait_in_c0_gen_def
+  unfolding wait_in_c0_def
    apply (rule wait_in_c_mono)
    apply (rule entails_assumption)
   apply (rule Valid_wait_sp)
@@ -627,10 +627,10 @@ lemma ex6:
     subgoal for v
       apply (rule proc_set_updg_subst)
        apply (rule proc_set_wait_cg)
-       apply (rule proc_set_wait_out_cg_gen)
+       apply (rule proc_set_wait_out_cg)
       apply (rule proc_set_init_single) by auto
     subgoal
-      apply (rule proc_set_wait_in_cg_gen)
+      apply (rule proc_set_wait_in_cg)
       apply (rule proc_set_updg_subst)
        apply (rule proc_set_init_single) by auto
     apply (rule wait_in_cg_alt_mono)
