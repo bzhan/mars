@@ -601,7 +601,7 @@ lemma ex6:
     (Parallel (Single ''a'' ex6a)
               {ch1}
               (Single ''b'' ex6b))
-    (wait_in_cg_alt ch2 ''b'' (\<lambda>_. 1) ({}, {ch2})
+    (wait_in_cg_alt ch2 ''b'' (\<lambda>_. 1)
       (\<lambda>d v. IFG [''a''] (\<lambda>s. d = 0) THEN
                ((wait_cg ''a'' (\<lambda>_. 1)
                    (init_single {''b'', ''a''} {{X := (\<lambda>_. v)}}\<^sub>g at ''b'')

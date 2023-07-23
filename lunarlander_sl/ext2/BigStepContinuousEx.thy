@@ -28,7 +28,6 @@ definition ex1a :: "'a proc" where
 lemma ex1a_ode:
   "spec_of (Interrupt (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 2))) (\<lambda>_. True) [(ch2[?]Y, Skip)])
            (interrupt_solInf_c (\<lambda>s0 t. (rpart s0)(X := val s0 X + 2 * t))
-                               ({}, {ch2})
                                [InSpec2 ch2 (\<lambda>d v s. init (upd (upd s X (val s X + 2 * d)) Y v))])"
 proof -
   have 1: "paramODEsolInf (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 2)))
@@ -79,7 +78,6 @@ lemma ex1a_ode2:
   "spec_of (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True)
                       [(dh[?]Y, Skip)])
            (interrupt_solInf_c (\<lambda>s0 t. (rpart s0)(X := val s0 X + t))
-                               ({}, {dh})
                                [InSpec2 dh (\<lambda>d v s. init (upd (upd s X (val s X + d)) Y v))])"
 proof -
   have 1: "paramODEsolInf (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))
@@ -129,10 +127,10 @@ qed
 lemma ex1a_sp:
   "spec_of ex1a
      ((wait_out_c ch1 (\<lambda>_. 1)
-        (\<lambda>d. interrupt_solInf_c (\<lambda>s0 t. (rpart s0)(X := val s0 X + 2 * t)) ({}, {ch2})
+        (\<lambda>d. interrupt_solInf_c (\<lambda>s0 t. (rpart s0)(X := val s0 X + 2 * t))
                                 [InSpec2 ch2 (\<lambda>d v s. init (upd (upd s X (val s X + 2 * d)) Y v))]) \<or>\<^sub>a
        wait_out_c ch1 (\<lambda>_. 2)
-        (\<lambda>d. interrupt_solInf_c (\<lambda>s0 t. (rpart s0)(X := val s0 X + t)) ({}, {ch2})
+        (\<lambda>d. interrupt_solInf_c (\<lambda>s0 t. (rpart s0)(X := val s0 X + t))
                                 [InSpec2 ch2 (\<lambda>d v s. init (upd (upd s X (val s X + d)) Y v))]))
       {{X := (\<lambda>_. 0)}})"
   unfolding ex1a_def
@@ -228,48 +226,63 @@ fun gassn_of :: "pname \<Rightarrow> 'a comm_spec2 \<Rightarrow> 'a comm_specg2"
   "gassn_of pn (InSpec2 ch Q) = InSpecg2 ch (\<lambda>d v. single_assn pn (Q d v))"
 | "gassn_of pn (OutSpec2 ch e Q) = OutSpecg2 ch (\<lambda>d. single_val pn (e d)) (\<lambda>d. single_assn pn (Q d))"
 
-inductive interrupt_solInf_cg :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate) \<Rightarrow> rdy_info \<Rightarrow>
+fun rdy_of_comm_specg2 :: "'a comm_specg2 list \<Rightarrow> rdy_info" where
+  "rdy_of_comm_specg2 [] = ({}, {})"
+| "rdy_of_comm_specg2 (InSpecg2 ch P # rest) = (
+    let rdy = rdy_of_comm_specg2 rest in
+      (insert ch (fst rdy), snd rdy))"
+| "rdy_of_comm_specg2 (OutSpecg2 ch e P # rest) = (
+    let rdy = rdy_of_comm_specg2 rest in
+      (fst rdy, insert ch (snd rdy)))"
+
+lemma rdy_of_comm_spec_gassn_of:
+  "rdy_of_comm_spec2 specs = rdy_of_comm_specg2 (map (gassn_of pn) specs)"
+  sorry
+
+inductive interrupt_solInf_cg :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate) \<Rightarrow>
   'a comm_specg2 list \<Rightarrow> 'a gassn2" where
   "i < length specs \<Longrightarrow> specs ! i = InSpecg2 ch Q \<Longrightarrow>
-   Q 0 v gs0 gs tr \<Longrightarrow> interrupt_solInf_cg p rdy specs gs0 gs (InBlockP ch v # tr)"
+   Q 0 v gs0 gs tr \<Longrightarrow> interrupt_solInf_cg p specs gs0 gs (InBlockP ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = InSpecg2 ch Q \<Longrightarrow>
    0 < d \<Longrightarrow> Q d v gs0 gs tr \<Longrightarrow> p' = (\<lambda>\<tau>\<in>{0..d}. p gs0 \<tau>) \<Longrightarrow>
-   interrupt_solInf_cg p rdy specs gs0 gs (WaitBlockP d p' rdy # InBlockP ch v # tr)"
+   rdy = rdy_of_comm_specg2 specs \<Longrightarrow>
+   interrupt_solInf_cg p specs gs0 gs (WaitBlockP d p' rdy # InBlockP ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpecg2 ch e Q \<Longrightarrow>
    v = e 0 gs0 \<Longrightarrow>
-   Q 0 gs0 gs tr \<Longrightarrow> interrupt_solInf_cg p rdy specs gs0 gs (OutBlockP ch v # tr)"
+   Q 0 gs0 gs tr \<Longrightarrow> interrupt_solInf_cg p specs gs0 gs (OutBlockP ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpecg2 ch e Q \<Longrightarrow>
    0 < d \<Longrightarrow> Q d gs0 gs tr \<Longrightarrow> p' = (\<lambda>\<tau>\<in>{0..d}. p gs0 \<tau>) \<Longrightarrow>
    v = e d gs0 \<Longrightarrow>
-   interrupt_solInf_cg p rdy specs gs0 gs (WaitBlockP d p' rdy # OutBlockP ch v # tr)"
+   rdy = rdy_of_comm_specg2 specs \<Longrightarrow>
+   interrupt_solInf_cg p specs gs0 gs (WaitBlockP d p' rdy # OutBlockP ch v # tr)"
 
 lemma single_assn_interrupt_solInf:
-  "single_assn pn (interrupt_solInf_c p rdy specs) =
-   interrupt_solInf_cg (single_path pn p) rdy (map (gassn_of pn) specs)"
+  "single_assn pn (interrupt_solInf_c p specs) =
+   interrupt_solInf_cg (single_path pn p) (map (gassn_of pn) specs)"
   apply (rule ext) apply (rule ext) apply (rule ext)
   subgoal for s0 s tr
     apply (rule iffI)
     subgoal apply (elim single_assn.cases) apply auto
       subgoal for s0' s' tr'
         apply (elim interrupt_solInf_c.cases) apply auto
-        subgoal for i ch Q v tr'' a b
+        subgoal for i ch Q v tr''
           apply (rule interrupt_solInf_cg.intros(1)[of i _ _ "(\<lambda>d v. single_assn pn (Q d v))"])
           by (auto intro: single_assn.intros)
         subgoal premises pre for i ch Q d v tr'' a b
           apply (rule interrupt_solInf_cg.intros(2)[of i _ _ "(\<lambda>d v. single_assn pn (Q d v))"])
           unfolding single_path_State
-          using pre by (auto intro: single_assn.intros)
-        subgoal for i ch e Q tr'' a b
+          using pre rdy_of_comm_spec_gassn_of by (auto intro: single_assn.intros)
+        subgoal for i ch e Q tr''
           apply (rule interrupt_solInf_cg.intros(3)[of i _ _ "(\<lambda>d. single_val pn (e d))" "(\<lambda>d. single_assn pn (Q d))" ])
           by (auto intro: single_assn.intros)
         subgoal premises pre for i ch e Q d tr'' a b
           apply (rule interrupt_solInf_cg.intros(4)[of i _ _ "(\<lambda>d. single_val pn (e d))" "(\<lambda>d. single_assn pn (Q d))"])
           unfolding single_path_State
-          using pre by (auto intro: single_assn.intros)
+          using pre rdy_of_comm_spec_gassn_of by (auto intro: single_assn.intros)
         done
       done
     subgoal apply (elim interrupt_solInf_cg.cases) apply auto
-      subgoal for i ch Q v tr' a b
+      subgoal for i ch Q v tr'
         apply (cases "specs ! i") apply auto
         apply (elim single_assn.cases) apply auto
         subgoal for Q' s0' s' tr''
@@ -285,9 +298,10 @@ lemma single_assn_interrupt_solInf:
           apply (subst ptrace_of.simps(2)[symmetric])
           apply (subst ptrace_of_simp3[symmetric])
           apply (rule single_assn.intros)
-          apply (rule interrupt_solInf_c.intros(2)[of i _ _ Q']) by auto
+          apply (rule interrupt_solInf_c.intros(2)[of i _ _ Q']) apply auto
+          unfolding rdy_of_comm_spec_gassn_of[symmetric] by auto
         done
-      subgoal for i ch e Q tr' a b
+      subgoal for i ch e Q tr'
         apply (cases "specs ! i") apply auto
         apply (elim single_assn.cases) apply auto
         subgoal for e' Q' s0'' s' tr''
@@ -303,7 +317,8 @@ lemma single_assn_interrupt_solInf:
           apply (subst ptrace_of.simps[symmetric])
           apply (subst ptrace_of_simp3[symmetric])
           apply (rule single_assn.intros)
-          apply (rule interrupt_solInf_c.intros(4)[of i _ _ _ Q']) by auto
+          apply (rule interrupt_solInf_c.intros(4)[of i _ _ _ Q']) apply auto
+          unfolding rdy_of_comm_spec_gassn_of[symmetric] by auto
         done
       done
     done
@@ -360,11 +375,29 @@ fun spec_wait_of :: "real \<Rightarrow> ('a gstate \<Rightarrow> real \<Rightarr
   "spec_wait_of d p (InSpecg2 ch P) = InSpecg2 ch (\<lambda>d' v. P (d + d') v)"
 | "spec_wait_of d p (OutSpecg2 ch e P) = OutSpecg2 ch (\<lambda>d' gs. e (d + d') gs) (\<lambda>d'. P (d + d'))"
 
-inductive wait_sol_cg :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate) \<Rightarrow> pname \<Rightarrow> 'a eexp \<Rightarrow> rdy_info \<Rightarrow>
+inductive wait_sol_cg :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate) \<Rightarrow> pname \<Rightarrow> 'a eexp \<Rightarrow>
                           (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
-  "e (the (gs0 pn)) > 0 \<Longrightarrow> d = e (the (gs0 pn)) \<Longrightarrow> p' = (\<lambda>t\<in>{0..d}. p gs0 t) \<Longrightarrow> P d gs0 gs tr \<Longrightarrow>
-   wait_sol_cg p pn e rdy P gs0 gs (WaitBlockP d p' rdy # tr)"
-| "\<not>e (the (gs0 pn)) > 0 \<Longrightarrow> P 0 gs0 gs tr \<Longrightarrow> wait_sol_cg p pn e rdy P gs0 gs tr"
+  "e (the (gs0 pn)) > 0 \<Longrightarrow> d = e (the (gs0 pn)) \<Longrightarrow> p' = (\<lambda>t\<in>{0..d}. p gs0 t) \<Longrightarrow>
+   P d gs0 gs tr \<Longrightarrow> rdy = ({}, {}) \<Longrightarrow>
+   wait_sol_cg p pn e P gs0 gs (WaitBlockP d p' rdy # tr)"
+| "\<not>e (the (gs0 pn)) > 0 \<Longrightarrow> P 0 gs0 gs tr \<Longrightarrow> wait_sol_cg p pn e P gs0 gs tr"
+
+lemma compat_rdy_empty [simp]:
+  "compat_rdy rdy ({}, {})"
+  apply (cases rdy) by auto
+
+lemma merge_rdy_simp1:
+  assumes
+    "\<And>i. i < length specs \<Longrightarrow>
+          case specs ! i of InSpecg2 ch P \<Rightarrow> ch \<in> chs
+                          | OutSpecg2 ch e P \<Rightarrow> ch \<in> chs \<and> pn \<in> pns1"
+  shows
+    "merge_rdy chs (rdy_of_comm_specg2 specs) ({}, {}) = ({}, {})"
+  sorry
+
+lemma rdy_of_spec_wait_of [simp]:
+  "rdy_of_comm_specg2 (map (spec_wait_of d p) specs) = rdy_of_comm_specg2 specs"
+  sorry
 
 lemma sync_gassn_interrupt_solInf_wait:
   assumes "pn2 \<in> pns2"
@@ -373,15 +406,15 @@ lemma sync_gassn_interrupt_solInf_wait:
           case specs ! i of InSpecg2 ch P \<Rightarrow> ch \<in> chs
                           | OutSpecg2 ch e P \<Rightarrow> ch \<in> chs \<and> pn \<in> pns1"
   shows
-  "sync_gassn chs pns1 pns2 (interrupt_solInf_cg p rdy specs) (wait_cg pn2 e Q) s0 \<Longrightarrow>\<^sub>g
-   wait_sol_cg (merge_path pns1 pns2 p id_path) pn2 e rdy
-    (\<lambda>d. sync_gassn chs pns1 pns2 (interrupt_solInf_cg (delay_path d p) rdy (map (spec_wait_of d p) specs)) Q) s0"
+  "sync_gassn chs pns1 pns2 (interrupt_solInf_cg p specs) (wait_cg pn2 e Q) s0 \<Longrightarrow>\<^sub>g
+   wait_sol_cg (merge_path pns1 pns2 p id_path) pn2 e
+    (\<lambda>d. sync_gassn chs pns1 pns2 (interrupt_solInf_cg (delay_path d p) (map (spec_wait_of d p) specs)) Q) s0"
   unfolding entails_g_def apply auto
   subgoal for s tr
     apply (elim sync_gassn.cases) apply auto
     subgoal for s11 s12 s21 s22 tr1 tr2
       apply (elim interrupt_solInf_cg.cases) apply auto
-      subgoal for i ch Q' v tr' a b
+      subgoal for i ch Q' v tr'
         apply (elim wait_cg.cases) apply auto
         subgoal for tr''
           apply (elim combine_blocks_pairE2)
@@ -415,7 +448,7 @@ lemma sync_gassn_interrupt_solInf_wait:
                 using assms by auto
               apply (rule sync_gassn.intros) apply auto
               apply (rule interrupt_solInf_cg.intros(1)[of i _ _ "\<lambda>d' v. Q' (e (the (s12 pn2)) + d') v"])
-              by auto
+              apply auto apply (rule merge_rdy_simp1) using assms(3) by auto
             done
           subgoal
             apply (elim combine_blocks_waitE4) apply auto
@@ -430,7 +463,7 @@ lemma sync_gassn_interrupt_solInf_wait:
                 using assms by auto
               apply (rule sync_gassn.intros) apply auto
               apply (rule interrupt_solInf_cg.intros(2)[of i _ _ "\<lambda>d' v. Q' (e (the (s12 pn2)) + d') v"])
-              by auto
+              apply auto apply (rule merge_rdy_simp1) using assms(3) by auto
             done
           done
         subgoal
@@ -441,7 +474,7 @@ lemma sync_gassn_interrupt_solInf_wait:
           apply (rule interrupt_solInf_cg.intros(2)[of i _ _ Q'])
           by auto
         done
-      subgoal for i ch e Q' tr' a b
+      subgoal for i ch e Q' tr'
         apply (elim wait_cg.cases) apply auto
         subgoal for tr''
           apply (elim combine_blocks_pairE2)
@@ -476,7 +509,7 @@ lemma sync_gassn_interrupt_solInf_wait:
               apply (rule sync_gassn.intros) apply auto
               apply (rule interrupt_solInf_cg.intros(3)[of i _ _ "\<lambda>d'. e' (e (the (s12 pn2)) + d')"
                                                                  "\<lambda>d'. Q' (e (the (s12 pn2)) + d')"])
-              by auto
+              apply auto apply (rule merge_rdy_simp1) using assms(3) by auto
             done
           subgoal
             apply (elim combine_blocks_waitE4) apply auto
@@ -492,7 +525,7 @@ lemma sync_gassn_interrupt_solInf_wait:
               apply (rule sync_gassn.intros) apply auto
               apply (rule interrupt_solInf_cg.intros(4)[of i _ _ "\<lambda>d'. e' (e (the (s12 pn2)) + d')"
                                                                  "\<lambda>d' v. Q' (e (the (s12 pn2)) + d') v"])
-              by auto
+              apply auto apply (rule merge_rdy_simp1) using assms(3) by auto
             done
           done
         subgoal
@@ -506,6 +539,13 @@ lemma sync_gassn_interrupt_solInf_wait:
       done
     done
   done
+
+(*
+lemma sync_gassn_interrupt_solInf_out:
+  shows
+  "sync_gassn chs pns1 pns2 (interrupt_solInf_cg p rdy specs)
+                            (wait_out_cg
+*)
 
 lemma ex1b:
   "spec_of_global

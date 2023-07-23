@@ -272,27 +272,38 @@ datatype 'a comm_spec =
   InSpec cname var "'a assn2"
 | OutSpec cname "'a eexp" "'a assn2"
 
-inductive interrupt_c :: "ODE \<Rightarrow> 'a eform \<Rightarrow> rdy_info \<Rightarrow> 'a assn2 \<Rightarrow> 'a comm_spec list \<Rightarrow> 'a assn2" where
-  "\<not>b s0 \<Longrightarrow> P s0 s tr \<Longrightarrow> interrupt_c ode b rdy P specs s0 s tr"
+fun rdy_of_comm_spec :: "'a comm_spec list \<Rightarrow> rdy_info" where
+  "rdy_of_comm_spec [] = ({}, {})"
+| "rdy_of_comm_spec (InSpec ch var P # rest) = (
+    let rdy = rdy_of_comm_spec rest in
+      (insert ch (fst rdy), snd rdy))"
+| "rdy_of_comm_spec (OutSpec ch e P # rest) = (
+    let rdy = rdy_of_comm_spec rest in
+      (fst rdy, insert ch (snd rdy)))"
+
+inductive interrupt_c :: "ODE \<Rightarrow> 'a eform \<Rightarrow> 'a assn2 \<Rightarrow> 'a comm_spec list \<Rightarrow> 'a assn2" where
+  "\<not>b s0 \<Longrightarrow> P s0 s tr \<Longrightarrow> interrupt_c ode b P specs s0 s tr"
 | "0 < d \<Longrightarrow> P (updr s0 (p d)) s tr \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
    p 0 = rpart s0 \<Longrightarrow>
    (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (updr s0 (p t))) \<Longrightarrow>
-   \<not>b (updr s0 (p d)) \<Longrightarrow>
-   interrupt_c ode b rdy P specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p \<tau>)) rdy # tr)"
+   \<not>b (updr s0 (p d)) \<Longrightarrow> rdy = rdy_of_comm_spec specs \<Longrightarrow>
+   interrupt_c ode b P specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p \<tau>)) rdy # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = InSpec ch var Q \<Longrightarrow>
-   Q (upd s0 var v) s tr \<Longrightarrow> interrupt_c ode b rdy P specs s0 s (InBlock ch v # tr)"
+   Q (upd s0 var v) s tr \<Longrightarrow> interrupt_c ode b P specs s0 s (InBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = InSpec ch var Q \<Longrightarrow>
    0 < d \<Longrightarrow> Q (updr s0 ((p d)(var := v))) s tr \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
    p 0 = rpart s0 \<Longrightarrow>
    (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (updr s0 (p t))) \<Longrightarrow>
-   interrupt_c ode b rdy P specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p \<tau>)) rdy # InBlock ch v # tr)"
+   rdy = rdy_of_comm_spec specs \<Longrightarrow>
+   interrupt_c ode b P specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p \<tau>)) rdy # InBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec ch e Q \<Longrightarrow>
-   Q s0 s tr \<Longrightarrow> interrupt_c ode b rdy P specs s0 s (OutBlock ch (e s0) # tr)"
+   Q s0 s tr \<Longrightarrow> interrupt_c ode b P specs s0 s (OutBlock ch (e s0) # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec ch e Q \<Longrightarrow>
    0 < d \<Longrightarrow> Q (updr s0 (p d)) s tr \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
    p 0 = rpart s0 \<Longrightarrow>
    (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (updr s0 (p t))) \<Longrightarrow>
-   interrupt_c ode b rdy P specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p \<tau>)) rdy # OutBlock ch (e (updr s0 (p d))) # tr)"
+   rdy = rdy_of_comm_spec specs \<Longrightarrow>
+   interrupt_c ode b P specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p \<tau>)) rdy # OutBlock ch (e (updr s0 (p d))) # tr)"
 
 text \<open>Hoare rules for interrupt\<close>
 
@@ -300,12 +311,17 @@ inductive spec_of_es :: "'a comm \<times> 'a proc \<Rightarrow> 'a comm_spec \<R
   "spec_of c Q \<Longrightarrow> spec_of_es (ch[?]var, c) (InSpec ch var Q)"
 | "spec_of c Q \<Longrightarrow> spec_of_es (ch[!]e, c) (OutSpec ch e Q)"
 
+lemma rdy_of_comm_spec_correct:
+  assumes "\<forall>i. i < length es \<longrightarrow> spec_of_es (es ! i) (specs ! i)"
+    shows "rdy_of_echoice es = rdy_of_comm_spec specs"
+  sorry
+
 lemma spec_of_interrupt:
   assumes "length es = length specs"
     and "\<forall>i. i < length es \<longrightarrow> spec_of_es (es ! i) (specs ! i)"
   shows
   "spec_of (Interrupt ode b es)
-           (interrupt_c ode b (rdy_of_echoice es) init specs)"
+           (interrupt_c ode b init specs)"
   unfolding Valid_def spec_of_def init_def apply clarify
   apply (auto elim!: interruptE)
   subgoal premises pre for s0 s2 i ch e p2 tr2
@@ -332,7 +348,7 @@ lemma spec_of_interrupt:
       using Q(1) apply auto[1]
       using pre(1) apply auto[1]
       using pre(7) Q(2) unfolding spec_of_def Valid_def init_def apply auto[1]
-      using pre by auto
+      using pre assms(2) rdy_of_comm_spec_correct by auto
   qed
   subgoal premises pre for s0 s2 i ch var p2 v tr2
   proof -
@@ -358,14 +374,14 @@ lemma spec_of_interrupt:
       using Q(1) apply auto[1]
       using pre(1) apply auto[1]
       using pre(7) Q(2) unfolding spec_of_def Valid_def init_def apply auto[1]
-      using pre by auto
+      using pre assms(2) rdy_of_comm_spec_correct by auto
   qed
   subgoal premises pre for s0
     apply (rule interrupt_c.intros(1))
     using pre by auto
   subgoal premises pre for s0 d p
     apply (rule interrupt_c.intros(2))
-    using pre by auto
+    using pre assms(2) rdy_of_comm_spec_correct by auto
   done
 
 text \<open>Unique solution rule for interrupt\<close>
@@ -378,31 +394,48 @@ fun spec2_of :: "('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow
   "spec2_of p (InSpec ch var Q) = InSpec2 ch (\<lambda>d v s0. Q (updr s0 ((p s0 d)(var := v))))"
 | "spec2_of p (OutSpec ch e Q) = OutSpec2 ch (\<lambda>d s0. e (updr s0 (p s0 d))) (\<lambda>d s0. Q (updr s0 (p s0 d)))"
 
-inductive interrupt_sol_c :: "('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow> 'a eexp \<Rightarrow> rdy_info \<Rightarrow> 'a assn2 \<Rightarrow>
+fun rdy_of_comm_spec2 :: "'a comm_spec2 list \<Rightarrow> rdy_info" where
+  "rdy_of_comm_spec2 [] = ({}, {})"
+| "rdy_of_comm_spec2 (InSpec2 ch P # rest) = (
+    let rdy = rdy_of_comm_spec2 rest in
+      (insert ch (fst rdy), snd rdy))"
+| "rdy_of_comm_spec2 (OutSpec2 ch e P # rest) = (
+    let rdy = rdy_of_comm_spec2 rest in
+      (fst rdy, insert ch (snd rdy)))"
+
+lemma rdy_of_comm_spec2_of:
+  "rdy_of_comm_spec specs = rdy_of_comm_spec2 (map (spec2_of p) specs)"
+  sorry
+
+inductive interrupt_sol_c :: "('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow> 'a eexp \<Rightarrow> 'a assn2 \<Rightarrow>
   'a comm_spec2 list \<Rightarrow> 'a assn2" where
   "d s0 > 0 \<Longrightarrow> P s0 s tr \<Longrightarrow>
-   interrupt_sol_c p d rdy P specs s0 s (WaitBlock (d s0) (\<lambda>\<tau>\<in>{0..d s0}. updr s0 (p s0 \<tau>)) rdy # tr)"
+   rdy = rdy_of_comm_spec2 specs \<Longrightarrow>
+   interrupt_sol_c p d P specs s0 s (WaitBlock (d s0) (\<lambda>\<tau>\<in>{0..d s0}. updr s0 (p s0 \<tau>)) rdy # tr)"
 | "\<not>d s0 > 0 \<Longrightarrow> P s0 s tr \<Longrightarrow>
-   interrupt_sol_c p d rdy P specs s0 s tr"
+   interrupt_sol_c p d P specs s0 s tr"
 | "i < length specs \<Longrightarrow> specs ! i = InSpec2 ch Q \<Longrightarrow>
-   Q 0 v s0 s tr \<Longrightarrow> interrupt_sol_c p d rdy P specs s0 s (InBlock ch v # tr)"
+   Q 0 v s0 s tr \<Longrightarrow>
+   interrupt_sol_c p d P specs s0 s (InBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = InSpec2 ch Q \<Longrightarrow>
    0 < d' \<Longrightarrow> d' \<le> d s0 \<Longrightarrow> Q d' v s0 s tr \<Longrightarrow>
-   interrupt_sol_c p d rdy P specs s0 s (WaitBlock d' (\<lambda>\<tau>\<in>{0..d'}. updr s0 (p s0 \<tau>)) rdy # InBlock ch v # tr)"
+   rdy = rdy_of_comm_spec2 specs \<Longrightarrow>
+   interrupt_sol_c p d P specs s0 s (WaitBlock d' (\<lambda>\<tau>\<in>{0..d'}. updr s0 (p s0 \<tau>)) rdy # InBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch e Q \<Longrightarrow> v = e 0 s0 \<Longrightarrow>
-   Q 0 s0 s tr \<Longrightarrow> interrupt_sol_c p d rdy P specs s0 s (OutBlock ch v # tr)"
+   Q 0 s0 s tr \<Longrightarrow> interrupt_sol_c p d P specs s0 s (OutBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch e Q \<Longrightarrow>
    0 < d' \<Longrightarrow> d' \<le> d s0 \<Longrightarrow> Q d' s0 s tr \<Longrightarrow> v = e d' s0 \<Longrightarrow>
-   interrupt_sol_c p d rdy P specs s0 s (WaitBlock d' (\<lambda>\<tau>\<in>{0..d'}. updr s0 (p s0 \<tau>)) rdy # OutBlock ch v # tr)"
+   rdy = rdy_of_comm_spec2 specs \<Longrightarrow>
+   interrupt_sol_c p d P specs s0 s (WaitBlock d' (\<lambda>\<tau>\<in>{0..d'}. updr s0 (p s0 \<tau>)) rdy # OutBlock ch v # tr)"
 
 lemma interrupt_c_unique:
   assumes
     "paramODEsol ode b p d"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
   shows
-    "interrupt_c ode b rdy P specs s0 \<Longrightarrow>\<^sub>A
-     interrupt_sol_c p d rdy (\<lambda>s. if d s > 0 then P (updr s (p s (d s))) else P s)
-                             (map (spec2_of p) specs) s0"
+    "interrupt_c ode b P specs s0 \<Longrightarrow>\<^sub>A
+     interrupt_sol_c p d (\<lambda>s. if d s > 0 then P (updr s (p s (d s))) else P s)
+                         (map (spec2_of p) specs) s0"
 proof -
   \<comment> \<open>The key result is to show that, for any other solution satisfying
       the ODE, it must be equal to the solution given by d, p.\<close>
@@ -537,7 +570,7 @@ proof -
         show ?thesis
           unfolding a(3)[symmetric]
           apply (rule interrupt_sol_c.intros(1))
-          using pre(2,3) a(1,2) by auto
+          using pre(2,3) a(1,2) rdy_of_comm_spec2_of by auto
       qed
       subgoal premises pre for i ch var Q v tr'
       proof -
@@ -566,7 +599,7 @@ proof -
         show ?thesis
           unfolding a(3)[symmetric]
           apply (rule interrupt_sol_c.intros(4)[of i _ _ ?Q'])
-          using pre(2,3,4,5) a(1,2) Q length by auto
+          using pre(2,3,4,5) a(1,2) Q length rdy_of_comm_spec2_of by auto
       qed
       subgoal premises pre for i ch e Q tr'
       proof -
@@ -597,7 +630,7 @@ proof -
         show ?thesis
           unfolding a(3)[symmetric] a(2)[symmetric]
           apply (rule interrupt_sol_c.intros(6)[of i _ _ ?e' ?Q'])
-          using pre(2,3,4,5) a(1,2) Q length by auto
+          using pre(2,3,4,5) a(1,2) Q length rdy_of_comm_spec2_of by auto
       qed
       done
     done
@@ -611,8 +644,7 @@ lemma spec_of_interrupt_unique:
     "\<forall>i. i < length es \<longrightarrow> spec_of_es (es ! i) (specs ! i)"
   shows
     "spec_of (Interrupt ode b es)
-             (interrupt_sol_c p d (rdy_of_echoice es)
-                              (\<lambda>s. if d s > 0 then init (updr s (p s (d s))) else init s)
+             (interrupt_sol_c p d (\<lambda>s. if d s > 0 then init (updr s (p s (d s))) else init s)
                               (map (spec2_of p) specs))"
   apply (rule spec_of_post)
    apply (rule spec_of_interrupt[OF assms(3,4)]) apply auto
@@ -627,21 +659,27 @@ inductive spec2_entails :: "'a comm_spec2 \<Rightarrow> 'a comm_spec2 \<Rightarr
 inductive_cases spec2_entails_inE: "spec2_entails (InSpec2 ch P1) spec2"
 inductive_cases spec2_entails_outE: "spec2_entails (OutSpec2 ch e Q1) spec2"
 
+lemma rdy_of_spec2_entails:
+  assumes "\<And>i. i < length specs \<Longrightarrow> spec2_entails (specs ! i) (specs2 ! i)"
+  shows "rdy_of_comm_spec2 specs = rdy_of_comm_spec2 specs2"
+  sorry
+
 lemma interrupt_sol_mono:
   assumes "\<And>s0. P s0 \<Longrightarrow>\<^sub>A P2 s0"
     and "length specs = length specs2"
     and "\<And>i. i < length specs \<Longrightarrow> spec2_entails (specs ! i) (specs2 ! i)"
-  shows "interrupt_sol_c p d rdy P specs s0 \<Longrightarrow>\<^sub>A interrupt_sol_c p d rdy P2 specs2 s0"
+  shows "interrupt_sol_c p d P specs s0 \<Longrightarrow>\<^sub>A interrupt_sol_c p d P2 specs2 s0"
   unfolding entails_def apply auto
   subgoal for s tr
     apply (induct rule: interrupt_sol_c.cases) apply auto
     subgoal for tr' a b
       apply (rule interrupt_sol_c.intros(1))
-      using assms(1) unfolding entails_def by auto
-    subgoal for a b
+      using assms(1) unfolding entails_def apply auto
+      apply (rule rdy_of_spec2_entails) using assms(3) by auto
+    subgoal
       apply (rule interrupt_sol_c.intros(2))
       using assms(1) unfolding entails_def by auto
-    subgoal for i ch Q v tr' a b
+    subgoal for i ch Q v tr'
       using assms(3)[of i] apply simp
       apply (elim spec2_entails_inE)
       subgoal for Q2
@@ -653,9 +691,10 @@ lemma interrupt_sol_mono:
       apply (elim spec2_entails_inE)
       subgoal for Q2
         apply (rule interrupt_sol_c.intros(4)[of i _ _ Q2])
-        using assms(2) unfolding entails_def by auto
+        using assms(2) unfolding entails_def apply auto
+        apply (rule rdy_of_spec2_entails) using assms(3) by auto
       done
-    subgoal for i ch e Q tr' a b
+    subgoal for i ch e Q tr'
       using assms(3)[of i] apply simp
       apply (elim spec2_entails_outE)
       subgoal for Q2
@@ -667,7 +706,8 @@ lemma interrupt_sol_mono:
       apply (elim spec2_entails_outE)
       subgoal for Q2
         apply (rule interrupt_sol_c.intros(6)[of i _ _ _ Q2])
-        using assms(2) unfolding entails_def by auto
+        using assms(2) unfolding entails_def apply auto
+        apply (rule rdy_of_spec2_entails) using assms(3) by auto
       done
     done
   done
@@ -676,7 +716,7 @@ lemma test2:
   "spec_of (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. val s X < 1)
                       [(dh[?]Y, Skip)])
            (interrupt_sol_c (\<lambda>s0 t. (rpart s0)(X := val s0 X + t)) (\<lambda>s0. 1 - val s0 X)
-                            ({}, {dh}) (\<lambda>s. if val s X < 1 then init (upd s X 1) else init s)
+                            (\<lambda>s. if val s X < 1 then init (upd s X 1) else init s)
                             [InSpec2 dh (\<lambda>d v s. init (upd (upd s X (val s X + d)) Y v))])"
 proof -
   have 1: "paramODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>s. val s X < 1)
@@ -738,18 +778,19 @@ proof -
     done
 qed
 
-inductive interrupt_solInf_c :: "('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow> rdy_info \<Rightarrow>
-  'a comm_spec2 list \<Rightarrow> 'a assn2" where
+inductive interrupt_solInf_c :: "('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow> 'a comm_spec2 list \<Rightarrow> 'a assn2" where
   "i < length specs \<Longrightarrow> specs ! i = InSpec2 ch Q \<Longrightarrow>
-   Q 0 v s0 s tr \<Longrightarrow> interrupt_solInf_c p rdy specs s0 s (InBlock ch v # tr)"
+   Q 0 v s0 s tr \<Longrightarrow> interrupt_solInf_c p specs s0 s (InBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = InSpec2 ch Q \<Longrightarrow>
    0 < d \<Longrightarrow> Q d v s0 s tr \<Longrightarrow>
-   interrupt_solInf_c p rdy specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p s0 \<tau>)) rdy # InBlock ch v # tr)"
+   rdy = rdy_of_comm_spec2 specs \<Longrightarrow>
+   interrupt_solInf_c p specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p s0 \<tau>)) rdy # InBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch e Q \<Longrightarrow> v = e 0 s0 \<Longrightarrow>
-   Q 0 s0 s tr \<Longrightarrow> interrupt_solInf_c p rdy specs s0 s (OutBlock ch v # tr)"
+   Q 0 s0 s tr \<Longrightarrow> interrupt_solInf_c p specs s0 s (OutBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch e Q \<Longrightarrow>
    0 < d \<Longrightarrow> Q d s0 s tr \<Longrightarrow> v = e d s0 \<Longrightarrow>
-   interrupt_solInf_c p rdy specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p s0 \<tau>)) rdy # OutBlock ch v # tr)"
+   rdy = rdy_of_comm_spec2 specs \<Longrightarrow>
+   interrupt_solInf_c p specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p s0 \<tau>)) rdy # OutBlock ch v # tr)"
 
 definition paramODEsolInf :: "ODE \<Rightarrow> ('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow> bool" where
   "paramODEsolInf ode p \<longleftrightarrow>
@@ -760,8 +801,8 @@ lemma interrupt_inf_c_unique:
     "paramODEsolInf ode p"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
   shows
-    "interrupt_c ode (\<lambda>_. True) rdy P specs s0 \<Longrightarrow>\<^sub>A
-     interrupt_solInf_c p rdy (map (spec2_of p) specs) s0"
+    "interrupt_c ode (\<lambda>_. True) P specs s0 \<Longrightarrow>\<^sub>A
+     interrupt_solInf_c p (map (spec2_of p) specs) s0"
 proof -
   have main:
     "p s d2 = p2 d2 \<and>
@@ -821,7 +862,7 @@ proof -
         show ?thesis
           unfolding a(2)[symmetric]
           apply (rule interrupt_solInf_c.intros(2)[of i _ _ ?Q'])
-          using pre a length by auto
+          using pre a length rdy_of_comm_spec2_of by auto
       qed
       subgoal premises pre for i ch e Q tr'
       proof -
@@ -842,7 +883,7 @@ proof -
         show ?thesis
           unfolding a(2)[symmetric] a(1)[symmetric]
           apply (rule interrupt_solInf_c.intros(4)[of i _ _ ?e' ?Q'])
-          using pre length a(1) by auto
+          using pre length a(1) rdy_of_comm_spec2_of by auto
       qed
       done
     done
@@ -856,7 +897,7 @@ lemma spec_of_interrupt_inf_unique:
     "\<forall>i. i < length es \<longrightarrow> spec_of_es (es ! i) (specs ! i)"
   shows
     "spec_of (Interrupt ode (\<lambda>_. True) es)
-             (interrupt_solInf_c p (rdy_of_echoice es) (map (spec2_of p) specs))"
+             (interrupt_solInf_c p (map (spec2_of p) specs))"
   apply (rule spec_of_post)
    apply (rule spec_of_interrupt[OF assms(3,4)]) apply auto
   apply (rule entails_trans)
@@ -866,11 +907,11 @@ lemma spec_of_interrupt_inf_unique:
 lemma interrupt_solInf_mono:
   assumes "length specs = length specs2"
     and "\<And>i. i < length specs \<Longrightarrow> spec2_entails (specs ! i) (specs2 ! i)"
-  shows "interrupt_solInf_c p rdy specs s0 \<Longrightarrow>\<^sub>A interrupt_solInf_c p rdy specs2 s0"
+  shows "interrupt_solInf_c p specs s0 \<Longrightarrow>\<^sub>A interrupt_solInf_c p specs2 s0"
   unfolding entails_def apply auto
   subgoal for s tr
     apply (induct rule: interrupt_solInf_c.cases) apply auto
-    subgoal for i ch Q v tr' a b
+    subgoal for i ch Q v tr'
       using assms(2)[of i] apply simp
       apply (elim spec2_entails_inE)
       subgoal for Q2
@@ -882,9 +923,10 @@ lemma interrupt_solInf_mono:
       apply (elim spec2_entails_inE)
       subgoal for Q2
         apply (rule interrupt_solInf_c.intros(2)[of i _ _ Q2])
-        using assms(1) unfolding entails_def by auto
+        using assms(1) unfolding entails_def apply auto
+        apply (rule rdy_of_spec2_entails) using assms(2) by auto
       done
-    subgoal for i ch e Q tr' a b
+    subgoal for i ch e Q tr'
       using assms(2)[of i] apply simp
       apply (elim spec2_entails_outE)
       subgoal for Q2
@@ -896,7 +938,8 @@ lemma interrupt_solInf_mono:
       apply (elim spec2_entails_outE)
       subgoal for Q2
         apply (rule interrupt_solInf_c.intros(4)[of i _ _ _ Q2])
-        using assms(1) unfolding entails_def by auto
+        using assms(1) unfolding entails_def apply auto
+        apply (rule rdy_of_spec2_entails) using assms(2) by auto
       done
     done
   done

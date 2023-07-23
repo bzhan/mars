@@ -324,11 +324,11 @@ text \<open>Assertion for input.
   or after waiting for some time. The ensuing assertion is
   parameterized by waiting time and communicated value.
 \<close>
-inductive wait_in_c_gen :: "cname \<Rightarrow> rdy_info \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
-  "P 0 v s0 s tr \<Longrightarrow> wait_in_c_gen ch rdy P s0 s (InBlock ch v # tr)"
-| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> wait_in_c_gen ch rdy P s0 s (WaitBlock d (\<lambda>_. s0) rdy # InBlock ch v # tr)"
+inductive wait_in_c_gen :: "cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
+  "P 0 v s0 s tr \<Longrightarrow> wait_in_c_gen ch P s0 s (InBlock ch v # tr)"
+| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> wait_in_c_gen ch P s0 s (WaitBlock d (\<lambda>_. s0) ({}, {ch}) # InBlock ch v # tr)"
 
-abbreviation "wait_in_c ch P s0 s tr \<equiv> wait_in_c_gen ch ({}, {ch}) P s0 s tr"
+abbreviation "wait_in_c ch P s0 s tr \<equiv> wait_in_c_gen ch P s0 s tr"
 
 text \<open>Assertion for output.
 
@@ -337,11 +337,11 @@ text \<open>Assertion for output.
   computed by the function e. The ensuing assertion is
   parameterized by waiting time.
 \<close>
-inductive wait_out_c_gen :: "cname \<Rightarrow> rdy_info \<Rightarrow> ('a estate \<Rightarrow> real) \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
-  "P 0 s0 s tr \<Longrightarrow> wait_out_c_gen ch rdy e P s0 s (OutBlock ch (e s0) # tr)"
-| "0 < d \<Longrightarrow> P d s0 s tr \<Longrightarrow> wait_out_c_gen ch rdy e P s0 s (WaitBlock d (\<lambda>_. s0) rdy # OutBlock ch (e s0) # tr)"
+inductive wait_out_c_gen :: "cname \<Rightarrow> ('a estate \<Rightarrow> real) \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
+  "P 0 s0 s tr \<Longrightarrow> wait_out_c_gen ch e P s0 s (OutBlock ch (e s0) # tr)"
+| "0 < d \<Longrightarrow> P d s0 s tr \<Longrightarrow> wait_out_c_gen ch e P s0 s (WaitBlock d (\<lambda>_. s0) ({ch}, {}) # OutBlock ch (e s0) # tr)"
 
-abbreviation "wait_out_c ch e P s0 s tr \<equiv> wait_out_c_gen ch ({ch}, {}) e P s0 s tr"
+abbreviation "wait_out_c ch e P s0 s tr \<equiv> wait_out_c_gen ch e P s0 s tr"
 
 text \<open>Waiting an amount of time, without state change\<close>
 inductive wait_c :: "'a eexp \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" where
@@ -367,26 +367,26 @@ text \<open>The following rules state commutativity between
   assertions and quantifiers.
 \<close>
 lemma wait_in_c_exists:
-  "wait_in_c_gen ch rdy (\<lambda>d v s0. \<exists>\<^sub>an. P d v s0 n) s0 = (\<exists>\<^sub>an. wait_in_c_gen ch rdy (\<lambda>d v s0. P d v s0 n) s0)"
+  "wait_in_c_gen ch (\<lambda>d v s0. \<exists>\<^sub>an. P d v s0 n) s0 = (\<exists>\<^sub>an. wait_in_c_gen ch (\<lambda>d v s0. P d v s0 n) s0)"
   apply (rule ext) apply (rule ext)
   subgoal for s tr
     apply (rule iffI)
     subgoal unfolding exists_assn_def
       apply (induct rule: wait_in_c_gen.cases) apply auto
-      subgoal for v tr' a b n
+      subgoal for v tr' n
         apply (rule exI[where x=n])
         apply (rule wait_in_c_gen.intros(1)) by auto
-      subgoal for d v tr' a b n
+      subgoal for d v tr' n
         apply (rule exI[where x=n])
         apply (rule wait_in_c_gen.intros(2)) by auto
       done
     subgoal unfolding exists_assn_def
       apply auto subgoal for n
         apply (induction rule: wait_in_c_gen.cases) apply auto
-        subgoal for v tr' a b
+        subgoal for v tr'
           apply (rule wait_in_c_gen.intros(1))
           apply (rule exI[where x=n]) by auto
-        subgoal for d v tr' a b
+        subgoal for d v tr'
           apply (rule wait_in_c_gen.intros(2))
            apply simp apply (rule exI[where x=n]) by auto
         done
@@ -395,26 +395,26 @@ lemma wait_in_c_exists:
   done
 
 lemma wait_out_c_exists:
-  "wait_out_c_gen ch rdy e (\<lambda>d s0. \<exists>\<^sub>a n. P d s0 n) s0 = (\<exists>\<^sub>a n. wait_out_c_gen ch rdy e (\<lambda>d s0. P d s0 n) s0)"
+  "wait_out_c_gen ch e (\<lambda>d s0. \<exists>\<^sub>a n. P d s0 n) s0 = (\<exists>\<^sub>a n. wait_out_c_gen ch e (\<lambda>d s0. P d s0 n) s0)"
   apply (rule ext) apply (rule ext)
   subgoal for s tr
     apply (rule iffI)
     subgoal unfolding exists_assn_def
       apply (induct rule: wait_out_c_gen.cases) apply auto
-      subgoal for tr' a b n
+      subgoal for tr' n
         apply (rule exI[where x=n])
         apply (rule wait_out_c_gen.intros(1)) by auto
-      subgoal for d tr' a b n
+      subgoal for d tr' n
         apply (rule exI[where x=n])
         apply (rule wait_out_c_gen.intros(2)) by auto
       done
     subgoal unfolding exists_assn_def
       apply auto subgoal for n
         apply (induction rule: wait_out_c_gen.cases) apply auto
-        subgoal for tr' a b
+        subgoal for tr'
           apply (rule wait_out_c_gen.intros(1))
           apply (rule exI[where x=n]) by auto
-        subgoal for d tr' a b
+        subgoal for d tr'
           apply (rule wait_out_c_gen.intros(2))
            apply simp apply (rule exI[where x=n]) by auto
         done
@@ -427,14 +427,14 @@ subsubsection \<open>Monotonicity rules\<close>
 text \<open>The following rules state monotonicity of assertions\<close>
 lemma wait_in_c_mono:
   assumes "\<And>d v s. P1 d v s \<Longrightarrow>\<^sub>A P2 d v s"
-  shows "wait_in_c_gen ch rdy P1 s0 \<Longrightarrow>\<^sub>A wait_in_c_gen ch rdy P2 s0"
+  shows "wait_in_c_gen ch P1 s0 \<Longrightarrow>\<^sub>A wait_in_c_gen ch P2 s0"
   unfolding entails_def apply auto
   subgoal for s tr
     apply (induct rule: wait_in_c_gen.cases) apply auto
-    subgoal for v tr' a b
+    subgoal for v tr'
       apply (rule wait_in_c_gen.intros(1))
       using assms unfolding entails_def by auto
-    subgoal for d v tr' a b
+    subgoal for d v tr'
       apply (rule wait_in_c_gen.intros(2))
       using assms unfolding entails_def by auto
     done
@@ -442,14 +442,14 @@ lemma wait_in_c_mono:
 
 lemma wait_out_c_mono:
   assumes "\<And>d s. P1 d s \<Longrightarrow>\<^sub>A P2 d s"
-  shows "wait_out_c_gen ch rdy e P1 s0 \<Longrightarrow>\<^sub>A wait_out_c_gen ch rdy e P2 s0"
+  shows "wait_out_c_gen ch e P1 s0 \<Longrightarrow>\<^sub>A wait_out_c_gen ch e P2 s0"
   unfolding entails_def apply auto
   subgoal for s tr
     apply (induct rule: wait_out_c_gen.cases) apply auto
-    subgoal for tr' a b
+    subgoal for tr'
       apply (rule wait_out_c_gen.intros(1))
       using assms unfolding entails_def by auto
-    subgoal for d tr' a b
+    subgoal for d tr'
       apply (rule wait_out_c_gen.intros(2))
       using assms unfolding entails_def by auto
     done
@@ -847,13 +847,13 @@ lemma single_subste_merge_state2:
 
 subsection \<open>Semantics of parallel processes\<close>
 
-text \<open>Whether two rdy_infos from different processes are compatible\<close>
+text \<open>Whether two ready info from different processes are compatible\<close>
 fun compat_rdy :: "rdy_info \<Rightarrow> rdy_info \<Rightarrow> bool" where
   "compat_rdy (r11, r12) (r21, r22) = (r11 \<inter> r22 = {} \<and> r12 \<inter> r21 = {})"
 
-text \<open>Merge two rdy infos\<close>
-fun merge_rdy :: "rdy_info \<Rightarrow> rdy_info \<Rightarrow> rdy_info" where
-  "merge_rdy (r11, r12) (r21, r22) = (r11 \<union> r21, r12 \<union> r22)"
+text \<open>Merge two ready info, common channels are removed\<close>
+fun merge_rdy :: "cname set \<Rightarrow> rdy_info \<Rightarrow> rdy_info \<Rightarrow> rdy_info" where
+  "merge_rdy chs (r11, r12) (r21, r22) = (r11 \<union> r21 - chs, r12 \<union> r22 - chs)"
 
 text \<open>Trace blocks for a parallel process.
   The only difference from trace blocks for a single process is that
@@ -901,7 +901,7 @@ inductive combine_blocks :: "cname set \<Rightarrow> 'a ptrace \<Rightarrow> 'a 
   "combine_blocks comms blks1 blks2 blks \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
    hist = (\<lambda>\<tau>. merge_state (hist1 \<tau>) (hist2 \<tau>)) \<Longrightarrow>
-   rdy = merge_rdy rdy1 rdy2 \<Longrightarrow>
+   rdy = merge_rdy comms rdy1 rdy2 \<Longrightarrow>
    combine_blocks comms (WaitBlockP t (\<lambda>\<tau>\<in>{0..t}. hist1 \<tau>) rdy1 # blks1)
                         (WaitBlockP t (\<lambda>\<tau>\<in>{0..t}. hist2 \<tau>) rdy2 # blks2)
                         (WaitBlockP t (\<lambda>\<tau>\<in>{0..t}. hist \<tau>) rdy # blks)"
@@ -910,7 +910,7 @@ inductive combine_blocks :: "cname set \<Rightarrow> 'a ptrace \<Rightarrow> 'a 
    compat_rdy rdy1 rdy2 \<Longrightarrow>
    t1 < t2 \<Longrightarrow> t1 > 0 \<Longrightarrow>
    hist = (\<lambda>\<tau>. merge_state (hist1 \<tau>) (hist2 \<tau>)) \<Longrightarrow>
-   rdy = merge_rdy rdy1 rdy2 \<Longrightarrow>
+   rdy = merge_rdy comms rdy1 rdy2 \<Longrightarrow>
    combine_blocks comms (WaitBlockP t1 (\<lambda>\<tau>\<in>{0..t1}. hist1 \<tau>) rdy1 # blks1)
                         (WaitBlockP t2 (\<lambda>\<tau>\<in>{0..t2}. hist2 \<tau>) rdy2 # blks2)
                         (WaitBlockP t1 (\<lambda>\<tau>\<in>{0..t1}. hist \<tau>) rdy # blks)"
@@ -919,7 +919,7 @@ inductive combine_blocks :: "cname set \<Rightarrow> 'a ptrace \<Rightarrow> 'a 
    compat_rdy rdy1 rdy2 \<Longrightarrow>
    t1 > t2 \<Longrightarrow> t2 > 0 \<Longrightarrow>
    hist = (\<lambda>\<tau>. merge_state (hist1 \<tau>) (hist2 \<tau>)) \<Longrightarrow>
-   rdy = merge_rdy rdy1 rdy2 \<Longrightarrow>
+   rdy = merge_rdy comms rdy1 rdy2 \<Longrightarrow>
    combine_blocks comms (WaitBlockP t1 (\<lambda>\<tau>\<in>{0..t1}. hist1 \<tau>) rdy1 # blks1)
                         (WaitBlockP t2 (\<lambda>\<tau>\<in>{0..t2}. hist2 \<tau>) rdy2 # blks2)
                         (WaitBlockP t2 (\<lambda>\<tau>\<in>{0..t2}. hist \<tau>) rdy # blks)"
@@ -1151,19 +1151,19 @@ definition exists_gassn :: "('b \<Rightarrow> 'a gassn) \<Rightarrow> 'a gassn" 
   "(\<exists>\<^sub>g n. P n) = (\<lambda>s tr. \<exists>n. P n s tr)"
 
 text \<open>Assertion for input\<close>
-inductive wait_in_cg_gen :: "cname \<Rightarrow> rdy_info \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
-  "P 0 v s0 s tr \<Longrightarrow> wait_in_cg_gen ch rdy P s0 s (InBlockP ch v # tr)"
-| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> wait_in_cg_gen ch rdy P s0 s (WaitBlockP d (\<lambda>\<tau>\<in>{0..d}. s0) rdy # InBlockP ch v # tr)"
+inductive wait_in_cg_gen :: "cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
+  "P 0 v s0 s tr \<Longrightarrow> wait_in_cg_gen ch P s0 s (InBlockP ch v # tr)"
+| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> wait_in_cg_gen ch P s0 s (WaitBlockP d (\<lambda>\<tau>\<in>{0..d}. s0) ({}, {ch}) # InBlockP ch v # tr)"
 
-abbreviation "wait_in_cg ch P s0 s tr \<equiv> wait_in_cg_gen ch ({}, {ch}) P s0 s tr"
+abbreviation "wait_in_cg ch P s0 s tr \<equiv> wait_in_cg_gen ch P s0 s tr"
 
 text \<open>Assertion for output\<close>
-inductive wait_out_cg_gen :: "pname \<Rightarrow> cname \<Rightarrow> rdy_info \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
-  "P 0 s0 s tr \<Longrightarrow> v = e (the (s0 pn)) \<Longrightarrow> wait_out_cg_gen pn ch rdy e P s0 s (OutBlockP ch v # tr)"
+inductive wait_out_cg_gen :: "pname \<Rightarrow> cname \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
+  "P 0 s0 s tr \<Longrightarrow> v = e (the (s0 pn)) \<Longrightarrow> wait_out_cg_gen pn ch e P s0 s (OutBlockP ch v # tr)"
 | "0 < d \<Longrightarrow> P d s0 s tr \<Longrightarrow> v = e (the (s0 pn)) \<Longrightarrow>
-   wait_out_cg_gen pn ch rdy e P s0 s (WaitBlockP d (\<lambda>\<tau>\<in>{0..d}. s0) rdy # OutBlockP ch v # tr)"
+   wait_out_cg_gen pn ch e P s0 s (WaitBlockP d (\<lambda>\<tau>\<in>{0..d}. s0) ({ch}, {}) # OutBlockP ch v # tr)"
 
-abbreviation "wait_out_cg pn ch e P s0 s tr \<equiv> wait_out_cg_gen pn ch ({ch}, {}) e P s0 s tr"
+abbreviation "wait_out_cg pn ch e P s0 s tr \<equiv> wait_out_cg_gen pn ch e P s0 s tr"
 
 text \<open>Assertion for wait\<close>
 inductive wait_cg :: "pname \<Rightarrow> 'a eexp \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2" where
@@ -1182,23 +1182,22 @@ definition updeg_assn2 :: "'a gassn2 \<Rightarrow> ('a estate \<Rightarrow> 'a) 
   "P {{f}}\<^sub>g at pn = (\<lambda>ps s tr. ps pn \<noteq> None \<and> P (updeg ps pn (f (the (ps pn)))) s tr)"
 
 text \<open>Another generalization of wait_in_c\<close>
-inductive wait_in_cg_alt :: "cname \<Rightarrow> pname \<Rightarrow> 'a eexp \<Rightarrow> rdy_info \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a gassn2) \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
-  "P 0 v s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e rdy P Q s0 s (InBlockP ch v # tr)"
-| "0 < d \<Longrightarrow> d \<le> e (the (s0 pn)) \<Longrightarrow> P d v s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e rdy P Q s0 s (WaitBlockP d (\<lambda>\<tau>\<in>{0..d}. s0) rdy # InBlockP ch v # tr)"
-| "0 < e (the (s0 pn)) \<Longrightarrow> d \<ge> e (the (s0 pn)) \<Longrightarrow> Q d s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e rdy P Q s0 s (WaitBlockP d (\<lambda>\<tau>\<in>{0..d}. s0) rdy # tr)"
-| "\<not>0 < e (the (s0 pn)) \<Longrightarrow> Q 0 s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e rdy P Q s0 s tr"
+inductive wait_in_cg_alt :: "cname \<Rightarrow> pname \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a gassn2) \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
+  "P 0 v s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e P Q s0 s (InBlockP ch v # tr)"
+| "0 < d \<Longrightarrow> d \<le> e (the (s0 pn)) \<Longrightarrow> P d v s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e P Q s0 s (WaitBlockP d (\<lambda>\<tau>\<in>{0..d}. s0) ({}, {ch}) # InBlockP ch v # tr)"
+| "0 < e (the (s0 pn)) \<Longrightarrow> d \<ge> e (the (s0 pn)) \<Longrightarrow> Q d s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e P Q s0 s (WaitBlockP d (\<lambda>\<tau>\<in>{0..d}. s0) ({}, {ch}) # tr)"
+| "\<not>0 < e (the (s0 pn)) \<Longrightarrow> Q 0 s0 s tr \<Longrightarrow> wait_in_cg_alt ch pn e P Q s0 s tr"
 
 text \<open>Version of wait_in_c with assumption of immediate communication\<close>
-definition wait_in_c0_gen :: "cname \<Rightarrow> rdy_info \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
-  "wait_in_c0_gen ch rdy P = wait_in_c_gen ch rdy (\<lambda>d v.
-    IFA (\<lambda>s. d = 0) THEN P v ELSE true_assn2 FI)"
+definition wait_in_c0_gen :: "cname \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
+  "wait_in_c0_gen ch P = wait_in_c_gen ch (\<lambda>d v. IFA (\<lambda>s. d = 0) THEN P v ELSE true_assn2 FI)"
 
-definition wait_in_cg0_gen :: "pname \<Rightarrow> cname \<Rightarrow> rdy_info \<Rightarrow> pname set \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
-  "wait_in_cg0_gen pn ch rdy pns P = wait_in_cg_gen ch rdy (\<lambda>d v.
+definition wait_in_cg0_gen :: "pname \<Rightarrow> cname \<Rightarrow> pname set \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
+  "wait_in_cg0_gen pn ch pns P = wait_in_cg_gen ch (\<lambda>d v.
     IFG [pn] (\<lambda>s. d = 0) THEN P v ELSE true_gassn pns FI)"
 
-abbreviation "wait_in_c0 ch P \<equiv> wait_in_c0_gen ch ({}, {ch}) P"
-abbreviation "wait_in_cg0 pn ch P \<equiv> wait_in_cg0_gen pn ch ({}, {ch}) {pn} P"
+abbreviation "wait_in_c0 ch P \<equiv> wait_in_c0_gen ch P"
+abbreviation "wait_in_cg0 pn ch P \<equiv> wait_in_cg0_gen pn ch {pn} P"
 
 subsubsection \<open>Conversion from sequential to parallel assertions\<close>
 
@@ -1242,7 +1241,7 @@ lemma single_assn_exists:
     done
 
 lemma single_assn_wait_in:
-  "single_assn pn (wait_in_c_gen ch1 rdy P) = wait_in_cg_gen ch1 rdy (\<lambda>d v. single_assn pn (P d v))"
+  "single_assn pn (wait_in_c_gen ch1 P) = wait_in_cg_gen ch1 (\<lambda>d v. single_assn pn (P d v))"
   apply (rule ext) apply (rule ext) apply (rule ext)
   subgoal for s0 s tr
     apply (rule iffI)
@@ -1252,7 +1251,7 @@ lemma single_assn_wait_in:
         by (auto intro: wait_in_cg_gen.intros single_assn.intros)
       done
     subgoal apply (elim wait_in_cg_gen.cases) apply auto
-      subgoal for v tr' a b
+      subgoal for v tr'
         apply (elim single_assn.cases) apply auto
         subgoal for s0' s' tr''
           apply (subst ptrace_of.simps[symmetric])
@@ -1271,17 +1270,17 @@ lemma single_assn_wait_in:
   done
 
 lemma single_assn_wait_out:
-  "single_assn pn (wait_out_c_gen ch1 rdy e P) = wait_out_cg_gen pn ch1 rdy e (\<lambda>d. single_assn pn (P d))"
+  "single_assn pn (wait_out_c_gen ch1 e P) = wait_out_cg_gen pn ch1 e (\<lambda>d. single_assn pn (P d))"
   apply (rule ext) apply (rule ext) apply (rule ext)
   subgoal for s0 s tr
     apply (rule iffI)
     subgoal apply (elim single_assn.cases) apply auto
       apply (elim wait_out_c_gen.cases) apply auto
-      subgoal for s0' s' tr' a b
+      subgoal for s0' s' tr'
         apply (rule wait_out_cg_gen.intros(1))
          apply (rule single_assn.intros)
         by (auto simp add: State_def)
-      subgoal for d s0' s' tr' a b
+      subgoal for d s0' s' tr'
         apply (rule wait_out_cg_gen.intros(2)) apply simp
          apply (rule single_assn.intros)
         by (auto simp add: State_def)
@@ -1433,7 +1432,7 @@ lemma single_assn_cond:
   done
 
 lemma single_assn_wait_in0:
-  "single_assn pn (wait_in_c0_gen ch rdy P) = wait_in_cg0_gen pn ch rdy {pn} (\<lambda>v. single_assn pn (P v))"
+  "single_assn pn (wait_in_c0_gen ch P) = wait_in_cg0_gen pn ch {pn} (\<lambda>v. single_assn pn (P v))"
   unfolding wait_in_c0_gen_def wait_in_cg0_gen_def
   apply (subst single_assn_wait_in)
   unfolding single_assn_cond single_assn_true by auto
@@ -1463,14 +1462,14 @@ lemma proc_set_sync_gassn:
 
 lemma proc_set_wait_in_cg_gen:
   assumes "\<And>d v. proc_set_gassn pns (P d v)"
-  shows "proc_set_gassn pns (wait_in_cg_gen ch rdy P)"
+  shows "proc_set_gassn pns (wait_in_cg_gen ch P)"
   unfolding proc_set_gassn_def apply clarify
   subgoal for gs0 gs tr
     apply (elim wait_in_cg_gen.cases) apply clarify
-    subgoal for _ v s0 s tr' ch' a b
+    subgoal for _ v s0 s tr' ch'
       using assms[of 0 v] unfolding proc_set_gassn_def apply auto
       apply (rule proc_set_trace.intros) by blast
-    subgoal for d P' v s0 s tr' ch' rdy'
+    subgoal for d P' v s0 s tr' ch'
       using assms[of d v] unfolding proc_set_gassn_def apply auto
       apply (rule proc_set_trace.intros) apply auto
       apply (rule proc_set_trace.intros) by blast
@@ -1479,14 +1478,14 @@ lemma proc_set_wait_in_cg_gen:
 
 lemma proc_set_wait_out_cg_gen:
   assumes "\<And>d v. proc_set_gassn pns (P d)"
-  shows "proc_set_gassn pns (wait_out_cg_gen pn ch rdy e P)"
+  shows "proc_set_gassn pns (wait_out_cg_gen pn ch e P)"
   unfolding proc_set_gassn_def apply clarify
   subgoal for gs0 gs tr
     apply (elim wait_out_cg_gen.cases) apply clarify
-    subgoal for _ v s0 s tr' ch' a b
+    subgoal
       using assms[of 0] unfolding proc_set_gassn_def apply auto
       apply (rule proc_set_trace.intros) by blast
-    subgoal for d P' v s0 s tr' ch' rdy'
+    subgoal for d
       using assms[of d] unfolding proc_set_gassn_def apply auto
       apply (rule proc_set_trace.intros) apply auto
       apply (rule proc_set_trace.intros) by blast
@@ -1796,7 +1795,7 @@ lemma updg_mono:
 
 lemma wait_out_cg_mono:
   assumes "\<And>d s0. P d s0 \<Longrightarrow>\<^sub>g Q d s0"
-  shows "wait_out_cg_gen pn ch rdy e P s0 \<Longrightarrow>\<^sub>g wait_out_cg_gen pn ch rdy e Q s0"
+  shows "wait_out_cg_gen pn ch e P s0 \<Longrightarrow>\<^sub>g wait_out_cg_gen pn ch e Q s0"
   apply (auto simp add: entails_g_def)
   subgoal for s tr
     apply (elim wait_out_cg_gen.cases) apply auto
@@ -1809,7 +1808,7 @@ lemma wait_out_cg_mono:
 
 lemma wait_in_cg_mono:
   assumes "\<And>d v s0. P d v s0 \<Longrightarrow>\<^sub>g Q d v s0"
-  shows "wait_in_cg_gen ch rdy P s0 \<Longrightarrow>\<^sub>g wait_in_cg_gen ch rdy Q s0"
+  shows "wait_in_cg_gen ch P s0 \<Longrightarrow>\<^sub>g wait_in_cg_gen ch Q s0"
   apply (auto simp add: entails_g_def)
   subgoal for s tr
     apply (elim wait_in_cg_gen.cases) apply auto
@@ -1836,20 +1835,20 @@ lemma wait_cg_mono:
 lemma wait_in_cg_alt_mono:
   assumes "\<And>d v s0. P1 d v s0 \<Longrightarrow>\<^sub>g P2 d v s0"
     and "\<And>d s0. Q1 d s0 \<Longrightarrow>\<^sub>g Q2 d s0"
-  shows "wait_in_cg_alt ch pn e rdy P1 Q1 s0 \<Longrightarrow>\<^sub>g wait_in_cg_alt ch pn e rdy P2 Q2 s0"
+  shows "wait_in_cg_alt ch pn e P1 Q1 s0 \<Longrightarrow>\<^sub>g wait_in_cg_alt ch pn e P2 Q2 s0"
   apply (auto simp add: entails_g_def)
   subgoal for s tr
     apply (elim wait_in_cg_alt.cases) apply auto
-    subgoal for v tr' a b
+    subgoal for v tr'
       apply (rule wait_in_cg_alt.intros)
       using assms(1) unfolding entails_g_def by auto
-    subgoal for v tr' a b
+    subgoal for d v tr'
       apply (rule wait_in_cg_alt.intros)
       using assms(1) unfolding entails_g_def by auto
-    subgoal for v tr' a b
+    subgoal for d tr'
       apply (rule wait_in_cg_alt.intros)
       using assms(2) unfolding entails_g_def by auto
-    subgoal for a b
+    subgoal
       apply (rule wait_in_cg_alt.intros)
       using assms(2) unfolding entails_g_def by auto
     done
@@ -2005,7 +2004,7 @@ qed
 lemma combine_blocks_waitE2 [sync_elims]:
   "combine_blocks comms (WaitBlockP d (\<lambda>t\<in>{0..d}. p1 t) rdy1 # tr1) (WaitBlockP d (\<lambda>t\<in>{0..d}. p2 t) rdy2 # tr2) tr \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
-   (\<And>tr'. tr = WaitBlockP d (\<lambda>t\<in>{0..d}. merge_state (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # tr' \<Longrightarrow>
+   (\<And>tr'. tr = WaitBlockP d (\<lambda>t\<in>{0..d}. merge_state (p1 t) (p2 t)) (merge_rdy comms rdy1 rdy2) # tr' \<Longrightarrow>
            combine_blocks comms tr1 tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
   apply (induct rule: combine_blocks.cases, auto)
   subgoal premises pre for blks hist1 hist2 a b
@@ -2017,7 +2016,7 @@ lemma combine_blocks_waitE3 [sync_elims]:
   "combine_blocks comms (WaitBlockP d1 (\<lambda>t\<in>{0..d1}. p1 t) rdy1 # tr1) (WaitBlockP d2 (\<lambda>t\<in>{0..d2}. p2 t) rdy2 # tr2) tr \<Longrightarrow>
    0 < d1 \<Longrightarrow> d1 < d2 \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
-   (\<And>tr'. tr = WaitBlockP d1 (\<lambda>t\<in>{0..d1}. merge_state (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # tr' \<Longrightarrow>
+   (\<And>tr'. tr = WaitBlockP d1 (\<lambda>t\<in>{0..d1}. merge_state (p1 t) (p2 t)) (merge_rdy comms rdy1 rdy2) # tr' \<Longrightarrow>
            combine_blocks comms tr1 (WaitBlockP (d2 - d1) (\<lambda>t\<in>{0..d2-d1}. p2 (t + d1)) rdy2 # tr2) tr' \<Longrightarrow> P) \<Longrightarrow> P"
   apply (induct rule: combine_blocks.cases, auto)
   subgoal premises pre for hist2 blks hist1 a b
@@ -2039,7 +2038,7 @@ lemma combine_blocks_waitE4 [sync_elims]:
   "combine_blocks comms (WaitBlockP d1 (\<lambda>t\<in>{0..d1}. p1 t) rdy1 # tr1) (WaitBlockP d2 (\<lambda>t\<in>{0..d2}. p2 t) rdy2 # tr2) tr \<Longrightarrow>
    0 < d2 \<Longrightarrow> d2 < d1 \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
-   (\<And>tr'. tr = WaitBlockP d2 (\<lambda>t\<in>{0..d2}. merge_state (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # tr' \<Longrightarrow>
+   (\<And>tr'. tr = WaitBlockP d2 (\<lambda>t\<in>{0..d2}. merge_state (p1 t) (p2 t)) (merge_rdy comms rdy1 rdy2) # tr' \<Longrightarrow>
            combine_blocks comms (WaitBlockP (d1 - d2) (\<lambda>t\<in>{0..d1-d2}. p1 (t + d2)) rdy1 # tr1) tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
   apply (induct rule: combine_blocks.cases, auto)
   subgoal premises pre for hist1 blks hist2 a b
@@ -2102,37 +2101,28 @@ lemma sync_gassn_in_out:
   "ch \<in> chs \<Longrightarrow>
    pn \<in> pns2 \<Longrightarrow>
    pns1 \<inter> pns2 = {} \<Longrightarrow>
-   \<not>compat_rdy rdy1 rdy2 \<Longrightarrow>
-   sync_gassn chs pns1 pns2 (wait_in_cg_gen ch rdy1 P) (wait_out_cg_gen pn ch rdy2 e Q) s0 \<Longrightarrow>\<^sub>g
+   sync_gassn chs pns1 pns2 (wait_in_cg_gen ch P) (wait_out_cg_gen pn ch e Q) s0 \<Longrightarrow>\<^sub>g
    sync_gassn chs pns1 pns2 (P 0 (e (the (s0 pn)))) (Q 0) s0"
   unfolding entails_g_def apply auto
   subgoal for s tr
     apply (elim sync_gassn.cases) apply auto
     subgoal for s11 s12 s21 s22 tr1 tr2
       apply (elim wait_in_cg_gen.cases) apply auto
-      subgoal for v tr1' a b
+      subgoal for v tr1'
         apply (elim wait_out_cg_gen.cases) apply auto
-        subgoal for tr2' a' b' v'
+        subgoal for tr2'
           apply (elim combine_blocks_pairE)
           by (auto simp add: merge_state_eval2 sync_gassn.intros)
-        subgoal for tr2' a' b' v'
-          apply (elim combine_blocks_pairE) 
+        subgoal for d tr2'
+          apply (elim combine_blocks_pairE2)
           by (auto simp add: merge_state_eval2 sync_gassn.intros)
-        subgoal for d tr2' a' b' v'
-          apply (elim combine_blocks_pairE2) by auto
-        subgoal for d tr2' a' b' v'
-          apply (elim combine_blocks_pairE2) by auto
         done
-      subgoal for d v tr1' a b
+      subgoal for d v tr1'
         apply (elim wait_out_cg_gen.cases) apply auto
-        subgoal for tr' a' b'
+        subgoal for tr'
           apply (elim combine_blocks_pairE2') by auto
-        subgoal for tr' a' b'
-          apply (elim combine_blocks_pairE2') by auto
-        subgoal for tr' a' b'
-          by (meson combine_blocks_waitE1 compat_rdy.simps disjoint_iff)
-        subgoal for tr' a' b'
-          by (meson combine_blocks_waitE1 compat_rdy.simps disjoint_iff)
+        subgoal for d' tr'
+          apply (elim combine_blocks_waitE1) by auto
         done
       done
     done
@@ -2142,37 +2132,27 @@ lemma sync_gassn_out_in:
   "ch \<in> chs \<Longrightarrow>
    pn \<in> pns1 \<Longrightarrow>
    pns1 \<inter> pns2 = {} \<Longrightarrow>
-   \<not>compat_rdy rdy1 rdy2 \<Longrightarrow>
-   sync_gassn chs pns1 pns2 (wait_out_cg_gen pn ch rdy1 e Q) (wait_in_cg_gen ch rdy2 P) s0 \<Longrightarrow>\<^sub>g
+   sync_gassn chs pns1 pns2 (wait_out_cg_gen pn ch e Q) (wait_in_cg_gen ch P) s0 \<Longrightarrow>\<^sub>g
    sync_gassn chs pns1 pns2 (Q 0) (P 0 (e (the (s0 pn)))) s0"
   unfolding entails_g_def apply auto
   subgoal for s tr
     apply (elim sync_gassn.cases) apply auto
     subgoal for s11 s12 s21 s22 tr1 tr2
       apply (elim wait_in_cg_gen.cases) apply auto
-      subgoal for v tr1' a b
+      subgoal for v tr1'
         apply (elim wait_out_cg_gen.cases) apply auto
-        subgoal for tr2' a' b' v'
+        subgoal for tr2'
           apply (elim combine_blocks_pairE)
           by (auto simp add: merge_state_eval1 sync_gassn.intros)
-        subgoal for tr2' a' b' v'
-          apply (elim combine_blocks_pairE) 
-          by (auto simp add: merge_state_eval1 sync_gassn.intros)
-        subgoal for d tr2' a' b' v'
-          apply (elim combine_blocks_pairE2') by auto
-        subgoal for d tr2' a' b' v'
+        subgoal for d tr2'
           apply (elim combine_blocks_pairE2') by auto
         done
-      subgoal for d v tr1' a b
+      subgoal for d v tr1'
         apply (elim wait_out_cg_gen.cases) apply auto
-        subgoal for tr' a' b'
+        subgoal for tr'
           apply (elim combine_blocks_pairE2) by auto
-        subgoal for tr' a' b'
-          apply (elim combine_blocks_pairE2) by auto
-        subgoal for tr' a' b'
-          by (meson combine_blocks_waitE1 compat_rdy.simps disjoint_iff)
-        subgoal for tr' a' b'
-          by (meson combine_blocks_waitE1 compat_rdy.simps disjoint_iff)
+        subgoal for d' tr'
+          apply (elim combine_blocks_waitE1) by auto
         done
       done
     done
@@ -2181,8 +2161,8 @@ lemma sync_gassn_out_in:
 lemma sync_gassn_out_emp:
   "ch \<notin> chs \<Longrightarrow>
    pn \<in> pns1 \<Longrightarrow>
-   sync_gassn chs pns1 pns2 (wait_out_cg_gen pn ch rdy e Q) (init_single pns2) s0 \<Longrightarrow>\<^sub>g
-   wait_out_cg_gen pn ch rdy e (\<lambda>d. sync_gassn chs pns1 pns2 (Q d) (init_single pns2)) s0"
+   sync_gassn chs pns1 pns2 (wait_out_cg_gen pn ch e Q) (init_single pns2) s0 \<Longrightarrow>\<^sub>g
+   wait_out_cg_gen pn ch e (\<lambda>d. sync_gassn chs pns1 pns2 (Q d) (init_single pns2)) s0"
   unfolding entails_g_def apply auto
   subgoal for s tr
     apply (elim sync_gassn.cases) apply auto
@@ -2206,7 +2186,7 @@ lemma sync_gassn_out_emp:
 
 lemma sync_gassn_out_emp_unpair:
   "ch \<in> chs \<Longrightarrow>
-   sync_gassn chs pns1 pns2 (wait_out_cg_gen pn ch rdy e Q) (init_single pns2) s0 \<Longrightarrow>\<^sub>g P"
+   sync_gassn chs pns1 pns2 (wait_out_cg_gen pn ch e Q) (init_single pns2) s0 \<Longrightarrow>\<^sub>g P"
   unfolding entails_g_def apply auto
   subgoal for s tr
     apply (elim sync_gassn.cases) apply auto
@@ -2224,7 +2204,7 @@ lemma sync_gassn_out_emp_unpair:
 
 lemma sync_gassn_emp_in_unpair:
   "ch \<in> chs \<Longrightarrow>
-   sync_gassn chs pns1 pns2 (init_single pns1) (wait_in_cg_gen ch rdy Q) s0 \<Longrightarrow>\<^sub>g P"
+   sync_gassn chs pns1 pns2 (init_single pns1) (wait_in_cg_gen ch Q) s0 \<Longrightarrow>\<^sub>g P"
   unfolding entails_g_def apply auto
   subgoal for s tr
     apply (elim sync_gassn.cases) apply auto
@@ -2240,23 +2220,28 @@ lemma sync_gassn_emp_in_unpair:
     done
   done
 
-text \<open>Left side has unpaired input, right side is communication\<close>
+lemma set_minus_simp1 [simp]:
+  "ch \<notin> chs \<Longrightarrow> {ch} - chs = {ch}"
+  by auto
+
+text \<open>Left side has unpaired input, right side is communication.
+  Then the left side always happen first.
+\<close>
 lemma sync_gassn_in_unpair_left:
   "ch1 \<notin> chs \<Longrightarrow>
    ch2 \<in> chs \<Longrightarrow>
    pns1 \<inter> pns2 = {} \<Longrightarrow>
-   compat_rdy rdy1 rdy2 \<Longrightarrow>
-   sync_gassn chs pns1 pns2 (wait_in_cg_gen ch1 rdy1 P) (wait_out_cg_gen pn2 ch2 rdy2 e Q) s0 \<Longrightarrow>\<^sub>g
-   wait_in_cg_gen ch1 (merge_rdy rdy1 rdy2)
-     (\<lambda>d v. sync_gassn chs pns1 pns2 (P d v) (wait_out_cg_gen pn2 ch2 rdy2 e (\<lambda>d2. Q (d2 + d)))) s0"
+   sync_gassn chs pns1 pns2 (wait_in_cg_gen ch1 P) (wait_out_cg_gen pn2 ch2 e Q) s0 \<Longrightarrow>\<^sub>g
+   wait_in_cg_gen ch1
+     (\<lambda>d v. sync_gassn chs pns1 pns2 (P d v) (wait_out_cg_gen pn2 ch2 e (\<lambda>d2. Q (d2 + d)))) s0"
   unfolding entails_g_def apply auto
   subgoal for s tr
     apply (elim sync_gassn.cases) apply auto
     subgoal for s11 s12 s21 s22 tr1 tr2
       apply (elim wait_in_cg_gen.cases) apply auto
-      subgoal for v tr1' a b
+      subgoal for v tr1'
         apply (elim wait_out_cg_gen.cases) apply auto
-        subgoal for tr2' a' b'
+        subgoal for tr2'
           apply (elim combine_blocks_unpairE1)
             apply auto
           apply (rule wait_in_cg_gen.intros)
@@ -2269,11 +2254,11 @@ lemma sync_gassn_in_unpair_left:
           apply (rule sync_gassn.intros) apply auto
           apply (rule wait_out_cg_gen.intros) by auto
         done
-      subgoal for d v tr1' a b
+      subgoal for d v tr1'
         apply (elim wait_out_cg_gen.cases) apply auto
-        subgoal for tr2' a b
+        subgoal for tr2'
           apply (elim sync_elims) by auto
-        subgoal for d2 tr2' a' b'
+        subgoal for d2 tr2'
           apply (cases rule: linorder_cases[of d d2])
           subgoal
             apply (elim combine_blocks_waitE3) apply auto
@@ -2301,16 +2286,16 @@ lemma sync_gassn_in_unpair_left_wait:
   "ch1 \<notin> chs \<Longrightarrow>
    pn \<in> pns2 \<Longrightarrow>
    pns1 \<inter> pns2 = {} \<Longrightarrow>
-   sync_gassn chs pns1 pns2 (wait_in_cg_gen ch1 rdy1 P) (wait_cg pn e Q) s0 \<Longrightarrow>\<^sub>g
-   wait_in_cg_alt ch1 pn e rdy1
+   sync_gassn chs pns1 pns2 (wait_in_cg_gen ch1 P) (wait_cg pn e Q) s0 \<Longrightarrow>\<^sub>g
+   wait_in_cg_alt ch1 pn e
     (\<lambda>d v. sync_gassn chs pns1 pns2 (P d v) (wait_cg pn (\<lambda>s. e s - d) Q))
-    (\<lambda>d. sync_gassn chs pns1 pns2 (wait_in_cg_gen ch1 rdy1 (\<lambda>d' v. P (d + d') v)) Q) s0"
+    (\<lambda>d. sync_gassn chs pns1 pns2 (wait_in_cg_gen ch1 (\<lambda>d' v. P (d + d') v)) Q) s0"
   unfolding entails_g_def apply auto
   subgoal for s tr
     apply (elim sync_gassn.cases) apply auto
     subgoal for s11 s12 s21 s22 tr1 tr2
       apply (elim wait_in_cg_gen.cases) apply auto
-      subgoal for v tr1' a b
+      subgoal for v tr1'
         apply (elim wait_cg.cases) apply auto
         subgoal for tr2'
           apply (elim combine_blocks_unpairE3)
@@ -2324,7 +2309,7 @@ lemma sync_gassn_in_unpair_left_wait:
           apply (rule sync_gassn.intros) apply auto
           apply (rule wait_in_cg_gen.intros) by auto
         done
-      subgoal for d v tr1' a b
+      subgoal for d v tr1'
         apply (elim wait_cg.cases) apply auto
         subgoal for tr2'
           apply (cases rule: linorder_cases[of d "e (the (s12 pn))"])
@@ -2362,12 +2347,11 @@ lemma sync_gassn_out_unpair0:
    ch2 \<in> chs \<Longrightarrow>
    pn \<in> pns1 \<Longrightarrow>
    pns1 \<inter> pns2 = {} \<Longrightarrow>
-   compat_rdy rdy1 rdy2 \<Longrightarrow>
    (\<And>d. proc_set_gassn pns2 (Q d)) \<Longrightarrow>
    sync_gassn chs pns1 pns2
-     (wait_in_cg0_gen pn ch1 rdy1 pns1 P) (wait_out_cg_gen pn2 ch2 rdy2 e Q) s0 \<Longrightarrow>\<^sub>g
-   wait_in_cg0_gen pn ch1 (merge_rdy rdy1 rdy2) (pns1 \<union> pns2) (\<lambda>v.
-     sync_gassn chs pns1 pns2 (P v) (wait_out_cg_gen pn2 ch2 rdy2 e Q)) s0"
+     (wait_in_cg0_gen pn ch1 pns1 P) (wait_out_cg_gen pn2 ch2 e Q) s0 \<Longrightarrow>\<^sub>g
+   wait_in_cg0_gen pn ch1 (pns1 \<union> pns2) (\<lambda>v.
+     sync_gassn chs pns1 pns2 (P v) (wait_out_cg_gen pn2 ch2 e Q)) s0"
   unfolding wait_in_cg0_gen_def
   apply (rule entails_g_trans)
    apply (rule sync_gassn_in_unpair_left) apply auto
@@ -2397,8 +2381,8 @@ lemma sync_gassn_out_unpair_wait0:
    (\<And>v. proc_set_gassn pns1 (P v)) \<Longrightarrow>
    proc_set_gassn pns2 Q \<Longrightarrow>
    sync_gassn chs pns1 pns2
-     (wait_in_cg0_gen pn1 ch1 rdy1 pns1 P) (wait_cg pn2 e Q) s0 \<Longrightarrow>\<^sub>g
-   wait_in_cg_alt ch1 pn2 e rdy1
+     (wait_in_cg0_gen pn1 ch1 pns1 P) (wait_cg pn2 e Q) s0 \<Longrightarrow>\<^sub>g
+   wait_in_cg_alt ch1 pn2 e
      (\<lambda>d v. (IFG [pn1] (\<lambda>s. d = 0) THEN sync_gassn chs pns1 pns2 (P v) (wait_cg pn2 e Q)
              ELSE true_gassn (pns1 \<union> pns2) FI))
      (\<lambda>v. true_gassn (pns1 \<union> pns2)) s0"
@@ -2451,7 +2435,7 @@ lemma sync_gassn_in_alt_out:
    pns1 \<inter> pns2 = {} \<Longrightarrow>
    d > 0 \<Longrightarrow>
    sync_gassn chs pns1 pns2
-      (wait_in_cg_alt ch pn1 (\<lambda>_. d) ({}, {ch})
+      (wait_in_cg_alt ch pn1 (\<lambda>_. d)
         (\<lambda>d v. IFG [pn2] (\<lambda>s. d = 0) THEN P v ELSE true_gassn pns1 FI)
         (\<lambda>v. true_gassn pns1))
       (wait_out_cg pn3 ch e Q) s0 \<Longrightarrow>\<^sub>g
