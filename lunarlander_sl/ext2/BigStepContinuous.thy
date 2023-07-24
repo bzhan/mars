@@ -10,7 +10,7 @@ inductive ode_c :: "ODE \<Rightarrow> 'a eform \<Rightarrow> 'a assn2 \<Rightarr
    p 0 = rpart s0 \<Longrightarrow>
    (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (updr s0 (p t))) \<Longrightarrow>
    \<not>b (updr s0 (p d)) \<Longrightarrow>
-   ode_c ode b P s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p \<tau>)) ({}, {}) # tr)"
+   ode_c ode b P s0 s (WaitBlk d (\<lambda>\<tau>. updr s0 (p \<tau>)) ({}, {}) # tr)"
 
 text \<open>Hoare rules for ODE\<close>
 
@@ -47,7 +47,7 @@ text \<open>Waiting while the state is characterized by a particular solution.
 \<close>
 inductive wait_sol_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate) \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
   "d s0 > 0 \<Longrightarrow> P (d s0) s0 s tr \<Longrightarrow>
-   wait_sol_c p d P s0 s (WaitBlock (d s0) (\<lambda>t\<in>{0..d s0}. p s0 t) ({}, {}) # tr)"
+   wait_sol_c p d P s0 s (WaitBlk (d s0) (\<lambda>t. p s0 t) ({}, {}) # tr)"
 | "\<not>d s0 > 0 \<Longrightarrow> P 0 s0 s tr \<Longrightarrow> wait_sol_c p d P s0 s tr"
 
 lemma wait_sol_mono:
@@ -99,7 +99,7 @@ proof -
       the ODE, it must be equal to the solution given by d, p.\<close>
   have main:
     "d2 = d s \<and> p s (d s) = p2 d2 \<and>
-     WaitBlock (d s) (\<lambda>t\<in>{0..d s}. updr s (p s t)) = WaitBlock d2 (\<lambda>t\<in>{0..d2}. updr s (p2 t))"
+     WaitBlk (d s) (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
     if cond: "b s" "0 < d2"
       "ODEsol ode p2 d2"
       "\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (updr s (p2 t))"
@@ -150,8 +150,8 @@ proof -
       using s2 s4 s7 by (metis vec_state_map1)
     have s9: "p s (d s) = p2 (d s)"
       using s8 by (simp add: s0 less_eq_real_def)
-    have s10: "WaitBlock (d s) (\<lambda>t\<in>{0..d s}. updr s (p s t)) = WaitBlock d2 (\<lambda>t\<in>{0..d2}. updr s (p2 t))"
-      using s7 s8 by fastforce
+    have s10: "WaitBlk (d s) (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
+      apply (rule ext) apply (rule WaitBlk_eqI) using s7 s8 by auto
     show ?thesis using s7 s9 s10 by auto
   qed
   show ?thesis
@@ -168,7 +168,7 @@ proof -
         then have "b s0" by (auto simp add: pre(5))
         have a: "d' = d s0"
               "p s0 (d s0) = p' d'"
-              "WaitBlock (d s0) (\<lambda>t\<in>{0..d s0}. updr s0 (p s0 t)) = WaitBlock d' (\<lambda>t\<in>{0..d'}. updr s0 (p' t))"
+              "WaitBlk (d s0) (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d' (\<lambda>t. updr s0 (p' t))"
           using main[of s0 d' p', OF \<open>b s0\<close> pre(2,4,6,7,5)] by auto
         show ?thesis
           unfolding a(3)[symmetric]
@@ -230,7 +230,7 @@ inductive interrupt_c :: "ODE \<Rightarrow> 'a eform \<Rightarrow> 'a assn2 \<Ri
    p 0 = rpart s0 \<Longrightarrow>
    (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (updr s0 (p t))) \<Longrightarrow>
    \<not>b (updr s0 (p d)) \<Longrightarrow> rdy = rdy_of_comm_spec specs \<Longrightarrow>
-   interrupt_c ode b P specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p \<tau>)) rdy # tr)"
+   interrupt_c ode b P specs s0 s (WaitBlk d (\<lambda>\<tau>. updr s0 (p \<tau>)) rdy # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = InSpec ch var Q \<Longrightarrow>
    Q (upd s0 var v) s tr \<Longrightarrow> interrupt_c ode b P specs s0 s (InBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = InSpec ch var Q \<Longrightarrow>
@@ -238,7 +238,7 @@ inductive interrupt_c :: "ODE \<Rightarrow> 'a eform \<Rightarrow> 'a assn2 \<Ri
    p 0 = rpart s0 \<Longrightarrow>
    (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (updr s0 (p t))) \<Longrightarrow>
    rdy = rdy_of_comm_spec specs \<Longrightarrow>
-   interrupt_c ode b P specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p \<tau>)) rdy # InBlock ch v # tr)"
+   interrupt_c ode b P specs s0 s (WaitBlk d (\<lambda>\<tau>. updr s0 (p \<tau>)) rdy # InBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec ch e Q \<Longrightarrow>
    Q s0 s tr \<Longrightarrow> interrupt_c ode b P specs s0 s (OutBlock ch (e s0) # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec ch e Q \<Longrightarrow>
@@ -246,7 +246,7 @@ inductive interrupt_c :: "ODE \<Rightarrow> 'a eform \<Rightarrow> 'a assn2 \<Ri
    p 0 = rpart s0 \<Longrightarrow>
    (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (updr s0 (p t))) \<Longrightarrow>
    rdy = rdy_of_comm_spec specs \<Longrightarrow>
-   interrupt_c ode b P specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p \<tau>)) rdy # OutBlock ch (e (updr s0 (p d))) # tr)"
+   interrupt_c ode b P specs s0 s (WaitBlk d (\<lambda>\<tau>. updr s0 (p \<tau>)) rdy # OutBlock ch (e (updr s0 (p d))) # tr)"
 
 text \<open>Hoare rules for interrupt\<close>
 
@@ -354,7 +354,7 @@ inductive interrupt_sol_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a est
   'a comm_spec2 list \<Rightarrow> 'a assn2" where
   "d s0 > 0 \<Longrightarrow> P (d s0) s0 s tr \<Longrightarrow>
    rdy = rdy_of_comm_spec2 specs \<Longrightarrow>
-   interrupt_sol_c p d P specs s0 s (WaitBlock (d s0) (\<lambda>\<tau>\<in>{0..d s0}. p s0 \<tau>) rdy # tr)"
+   interrupt_sol_c p d P specs s0 s (WaitBlk (d s0) (\<lambda>\<tau>. p s0 \<tau>) rdy # tr)"
 | "\<not>d s0 > 0 \<Longrightarrow> P 0 s0 s tr \<Longrightarrow>
    interrupt_sol_c p d P specs s0 s tr"
 | "i < length specs \<Longrightarrow> specs ! i = InSpec2 ch Q \<Longrightarrow>
@@ -363,13 +363,13 @@ inductive interrupt_sol_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a est
 | "i < length specs \<Longrightarrow> specs ! i = InSpec2 ch Q \<Longrightarrow>
    0 < d' \<Longrightarrow> d' \<le> d s0 \<Longrightarrow> Q d' v s0 s tr \<Longrightarrow>
    rdy = rdy_of_comm_spec2 specs \<Longrightarrow>
-   interrupt_sol_c p d P specs s0 s (WaitBlock d' (\<lambda>\<tau>\<in>{0..d'}. p s0 \<tau>) rdy # InBlock ch v # tr)"
+   interrupt_sol_c p d P specs s0 s (WaitBlk d' (\<lambda>\<tau>. p s0 \<tau>) rdy # InBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch e Q \<Longrightarrow> v = e 0 s0 \<Longrightarrow>
    Q 0 s0 s tr \<Longrightarrow> interrupt_sol_c p d P specs s0 s (OutBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch e Q \<Longrightarrow>
    0 < d' \<Longrightarrow> d' \<le> d s0 \<Longrightarrow> Q d' s0 s tr \<Longrightarrow> v = e d' s0 \<Longrightarrow>
    rdy = rdy_of_comm_spec2 specs \<Longrightarrow>
-   interrupt_sol_c p d P specs s0 s (WaitBlock d' (\<lambda>\<tau>\<in>{0..d'}. p s0 \<tau>) rdy # OutBlock ch v # tr)"
+   interrupt_sol_c p d P specs s0 s (WaitBlk d' (\<lambda>\<tau>. p s0 \<tau>) rdy # OutBlock ch v # tr)"
 
 lemma interrupt_c_unique:
   assumes
@@ -383,7 +383,7 @@ proof -
       the ODE, it must be equal to the solution given by d, p.\<close>
   have main:
     "d2 = d s \<and> p s (d s) = p2 d2 \<and>
-     WaitBlock (d s) (\<lambda>t\<in>{0..d s}. updr s (p s t)) = WaitBlock d2 (\<lambda>t\<in>{0..d2}. updr s (p2 t))"
+     WaitBlk (d s) (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
     if cond: "b s" "0 < d2"
       "ODEsol ode p2 d2"
       "\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (updr s (p2 t))"
@@ -434,13 +434,13 @@ proof -
       using s2 s4 s7 by (metis vec_state_map1)
     have s9: "p s (d s) = p2 (d s)"
       using s8 by (simp add: s0 less_eq_real_def)
-    have s10: "WaitBlock (d s) (\<lambda>t\<in>{0..d s}. updr s (p s t)) = WaitBlock d2 (\<lambda>t\<in>{0..d2}. updr s (p2 t))"
-      using s7 s8 by fastforce
+    have s10: "WaitBlk (d s) (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
+      apply (rule ext) apply (rule WaitBlk_eqI) using s7 s8 by auto
     show ?thesis using s7 s9 s10 by auto
   qed
   have main2:
     "d2 \<le> d s \<and> p s d2 = p2 d2 \<and>
-     WaitBlock d2 (\<lambda>t\<in>{0..d2}. updr s (p s t)) = WaitBlock d2 (\<lambda>t\<in>{0..d2}. updr s (p2 t))"
+     WaitBlk d2 (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
     if cond: "b s" "0 < d2"
       "ODEsol ode p2 d2"
       "\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (updr s (p2 t))"
@@ -480,8 +480,8 @@ proof -
       using s7 s4 by (metis vec_state_map1)
     have s9: "p s d2 = p2 d2"
       using s8 that(2) by fastforce
-    have s10: "WaitBlock d2 (\<lambda>t\<in>{0..d2}. updr s (p s t)) = WaitBlock d2 (\<lambda>t\<in>{0..d2}. updr s (p2 t))"
-      using s7 s8 by fastforce
+    have s10: "WaitBlk d2 (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
+      apply (rule ext) apply (rule WaitBlk_eqI) using s7 s8 by auto
     show ?thesis using s6 s9 s10 by auto
   qed
   have p0: "p s0 0 = rpart s0"
@@ -505,7 +505,7 @@ proof -
         then have "b s0" by (auto simp add: pre(5))
         have a: "d' = d s0"
               "p s0 (d s0) = p' d'"
-              "WaitBlock (d s0) (\<lambda>t\<in>{0..d s0}. updr s0 (p s0 t)) = WaitBlock d' (\<lambda>t\<in>{0..d'}. updr s0 (p' t))"
+              "WaitBlk (d s0) (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d' (\<lambda>t. updr s0 (p' t))"
           using main[of s0 d' p', OF \<open>b s0\<close> pre(2,4,6,7,5)] by auto
         show ?thesis
           unfolding a(3)[symmetric]
@@ -528,7 +528,7 @@ proof -
         then have "b s0" using pre by auto
         have a: "d' \<le> d s0"
               "p s0 d' = p' d'"
-              "WaitBlock d' (\<lambda>t\<in>{0..d'}. updr s0 (p s0 t)) = WaitBlock d' (\<lambda>t\<in>{0..d'}. updr s0 (p' t))"
+              "WaitBlk d' (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d' (\<lambda>t. updr s0 (p' t))"
           using main2[of s0 d' p', OF \<open>b s0\<close> pre(4,6,8,7)] by auto
         let ?Q' = "\<lambda>d v s0. Q (updr s0 ((p s0 d)(var := v)))"
         have Q: "?specs2 ! i = InSpec2 ch ?Q'"
@@ -555,7 +555,7 @@ proof -
         then have "b s0" using pre by auto
         have a: "d' \<le> d s0"
               "p s0 d' = p' d'"
-              "WaitBlock d' (\<lambda>t\<in>{0..d'}. updr s0 (p s0 t)) = WaitBlock d' (\<lambda>t\<in>{0..d'}. updr s0 (p' t))"
+              "WaitBlk d' (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d' (\<lambda>t. updr s0 (p' t))"
           using main2[of s0 d' p', OF \<open>b s0\<close> pre(4,6,8,7)] by auto
         let ?Q' = "\<lambda>d s0. Q (updr s0 (p s0 d))"
         let ?e' = "\<lambda>d s0. e (updr s0 (p s0 d))"
@@ -651,13 +651,13 @@ inductive interrupt_solInf_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a 
 | "i < length specs \<Longrightarrow> specs ! i = InSpec2 ch Q \<Longrightarrow>
    0 < d \<Longrightarrow> Q d v s0 s tr \<Longrightarrow>
    rdy = rdy_of_comm_spec2 specs \<Longrightarrow>
-   interrupt_solInf_c p specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. p s0 \<tau>) rdy # InBlock ch v # tr)"
+   interrupt_solInf_c p specs s0 s (WaitBlk d (\<lambda>\<tau>. p s0 \<tau>) rdy # InBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch e Q \<Longrightarrow> v = e 0 s0 \<Longrightarrow>
    Q 0 s0 s tr \<Longrightarrow> interrupt_solInf_c p specs s0 s (OutBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch e Q \<Longrightarrow>
    0 < d \<Longrightarrow> Q d s0 s tr \<Longrightarrow> v = e d s0 \<Longrightarrow>
    rdy = rdy_of_comm_spec2 specs \<Longrightarrow>
-   interrupt_solInf_c p specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. p s0 \<tau>) rdy # OutBlock ch v # tr)"
+   interrupt_solInf_c p specs s0 s (WaitBlk d (\<lambda>\<tau>. p s0 \<tau>) rdy # OutBlock ch v # tr)"
 
 definition paramODEsolInf :: "ODE \<Rightarrow> ('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow> bool" where
   "paramODEsolInf ode p \<longleftrightarrow>
@@ -673,7 +673,7 @@ lemma interrupt_inf_c_unique:
 proof -
   have main:
     "p s d2 = p2 d2 \<and>
-     WaitBlock d2 (\<lambda>t\<in>{0..d2}. updr s (p s t)) = WaitBlock d2 (\<lambda>t\<in>{0..d2}. updr s (p2 t))"
+     WaitBlk d2 (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
     if cond: "0 < d2" "ODEsol ode p2 d2" "p2 0 = rpart s" for s p2 d2
   proof -
     interpret loc:ll_on_open_it "{-1<..}"
@@ -697,8 +697,8 @@ proof -
       using s7 s4 by (metis vec_state_map1)
     have s9: "p s d2 = p2 d2"
       using s8 that(1) by fastforce
-    have s10: "WaitBlock d2 (\<lambda>t\<in>{0..d2}. updr s (p s t)) = WaitBlock d2 (\<lambda>t\<in>{0..d2}. updr s (p2 t))"
-      using s7 s8 by fastforce
+    have s10: "WaitBlk d2 (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
+      apply (rule ext) apply (rule WaitBlk_eqI) using s7 s8 by auto
     show ?thesis using s8 s9 s10 by auto
   qed
   have p0: "p s0 0 = rpart s0"
@@ -722,7 +722,7 @@ proof -
       subgoal premises pre for i ch var Q d p2 v tr'
       proof -
         have a: "p s0 d = p2 d"
-             "WaitBlock d (\<lambda>t\<in>{0..d}. updr s0 (p s0 t)) = WaitBlock d (\<lambda>t\<in>{0..d}. updr s0 (p2 t))"
+             "WaitBlk d (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d (\<lambda>t. updr s0 (p2 t))"
           using main[of d p2 s0, OF pre(4,6,7)] by auto
         let ?Q' = "\<lambda>d v s0. Q (updr s0 ((p s0 d)(var := v)))"
         show ?thesis
@@ -741,7 +741,7 @@ proof -
       subgoal premises pre for i ch e Q d p2 tr'
       proof -
         have a: "p s0 d = p2 d"
-             "WaitBlock d (\<lambda>t\<in>{0..d}. updr s0 (p s0 t)) = WaitBlock d (\<lambda>t\<in>{0..d}. updr s0 (p2 t))"
+             "WaitBlk d (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d (\<lambda>t. updr s0 (p2 t))"
           using main[of d p2 s0, OF pre(4,6,7)] by auto
         let ?Q' = "\<lambda>d s0. Q (updr s0 (p s0 d))"
         let ?e' = "\<lambda>d s0. e (updr s0 (p s0 d))"
@@ -898,17 +898,17 @@ inductive interrupt_solInf_cg :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a
   "i < length specs \<Longrightarrow> specs ! i = InSpecg2 ch Q \<Longrightarrow>
    Q 0 v gs0 gs tr \<Longrightarrow> interrupt_solInf_cg p specs gs0 gs (InBlockP ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = InSpecg2 ch Q \<Longrightarrow>
-   0 < d \<Longrightarrow> Q d v gs0 gs tr \<Longrightarrow> p' = (\<lambda>\<tau>\<in>{0..d}. p gs0 \<tau>) \<Longrightarrow>
+   0 < d \<Longrightarrow> Q d v gs0 gs tr \<Longrightarrow> p' = (\<lambda>\<tau>. p gs0 \<tau>) \<Longrightarrow>
    rdy = rdy_of_comm_specg2 specs \<Longrightarrow>
-   interrupt_solInf_cg p specs gs0 gs (WaitBlockP d p' rdy # InBlockP ch v # tr)"
+   interrupt_solInf_cg p specs gs0 gs (WaitBlkP d p' rdy # InBlockP ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpecg2 ch e Q \<Longrightarrow>
    v = e 0 gs0 \<Longrightarrow>
    Q 0 gs0 gs tr \<Longrightarrow> interrupt_solInf_cg p specs gs0 gs (OutBlockP ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpecg2 ch e Q \<Longrightarrow>
-   0 < d \<Longrightarrow> Q d gs0 gs tr \<Longrightarrow> p' = (\<lambda>\<tau>\<in>{0..d}. p gs0 \<tau>) \<Longrightarrow>
+   0 < d \<Longrightarrow> Q d gs0 gs tr \<Longrightarrow> p' = (\<lambda>\<tau>. p gs0 \<tau>) \<Longrightarrow>
    v = e d gs0 \<Longrightarrow>
    rdy = rdy_of_comm_specg2 specs \<Longrightarrow>
-   interrupt_solInf_cg p specs gs0 gs (WaitBlockP d p' rdy # OutBlockP ch v # tr)"
+   interrupt_solInf_cg p specs gs0 gs (WaitBlkP d p' rdy # OutBlockP ch v # tr)"
 
 lemma single_assn_interrupt_solInf:
   "single_assn pn (interrupt_solInf_c p specs) =
@@ -984,9 +984,9 @@ fun spec_wait_of :: "real \<Rightarrow> ('a gstate \<Rightarrow> real \<Rightarr
 
 inductive wait_sol_cg :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate) \<Rightarrow> pname \<Rightarrow> 'a eexp \<Rightarrow>
                           (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
-  "e (the (gs0 pn)) > 0 \<Longrightarrow> d = e (the (gs0 pn)) \<Longrightarrow> p' = (\<lambda>t\<in>{0..d}. p gs0 t) \<Longrightarrow>
+  "e (the (gs0 pn)) > 0 \<Longrightarrow> d = e (the (gs0 pn)) \<Longrightarrow> p' = (\<lambda>t. p gs0 t) \<Longrightarrow>
    P d gs0 gs tr \<Longrightarrow> rdy = ({}, {}) \<Longrightarrow>
-   wait_sol_cg p pn e P gs0 gs (WaitBlockP d p' rdy # tr)"
+   wait_sol_cg p pn e P gs0 gs (WaitBlkP d p' rdy # tr)"
 | "\<not>e (the (gs0 pn)) > 0 \<Longrightarrow> P 0 gs0 gs tr \<Longrightarrow> wait_sol_cg p pn e P gs0 gs tr"
 
 lemma wait_sol_cg_mono:
@@ -1063,8 +1063,7 @@ lemma sync_gassn_interrupt_solInf_wait:
                 using assms(1,2) by auto
               subgoal apply (subst merge_state_eval2)
                 using assms(1,2) by auto
-              subgoal apply (rule ext) apply auto
-                apply (subst merge_path_eval)
+              subgoal apply (subst merge_path_eval)
                 using assms by auto
               apply (rule sync_gassn.intros) apply auto
               apply (rule interrupt_solInf_cg.intros(1)[of i _ _ "\<lambda>d' v. Q' (e (the (s12 pn2)) + d') v"])
@@ -1078,8 +1077,7 @@ lemma sync_gassn_interrupt_solInf_wait:
                 using assms(1,2) by auto
               subgoal apply (subst merge_state_eval2)
                 using assms(1,2) by auto
-              subgoal apply (rule ext) apply auto
-                apply (subst merge_path_eval)
+              subgoal apply (subst merge_path_eval)
                 using assms by auto
               apply (rule sync_gassn.intros) apply auto
               apply (rule interrupt_solInf_cg.intros(2)[of i _ _ "\<lambda>d' v. Q' (e (the (s12 pn2)) + d') v"])
@@ -1123,8 +1121,7 @@ lemma sync_gassn_interrupt_solInf_wait:
                 using assms(1,2) by auto
               subgoal apply (subst merge_state_eval2)
                 using assms(1,2) by auto
-              subgoal apply (rule ext) apply auto
-                apply (subst merge_path_eval)
+              subgoal apply (subst merge_path_eval)
                 using assms by auto
               apply (rule sync_gassn.intros) apply auto
               apply (rule interrupt_solInf_cg.intros(3)[of i _ _ "\<lambda>d'. e' (e (the (s12 pn2)) + d')"
@@ -1139,8 +1136,7 @@ lemma sync_gassn_interrupt_solInf_wait:
                 using assms(1,2) by auto
               subgoal apply (subst merge_state_eval2)
                 using assms(1,2) by auto
-              subgoal apply (rule ext) apply auto
-                apply (subst merge_path_eval)
+              subgoal apply (subst merge_path_eval)
                 using assms by auto
               apply (rule sync_gassn.intros) apply auto
               apply (rule interrupt_solInf_cg.intros(4)[of i _ _ "\<lambda>d'. e' (e (the (s12 pn2)) + d')"
@@ -1249,7 +1245,7 @@ text \<open>Basic assertion for invariants: wait for the specified amount of tim
 \<close>
 inductive wait_inv_cg :: "('a gstate \<Rightarrow> bool) \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2" where
   "d > 0 \<Longrightarrow> rdy = ({}, {}) \<Longrightarrow> \<forall>t\<in>{0..d}. I (p t) \<Longrightarrow> P gs0 gs tr \<Longrightarrow>
-   wait_inv_cg I P gs0 gs (WaitBlockP d (\<lambda>t\<in>{0..d}. p t) rdy # tr)"
+   wait_inv_cg I P gs0 gs (WaitBlkP d (\<lambda>t. p t) rdy # tr)"
 
 lemma wait_inv_cg_state:
   "wait_inv_cg I P (updg s0 pn var x) \<Longrightarrow>\<^sub>g wait_inv_cg I (\<lambda>s. P (updg s pn var x)) s0"
