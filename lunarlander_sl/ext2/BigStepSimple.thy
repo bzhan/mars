@@ -72,6 +72,15 @@ lemma upd_val_simp [simp]:
   "upd s X (val s X) = s"
   apply (cases s) by auto
 
+text \<open>The following lemmas need to be invoked by hand\<close>
+lemma updr_rpart_simp1:
+  "updr s ((rpart s)(X := v)) = upd s X v"
+  apply (cases s) by auto
+
+lemma updr_rpart_simp2:
+  "updr s ((rpart s)(X := v, Y := w)) = upd (upd s X v) Y w"
+  apply (cases s) by auto
+
 declare upd.simps [simp del]
 declare updr.simps [simp del]
 declare rpart.simps [simp del]
@@ -303,6 +312,9 @@ definition subste_assn2 :: "'a assn2 \<Rightarrow> ('a estate \<Rightarrow> 'a) 
   ("_ {{_}}" [90,90] 91) where 
   "P {{f}} = (\<lambda>s0. P (upde s0 (f s0)))"
 
+definition disj_assn2 :: "'a assn2 \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" (infixr "\<or>\<^sub>a" 35) where
+  "(P \<or>\<^sub>a Q) s0 = (\<lambda>s tr. P s0 s tr \<or> Q s0 s tr)"
+
 text \<open>Entailment relation between assertions\<close>
 definition entails :: "'a assn \<Rightarrow> 'a assn \<Rightarrow> bool" (infixr "\<Longrightarrow>\<^sub>A" 25) where
   "(P \<Longrightarrow>\<^sub>A Q) \<longleftrightarrow> (\<forall>s tr. P s tr \<longrightarrow> Q s tr)"
@@ -532,6 +544,14 @@ lemma Valid_basic_sp:
   unfolding Valid_def spec_of_def
   apply (auto elim!: seqE basicE)
   using assms unfolding spec_of_def Valid_def init_def subste_assn2_def by auto
+
+lemma spec_of_ichoice:
+  assumes "spec_of c1 Q1"
+    and "spec_of c2 Q2"
+  shows "spec_of (IChoice c1 c2) (Q1 \<or>\<^sub>a Q2)"
+  unfolding Valid_def spec_of_def
+  apply (auto elim!: ichoiceE)
+  using assms unfolding spec_of_def Valid_def disj_assn2_def by auto
 
 text \<open>Hoare rule for error\<close>
 lemma spec_of_error:
@@ -1147,6 +1167,9 @@ definition cond_gassn2 :: "pname \<Rightarrow> ('a estate \<Rightarrow> bool) \<
 definition conj_gassn :: "'a gassn \<Rightarrow> 'a gassn \<Rightarrow> 'a gassn" (infixr "\<and>\<^sub>g" 35) where
   "(P \<and>\<^sub>g Q) = (\<lambda>s tr. P s tr \<and> Q s tr)"
 
+definition disj_gassn :: "'a gassn2 \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2" (infixr "\<or>\<^sub>g" 35) where
+  "(P \<or>\<^sub>g Q) gs0 = (\<lambda>gs tr. P gs0 gs tr \<or> Q gs0 gs tr)"
+
 definition pure_gassn :: "bool \<Rightarrow> 'a gassn" ("!\<^sub>g[_]" [71] 70) where
   "(!\<^sub>g[b]) = (\<lambda>s tr. b)"
 
@@ -1235,6 +1258,22 @@ lemma single_assn_exists:
     apply (auto simp add: exists_gassn_def exists_assn_def)
       by (auto elim: single_assn.cases intro: single_assn.intros)
     done
+
+lemma single_assn_disj:
+  "single_assn pn (P \<or>\<^sub>a Q) = (single_assn pn P \<or>\<^sub>g single_assn pn Q)"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s0 s tr
+    apply (rule iffI)
+    subgoal apply (elim single_assn.cases) apply auto
+      subgoal for s0' s' tr'
+        unfolding disj_gassn_def disj_assn2_def
+        by (auto intro: single_assn.intros)
+      done
+    subgoal unfolding disj_gassn_def disj_assn2_def
+      apply (elim disjE single_assn.cases)
+      by (auto intro: single_assn.intros)
+    done
+  done
 
 lemma single_assn_wait_in:
   "single_assn pn (wait_in_c ch1 P) = wait_in_cg ch1 (\<lambda>d v. single_assn pn (P d v))"
@@ -1560,6 +1599,28 @@ lemma sync_gassn_false_right:
     unfolding false_gassn_def by auto
   done
 
+lemma sync_gassn_disj:
+  assumes "sync_gassn chs pns1 pns2 P1 Q gs0 \<Longrightarrow>\<^sub>g R"
+    and "sync_gassn chs pns1 pns2 P2 Q gs0 \<Longrightarrow>\<^sub>g R"
+  shows "sync_gassn chs pns1 pns2 (P1 \<or>\<^sub>g P2) Q gs0 \<Longrightarrow>\<^sub>g R"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases) apply auto
+    using assms unfolding disj_gassn_def entails_g_def
+    by (auto simp add: sync_gassn.intros)
+  done
+
+lemma sync_gassn_disj2:
+  assumes "sync_gassn chs pns1 pns2 P1 Q gs0 \<Longrightarrow>\<^sub>g R1 gs1"
+    and "sync_gassn chs pns1 pns2 P2 Q gs0 \<Longrightarrow>\<^sub>g R2 gs1"
+  shows "sync_gassn chs pns1 pns2 (P1 \<or>\<^sub>g P2) Q gs0 \<Longrightarrow>\<^sub>g (R1 \<or>\<^sub>g R2) gs1"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim sync_gassn.cases) apply auto
+    using assms unfolding disj_gassn_def entails_g_def
+    by (auto simp add: sync_gassn.intros)
+  done
+
 lemma exists_gassn_elim:
   assumes "\<And>n. P n \<Longrightarrow>\<^sub>g Q"
   shows "(\<exists>\<^sub>g n. P n) \<Longrightarrow>\<^sub>g Q"
@@ -1571,6 +1632,18 @@ lemma conj_pure_gassn_elim:
   shows "(!\<^sub>g[R] \<and>\<^sub>g P) \<Longrightarrow>\<^sub>g Q"
   using assms unfolding entails_g_def conj_gassn_def pure_gassn_def
   by auto
+
+lemma entails_g_disj:
+  assumes "P1 gs0 \<Longrightarrow>\<^sub>g R gs0"
+    and "P2 gs0 \<Longrightarrow>\<^sub>g R gs0"
+  shows "(P1 \<or>\<^sub>g P2) gs0 \<Longrightarrow>\<^sub>g R gs0"
+  using assms unfolding entails_g_def disj_gassn_def by auto
+
+lemma entails_g_disj2:
+  assumes "P1 gs0 \<Longrightarrow>\<^sub>g R1 gs0"
+    and "P2 gs0 \<Longrightarrow>\<^sub>g R2 gs0"
+  shows "(P1 \<or>\<^sub>g P2) gs0 \<Longrightarrow>\<^sub>g (R1 \<or>\<^sub>g R2) gs0"
+  using assms unfolding entails_g_def disj_gassn_def by auto
 
 lemma sync_gassn_ifg_left:
   assumes
