@@ -367,6 +367,12 @@ lemma sync_gassn_disj2:
     by (auto simp add: sync_gassn.intros)
   done
 
+lemma entails_g_disj:
+  assumes "P1 gs0 \<Longrightarrow>\<^sub>g R gs0"
+    and "P2 gs0 \<Longrightarrow>\<^sub>g R gs0"
+  shows "(P1 \<or>\<^sub>g P2) gs0 \<Longrightarrow>\<^sub>g R gs0"
+  using assms unfolding entails_g_def disj_gassn_def by auto
+
 lemma entails_g_disj2:
   assumes "P1 gs0 \<Longrightarrow>\<^sub>g R1 gs0"
     and "P2 gs0 \<Longrightarrow>\<^sub>g R2 gs0"
@@ -634,7 +640,7 @@ lemma sync_gassn_interrupt_solInf_out:
     done
   done
 
-lemma ex1b:
+lemma ex1':
   "spec_of_global
     (Parallel (Single ''a'' ex1a)
               {ch1, ch2}
@@ -715,15 +721,25 @@ text \<open>Basic assertion for invariants: wait for the specified amount of tim
   while all states in the path satisfy the given invariant, then the remaining
   trace satisfy the following assertion.
 \<close>
-inductive wait_inv_cg :: "('a gstate \<Rightarrow> bool) \<Rightarrow> real \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2" where
+inductive wait_inv_cg :: "('a gstate \<Rightarrow> bool) \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2" where
   "d > 0 \<Longrightarrow> rdy = ({}, {}) \<Longrightarrow> \<forall>t\<in>{0..d}. I (p t) \<Longrightarrow> P gs0 gs tr \<Longrightarrow>
-   wait_inv_cg I d P gs0 gs (WaitBlockP d (\<lambda>t\<in>{0..d}. p t) rdy # tr)"
+   wait_inv_cg I P gs0 gs (WaitBlockP d (\<lambda>t\<in>{0..d}. p t) rdy # tr)"
+
+lemma wait_inv_cg_state:
+  "wait_inv_cg I P (updg s0 pn var x) \<Longrightarrow>\<^sub>g wait_inv_cg I (\<lambda>s. P (updg s pn var x)) s0"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim wait_inv_cg.cases) apply auto
+    subgoal for p tr'
+      apply (rule wait_inv_cg.intros) by auto
+    done
+  done
 
 lemma wait_inv_cgI:
   assumes "e (the (gs0 pn)) = d"
     and "d > 0"
     and "\<forall>t\<in>{0..d}. I (p gs0 t)"
-  shows "wait_sol_cg p pn e P gs0 \<Longrightarrow>\<^sub>g wait_inv_cg I d (P d) gs0"
+  shows "wait_sol_cg p pn e P gs0 \<Longrightarrow>\<^sub>g wait_inv_cg I (P d) gs0"
   unfolding entails_g_def apply auto
   subgoal for s tr
     apply (elim wait_sol_cg.cases) apply auto
@@ -732,7 +748,7 @@ lemma wait_inv_cgI:
 
 lemma wait_inv_cg_mono:
   assumes "P1 s0 \<Longrightarrow>\<^sub>g P2 s0"
-  shows "wait_inv_cg I d P1 s0 \<Longrightarrow>\<^sub>g wait_inv_cg I d P2 s0"
+  shows "wait_inv_cg I P1 s0 \<Longrightarrow>\<^sub>g wait_inv_cg I P2 s0"
   unfolding entails_g_def apply auto
   subgoal for s tr
     apply (elim wait_inv_cg.cases) apply auto
@@ -790,7 +806,22 @@ lemma merge_test:
     done
   done
 
-lemma test:
+lemma merge_test2:
+  assumes "proc_set s0 = {''a'', ''b''}"
+  shows
+  "merge_path {''a''} {''b''} (single_path ''a'' (\<lambda>s t. upd s X (val s X + t))) id_path s0 =
+   (\<lambda>t. updg s0 ''a'' X (valg s0 ''a'' X + t))"
+  apply (rule merge_state_elim[of s0 "{''a''}" "{''b''}"])
+  using assms apply auto[1] apply auto[1]
+  subgoal for s1 s2
+    apply simp apply (rule ext) subgoal for t
+      apply (subst merge_path_eval) apply auto[1] apply auto[1] apply auto[1]
+      by (simp add: single_path_def valg_def[symmetric] updg_def[symmetric]
+                    merge_state_updg_left valg_merge_state_left)
+    done
+  done
+
+lemma ex1'':
   assumes "proc_set s0 = {''a'', ''b''}"
   shows
   "((wait_sol_cg
@@ -798,26 +829,82 @@ lemma test:
       ''b'' (\<lambda>s. val s Y)
       (\<lambda>d. (init_single {''b'', ''a''} {{Y := (\<lambda>_. 0)}}\<^sub>g at ''a'')
                                        {{X := (\<lambda>s. val s X + 2 * d)}}\<^sub>g at ''a'')
-        {{Y := (\<lambda>_. 1)}}\<^sub>g at ''b'') {{X := (\<lambda>_. 0)}}\<^sub>g at ''a'') s0 \<Longrightarrow>\<^sub>g
-    (wait_inv_cg (\<lambda>gs. valg gs ''a'' X \<in> {0..2}) 1
-        (\<lambda>s0. init_single {''b'', ''a''} (updg (updg s0 ''a'' X 2) ''a'' Y 0)))
-        ((updg (updg s0 ''a'' X 0) ''b'' Y 1))"
+        {{Y := (\<lambda>_. 1)}}\<^sub>g at ''b'' \<or>\<^sub>g
+     wait_sol_cg
+      (merge_path {''a''} {''b''} (single_path ''a'' (\<lambda>s t. upd s X (val s X + t))) id_path)
+      ''b'' (\<lambda>s. val s Y)
+      (\<lambda>d. (init_single {''b'', ''a''} {{Y := (\<lambda>_. 0)}}\<^sub>g at ''a'')
+                                       {{X := (\<lambda>s. val s X + d)}}\<^sub>g at ''a'')
+        {{Y := (\<lambda>_. 2)}}\<^sub>g at ''b'') {{X := (\<lambda>_. 0)}}\<^sub>g at ''a'') s0 \<Longrightarrow>\<^sub>g
+    (wait_inv_cg (\<lambda>gs. valg gs ''a'' X \<in> {0..2})
+        (\<lambda>s0. \<exists>\<^sub>gs1. !\<^sub>g[(valg s1 ''a'' X = 2)] \<and>\<^sub>g init_single {''b'', ''a''} s1)) s0"
   apply (rule entails_g_trans)
    apply (rule gassn_subst)
-  apply (rule entails_g_trans)
-   apply (rule gassn_subst)
-  apply (rule entails_g_trans)
-   apply (rule wait_inv_cgI[where d=1 and I="\<lambda>gs. valg gs ''a'' X \<in> {0..2}"])
-     apply (simp only: valg_def[symmetric]) apply auto[1]
-  apply auto[1]
-  subgoal apply (subst merge_test)
-    using assms by auto
-  apply (rule wait_inv_cg_mono)
-  apply (rule entails_g_trans)
-   apply (rule gassn_subst)
-  apply (rule entails_g_trans)
-   apply (rule gassn_subst)
-  apply (simp only: valg_def[symmetric]) apply auto
-  by (rule entails_g_triv)
+  apply (rule entails_g_disj)
+  subgoal
+    (* Left branch *)
+    apply (rule entails_g_trans)
+     apply (rule gassn_subst)
+    apply (rule entails_g_trans)
+     apply (rule wait_inv_cgI[where d=1 and I="\<lambda>gs. valg gs ''a'' X \<in> {0..2}"])
+       apply (simp only: valg_def[symmetric]) apply auto[1]
+      apply auto[1]
+    subgoal apply (subst merge_test)
+      using assms by auto
+    apply (rule entails_g_trans)
+     apply (rule wait_inv_cg_state)
+    apply (rule entails_g_trans)
+     apply (rule wait_inv_cg_state)
+    apply (rule wait_inv_cg_mono)
+    apply (rule entails_g_trans)
+     apply (rule gassn_subst)
+    apply (rule entails_g_trans)
+     apply (rule gassn_subst)
+    apply (simp only: valg_def[symmetric]) apply auto
+    apply (rule exists_gassn_intro)
+    apply (rule exI[where x="updg (updg (updg (updg s0 ''a'' X 0) ''b'' Y 1) ''a'' X 2) ''a'' Y 0"])
+    apply (rule conj_gassn_intro)
+     apply (rule pure_gassn_intro)
+    by (auto simp add: entails_g_def X_def Y_def)
+  subgoal
+    (* Right branch *)
+    apply (rule entails_g_trans)
+     apply (rule gassn_subst)
+    apply (rule entails_g_trans)
+     apply (rule wait_inv_cgI[where d=2 and I="\<lambda>gs. valg gs ''a'' X \<in> {0..2}"])
+       apply (simp only: valg_def[symmetric]) apply auto[1]
+      apply auto[1]
+    subgoal apply (subst merge_test2)
+      using assms by auto
+    apply (rule entails_g_trans)
+     apply (rule wait_inv_cg_state)
+    apply (rule entails_g_trans)
+     apply (rule wait_inv_cg_state)
+    apply (rule wait_inv_cg_mono)
+    apply (rule entails_g_trans)
+     apply (rule gassn_subst)
+    apply (rule entails_g_trans)
+     apply (rule gassn_subst)
+    apply (simp only: valg_def[symmetric]) apply auto
+    apply (rule exists_gassn_intro)
+    apply (rule exI[where x="updg (updg (updg (updg s0 ''a'' X 0) ''b'' Y 2) ''a'' X 2) ''a'' Y 0"])
+    apply (rule conj_gassn_intro)
+     apply (rule pure_gassn_intro)
+    by (auto simp add: entails_g_def X_def Y_def)
+  done
+
+lemma ex1:
+  assumes "proc_set s0 = {''a'', ''b''}"
+  shows
+  "\<Turnstile>\<^sub>p {init_global s0}
+        (Parallel (Single ''a'' ex1a)
+                  {ch1, ch2}
+                  (Single ''b'' ex1b))
+      {(wait_inv_cg (\<lambda>gs. valg gs ''a'' X \<in> {0..2})
+        (\<lambda>s0. \<exists>\<^sub>gs1. !\<^sub>g[(valg s1 ''a'' X = 2)] \<and>\<^sub>g init_single {''b'', ''a''} s1)) s0}"
+  apply (rule weaken_post_global)
+   apply (rule spec_of_globalE[OF ex1'])
+  apply (rule ex1'')
+  using assms by auto
 
 end
