@@ -2,11 +2,16 @@ theory BigStepContinuousEx
   imports BigStepContinuous
 begin
 
+definition A :: pname where "A = ''a''"
+definition B :: pname where "B = ''b''"
+definition C :: pname where "C = ''c''"
 definition X :: char where "X = CHR ''x''"
 definition Y :: char where "Y = CHR ''y''"
 definition Z :: char where "Z = CHR ''z''"
 definition ch1 :: cname where "ch1 = ''ch1''"
 definition ch2 :: cname where "ch2 = ''ch2''"
+
+lemma pname_neq [simp]: "A \<noteq> B" by (auto simp add: A_def B_def)
 
 subsection \<open>Basic tests\<close>
 
@@ -289,21 +294,21 @@ lemma ex1b_sp:
 
 lemma ex1':
   "spec_of_global
-    (Parallel (Single ''a'' ex1a)
+    (Parallel (Single A ex1a)
               {ch1, ch2}
-              (Single ''b'' ex1b))
+              (Single B ex1b))
    ((wait_sol_cg
-      (merge_path {''a''} {''b''} (single_path ''a'' (\<lambda>s t. upd s X (val s X + 2 * t))) id_path)
-      ''b'' (\<lambda>s. val s Y)
-      (\<lambda>d. (init_single {''b'', ''a''} {{Y := (\<lambda>_. 0)}}\<^sub>g at ''a'')
-                                       {{X := (\<lambda>s. val s X + 2 * d)}}\<^sub>g at ''a'')
-        {{Y := (\<lambda>_. 1)}}\<^sub>g at ''b'' \<or>\<^sub>g
+      (merge_path {A} {B} (single_path A (\<lambda>s t. upd s X (val s X + 2 * t))) id_path)
+      B (\<lambda>s. val s Y)
+      (\<lambda>d. (init_single {B, A} {{Y := (\<lambda>_. 0)}}\<^sub>g at A)
+                                       {{X := (\<lambda>s. val s X + 2 * d)}}\<^sub>g at A)
+        {{Y := (\<lambda>_. 1)}}\<^sub>g at B \<or>\<^sub>g
      wait_sol_cg
-      (merge_path {''a''} {''b''} (single_path ''a'' (\<lambda>s t. upd s X (val s X + t))) id_path)
-      ''b'' (\<lambda>s. val s Y)
-      (\<lambda>d. (init_single {''b'', ''a''} {{Y := (\<lambda>_. 0)}}\<^sub>g at ''a'')
-                                       {{X := (\<lambda>s. val s X + d)}}\<^sub>g at ''a'')
-        {{Y := (\<lambda>_. 2)}}\<^sub>g at ''b'') {{X := (\<lambda>_. 0)}}\<^sub>g at ''a'')"
+      (merge_path {A} {B} (single_path A (\<lambda>s t. upd s X (val s X + t))) id_path)
+      B (\<lambda>s. val s Y)
+      (\<lambda>d. (init_single {B, A} {{Y := (\<lambda>_. 0)}}\<^sub>g at A)
+                                       {{X := (\<lambda>s. val s X + d)}}\<^sub>g at A)
+        {{Y := (\<lambda>_. 2)}}\<^sub>g at B) {{X := (\<lambda>_. 0)}}\<^sub>g at A)"
   (* Stage 1: merge ex1a_sp and ex1b_sp *)
   apply (rule spec_of_global_post)
    apply (rule spec_of_parallel)
@@ -363,46 +368,46 @@ lemma ex1':
   done
 
 lemma ex1_merge1:
-  assumes "proc_set s0 = {''a'', ''b''}"
+  assumes "proc_set s0 = {A, B}"
   shows
-  "merge_path {''a''} {''b''} (single_path ''a'' (\<lambda>s t. upd s X (val s X + 2 * t))) id_path s0 =
-   (\<lambda>t. updg s0 ''a'' X (valg s0 ''a'' X + 2 * t))"
-  apply (rule merge_state_elim[of s0 "{''a''}" "{''b''}"])
-  using assms apply auto[2]
-  apply simp apply (rule ext)
-  apply (subst merge_path_eval) apply auto[3]
+  "merge_path {A} {B} (single_path A (\<lambda>s t. upd s X (val s X + 2 * t))) id_path s0 =
+   (\<lambda>t. updg s0 A X (valg s0 A X + 2 * t))"
+  apply (rule merge_state_elim[of s0 "{A}" "{B}"])
+  using assms apply auto
+  apply (rule ext)
+  apply (subst merge_path_eval) apply auto
   by (simp add: single_path_def valg_def[symmetric] updg_def[symmetric]
-      merge_state_updg_left valg_merge_state_left)
+      single_subst_merge_state1[symmetric] valg_merge_state_left)
 
 lemma ex1_merge2:
-  assumes "proc_set s0 = {''a'', ''b''}"
+  assumes "proc_set s0 = {A, B}"
   shows
-  "merge_path {''a''} {''b''} (single_path ''a'' (\<lambda>s t. upd s X (val s X + t))) id_path s0 =
-   (\<lambda>t. updg s0 ''a'' X (valg s0 ''a'' X + t))"
-  apply (rule merge_state_elim[of s0 "{''a''}" "{''b''}"])
-  using assms apply auto[2]
-  apply simp apply (rule ext)
-  apply (subst merge_path_eval) apply auto[3]
+  "merge_path {A} {B} (single_path A (\<lambda>s t. upd s X (val s X + t))) id_path s0 =
+   (\<lambda>t. updg s0 A X (valg s0 A X + t))"
+  apply (rule merge_state_elim[of s0 "{A}" "{B}"])
+  using assms apply auto
+  apply (rule ext)
+  apply (subst merge_path_eval) apply auto
   by (simp add: single_path_def valg_def[symmetric] updg_def[symmetric]
-      merge_state_updg_left valg_merge_state_left)
+      single_subst_merge_state1[symmetric] valg_merge_state_left)
 
 lemma ex1'':
-  assumes "proc_set s0 = {''a'', ''b''}"
+  assumes "proc_set s0 = {A, B}"
   shows
   "((wait_sol_cg
-      (merge_path {''a''} {''b''} (single_path ''a'' (\<lambda>s t. upd s X (val s X + 2 * t))) id_path)
-      ''b'' (\<lambda>s. val s Y)
-      (\<lambda>d. (init_single {''b'', ''a''} {{Y := (\<lambda>_. 0)}}\<^sub>g at ''a'')
-                                       {{X := (\<lambda>s. val s X + 2 * d)}}\<^sub>g at ''a'')
-        {{Y := (\<lambda>_. 1)}}\<^sub>g at ''b'' \<or>\<^sub>g
+      (merge_path {A} {B} (single_path A (\<lambda>s t. upd s X (val s X + 2 * t))) id_path)
+      B (\<lambda>s. val s Y)
+      (\<lambda>d. (init_single {B, A} {{Y := (\<lambda>_. 0)}}\<^sub>g at A)
+                                       {{X := (\<lambda>s. val s X + 2 * d)}}\<^sub>g at A)
+        {{Y := (\<lambda>_. 1)}}\<^sub>g at B \<or>\<^sub>g
      wait_sol_cg
-      (merge_path {''a''} {''b''} (single_path ''a'' (\<lambda>s t. upd s X (val s X + t))) id_path)
-      ''b'' (\<lambda>s. val s Y)
-      (\<lambda>d. (init_single {''b'', ''a''} {{Y := (\<lambda>_. 0)}}\<^sub>g at ''a'')
-                                       {{X := (\<lambda>s. val s X + d)}}\<^sub>g at ''a'')
-        {{Y := (\<lambda>_. 2)}}\<^sub>g at ''b'') {{X := (\<lambda>_. 0)}}\<^sub>g at ''a'') s0 \<Longrightarrow>\<^sub>g
-    (wait_inv_cg (\<lambda>gs. valg gs ''a'' X \<in> {0..2})
-        (\<lambda>s0. \<exists>\<^sub>gs1. !\<^sub>g[(valg s1 ''a'' X = 2)] \<and>\<^sub>g init_single {''b'', ''a''} s1)) s0"
+      (merge_path {A} {B} (single_path A (\<lambda>s t. upd s X (val s X + t))) id_path)
+      B (\<lambda>s. val s Y)
+      (\<lambda>d. (init_single {B, A} {{Y := (\<lambda>_. 0)}}\<^sub>g at A)
+                                       {{X := (\<lambda>s. val s X + d)}}\<^sub>g at A)
+        {{Y := (\<lambda>_. 2)}}\<^sub>g at B) {{X := (\<lambda>_. 0)}}\<^sub>g at A) s0 \<Longrightarrow>\<^sub>g
+    (wait_inv_cg (\<lambda>gs. valg gs A X \<in> {0..2})
+        (\<lambda>s0. \<exists>\<^sub>gs1. !\<^sub>g[(valg s1 A X = 2)] \<and>\<^sub>g init_single {B, A} s1)) s0"
   apply (rule entails_g_trans)
    apply (rule gassn_subst)
   apply (rule entails_g_disj)
@@ -411,11 +416,11 @@ lemma ex1'':
     apply (rule entails_g_trans)
      apply (rule gassn_subst)
     apply (rule entails_g_trans)
-     apply (rule wait_inv_cgI[where d=1 and I="\<lambda>gs. valg gs ''a'' X \<in> {0..2}"])
+     apply (rule wait_inv_cgI[where d=1 and I="\<lambda>gs. valg gs A X \<in> {0..2}"])
        apply (simp only: valg_def[symmetric]) apply auto[1]
       apply auto[1]
     subgoal apply (subst ex1_merge1)
-      using assms by auto
+      using assms by (auto simp add: A_def B_def)
     apply (rule entails_g_trans)
      apply (rule wait_inv_cg_state)
     apply (rule entails_g_trans)
@@ -427,20 +432,20 @@ lemma ex1'':
      apply (rule gassn_subst)
     apply (simp only: valg_def[symmetric]) apply auto
     apply (rule exists_gassn_intro)
-    apply (rule exI[where x="updg (updg (updg (updg s0 ''a'' X 0) ''b'' Y 1) ''a'' X 2) ''a'' Y 0"])
+    apply (rule exI[where x="updg (updg (updg (updg s0 A X 0) B Y 1) A X 2) A Y 0"])
     apply (rule conj_gassn_intro)
      apply (rule pure_gassn_intro)
-    by (auto simp add: entails_g_def X_def Y_def)
+    by (auto simp add: entails_g_def X_def Y_def A_def B_def)
   subgoal
     (* Right branch *)
     apply (rule entails_g_trans)
      apply (rule gassn_subst)
     apply (rule entails_g_trans)
-     apply (rule wait_inv_cgI[where d=2 and I="\<lambda>gs. valg gs ''a'' X \<in> {0..2}"])
+     apply (rule wait_inv_cgI[where d=2 and I="\<lambda>gs. valg gs A X \<in> {0..2}"])
        apply (simp only: valg_def[symmetric]) apply auto[1]
       apply auto[1]
     subgoal apply (subst ex1_merge2)
-      using assms by auto
+      using assms by (auto simp add: A_def B_def)
     apply (rule entails_g_trans)
      apply (rule wait_inv_cg_state)
     apply (rule entails_g_trans)
@@ -450,23 +455,23 @@ lemma ex1'':
      apply (rule gassn_subst)
     apply (rule entails_g_trans)
      apply (rule gassn_subst)
-    apply (simp only: valg_def[symmetric]) apply auto
+    apply (simp only: valg_def[symmetric]) apply (auto simp add: A_def B_def)
     apply (rule exists_gassn_intro)
-    apply (rule exI[where x="updg (updg (updg (updg s0 ''a'' X 0) ''b'' Y 2) ''a'' X 2) ''a'' Y 0"])
+    apply (rule exI[where x="updg (updg (updg (updg s0 A X 0) B Y 2) A X 2) A Y 0"])
     apply (rule conj_gassn_intro)
      apply (rule pure_gassn_intro)
-    by (auto simp add: entails_g_def X_def Y_def)
+    by (auto simp add: entails_g_def X_def Y_def A_def B_def)
   done
 
 lemma ex1:
-  assumes "proc_set s0 = {''a'', ''b''}"
+  assumes "proc_set s0 = {A, B}"
   shows
   "\<Turnstile>\<^sub>p {init_global s0}
-        (Parallel (Single ''a'' ex1a)
+        (Parallel (Single A ex1a)
                   {ch1, ch2}
-                  (Single ''b'' ex1b))
-      {(wait_inv_cg (\<lambda>gs. valg gs ''a'' X \<in> {0..2})
-        (\<lambda>s0. \<exists>\<^sub>gs1. !\<^sub>g[(valg s1 ''a'' X = 2)] \<and>\<^sub>g init_single {''b'', ''a''} s1)) s0}"
+                  (Single B ex1b))
+      {(wait_inv_cg (\<lambda>gs. valg gs A X \<in> {0..2})
+        (\<lambda>s0. \<exists>\<^sub>gs1. !\<^sub>g[(valg s1 A X = 2)] \<and>\<^sub>g init_single {B, A} s1)) s0}"
   apply (rule weaken_post_global)
    apply (rule spec_of_globalE[OF ex1'])
   apply (rule ex1'')
@@ -502,105 +507,6 @@ fun ex2a_c :: "nat \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" where
         (\<lambda>d. interrupt_solInf_c (\<lambda>s t. upd s X (val s X + t))
                                 [InSpec2 ch2 (\<lambda>d v. (ex2a_c n Q) {{Y := (\<lambda>_. v)}} {{X := (\<lambda>s. val s X + d)}})]))
       {{X := (\<lambda>_. 0)}})"
-
-lemma big_step_ichoice_distrib:
-  "big_step (IChoice c1 c2; c) s1 tr1 s2 \<longleftrightarrow>
-   big_step (IChoice (c1; c) (c2; c)) s1 tr1 s2"
-  apply (rule iffI)
-  subgoal apply (elim seqE ichoiceE)
-    by (auto intro: IChoiceB1 IChoiceB2 seqB)
-  subgoal apply (elim seqE ichoiceE)
-    by (auto intro: IChoiceB1 IChoiceB2 seqB)
-  done
-
-lemma spec_of_ichoice_distrib:
-  "spec_of (IChoice c1 c2; c) Q \<longleftrightarrow> spec_of (IChoice (c1; c) (c2; c)) Q"
-  unfolding spec_of_def Valid_def
-  using big_step_ichoice_distrib by blast
-
-fun cs_append :: "'a proc \<Rightarrow> 'a comm \<times> 'a proc \<Rightarrow> 'a comm \<times> 'a proc" where
-  "cs_append c (ch[!]e, p) = (ch[!]e, p; c)"
-| "cs_append c (ch[?]var, p) = (ch[?]var, p; c)"
-
-lemma cs_appendE1:
-  "cs_append c es = (ch[!]e, p2) \<Longrightarrow> (\<And>p. es = (ch[!]e, p) \<Longrightarrow> p2 = p; c \<Longrightarrow> P) \<Longrightarrow> P"
-  apply (cases es) subgoal for comm proc
-    apply (cases comm) by auto
-  done
-
-lemma cs_appendE2:
-  "cs_append c es = (ch[?]var, p2) \<Longrightarrow> (\<And>p. es = (ch[?]var, p) \<Longrightarrow> p2 = p; c \<Longrightarrow> P) \<Longrightarrow> P"
-  apply (cases es) subgoal for comm proc
-    apply (cases comm) by auto
-  done
-
-lemma rdy_of_echoice_cs_append [simp]:
-  "rdy_of_echoice (map (cs_append c) cs) = rdy_of_echoice cs"
-  unfolding rdy_of_echoice_def apply (rule sym)
-  apply (rule rdy_info_of_list_cong)
-  apply (rule rel_list_map)
-  subgoal for es apply (cases es)
-    subgoal for comm proc apply (cases comm) by auto
-    done
-  done
-
-lemma cons_append:
-  "x # ys @ zs = (x # ys) @ zs"
-  by auto
-
-lemma big_step_interrupt_distrib:
-  "big_step (Interrupt ode b cs pr; c) s1 tr s2 \<longleftrightarrow>
-   big_step (Interrupt ode b (map (cs_append c) cs) (pr; c)) s1 tr s2"
-  apply (rule iffI)
-  subgoal apply (elim seqE interruptE)
-    by (auto intro: big_step.intros)
-  subgoal apply (elim interruptE) apply auto
-    subgoal for i ch e p2 tr2
-      apply (elim cs_appendE1) subgoal for p
-        apply auto apply (elim seqE)
-        by (auto simp only: cons_append intro: seqB InterruptSendB1)
-      done
-    subgoal for d p i ch e p2 tr2
-      apply (elim cs_appendE1) subgoal for p'
-        apply auto apply (elim seqE)
-        by (auto simp only: cons_append intro: seqB InterruptSendB2)
-      done
-    subgoal for i ch var p2 v tr2
-      apply (elim cs_appendE2) subgoal for p'
-        apply auto apply (elim seqE)
-        by (auto simp only: cons_append intro: seqB InterruptReceiveB1)
-      done
-    subgoal for d p i ch var p2 v tr2
-      apply (elim cs_appendE2) subgoal for p'
-        apply auto apply (elim seqE)
-        by (auto simp only: cons_append intro: seqB InterruptReceiveB2)
-      done
-    subgoal
-      apply (elim seqE)
-      by (auto simp only: cons_append intro: seqB InterruptB1)
-    subgoal for d p tr2
-      apply (elim seqE)
-      by (auto simp only: cons_append intro: seqB InterruptB2)
-    done
-  done
-
-lemma spec_of_interrupt_distrib:
-  "spec_of (Interrupt ode b cs pr; c) Q \<longleftrightarrow>
-   spec_of (Interrupt ode b (map (cs_append c) cs) (pr; c)) Q"
-  unfolding spec_of_def Valid_def
-  using big_step_interrupt_distrib by blast
-
-lemma big_step_skip_left:
-  "big_step (Skip; c) s1 tr s2 \<longleftrightarrow> big_step c s1 tr s2"
-  apply (rule iffI)
-  subgoal apply (elim seqE skipE) by (auto intro!: seqB)
-  subgoal by (metis append_Nil seqB skipB)
-  done
-
-lemma spec_of_skip_left:
-  "spec_of (Skip; c) Q \<longleftrightarrow> spec_of c Q"
-  unfolding spec_of_def Valid_def
-  using big_step_skip_left by blast
 
 lemma ex2a_sp:
   "spec_of ex2a
@@ -663,25 +569,25 @@ lemma ex2b_sp:
   done
 
 lemma ex2':
-  "sync_gassn {ch1, ch2} {''a''} {''b''}
-    (single_assn ''a'' (ex2a_c (Suc n1) init))
-    (single_assn ''b'' (ex2b_c (Suc n2) init)) s0 \<Longrightarrow>\<^sub>g
+  "sync_gassn {ch1, ch2} {A} {B}
+    (single_assn A (ex2a_c (Suc n1) init))
+    (single_assn B (ex2b_c (Suc n2) init)) s0 \<Longrightarrow>\<^sub>g
    ((wait_sol_cg
-      (merge_path {''a''} {''b''} (single_path ''a'' (\<lambda>s t. upd s X (val s X + 2 * t))) id_path)
-      ''b'' (\<lambda>s. val s Y)
-      (\<lambda>d. (sync_gassn {ch1, ch2} {''a''} {''b''}
-             (single_assn ''a'' (ex2a_c n1 init))
-             (single_assn ''b'' (ex2b_c n2 init))
-             {{Y := (\<lambda>a. 0)}}\<^sub>g at ''a'' {{X := (\<lambda>s. val s X + 2 * d)}}\<^sub>g at ''a''))
-        {{Y := (\<lambda>_. 1)}}\<^sub>g at ''b'' \<or>\<^sub>g
+      (merge_path {A} {B} (single_path A (\<lambda>s t. upd s X (val s X + 2 * t))) id_path)
+      B (\<lambda>s. val s Y)
+      (\<lambda>d. (sync_gassn {ch1, ch2} {A} {B}
+             (single_assn A (ex2a_c n1 init))
+             (single_assn B (ex2b_c n2 init))
+             {{Y := (\<lambda>a. 0)}}\<^sub>g at A {{X := (\<lambda>s. val s X + 2 * d)}}\<^sub>g at A))
+        {{Y := (\<lambda>_. 1)}}\<^sub>g at B \<or>\<^sub>g
      wait_sol_cg
-      (merge_path {''a''} {''b''} (single_path ''a'' (\<lambda>s t. upd s X (val s X + t))) id_path)
-      ''b'' (\<lambda>s. val s Y)
-      (\<lambda>d. (sync_gassn {ch1, ch2} {''a''} {''b''}
-             (single_assn ''a'' (ex2a_c n1 init))
-             (single_assn ''b'' (ex2b_c n2 init))
-             {{Y := (\<lambda>a. 0)}}\<^sub>g at ''a'' {{X := (\<lambda>s. val s X + d)}}\<^sub>g at ''a''))
-        {{Y := (\<lambda>_. 2)}}\<^sub>g at ''b'') {{X := (\<lambda>_. 0)}}\<^sub>g at ''a'') s0"
+      (merge_path {A} {B} (single_path A (\<lambda>s t. upd s X (val s X + t))) id_path)
+      B (\<lambda>s. val s Y)
+      (\<lambda>d. (sync_gassn {ch1, ch2} {A} {B}
+             (single_assn A (ex2a_c n1 init))
+             (single_assn B (ex2b_c n2 init))
+             {{Y := (\<lambda>a. 0)}}\<^sub>g at A {{X := (\<lambda>s. val s X + d)}}\<^sub>g at A))
+        {{Y := (\<lambda>_. 2)}}\<^sub>g at B) {{X := (\<lambda>_. 0)}}\<^sub>g at A) s0"
   apply (auto simp add: single_assn_simps)
   apply (rule entails_g_trans)
    apply (rule sync_gassn_subst_left) apply auto
@@ -690,7 +596,7 @@ lemma ex2':
   (* Left branch *)
   subgoal
     apply (rule entails_g_trans)
-     apply (rule sync_gassn_out_in) apply auto
+     apply (rule sync_gassn_out_in) apply (auto simp add: A_def B_def)
     apply (rule entails_g_trans)
      apply (rule sync_gassn_subst_right) apply auto
     apply (rule updg_mono)
@@ -708,7 +614,7 @@ lemma ex2':
     by (rule entails_g_triv)
   subgoal
     apply (rule entails_g_trans)
-     apply (rule sync_gassn_out_in) apply auto
+     apply (rule sync_gassn_out_in) apply (auto simp add: A_def B_def)
     apply (rule entails_g_trans)
      apply (rule sync_gassn_subst_right) apply auto
     apply (rule updg_mono)
@@ -727,29 +633,29 @@ lemma ex2':
   done
 
 lemma ex2'':
-  assumes "proc_set s0 = {''a'', ''b''}"
+  assumes "proc_set s0 = {A, B}"
   shows
    "((wait_sol_cg
-      (merge_path {''a''} {''b''} (single_path ''a'' (\<lambda>s t. upd s X (val s X + 2 * t))) id_path)
-      ''b'' (\<lambda>s. val s Y)
-      (\<lambda>d. (sync_gassn {ch1, ch2} {''a''} {''b''}
-             (single_assn ''a'' (ex2a_c n1 init))
-             (single_assn ''b'' (ex2b_c n2 init))
-             {{Y := (\<lambda>a. 0)}}\<^sub>g at ''a'' {{X := (\<lambda>s. val s X + 2 * d)}}\<^sub>g at ''a''))
-        {{Y := (\<lambda>_. 1)}}\<^sub>g at ''b'' \<or>\<^sub>g
+      (merge_path {A} {B} (single_path A (\<lambda>s t. upd s X (val s X + 2 * t))) id_path)
+      B (\<lambda>s. val s Y)
+      (\<lambda>d. (sync_gassn {ch1, ch2} {A} {B}
+             (single_assn A (ex2a_c n1 init))
+             (single_assn B (ex2b_c n2 init))
+             {{Y := (\<lambda>a. 0)}}\<^sub>g at A {{X := (\<lambda>s. val s X + 2 * d)}}\<^sub>g at A))
+        {{Y := (\<lambda>_. 1)}}\<^sub>g at B \<or>\<^sub>g
      wait_sol_cg
-      (merge_path {''a''} {''b''} (single_path ''a'' (\<lambda>s t. upd s X (val s X + t))) id_path)
-      ''b'' (\<lambda>s. val s Y)
-      (\<lambda>d. (sync_gassn {ch1, ch2} {''a''} {''b''}
-             (single_assn ''a'' (ex2a_c n1 init))
-             (single_assn ''b'' (ex2b_c n2 init))
-             {{Y := (\<lambda>a. 0)}}\<^sub>g at ''a'' {{X := (\<lambda>s. val s X + d)}}\<^sub>g at ''a''))
-        {{Y := (\<lambda>_. 2)}}\<^sub>g at ''b'') {{X := (\<lambda>_. 0)}}\<^sub>g at ''a'') s0 \<Longrightarrow>\<^sub>g
-    (wait_inv_cg (\<lambda>gs. valg gs ''a'' X \<in> {0..2})
-       (\<lambda>s0. \<exists>\<^sub>gs1. !\<^sub>g[(valg s1 ''a'' X = 2)] \<and>\<^sub>g !\<^sub>g[(proc_set s1 = {''a'', ''b''})] \<and>\<^sub>g
-         sync_gassn {ch1, ch2} {''a''} {''b''}
-            (single_assn ''a'' (ex2a_c n1 init))
-            (single_assn ''b'' (ex2b_c n2 init)) s1)) s0"
+      (merge_path {A} {B} (single_path A (\<lambda>s t. upd s X (val s X + t))) id_path)
+      B (\<lambda>s. val s Y)
+      (\<lambda>d. (sync_gassn {ch1, ch2} {A} {B}
+             (single_assn A (ex2a_c n1 init))
+             (single_assn B (ex2b_c n2 init))
+             {{Y := (\<lambda>a. 0)}}\<^sub>g at A {{X := (\<lambda>s. val s X + d)}}\<^sub>g at A))
+        {{Y := (\<lambda>_. 2)}}\<^sub>g at B) {{X := (\<lambda>_. 0)}}\<^sub>g at A) s0 \<Longrightarrow>\<^sub>g
+    (wait_inv_cg (\<lambda>gs. valg gs A X \<in> {0..2})
+       (\<lambda>s0. \<exists>\<^sub>gs1. !\<^sub>g[(valg s1 A X = 2)] \<and>\<^sub>g !\<^sub>g[(proc_set s1 = {A, B})] \<and>\<^sub>g
+         sync_gassn {ch1, ch2} {A} {B}
+            (single_assn A (ex2a_c n1 init))
+            (single_assn B (ex2b_c n2 init)) s1)) s0"
   apply (rule entails_g_trans)
    apply (rule gassn_subst)
   apply (rule entails_g_disj)
@@ -758,11 +664,11 @@ lemma ex2'':
     apply (rule entails_g_trans)
      apply (rule gassn_subst)
     apply (rule entails_g_trans)
-     apply (rule wait_inv_cgI[where d=1 and I="\<lambda>gs. valg gs ''a'' X \<in> {0..2}"])
+     apply (rule wait_inv_cgI[where d=1 and I="\<lambda>gs. valg gs A X \<in> {0..2}"])
        apply (simp only: valg_def[symmetric]) apply auto[1]
       apply auto[1]
     subgoal apply (subst ex1_merge1)
-      using assms by auto
+      using assms by (auto simp add: A_def B_def)
     apply (rule entails_g_trans)
      apply (rule wait_inv_cg_state)
     apply (rule entails_g_trans)
@@ -774,24 +680,24 @@ lemma ex2'':
      apply (rule gassn_subst)
     apply (simp only: valg_def[symmetric]) apply auto
     apply (rule exists_gassn_intro)
-    apply (rule exI[where x="updg (updg (updg (updg s0 ''a'' X 0) ''b'' Y 1) ''a'' X 2) ''a'' Y 0"])
+    apply (rule exI[where x="updg (updg (updg (updg s0 A X 0) B Y 1) A X 2) A Y 0"])
     apply (rule conj_gassn_intro)
      apply (rule pure_gassn_intro)
     apply (auto simp add: X_def Y_def)
     apply (rule conj_gassn_intro)
      apply (rule pure_gassn_intro)
-     apply (auto simp add: assms)
+     apply (auto simp add: assms A_def B_def)
     by (rule entails_g_triv)
   subgoal
     (* Right branch *)
     apply (rule entails_g_trans)
      apply (rule gassn_subst)
     apply (rule entails_g_trans)
-     apply (rule wait_inv_cgI[where d=2 and I="\<lambda>gs. valg gs ''a'' X \<in> {0..2}"])
+     apply (rule wait_inv_cgI[where d=2 and I="\<lambda>gs. valg gs A X \<in> {0..2}"])
        apply (simp only: valg_def[symmetric]) apply auto[1]
       apply auto[1]
     subgoal apply (subst ex1_merge2)
-      using assms by auto
+      using assms by (auto simp add: A_def B_def)
     apply (rule entails_g_trans)
      apply (rule wait_inv_cg_state)
     apply (rule entails_g_trans)
@@ -801,40 +707,30 @@ lemma ex2'':
      apply (rule gassn_subst)
     apply (rule entails_g_trans)
      apply (rule gassn_subst)
-    apply (simp only: valg_def[symmetric]) apply auto
+    apply (simp only: valg_def[symmetric]) apply (auto simp add: A_def B_def)
     apply (rule exists_gassn_intro)
-    apply (rule exI[where x="updg (updg (updg (updg s0 ''a'' X 0) ''b'' Y 2) ''a'' X 2) ''a'' Y 0"])
+    apply (rule exI[where x="updg (updg (updg (updg s0 A X 0) B Y 2) A X 2) A Y 0"])
     apply (rule conj_gassn_intro)
      apply (rule pure_gassn_intro)
-    apply (auto simp add: X_def Y_def)
+    apply (auto simp add: X_def Y_def A_def B_def)
     apply (rule conj_gassn_intro)
      apply (rule pure_gassn_intro)
-     apply (auto simp add: assms)
+     apply (auto simp add: assms A_def B_def)
     by (rule entails_g_triv)
   done
 
 fun ex2_c :: "nat \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2" where
   "ex2_c 0 Q = Q"
 | "ex2_c (Suc n) Q =
-    (wait_inv_cg (\<lambda>gs. valg gs ''a'' X \<in> {0..2})
-       (\<lambda>s0. \<exists>\<^sub>gs1. !\<^sub>g[(valg s1 ''a'' X = 2)] \<and>\<^sub>g !\<^sub>g[(proc_set s1 = {''a'', ''b''})] \<and>\<^sub>g ex2_c n Q s1))"
-
-lemma exists_gassn_mono:
-  assumes "\<And>n. P1 n \<Longrightarrow>\<^sub>g P2 n"
-  shows "(\<exists>\<^sub>gn. P1 n) \<Longrightarrow>\<^sub>g (\<exists>\<^sub>gn. P2 n)"
-  using assms unfolding entails_g_def exists_gassn_def by auto
-
-lemma conj_pure_gassn_mono:
-  assumes "b \<Longrightarrow> Q1 \<Longrightarrow>\<^sub>g Q2"
-  shows "(!\<^sub>g[b] \<and>\<^sub>g Q1) \<Longrightarrow>\<^sub>g (!\<^sub>g[b] \<and>\<^sub>g Q2)"
-  using assms unfolding entails_g_def conj_gassn_def pure_gassn_def by auto
+    (wait_inv_cg (\<lambda>gs. valg gs A X \<in> {0..2})
+       (\<lambda>s0. \<exists>\<^sub>gs1. !\<^sub>g[(valg s1 A X = 2)] \<and>\<^sub>g !\<^sub>g[(proc_set s1 = {A, B})] \<and>\<^sub>g ex2_c n Q s1))"
 
 lemma ex2''':
-  "proc_set s0 = {''a'', ''b''} \<Longrightarrow>
-   (sync_gassn {ch1, ch2} {''a''} {''b''}
-     (single_assn ''a'' (ex2a_c n1 init))
-     (single_assn ''b'' (ex2b_c n2 init)) s0 \<Longrightarrow>\<^sub>g
-   ex2_c n1 (init_single {''a'', ''b''}) s0)"
+  "proc_set s0 = {A, B} \<Longrightarrow>
+   (sync_gassn {ch1, ch2} {A} {B}
+     (single_assn A (ex2a_c n1 init))
+     (single_assn B (ex2b_c n2 init)) s0 \<Longrightarrow>\<^sub>g
+   ex2_c n1 (init_single {A, B}) s0)"
 proof (induction n1 n2 arbitrary: s0 rule: diff_induct)
   case (1 n1)
   show ?case
@@ -879,12 +775,12 @@ qed
 
 lemma ex2'''':
   "spec_of_global
-    (Parallel (Single ''a'' ex2a)
+    (Parallel (Single A ex2a)
               {ch1, ch2}
-              (Single ''b'' ex2b))
-    (\<lambda>s0. \<exists>\<^sub>gn1 n2. sync_gassn {ch1, ch2} {''a''} {''b''}
-                      (single_assn ''a'' (ex2a_c n1 init))
-                      (single_assn ''b'' (ex2b_c n2 init)) s0)"
+              (Single B ex2b))
+    (\<lambda>s0. \<exists>\<^sub>gn1 n2. sync_gassn {ch1, ch2} {A} {B}
+                      (single_assn A (ex2a_c n1 init))
+                      (single_assn B (ex2b_c n2 init)) s0)"
   (* Stage 1: merge ex2a_c and ex2b_c *)
   apply (rule spec_of_global_post)
    apply (rule spec_of_parallel)
@@ -895,21 +791,21 @@ lemma ex2'''':
   by (rule entails_g_triv)
 
 lemma ex2:
-  "proc_set s0 = {''a'', ''b''} \<Longrightarrow>
-    \<Turnstile>\<^sub>p {init_global s0}
-          (Parallel (Single ''a'' ex2a)
-                    {ch1, ch2}
-                    (Single ''b'' ex2b))
-        {\<exists>\<^sub>gn. ex2_c n (init_single {''a'', ''b''}) s0}"
+  "spec_of_global_gen (\<lambda>s0. proc_set s0 = {A, B})
+    (Parallel (Single A ex2a)
+              {ch1, ch2}
+              (Single B ex2b))
+   (\<lambda>s0. \<exists>\<^sub>gn. ex2_c n (init_single {A, B}) s0)"
+  unfolding spec_of_global_gen_def apply clarify
   apply (rule weaken_post_global)
    apply (rule spec_of_globalE[OF ex2''''])
   apply (rule exists_gassn_elim)
   apply (rule exists_gassn_elim)
-  subgoal for n1 n2
+  subgoal premises pre for s0 n1 n2
     apply (rule exists_gassn_intro)
     apply (rule exI[where x=n1])
     apply (rule ex2''')
-    by auto
+    using pre by auto
   done
 
 end

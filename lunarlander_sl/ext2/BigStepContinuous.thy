@@ -1,5 +1,5 @@
 theory BigStepContinuous
-  imports BigStepSimple
+  imports BigStepParallel
 begin
 
 subsection \<open>Preliminary\<close>
@@ -345,30 +345,6 @@ inductive spec_of_es :: "'a comm \<times> 'a proc \<Rightarrow> 'a comm_spec \<R
   "spec_of c Q \<Longrightarrow> spec_of_es (ch[?]var, c) (InSpec ch var Q)"
 | "spec_of c Q \<Longrightarrow> spec_of_es (ch[!]e, c) (OutSpec ch e Q)"
 
-inductive rel_list :: "('a \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> bool" for r where
-  "rel_list r [] []"
-| "r a b \<Longrightarrow> rel_list r as bs \<Longrightarrow> rel_list r (a # as) (b # bs)"
-
-lemma rel_listD1:
-  "rel_list r xs ys \<Longrightarrow> length xs = length ys"
-  apply (induct rule: rel_list.induct) by auto
-
-lemma rel_listD2:
-  "rel_list r xs ys \<Longrightarrow> i < length xs \<Longrightarrow> r (xs ! i) (ys ! i)"
-  apply (induct arbitrary: i rule: rel_list.induct) apply auto
-  unfolding less_Suc_eq_0_disj by auto
-
-lemma rel_list_mono:
-  assumes "\<And>x y. r x y \<Longrightarrow> r2 x y"
-  shows "rel_list r xs ys \<Longrightarrow> rel_list r2 xs ys"
-  apply (induct rule: rel_list.induct)
-  using assms by (auto intro!: rel_list.intros)
-
-lemma rdy_info_of_list_cong:
-  "rel_list (\<lambda>x y. f x = g y) xs ys \<Longrightarrow> rdy_info_of_list f xs = rdy_info_of_list g ys"
-  apply (induct xs ys rule: rel_list.induct)
-  by (auto simp add: Let_def)
-
 lemma rdy_of_comm_spec_correct:
   assumes "rel_list spec_of_es es specs"
   shows "rdy_of_echoice es = rdy_of_comm_spec specs"
@@ -460,12 +436,6 @@ definition rdy_of_comm_spec2 :: "'a comm_spec2 list \<Rightarrow> rdy_info" wher
     case spec2 of InSpec2 ch P \<Rightarrow> ({}, {ch})
                 | OutSpec2 ch e P \<Rightarrow> ({ch}, {}))"
 
-lemma rel_list_map:
-  assumes "\<And>x. r x (f x)"
-  shows "rel_list r xs (map f xs)"
-  apply (induct xs)
-  using assms by (auto intro: rel_list.intros)
-
 lemma rdy_of_comm_spec2_of:
   "rdy_of_comm_spec specs = rdy_of_comm_spec2 (map (spec2_of p) specs)"
   unfolding rdy_of_comm_spec_def rdy_of_comm_spec2_def
@@ -502,92 +472,83 @@ lemma interrupt_c_unique:
   shows
     "interrupt_c ode b P specs s0 \<Longrightarrow>\<^sub>A
      interrupt_sol_c (\<lambda>s t. updr s (p s t)) d (\<lambda>d' s. P (updr s (p s d'))) (map (spec2_of p) specs) s0"
-proof -
-  have p0: "p s0 0 = rpart s0"
-    using paramODEsolD2[OF assms(1)] by auto
-  let ?specs2 = "map (spec2_of p) specs"
-  have length: "length ?specs2 = length specs"
-    by auto
-  have speci: "?specs2 ! i = spec2_of p (specs ! i)" if "i < length specs" for i
-    using that by auto
-  show ?thesis
-    unfolding entails_def apply auto
-    subgoal for s tr
-      apply (auto simp add: interrupt_c.simps)
-      subgoal
-        apply (rule interrupt_sol_c.intros(2))
-        using assms(1) unfolding paramODEsol_def by auto
-      subgoal premises pre for d' p' tr'
-      proof -
-        have "b (updr s0 (p' 0))"
-          using pre(2,5,6) by auto
-        then have "b s0" by (auto simp add: pre(5))
-        have a: "d' = d s0"
-              "p s0 (d s0) = p' d'"
-              "WaitBlk (d s0) (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d' (\<lambda>t. updr s0 (p' t))"
-          using paramODEsol_unique[OF assms \<open>b s0\<close> pre(2,4,6,7,5)] by auto
-        show ?thesis
-          unfolding a(3)[symmetric]
-          apply (rule interrupt_sol_c.intros(1))
-          using pre(2,3) a(1,2) rdy_of_comm_spec2_of by auto
-      qed
-      subgoal premises pre for i ch var Q v tr'
-      proof -
-        let ?Q' = "\<lambda>d v s0. Q (updr s0 ((p s0 d)(var := v)))"
-        have Q: "?specs2 ! i = InSpec2 ch ?Q'"
-          using speci[OF pre(2)] unfolding pre(3) by auto
-        show ?thesis
-          apply (rule interrupt_sol_c.intros(3)[of i _ _ ?Q'])
-          using pre Q length p0 by (auto simp add: updr_rpart_simp1)
-      qed
-      subgoal premises pre for i ch var Q d' p' v tr'
-      proof -
-        have "b (updr s0 (p' 0))"
-          using pre by auto
-        then have "b s0" using pre by auto
-        have a: "d' \<le> d s0"
-              "p s0 d' = p' d'"
-              "WaitBlk d' (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d' (\<lambda>t. updr s0 (p' t))"
-          using paramODEsol_unique2[OF assms \<open>b s0\<close> pre(4,6,8,7)] by auto
-        let ?Q' = "\<lambda>d v s0. Q (updr s0 ((p s0 d)(var := v)))"
-        have Q: "?specs2 ! i = InSpec2 ch ?Q'"
-          using speci[OF pre(2)] unfolding pre(3) by auto
-        show ?thesis
-          unfolding a(3)[symmetric]
-          apply (rule interrupt_sol_c.intros(4)[of i _ _ ?Q'])
-          using pre(2,3,4,5) a(1,2) Q length rdy_of_comm_spec2_of by auto
-      qed
-      subgoal premises pre for i ch e Q tr'
-      proof -
-        let ?Q' = "\<lambda>d s0. Q (updr s0 (p s0 d))"
-        let ?e' = "\<lambda>d s0. e (updr s0 (p s0 d))"
-        have Q: "?specs2 ! i = OutSpec2 ch ?e' ?Q'"
-          using speci[OF pre(2)] unfolding pre(3) by auto
-        show ?thesis
-          apply (rule interrupt_sol_c.intros(5)[of i _ _ ?e' ?Q'])
-          using pre(2,3,4) Q length p0 by auto
-      qed
-      subgoal premises pre for i ch e Q d' p' tr'
-      proof -
-        have "b (updr s0 (p' 0))"
-          using pre by auto
-        then have "b s0" using pre by auto
-        have a: "d' \<le> d s0"
-              "p s0 d' = p' d'"
-              "WaitBlk d' (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d' (\<lambda>t. updr s0 (p' t))"
-          using paramODEsol_unique2[OF assms \<open>b s0\<close> pre(4,6,8,7)] by auto
-        let ?Q' = "\<lambda>d s0. Q (updr s0 (p s0 d))"
-        let ?e' = "\<lambda>d s0. e (updr s0 (p s0 d))"
-        have Q: "?specs2 ! i = OutSpec2 ch ?e' ?Q'"
-          using speci[OF pre(2)] unfolding pre(3) by auto
-        show ?thesis
-          unfolding a(3)[symmetric] a(2)[symmetric]
-          apply (rule interrupt_sol_c.intros(6)[of i _ _ ?e' ?Q'])
-          using pre(2,3,4,5) a(1,2) Q length rdy_of_comm_spec2_of by auto
-      qed
-      done
+  unfolding entails_def apply auto
+  subgoal for s tr
+    apply (auto simp add: interrupt_c.simps)
+    subgoal
+      apply (rule interrupt_sol_c.intros(2))
+      using assms(1) unfolding paramODEsol_def by auto
+    subgoal premises pre for d' p' tr'
+    proof -
+      have "b (updr s0 (p' 0))"
+        using pre(2,5,6) by auto
+      then have "b s0" by (auto simp add: pre(5))
+      have a: "d' = d s0"
+        "p s0 (d s0) = p' d'"
+        "WaitBlk (d s0) (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d' (\<lambda>t. updr s0 (p' t))"
+        using paramODEsol_unique[OF assms \<open>b s0\<close> pre(2,4,6,7,5)] by auto
+      show ?thesis
+        unfolding a(3)[symmetric]
+        apply (rule interrupt_sol_c.intros(1))
+        using pre(2,3) a(1,2) rdy_of_comm_spec2_of by auto
+    qed
+    subgoal premises pre for i ch var Q v tr'
+    proof -
+      let ?Q' = "\<lambda>d v s0. Q (updr s0 ((p s0 d)(var := v)))"
+      have Q: "map (spec2_of p) specs ! i = InSpec2 ch ?Q'"
+        using pre(2) by (simp add: pre(3))
+      show ?thesis
+        apply (rule interrupt_sol_c.intros(3)[of i _ _ ?Q'])
+        using pre Q paramODEsolD2[OF assms(1)]
+        by (auto simp add: updr_rpart_simp1)
+    qed
+    subgoal premises pre for i ch var Q d' p' v tr'
+    proof -
+      have "b (updr s0 (p' 0))"
+        using pre by auto
+      then have "b s0" using pre by auto
+      have a: "d' \<le> d s0"
+        "p s0 d' = p' d'"
+        "WaitBlk d' (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d' (\<lambda>t. updr s0 (p' t))"
+        using paramODEsol_unique2[OF assms \<open>b s0\<close> pre(4,6,8,7)] by auto
+      let ?Q' = "\<lambda>d v s0. Q (updr s0 ((p s0 d)(var := v)))"
+      have Q: "map (spec2_of p) specs ! i = InSpec2 ch ?Q'"
+        using pre(2) by (simp add: pre(3))
+      show ?thesis
+        unfolding a(3)[symmetric]
+        apply (rule interrupt_sol_c.intros(4)[of i _ _ ?Q'])
+        using pre(2,3,4,5) a(1,2) Q rdy_of_comm_spec2_of by auto
+    qed
+    subgoal premises pre for i ch e Q tr'
+    proof -
+      let ?Q' = "\<lambda>d s0. Q (updr s0 (p s0 d))"
+      let ?e' = "\<lambda>d s0. e (updr s0 (p s0 d))"
+      have Q: "map (spec2_of p) specs ! i = OutSpec2 ch ?e' ?Q'"
+        using pre(2) by (simp add: pre(3))
+      show ?thesis
+        apply (rule interrupt_sol_c.intros(5)[of i _ _ ?e' ?Q'])
+        using pre(2,3,4) Q paramODEsolD2[OF assms(1)] by auto
+    qed
+    subgoal premises pre for i ch e Q d' p' tr'
+    proof -
+      have "b (updr s0 (p' 0))"
+        using pre by auto
+      then have "b s0" using pre by auto
+      have a: "d' \<le> d s0"
+        "p s0 d' = p' d'"
+        "WaitBlk d' (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d' (\<lambda>t. updr s0 (p' t))"
+        using paramODEsol_unique2[OF assms \<open>b s0\<close> pre(4,6,8,7)] by auto
+      let ?Q' = "\<lambda>d s0. Q (updr s0 (p s0 d))"
+      let ?e' = "\<lambda>d s0. e (updr s0 (p s0 d))"
+      have Q: "map (spec2_of p) specs ! i = OutSpec2 ch ?e' ?Q'"
+        using pre(2) by (simp add: pre(3))
+      show ?thesis
+        unfolding a(3)[symmetric] a(2)[symmetric]
+        apply (rule interrupt_sol_c.intros(6)[of i _ _ ?e' ?Q'])
+        using pre(2,3,4,5) a(1,2) Q rdy_of_comm_spec2_of by auto
+    qed
     done
-qed
+  done
 
 lemma spec_of_interrupt_unique:
   assumes
@@ -807,37 +768,15 @@ lemma single_path_State:
   by (auto simp add: State_def)
 
 text \<open>Merging two paths\<close>
-definition restrict_state :: "pname set \<Rightarrow> 'a gstate \<Rightarrow> 'a gstate" where
-  "restrict_state pns gs = (\<lambda>pn. if pn \<in> pns then gs pn else None)"
-
 definition merge_path :: "pname set \<Rightarrow> pname set \<Rightarrow>
                           ('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate) \<Rightarrow> ('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate) \<Rightarrow>
                           ('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate)" where
   "merge_path pns1 pns2 p1 p2 = (\<lambda>gs t.
      merge_state (p1 (restrict_state pns1 gs) t) (p2 (restrict_state pns2 gs) t))"
 
+text \<open>Delay a path by a certain amount of time\<close>
 fun delay_path :: "real \<Rightarrow> ('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate) \<Rightarrow> ('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate)" where
   "delay_path d p gs d' = p gs (d' + d)"
-
-lemma restrict_state_eval1:
-  assumes "proc_set gs1 = pns1"
-  shows "restrict_state pns1 (merge_state gs1 gs2) = gs1"
-  apply (rule ext) subgoal for pn
-    unfolding restrict_state_def apply auto
-     apply (subst merge_state_eval1) using assms apply auto
-    unfolding proc_set_def by auto
-  done
-
-lemma restrict_state_eval2:
-  assumes "proc_set gs1 = pns1"
-    and "proc_set gs2 = pns2"
-    and "pns1 \<inter> pns2 = {}"
-  shows "restrict_state pns2 (merge_state gs1 gs2) = gs2"
-  apply (rule ext) subgoal for pn
-    unfolding restrict_state_def apply auto
-     apply (subst merge_state_eval2) using assms apply auto
-    unfolding proc_set_def by auto
-  done
 
 lemma merge_path_eval:
   assumes "proc_set gs1 = pns1"
@@ -851,9 +790,6 @@ lemma merge_path_eval:
 fun id_path :: "'a gstate \<Rightarrow> real \<Rightarrow> 'a gstate" where
   "id_path gs t = gs"
 
-fun single_val :: "pname \<Rightarrow> 'a eexp \<Rightarrow> 'a gstate \<Rightarrow> real" where
-  "single_val pn e gs = e (the (gs pn))"
-
 subsection \<open>Interrupt specification for global states\<close>
 
 datatype 'a comm_specg2 =
@@ -865,7 +801,7 @@ text \<open>Mapping from specification on single state to specification
 \<close>
 fun comm_spec_gassn_of :: "pname \<Rightarrow> 'a comm_spec2 \<Rightarrow> 'a comm_specg2" where
   "comm_spec_gassn_of pn (InSpec2 ch Q) = InSpecg2 ch (\<lambda>d v. single_assn pn (Q d v))"
-| "comm_spec_gassn_of pn (OutSpec2 ch e Q) = OutSpecg2 ch (\<lambda>d. single_val pn (e d)) (\<lambda>d. single_assn pn (Q d))"
+| "comm_spec_gassn_of pn (OutSpec2 ch e Q) = OutSpecg2 ch (\<lambda>d gs. e d (the (gs pn))) (\<lambda>d. single_assn pn (Q d))"
 
 definition rdy_of_comm_specg2 :: "'a comm_specg2 list \<Rightarrow> rdy_info" where
   "rdy_of_comm_specg2 = rdy_info_of_list (\<lambda>specg.
@@ -913,10 +849,10 @@ lemma single_assn_interrupt_solInf [single_assn_simps]:
           unfolding single_path_State
           using pre rdy_of_comm_spec_gassn_of by (auto intro: single_assn.intros)
         subgoal for i ch e Q tr''
-          apply (rule interrupt_solInf_cg.intros(3)[of i _ _ "(\<lambda>d. single_val pn (e d))" "(\<lambda>d. single_assn pn (Q d))" ])
+          apply (rule interrupt_solInf_cg.intros(3)[of i _ _ "(\<lambda>d gs. e d (the (gs pn)))" "(\<lambda>d. single_assn pn (Q d))" ])
           by (auto intro: single_assn.intros)
         subgoal premises pre for i ch e Q d tr'' a b
-          apply (rule interrupt_solInf_cg.intros(4)[of i _ _ "(\<lambda>d. single_val pn (e d))" "(\<lambda>d. single_assn pn (Q d))"])
+          apply (rule interrupt_solInf_cg.intros(4)[of i _ _ "(\<lambda>d gs. e d (the (gs pn)))" "(\<lambda>d. single_assn pn (Q d))"])
           unfolding single_path_State
           using pre rdy_of_comm_spec_gassn_of by (auto intro: single_assn.intros)
         done
@@ -987,10 +923,6 @@ lemma wait_sol_cg_mono:
       using assms unfolding entails_g_def by auto
     done
   done
-
-lemma compat_rdy_empty [simp]:
-  "compat_rdy rdy ({}, {})"
-  apply (cases rdy) by auto
 
 fun ch_of_specg2 :: "'a comm_specg2 \<Rightarrow> cname" where
   "ch_of_specg2 (InSpecg2 ch P) = ch"
@@ -1269,40 +1201,5 @@ lemma wait_inv_cg_mono:
     apply (rule wait_inv_cg.intros) apply auto
     using assms unfolding entails_g_def by auto
   done
-
-lemma merge_restrict:
-  assumes "proc_set s = pns1 \<union> pns2"
-    and "pns1 \<inter> pns2 = {}"
-  shows "merge_state (restrict_state pns1 s) (restrict_state pns2 s) = s"
-  unfolding merge_state_def restrict_state_def
-  apply (rule ext) apply auto
-  using assms(1,2) unfolding proc_set_def apply auto
-  subgoal for p apply (cases "s p") by auto
-  subgoal for p apply (cases "s p") by auto
-  done
-
-lemma proc_set_restrict_state:
-  assumes "pns1 \<subseteq> proc_set s"
-  shows "proc_set (restrict_state pns1 s) = pns1"
-  using assms unfolding restrict_state_def proc_set_def by auto
-
-lemma merge_state_elim:
-  assumes "proc_set s = pns1 \<union> pns2"
-    and "pns1 \<inter> pns2 = {}"
-    and "\<And>s1 s2. s = merge_state s1 s2 \<Longrightarrow> proc_set s1 = pns1 \<Longrightarrow> proc_set s2 = pns2 \<Longrightarrow> P"
-  shows P
-  apply (rule assms(3)[of "restrict_state pns1 s" "restrict_state pns2 s"])
-  by (auto simp add: merge_restrict proc_set_restrict_state assms)  
-
-lemma merge_state_updg_left:
-  assumes "pn \<in> proc_set s1"
-  shows "merge_state (updg s1 pn v e) s2 = updg (merge_state s1 s2) pn v e"
-  apply (rule ext)
-  using assms by (auto simp add: proc_set_def merge_state_def updg_def)
-
-lemma valg_merge_state_left:
-  assumes "pn \<in> proc_set s1"
-  shows "valg (merge_state s1 s2) pn v = valg s1 pn v"
-  using assms by (auto simp add: proc_set_def merge_state_def valg_def)
 
 end

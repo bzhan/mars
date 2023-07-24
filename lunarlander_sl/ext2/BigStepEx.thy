@@ -1,9 +1,12 @@
 theory BigStepEx
-  imports BigStepSimple
+  imports BigStepParallel
 begin
 
 subsection \<open>Examples\<close>
 
+definition A :: pname where "A = ''a''"
+definition B :: pname where "B = ''b''"
+definition C :: pname where "C = ''c''"
 definition X :: char where "X = CHR ''x''"
 definition Y :: char where "Y = CHR ''y''"
 definition Z :: char where "Z = CHR ''z''"
@@ -24,10 +27,10 @@ definition ex1b :: "'a proc" where
 
 lemma ex1:
   "spec_of_global
-    (Parallel (Single ''a'' ex1a) {ch1}
-              (Single ''b'' ex1b))
-    (\<lambda>s0. wait_out_cg ''a'' ch2 (\<lambda>s. val s X + 1) (\<lambda>d. init_single {''a'', ''b''})
-          (updg s0 ''a'' X 3))"
+    (Parallel (Single A ex1a) {ch1}
+              (Single B ex1b))
+    (\<lambda>s0. wait_out_cg A ch2 (\<lambda>s. val s X + 1) (\<lambda>d. init_single {A, B})
+          (updg s0 A X 3))"
   apply (rule spec_of_global_post)
   (* Stage 1: obtain spec for both sides *)
    apply (rule spec_of_parallel)
@@ -44,7 +47,7 @@ lemma ex1:
     apply (auto simp: single_assn_simps)
   (* Stage 3: perform merge *)
     apply (rule entails_g_trans)
-     apply (rule sync_gassn_in_out) apply auto
+     apply (rule sync_gassn_in_out) apply (auto simp add: A_def B_def)
     apply (rule entails_g_trans)
      apply (rule sync_gassn_subst_left) apply simp
     apply (rule entails_g_trans)
@@ -73,12 +76,12 @@ definition ex2b :: "'a proc" where
 
 lemma ex2:
   "spec_of_global
-    (Parallel (Single ''a'' ex2a)
+    (Parallel (Single A ex2a)
               {ch1, ch2}
-              (Single ''b'' ex2b))
-    (\<lambda>s0. init_single {''b'', ''a''}
-       (updg (updg s0 ''b'' Z (valg s0 ''a'' X))
-                      ''a'' Y (valg s0 ''a'' X + 1)))"
+              (Single B ex2b))
+    (\<lambda>s0. init_single {B, A}
+       (updg (updg s0 B Z (valg s0 A X))
+                      A Y (valg s0 A X + 1)))"
   (* Stage 1: merge ex2a_sp and ex2b_sp *)
   apply (rule spec_of_global_post)
    apply (rule spec_of_parallel)
@@ -96,7 +99,7 @@ lemma ex2:
     apply (auto simp: single_assn_simps)
       (* Stage 3: combine the two assertions *)
     apply (rule entails_g_trans)
-     apply (rule sync_gassn_out_in) apply auto
+     apply (rule sync_gassn_out_in) apply (auto simp add: A_def B_def)
     apply (rule entails_g_trans)
      apply (rule sync_gassn_subst_right) apply auto
     apply (rule entails_g_trans)
@@ -174,13 +177,13 @@ lemma ex3b_sp:
   done
 
 definition ex3_inv :: "'a gstate \<Rightarrow> bool" where
-  "ex3_inv s0 \<longleftrightarrow> (valg s0 ''b'' Y = valg s0 ''a'' X * valg s0 ''a'' Y)"
+  "ex3_inv s0 \<longleftrightarrow> (valg s0 B Y = valg s0 A X * valg s0 A Y)"
 
 definition ex3_one_step :: "'a gstate \<Rightarrow> 'a gstate" where
   "ex3_one_step s0 =
-      updg (updg (updg s0 ''b'' X (valg s0 ''a'' X))
-                          ''a'' Y (valg s0 ''a'' Y + 1))
-                          ''b'' Y (valg s0 ''b'' Y + valg s0 ''a'' X)"
+      updg (updg (updg s0 B X (valg s0 A X))
+                          A Y (valg s0 A Y + 1))
+                          B Y (valg s0 B Y + valg s0 A X)"
 
 text \<open>This is the crucial lemma, stating that from a starting state s0
   satisfying invariant ex3_inv, there is another state s1 also satisfying
@@ -191,21 +194,21 @@ lemma ex3':
   assumes "ex3_inv s0"
   shows
   "\<exists>s1. ex3_inv s1 \<and>
-   (sync_gassn {ch1} {''a''} {''b''}
-     (single_assn ''a'' (rinv_c (Suc n1) init))
-     (single_assn ''b'' (linv_c (Suc n2) init)) s0 \<Longrightarrow>\<^sub>g
-    sync_gassn {ch1} {''a''} {''b''}
-     (single_assn ''a'' (rinv_c n1 init))
-     (single_assn ''b'' (linv_c n2 init)) s1)"
+   (sync_gassn {ch1} {A} {B}
+     (single_assn A (rinv_c (Suc n1) init))
+     (single_assn B (linv_c (Suc n2) init)) s0 \<Longrightarrow>\<^sub>g
+    sync_gassn {ch1} {A} {B}
+     (single_assn A (rinv_c n1 init))
+     (single_assn B (linv_c n2 init)) s1)"
   apply (rule exI[where x="ex3_one_step s0"])
   apply (rule conjI)
   subgoal using assms unfolding ex3_one_step_def ex3_inv_def
     apply (auto simp add: X_def Y_def)
-    by (auto simp add: algebra_simps)
+    by (auto simp add: algebra_simps A_def B_def)
   subgoal
     apply (auto simp: single_assn_simps)
     apply (rule entails_g_trans)
-     apply (rule sync_gassn_out_in) apply auto
+     apply (rule sync_gassn_out_in) apply (auto simp add: A_def B_def)
     apply (rule entails_g_trans)
      apply (rule sync_gassn_subst_right) apply auto
     apply (rule entails_g_trans)
@@ -221,16 +224,16 @@ lemma ex3':
      apply (rule gassn_subst)
     apply (rule sync_gassn_triv)
     apply (simp only: valg_def[symmetric])
-    by (auto simp add: ex3_one_step_def X_def Y_def)
+    by (auto simp add: ex3_one_step_def X_def Y_def A_def B_def)
   done
 
 lemma ex3'':
   "ex3_inv s0 \<Longrightarrow>
    \<exists>s1. ex3_inv s1 \<and>
-    (sync_gassn {ch1} {''a''} {''b''}
-      (single_assn ''a'' (rinv_c n1 init))
-      (single_assn ''b'' (linv_c n2 init)) s0 \<Longrightarrow>\<^sub>g
-    init_single {''b'', ''a''} s1)"
+    (sync_gassn {ch1} {A} {B}
+      (single_assn A (rinv_c n1 init))
+      (single_assn B (linv_c n2 init)) s0 \<Longrightarrow>\<^sub>g
+    init_single {B, A} s1)"
 proof (induction n1 n2 arbitrary: s0 rule: diff_induct)
   case (1 n1)
   show ?case
@@ -267,18 +270,18 @@ next
 next
   case (3 n1 n2)
   obtain s1 where s1: "ex3_inv s1"
-    "sync_gassn {ch1} {''a''} {''b''}
-      (single_assn ''a'' (rinv_c (Suc n1) init))
-      (single_assn ''b'' (linv_c (Suc n2) init)) s0 \<Longrightarrow>\<^sub>g
-     sync_gassn {ch1} {''a''} {''b''}
-      (single_assn ''a'' (rinv_c n1 init))
-      (single_assn ''b'' (linv_c n2 init)) s1"
+    "sync_gassn {ch1} {A} {B}
+      (single_assn A (rinv_c (Suc n1) init))
+      (single_assn B (linv_c (Suc n2) init)) s0 \<Longrightarrow>\<^sub>g
+     sync_gassn {ch1} {A} {B}
+      (single_assn A (rinv_c n1 init))
+      (single_assn B (linv_c n2 init)) s1"
     using ex3' 3 by blast
   obtain s2 where s2: "ex3_inv s2"
-    "sync_gassn {ch1} {''a''} {''b''}
-       (single_assn ''a'' (rinv_c n1 init))
-       (single_assn ''b'' (linv_c n2 init)) s1 \<Longrightarrow>\<^sub>g
-     init_single {''b'', ''a''} s2"
+    "sync_gassn {ch1} {A} {B}
+       (single_assn A (rinv_c n1 init))
+       (single_assn B (linv_c n2 init)) s1 \<Longrightarrow>\<^sub>g
+     init_single {B, A} s2"
     using 3 s1(1) by blast 
   show ?case
     apply (rule exI[where x=s2])
@@ -290,12 +293,12 @@ qed
 
 lemma ex3''':
   "spec_of_global
-    (Parallel (Single ''a'' ex3a)
+    (Parallel (Single A ex3a)
               {ch1}
-              (Single ''b'' ex3b))
-    (\<lambda>s0. \<exists>\<^sub>gn1 n2. sync_gassn {ch1} {''a''} {''b''}
-                    (single_assn ''a'' (rinv_c n1 init))
-                    (single_assn ''b'' (linv_c n2 init)) s0)"
+              (Single B ex3b))
+    (\<lambda>s0. \<exists>\<^sub>gn1 n2. sync_gassn {ch1} {A} {B}
+                    (single_assn A (rinv_c n1 init))
+                    (single_assn B (linv_c n2 init)) s0)"
   (* Stage 1: merge ex3_c and ex4_c *)
   apply (rule spec_of_global_post)
    apply (rule spec_of_parallel)
@@ -309,10 +312,10 @@ lemma ex3''':
 lemma ex3:
   "ex3_inv s0 \<Longrightarrow>
     \<Turnstile>\<^sub>p {init_global s0}
-        (Parallel (Single ''a'' ex3a)
+        (Parallel (Single A ex3a)
                   {ch1}
-                  (Single ''b'' ex3b))
-       {\<exists>\<^sub>gs1. (\<lambda>s tr. ex3_inv s1 \<and> init_single {''b'', ''a''} s1 s tr)}"
+                  (Single B ex3b))
+       {\<exists>\<^sub>gs1. (\<lambda>s tr. ex3_inv s1 \<and> init_single {B, A} s1 s tr)}"
   apply (rule weaken_post_global)
   apply (rule spec_of_globalE[OF ex3'''])
   apply (auto simp add: exists_gassn_def entails_g_def)
@@ -406,33 +409,33 @@ lemma ex5b_sp:
   done
 
 definition ex5_inv :: "real list \<Rightarrow> ex5_state gstate \<Rightarrow> bool" where
-  "ex5_inv ls gs \<longleftrightarrow> (rev (epartg gs ''b'') @ epartg gs ''a'' = ls)"
+  "ex5_inv ls gs \<longleftrightarrow> (rev (epartg gs B) @ epartg gs A = ls)"
 
 text \<open>This function models update to the whole state in one step\<close>
 definition ex5_one_step :: "ex5_state gstate \<Rightarrow> ex5_state gstate" where
   "ex5_one_step gs =
-    updeg (updg (updeg gs ''a'' (tl (epartg gs ''a'')))
-                          ''b'' X (hd (epartg gs ''a'')))
-                          ''b'' (hd (epartg gs ''a'') # epartg gs ''b'')"
+    updeg (updg (updeg gs A (tl (epartg gs A)))
+                          B X (hd (epartg gs A)))
+                          B (hd (epartg gs A) # epartg gs B)"
 
 text \<open>Preservation of invariant\<close>
 lemma ex5_inv_preserve:
   assumes "ex5_inv ls gs"
-    and "epartg gs ''a'' \<noteq> []"
+    and "epartg gs A \<noteq> []"
   shows "ex5_inv ls (ex5_one_step gs)"
   using assms unfolding ex5_one_step_def ex5_inv_def
-  by auto
+  by (auto simp add: A_def B_def)
 
 lemma ex5':
   assumes "ex5_inv ls s0"
   shows
-  "(sync_gassn {ch1} {''a''} {''b''}
-    (single_assn ''a'' (ex5a_c (Suc n1) init))
-    (single_assn ''b'' (ex5b_c (Suc n2) init)) s0 \<Longrightarrow>\<^sub>g
+  "(sync_gassn {ch1} {A} {B}
+    (single_assn A (ex5a_c (Suc n1) init))
+    (single_assn B (ex5b_c (Suc n2) init)) s0 \<Longrightarrow>\<^sub>g
    (\<exists>\<^sub>gs1. (!\<^sub>g[ex5_inv ls s1]) \<and>\<^sub>g
-      sync_gassn {ch1} {''a''} {''b''}
-        (single_assn ''a'' (ex5a_c n1 init))
-        (single_assn ''b'' (ex5b_c n2 init)) s1))"
+      sync_gassn {ch1} {A} {B}
+        (single_assn A (ex5a_c n1 init))
+        (single_assn B (ex5b_c n2 init)) s1))"
   apply (auto simp: single_assn_cond)
   apply (rule sync_gassn_ifg_left)
   subgoal
@@ -445,7 +448,7 @@ lemma ex5':
     subgoal
       apply (auto simp add: single_assn_simps)
       apply (rule entails_g_trans)
-       apply (rule sync_gassn_out_in) apply auto
+       apply (rule sync_gassn_out_in) apply (auto simp add: A_def B_def)
       apply (rule entails_g_trans)
        apply (rule sync_gassn_subste_left) apply auto
       apply (rule entails_g_trans)
@@ -460,7 +463,7 @@ lemma ex5':
        apply (rule gassn_subste)
       apply (rule sync_gassn_triv)
       apply (simp only: valg_def[symmetric] epartg_def[symmetric])
-      unfolding ex5_one_step_def by auto
+      unfolding ex5_one_step_def by (auto simp add: A_def B_def)
     done
   subgoal unfolding single_assn_false
     using sync_gassn_false_left by auto
@@ -469,11 +472,11 @@ lemma ex5':
 
 lemma ex5'':
   "ex5_inv ls s0 \<Longrightarrow>
-  (sync_gassn {ch1} {''a''} {''b''}
-    (single_assn ''a'' (ex5a_c n1 init))
-    (single_assn ''b'' (ex5b_c n2 init)) s0 \<Longrightarrow>\<^sub>g
+  (sync_gassn {ch1} {A} {B}
+    (single_assn A (ex5a_c n1 init))
+    (single_assn B (ex5b_c n2 init)) s0 \<Longrightarrow>\<^sub>g
   (\<exists>\<^sub>gs1. (!\<^sub>g[ex5_inv ls s1]) \<and>\<^sub>g
-         init_single {''b'', ''a''} s1))"
+         init_single {B, A} s1))"
 proof (induction n1 n2 arbitrary: s0 rule: diff_induct)
   case (1 n1)
   show ?case
@@ -525,12 +528,12 @@ qed
 
 lemma ex5''':
   "spec_of_global
-    (Parallel (Single ''a'' ex5a)
+    (Parallel (Single A ex5a)
               {ch1}
-              (Single ''b'' ex5b))
-    (\<lambda>s0. \<exists>\<^sub>gn1 n2. sync_gassn {ch1} {''a''} {''b''}
-                    (single_assn ''a'' (ex5a_c n1 init))
-                    (single_assn ''b'' (ex5b_c n2 init)) s0)"
+              (Single B ex5b))
+    (\<lambda>s0. \<exists>\<^sub>gn1 n2. sync_gassn {ch1} {A} {B}
+                    (single_assn A (ex5a_c n1 init))
+                    (single_assn B (ex5b_c n2 init)) s0)"
   (* Stage 1: merge ex5a_c and ex5b_c *)
   apply (rule spec_of_global_post)
    apply (rule spec_of_parallel)
@@ -541,12 +544,12 @@ lemma ex5''':
   by (rule entails_g_triv)
 
 lemma ex5:
-  "ex5_inv ls s0 \<Longrightarrow>
-    \<Turnstile>\<^sub>p {init_global s0}
-         (Parallel (Single ''a'' ex5a)
-                   {ch1}
-                   (Single ''b'' ex5b))
-        {\<exists>\<^sub>gs1. !\<^sub>g[ex5_inv ls s1] \<and>\<^sub>g init_single {''b'', ''a''} s1}"
+  "spec_of_global_gen (ex5_inv ls)
+     (Parallel (Single A ex5a)
+               {ch1}
+               (Single B ex5b))
+     (\<lambda>_. \<exists>\<^sub>gs1. !\<^sub>g[ex5_inv ls s1] \<and>\<^sub>g init_single {B, A} s1)"
+  unfolding spec_of_global_gen_def apply auto
   apply (rule weaken_post_global)
    apply (rule spec_of_globalE[OF ex5'''])
   apply (rule exists_gassn_elim)
@@ -597,16 +600,16 @@ lemma ex6b_sp:
 
 lemma ex6:
   "spec_of_global
-    (Parallel (Single ''a'' ex6a)
+    (Parallel (Single A ex6a)
               {ch1}
-              (Single ''b'' ex6b))
-    (wait_in_cg_alt ch2 ''b'' (\<lambda>_. 1)
-      (\<lambda>d v. IFG [''a''] (\<lambda>s. d = 0) THEN
-               ((wait_cg ''a'' (\<lambda>_. 1)
-                   (init_single {''b'', ''a''} {{X := (\<lambda>_. v)}}\<^sub>g at ''b'')
-                   {{ X := (\<lambda>_. v) }}\<^sub>g at ''a''))
-             ELSE true_gassn {''b'', ''a''} FI)
-      (\<lambda>v. true_gassn {''b'', ''a''}))"
+              (Single B ex6b))
+    (wait_in_cg_alt ch2 B (\<lambda>_. 1)
+      (\<lambda>d v. IFG [A] (\<lambda>s. d = 0) THEN
+               ((wait_cg A (\<lambda>_. 1)
+                   (init_single {B, A} {{X := (\<lambda>_. v)}}\<^sub>g at B)
+                   {{ X := (\<lambda>_. v) }}\<^sub>g at A))
+             ELSE true_gassn {B, A} FI)
+      (\<lambda>v. true_gassn {B, A}))"
   (* Stage 1: merge ex6a_sp and ex6b_sp *)
   apply (rule spec_of_global_post)
    apply (rule spec_of_parallel)
@@ -621,7 +624,7 @@ lemma ex6:
   (* Stage 3: combine the two assertions *)
     apply (rule entails_g_trans)
      apply (rule sync_gassn_out_unpair_wait0)
-    apply (auto simp add: ch1_def ch2_def)
+    apply (auto simp add: ch1_def ch2_def A_def B_def)
     subgoal for v
       apply (rule proc_set_updg_subst)
        apply (rule proc_set_wait_cg)
@@ -657,20 +660,20 @@ lemma ex6:
 text \<open>
   We next compose the above example with ch2!1. The overall program is
 
-   ch2?X; wait(1); ch1!X  (''a'')
-|| wait(1); ch1?X         (''b'')
-|| ch2!v; wait(1)         (''c'')
+   ch2?X; wait(1); ch1!X  (A)
+|| wait(1); ch1?X         (B)
+|| ch2!v; wait(1)         (C)
 
-   The result assigns value v to variable X in ''a'' and (after
-   waiting for 1 time unit) in ''b''.
+   The result assigns value v to variable X in A and (after
+   waiting for 1 time unit) in B.
 \<close>
 lemma ex6_full:
   "spec_of_global
-    (Parallel (Parallel (Single ''a'' ex6a) {ch1} (Single ''b'' ex6b))
+    (Parallel (Parallel (Single A ex6a) {ch1} (Single B ex6b))
               {ch2}
-              (Single ''c'' (Cm (ch2[!](\<lambda>_. v)); Wait (\<lambda>_. 1))))
-    (\<lambda>s0. wait_cg ''a'' (\<lambda>_. 1) (init_single {''c'', ''b'', ''a''} {{X := (\<lambda>_. v)}}\<^sub>g at ''b'')
-        (updg s0 ''a'' X v))"
+              (Single C (Cm (ch2[!](\<lambda>_. v)); Wait (\<lambda>_. 1))))
+    (\<lambda>s0. wait_cg A (\<lambda>_. 1) (init_single {C, B, A} {{X := (\<lambda>_. v)}}\<^sub>g at B)
+        (updg s0 A X v))"
   (* Stage 1: merge with ex6 *)
   apply (rule spec_of_global_post)
    apply (rule spec_of_parallel)
@@ -684,7 +687,7 @@ lemma ex6_full:
     apply (auto simp add: single_assn_simps)
   (* Stage 3: combine the two assertions *)
     apply (rule entails_g_trans)
-     apply (rule sync_gassn_in_alt_out) apply auto
+     apply (rule sync_gassn_in_alt_out) apply (auto simp add: A_def B_def C_def)
     apply (rule entails_g_trans)
      apply (rule sync_gassn_subst_left) apply auto
     apply (rule entails_g_trans)
