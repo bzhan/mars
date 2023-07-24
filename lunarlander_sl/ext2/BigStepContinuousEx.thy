@@ -142,6 +142,7 @@ definition ex1a :: "'a proc" where
                                      [(ch2[?]Y, Skip)])
       (Cm (ch1[!](\<lambda>_. 2)); Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True)
                                      [(ch2[?]Y, Skip)]))"
+
 lemma ex1a_ode:
   "spec_of (Interrupt (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 2))) (\<lambda>_. True) [(ch2[?]Y, Skip)])
            (interrupt_solInf_c (\<lambda>s t. upd s X (val s X + 2 * t))
@@ -464,5 +465,54 @@ lemma ex1:
    apply (rule spec_of_globalE[OF ex1'])
   apply (rule ex1'')
   using assms by auto
+
+subsubsection \<open>Example 2\<close>
+
+text \<open>
+  For the second example, we redo the previous example but with loops.
+
+  The program to be analyzed is:
+   (x := 0; (ch!1; <x_dot = 2> |> dh?Y) \<squnion> (ch!2; <x_dot = 1> |> dh?Y))*
+|| (ch?Y; wait(Y); dh!0)*
+\<close>
+
+definition ex2a :: "'a proc" where
+  "ex2a = Rep (X ::= (\<lambda>_. 0); IChoice
+      (Cm (ch1[!](\<lambda>_. 1)); Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 2)))) (\<lambda>_. True)
+                                     [(ch2[?]Y, Skip)])
+      (Cm (ch1[!](\<lambda>_. 2)); Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True)
+                                     [(ch2[?]Y, Skip)]))"
+
+definition ex2b :: "'a proc" where
+  "ex2b = Rep (Cm (ch1[?]Y); Wait (\<lambda>s. val s Y); Cm (ch2[!](\<lambda>_. 0)))"
+
+fun ex2b_c :: "nat \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" where
+  "ex2b_c 0 Q = Q"
+| "ex2b_c (Suc n) Q =
+    (wait_in_c ch1 (\<lambda>d v.
+      wait_c (\<lambda>s. val s Y) (
+        wait_out_c ch2 (\<lambda>_. 0) (\<lambda>d. ex2b_c n Q)) {{Y := (\<lambda>_. v)}}))"
+
+lemma ex2b_sp:
+  "spec_of ex2b
+           (\<lambda>s0. \<exists>\<^sub>an. ex2b_c n init s0)"
+  unfolding ex2b_def
+  apply (rule spec_of_rep)
+  subgoal for n
+    apply (induction n)
+     apply simp apply (rule spec_of_skip)
+    subgoal premises pre for n
+      apply simp
+      apply (subst spec_of_seq_assoc)
+      apply (rule spec_of_post)
+       apply (rule Valid_receive_sp)
+       apply (subst spec_of_seq_assoc)
+       apply (rule Valid_wait_sp)
+       apply (rule Valid_send_sp)
+       apply (rule pre) apply clarify
+      apply (rule entails_triv)
+      done
+    done
+  done
 
 end

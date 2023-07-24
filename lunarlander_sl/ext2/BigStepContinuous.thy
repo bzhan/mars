@@ -992,11 +992,6 @@ fun ch_of_specg2 :: "'a comm_specg2 \<Rightarrow> cname" where
   "ch_of_specg2 (InSpecg2 ch P) = ch"
 | "ch_of_specg2 (OutSpecg2 ch e P) = ch"
 
-lemma merge_rdy_simp1:
-  assumes "\<And>i. i < length specs \<Longrightarrow> ch_of_specg2 (specs ! i) \<in> chs"
-  shows "merge_rdy chs (rdy_of_comm_specg2 specs) ({}, {}) = ({}, {})"
-  sorry
-
 lemma rdy_of_spec_wait_of [simp]:
   "rdy_of_comm_specg2 (map (spec_wait_of d p) specs) = rdy_of_comm_specg2 specs"
   unfolding rdy_of_comm_specg2_def apply (rule sym)
@@ -1006,6 +1001,20 @@ lemma rdy_of_spec_wait_of [simp]:
   done
 
 subsection \<open>Synchronization rules for interrupt\<close>
+
+text \<open>The following two lemmas are temporary. More general results
+  are needed for the general cases.
+\<close>
+lemma merge_rdy_comm_specg2_empty:
+  assumes "\<And>i. i < length specs \<Longrightarrow> ch_of_specg2 (specs ! i) \<in> chs"
+  shows "merge_rdy chs (rdy_of_comm_specg2 specs) ({}, {}) = ({}, {})"
+  sorry
+
+lemma not_compat_rdy_comm_specg2:
+  assumes "i < length specs"
+    and "specs ! i = InSpecg2 ch P"
+  shows "\<not> compat_rdy (rdy_of_comm_specg2 specs) ({ch}, {})"
+  sorry
 
 lemma sync_gassn_interrupt_solInf_wait:
   assumes "pn2 \<in> pns2"
@@ -1053,7 +1062,7 @@ lemma sync_gassn_interrupt_solInf_wait:
                 using assms by auto
               apply (rule sync_gassn.intros) apply auto
               apply (rule interrupt_solInf_cg.intros(1)[of i _ _ "\<lambda>d' v. Q' (e (the (s12 pn2)) + d') v"])
-              apply auto apply (rule merge_rdy_simp1) using assms(3) by auto
+              apply auto apply (rule merge_rdy_comm_specg2_empty) using assms(3) by auto
             done
           subgoal
             apply (elim combine_blocks_waitE4) apply auto
@@ -1067,7 +1076,7 @@ lemma sync_gassn_interrupt_solInf_wait:
                 using assms by auto
               apply (rule sync_gassn.intros) apply auto
               apply (rule interrupt_solInf_cg.intros(2)[of i _ _ "\<lambda>d' v. Q' (e (the (s12 pn2)) + d') v"])
-              apply auto apply (rule merge_rdy_simp1) using assms(3) by auto
+              apply auto apply (rule merge_rdy_comm_specg2_empty) using assms(3) by auto
             done
           done
         subgoal
@@ -1112,7 +1121,7 @@ lemma sync_gassn_interrupt_solInf_wait:
               apply (rule sync_gassn.intros) apply auto
               apply (rule interrupt_solInf_cg.intros(3)[of i _ _ "\<lambda>d'. e' (e (the (s12 pn2)) + d')"
                                                                  "\<lambda>d'. Q' (e (the (s12 pn2)) + d')"])
-              apply auto apply (rule merge_rdy_simp1) using assms(3) by auto
+              apply auto apply (rule merge_rdy_comm_specg2_empty) using assms(3) by auto
             done
           subgoal
             apply (elim combine_blocks_waitE4) apply auto
@@ -1127,7 +1136,7 @@ lemma sync_gassn_interrupt_solInf_wait:
               apply (rule sync_gassn.intros) apply auto
               apply (rule interrupt_solInf_cg.intros(4)[of i _ _ "\<lambda>d'. e' (e (the (s12 pn2)) + d')"
                                                                  "\<lambda>d' v. Q' (e (the (s12 pn2)) + d') v"])
-              apply auto apply (rule merge_rdy_simp1) using assms(3) by auto
+              apply auto apply (rule merge_rdy_comm_specg2_empty) using assms(3) by auto
             done
           done
         subgoal
@@ -1141,13 +1150,6 @@ lemma sync_gassn_interrupt_solInf_wait:
       done
     done
   done
-
-lemma not_compat_rdy_comm_specg2:
-  assumes "i < length specs"
-    and "specs ! i = InSpecg2 ch P"
-  shows
-    "\<not> compat_rdy (rdy_of_comm_specg2 specs) ({ch}, {})"
-  sorry
 
 text \<open>Synchronization between interrupt and synchronized output
   Assume there is a corresponding input in the interrupt. Then
