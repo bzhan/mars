@@ -45,9 +45,9 @@ text \<open>Waiting while the state is characterized by a particular solution.
        is only used in the time interval between 0 and d for any initial
        state.
 \<close>
-inductive wait_sol_c :: "('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
+inductive wait_sol_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate) \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
   "d s0 > 0 \<Longrightarrow> P (d s0) s0 s tr \<Longrightarrow>
-   wait_sol_c p d P s0 s (WaitBlock (d s0) (\<lambda>t\<in>{0..d s0}. updr s0 (p s0 t)) ({}, {}) # tr)"
+   wait_sol_c p d P s0 s (WaitBlock (d s0) (\<lambda>t\<in>{0..d s0}. p s0 t) ({}, {}) # tr)"
 | "\<not>d s0 > 0 \<Longrightarrow> P 0 s0 s tr \<Longrightarrow> wait_sol_c p d P s0 s tr"
 
 lemma wait_sol_mono:
@@ -93,7 +93,7 @@ lemma ode_c_unique:
     "paramODEsol ode b p d"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
   shows
-    "ode_c ode b P s0 \<Longrightarrow>\<^sub>A wait_sol_c p d (\<lambda>d' s. P (updr s (p s d'))) s0"
+    "ode_c ode b P s0 \<Longrightarrow>\<^sub>A wait_sol_c (\<lambda>s t. updr s (p s t)) d (\<lambda>d' s. P (updr s (p s d'))) s0"
 proof -
   \<comment> \<open>The key result is to show that, for any other solution satisfying
       the ODE, it must be equal to the solution given by d, p.\<close>
@@ -160,15 +160,12 @@ proof -
       apply (auto simp add: ode_c.simps)
       subgoal
         apply (rule wait_sol_c.intros)
-        using assms(1) unfolding paramODEsol_def
-        apply auto apply (cases s0) by (auto simp add: updr.simps rpart.simps)
+        using assms(1) unfolding paramODEsol_def by auto
       subgoal premises pre for d' p' tr'
       proof -
         have "b (updr s0 (p' 0))"
           using pre(2,5,6) by auto
-        then have "b s0"
-          apply (cases s0)
-          by (auto simp add: pre(5) rpart.simps updr.simps)
+        then have "b s0" by (auto simp add: pre(5))
         have a: "d' = d s0"
               "p s0 (d s0) = p' d'"
               "WaitBlock (d s0) (\<lambda>t\<in>{0..d s0}. updr s0 (p s0 t)) = WaitBlock d' (\<lambda>t\<in>{0..d'}. updr s0 (p' t))"
@@ -188,7 +185,7 @@ lemma spec_of_cont_unique:
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
   shows
     "spec_of (Cont ode b)
-             (wait_sol_c p d (\<lambda>d' s. init (updr s (p s d'))))"
+             (wait_sol_c (\<lambda>s t. updr s (p s t)) d (\<lambda>d' s. init (updr s (p s d'))))"
   apply (rule spec_of_post)
    apply (rule spec_of_cont) apply auto
   apply (rule entails_trans)
@@ -200,22 +197,30 @@ lemma Valid_cont_unique_sp:
     "paramODEsol ode b p d"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
   shows "spec_of (Cont ode b; c)
-                 (wait_sol_c p d (\<lambda>d' s. Q (updr s (p s d'))))"
+                 (wait_sol_c (\<lambda>s t. updr s (p s t)) d (\<lambda>d' s. Q (updr s (p s d'))))"
   apply (rule spec_of_post)
    apply (rule Valid_cont_sp[OF assms(1)]) apply auto
   apply (rule entails_trans)
   apply (rule ode_c_unique[OF assms(2,3)])
   by (rule entails_triv)
 
+lemma updr_rpart_simp:
+  "updr s ((rpart s)(X := v)) = upd s X v"
+  apply (cases s) by (auto simp add: updr.simps rpart.simps upd.simps)
+
+lemma updr_rpart_simp2:
+  "updr s ((rpart s)(X := v, Y := w)) = upd (upd s X v) Y w"
+  apply (cases s) by (auto simp add: updr.simps rpart.simps upd.simps)
+
 lemma test1:
   assumes "spec_of c Q"
   shows
   "spec_of (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. val s X < 1); c)
-           (wait_sol_c (\<lambda>s0 t. (rpart s0)(X := val s0 X + t)) (\<lambda>s0. 1 - val s0 X)
+           (wait_sol_c (\<lambda>s t. upd s X (val s X + t)) (\<lambda>s. 1 - val s X)
                        (\<lambda>d s. Q (upd s X (val s X + d))))"
 proof -
   have 1: "paramODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>s. val s X < 1)
-                       (\<lambda>s0 t. (rpart s0)(X := val s0 X + t)) (\<lambda>s0. 1 - val s0 X)"
+                       (\<lambda>s t. (rpart s)(X := val s X + t)) (\<lambda>s. 1 - val s X)"
     unfolding paramODEsol_def apply clarify
     subgoal for s
       apply (rule conjI)
@@ -255,8 +260,8 @@ proof -
      apply (rule Valid_cont_unique_sp)
     apply (rule assms)
       apply (rule 1) apply (rule 2)
-    apply clarify apply (rule wait_sol_mono) subgoal for _ d' s
-      apply (cases s) apply (auto simp add: updr.simps rpart.simps upd.simps)
+    apply clarify apply (simp only: updr_rpart_simp)
+    apply (rule wait_sol_mono) subgoal for _ d' s
       by (rule entails_triv)
     done
 qed
@@ -407,12 +412,12 @@ lemma rdy_of_comm_spec2_of:
   "rdy_of_comm_spec specs = rdy_of_comm_spec2 (map (spec2_of p) specs)"
   sorry
 
-inductive interrupt_sol_c :: "('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow> 'a eexp \<Rightarrow> 'a assn2 \<Rightarrow>
+inductive interrupt_sol_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate) \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow>
   'a comm_spec2 list \<Rightarrow> 'a assn2" where
-  "d s0 > 0 \<Longrightarrow> P s0 s tr \<Longrightarrow>
+  "d s0 > 0 \<Longrightarrow> P (d s0) s0 s tr \<Longrightarrow>
    rdy = rdy_of_comm_spec2 specs \<Longrightarrow>
-   interrupt_sol_c p d P specs s0 s (WaitBlock (d s0) (\<lambda>\<tau>\<in>{0..d s0}. updr s0 (p s0 \<tau>)) rdy # tr)"
-| "\<not>d s0 > 0 \<Longrightarrow> P s0 s tr \<Longrightarrow>
+   interrupt_sol_c p d P specs s0 s (WaitBlock (d s0) (\<lambda>\<tau>\<in>{0..d s0}. p s0 \<tau>) rdy # tr)"
+| "\<not>d s0 > 0 \<Longrightarrow> P 0 s0 s tr \<Longrightarrow>
    interrupt_sol_c p d P specs s0 s tr"
 | "i < length specs \<Longrightarrow> specs ! i = InSpec2 ch Q \<Longrightarrow>
    Q 0 v s0 s tr \<Longrightarrow>
@@ -420,13 +425,13 @@ inductive interrupt_sol_c :: "('a estate \<Rightarrow> real \<Rightarrow> state)
 | "i < length specs \<Longrightarrow> specs ! i = InSpec2 ch Q \<Longrightarrow>
    0 < d' \<Longrightarrow> d' \<le> d s0 \<Longrightarrow> Q d' v s0 s tr \<Longrightarrow>
    rdy = rdy_of_comm_spec2 specs \<Longrightarrow>
-   interrupt_sol_c p d P specs s0 s (WaitBlock d' (\<lambda>\<tau>\<in>{0..d'}. updr s0 (p s0 \<tau>)) rdy # InBlock ch v # tr)"
+   interrupt_sol_c p d P specs s0 s (WaitBlock d' (\<lambda>\<tau>\<in>{0..d'}. p s0 \<tau>) rdy # InBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch e Q \<Longrightarrow> v = e 0 s0 \<Longrightarrow>
    Q 0 s0 s tr \<Longrightarrow> interrupt_sol_c p d P specs s0 s (OutBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch e Q \<Longrightarrow>
    0 < d' \<Longrightarrow> d' \<le> d s0 \<Longrightarrow> Q d' s0 s tr \<Longrightarrow> v = e d' s0 \<Longrightarrow>
    rdy = rdy_of_comm_spec2 specs \<Longrightarrow>
-   interrupt_sol_c p d P specs s0 s (WaitBlock d' (\<lambda>\<tau>\<in>{0..d'}. updr s0 (p s0 \<tau>)) rdy # OutBlock ch v # tr)"
+   interrupt_sol_c p d P specs s0 s (WaitBlock d' (\<lambda>\<tau>\<in>{0..d'}. p s0 \<tau>) rdy # OutBlock ch v # tr)"
 
 lemma interrupt_c_unique:
   assumes
@@ -434,8 +439,7 @@ lemma interrupt_c_unique:
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
   shows
     "interrupt_c ode b P specs s0 \<Longrightarrow>\<^sub>A
-     interrupt_sol_c p d (\<lambda>s. if d s > 0 then P (updr s (p s (d s))) else P s)
-                         (map (spec2_of p) specs) s0"
+     interrupt_sol_c (\<lambda>s t. updr s (p s t)) d (\<lambda>d' s. P (updr s (p s d'))) (map (spec2_of p) specs) s0"
 proof -
   \<comment> \<open>The key result is to show that, for any other solution satisfying
       the ODE, it must be equal to the solution given by d, p.\<close>
@@ -560,9 +564,7 @@ proof -
       proof -
         have "b (updr s0 (p' 0))"
           using pre(2,5,6) by auto
-        then have "b s0"
-          apply (cases s0)
-          by (auto simp add: pre(5) rpart.simps updr.simps)
+        then have "b s0" by (auto simp add: pre(5))
         have a: "d' = d s0"
               "p s0 (d s0) = p' d'"
               "WaitBlock (d s0) (\<lambda>t\<in>{0..d s0}. updr s0 (p s0 t)) = WaitBlock d' (\<lambda>t\<in>{0..d'}. updr s0 (p' t))"
@@ -579,16 +581,13 @@ proof -
           using speci[OF pre(2)] unfolding pre(3) by auto
         show ?thesis
           apply (rule interrupt_sol_c.intros(3)[of i _ _ ?Q'])
-          using pre Q length p0 apply auto
-          apply (cases s0) by (auto simp add: updr.simps rpart.simps upd.simps)
+          using pre Q length p0 by (auto simp add: updr_rpart_simp)
       qed
       subgoal premises pre for i ch var Q d' p' v tr'
       proof -
         have "b (updr s0 (p' 0))"
           using pre by auto
-        then have "b s0"
-          apply (cases s0)
-          by (auto simp add: pre rpart.simps updr.simps)
+        then have "b s0" using pre by auto
         have a: "d' \<le> d s0"
               "p s0 d' = p' d'"
               "WaitBlock d' (\<lambda>t\<in>{0..d'}. updr s0 (p s0 t)) = WaitBlock d' (\<lambda>t\<in>{0..d'}. updr s0 (p' t))"
@@ -609,16 +608,13 @@ proof -
           using speci[OF pre(2)] unfolding pre(3) by auto
         show ?thesis
           apply (rule interrupt_sol_c.intros(5)[of i _ _ ?e' ?Q'])
-          using pre(2,3,4) Q length p0 apply auto
-          by (cases s0, auto simp add: updr.simps rpart.simps upd.simps)+
+          using pre(2,3,4) Q length p0 by auto
       qed
       subgoal premises pre for i ch e Q d' p' tr'
       proof -
         have "b (updr s0 (p' 0))"
           using pre by auto
-        then have "b s0"
-          apply (cases s0)
-          by (auto simp add: pre rpart.simps updr.simps)
+        then have "b s0" using pre by auto
         have a: "d' \<le> d s0"
               "p s0 d' = p' d'"
               "WaitBlock d' (\<lambda>t\<in>{0..d'}. updr s0 (p s0 t)) = WaitBlock d' (\<lambda>t\<in>{0..d'}. updr s0 (p' t))"
@@ -644,8 +640,7 @@ lemma spec_of_interrupt_unique:
     "\<forall>i. i < length es \<longrightarrow> spec_of_es (es ! i) (specs ! i)"
   shows
     "spec_of (Interrupt ode b es)
-             (interrupt_sol_c p d (\<lambda>s. if d s > 0 then init (updr s (p s (d s))) else init s)
-                              (map (spec2_of p) specs))"
+             (interrupt_sol_c (\<lambda>s t. updr s (p s t)) d (\<lambda>d' s. init (updr s (p s d'))) (map (spec2_of p) specs))"
   apply (rule spec_of_post)
    apply (rule spec_of_interrupt[OF assms(3,4)]) apply auto
   apply (rule entails_trans)
@@ -665,7 +660,7 @@ lemma rdy_of_spec2_entails:
   sorry
 
 lemma interrupt_sol_mono:
-  assumes "\<And>s0. P s0 \<Longrightarrow>\<^sub>A P2 s0"
+  assumes "\<And>d s0. P d s0 \<Longrightarrow>\<^sub>A P2 d s0"
     and "length specs = length specs2"
     and "\<And>i. i < length specs \<Longrightarrow> spec2_entails (specs ! i) (specs2 ! i)"
   shows "interrupt_sol_c p d P specs s0 \<Longrightarrow>\<^sub>A interrupt_sol_c p d P2 specs2 s0"
@@ -715,8 +710,8 @@ lemma interrupt_sol_mono:
 lemma test2:
   "spec_of (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. val s X < 1)
                       [(dh[?]Y, Skip)])
-           (interrupt_sol_c (\<lambda>s0 t. (rpart s0)(X := val s0 X + t)) (\<lambda>s0. 1 - val s0 X)
-                            (\<lambda>s. if val s X < 1 then init (upd s X 1) else init s)
+           (interrupt_sol_c (\<lambda>s t. upd s X (val s X + t)) (\<lambda>s. 1 - val s X)
+                            (\<lambda>d s. init (upd s X (val s X + d)))
                             [InSpec2 dh (\<lambda>d v s. init (upd (upd s X (val s X + d)) Y v))])"
 proof -
   have 1: "paramODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>s. val s X < 1)
@@ -763,34 +758,32 @@ proof -
       apply auto apply (rule spec_of_es.intros)
      apply (rule spec_of_skip)
     subgoal for s0
+      apply (simp only: updr_rpart_simp)
       apply (rule interrupt_sol_mono)
-      subgoal for s0
-        apply (cases s0) apply (auto simp add: updr.simps upd.simps rpart.simps)
-        by (rule entails_triv)+
+      subgoal by (rule entails_triv)
       subgoal by auto
       subgoal for i
         apply auto apply (intro spec2_entails.intros)
-        subgoal for d v s0
-          apply (cases s0) apply (auto simp add: updr.simps upd.simps rpart.simps)
+        subgoal for d v s0 apply (simp only: updr_rpart_simp2)
           by (rule entails_triv)
         done
       done
     done
 qed
 
-inductive interrupt_solInf_c :: "('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow> 'a comm_spec2 list \<Rightarrow> 'a assn2" where
+inductive interrupt_solInf_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate) \<Rightarrow> 'a comm_spec2 list \<Rightarrow> 'a assn2" where
   "i < length specs \<Longrightarrow> specs ! i = InSpec2 ch Q \<Longrightarrow>
    Q 0 v s0 s tr \<Longrightarrow> interrupt_solInf_c p specs s0 s (InBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = InSpec2 ch Q \<Longrightarrow>
    0 < d \<Longrightarrow> Q d v s0 s tr \<Longrightarrow>
    rdy = rdy_of_comm_spec2 specs \<Longrightarrow>
-   interrupt_solInf_c p specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p s0 \<tau>)) rdy # InBlock ch v # tr)"
+   interrupt_solInf_c p specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. p s0 \<tau>) rdy # InBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch e Q \<Longrightarrow> v = e 0 s0 \<Longrightarrow>
    Q 0 s0 s tr \<Longrightarrow> interrupt_solInf_c p specs s0 s (OutBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch e Q \<Longrightarrow>
    0 < d \<Longrightarrow> Q d s0 s tr \<Longrightarrow> v = e d s0 \<Longrightarrow>
    rdy = rdy_of_comm_spec2 specs \<Longrightarrow>
-   interrupt_solInf_c p specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. updr s0 (p s0 \<tau>)) rdy # OutBlock ch v # tr)"
+   interrupt_solInf_c p specs s0 s (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. p s0 \<tau>) rdy # OutBlock ch v # tr)"
 
 definition paramODEsolInf :: "ODE \<Rightarrow> ('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow> bool" where
   "paramODEsolInf ode p \<longleftrightarrow>
@@ -802,7 +795,7 @@ lemma interrupt_inf_c_unique:
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
   shows
     "interrupt_c ode (\<lambda>_. True) P specs s0 \<Longrightarrow>\<^sub>A
-     interrupt_solInf_c p (map (spec2_of p) specs) s0"
+     interrupt_solInf_c (\<lambda>s t. updr s (p s t)) (map (spec2_of p) specs) s0"
 proof -
   have main:
     "p s d2 = p2 d2 \<and>
@@ -850,8 +843,7 @@ proof -
         let ?Q' = "\<lambda>d v s0. Q (updr s0 ((p s0 d)(var := v)))"
         show ?thesis
           apply (rule interrupt_solInf_c.intros(1)[of i _ _ ?Q'])
-          using pre length p0 apply auto
-          apply (cases s0) by (auto simp add: updr.simps rpart.simps upd.simps)
+          using pre length p0 by (auto simp add: updr_rpart_simp)
       qed
       subgoal premises pre for i ch var Q d p2 v tr'
       proof -
@@ -870,8 +862,7 @@ proof -
         let ?e' = "\<lambda>d s0. e (updr s0 (p s0 d))"
         show ?thesis
           apply (rule interrupt_solInf_c.intros(3)[of i _ _ ?e' ?Q'])
-          using pre length p0 apply auto
-          by (cases s0, auto simp add: updr.simps rpart.simps)+
+          using pre length p0 by auto
       qed
       subgoal premises pre for i ch e Q d p2 tr'
       proof -
@@ -897,7 +888,7 @@ lemma spec_of_interrupt_inf_unique:
     "\<forall>i. i < length es \<longrightarrow> spec_of_es (es ! i) (specs ! i)"
   shows
     "spec_of (Interrupt ode (\<lambda>_. True) es)
-             (interrupt_solInf_c p (map (spec2_of p) specs))"
+             (interrupt_solInf_c (\<lambda>s t. updr s (p s t)) (map (spec2_of p) specs))"
   apply (rule spec_of_post)
    apply (rule spec_of_interrupt[OF assms(3,4)]) apply auto
   apply (rule entails_trans)

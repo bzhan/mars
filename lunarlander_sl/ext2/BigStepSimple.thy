@@ -64,6 +64,14 @@ lemma epart_upde_simp [simp]:
   "epart (upde s e) = e"
   apply (cases s) by auto
 
+lemma updr_rpart_simp [simp]:
+  "updr s (rpart s) = s"
+  apply (cases s) by auto
+
+lemma upd_val_simp [simp]:
+  "upd s X (val s X) = s"
+  apply (cases s) by auto
+
 declare upd.simps [simp del]
 declare updr.simps [simp del]
 declare rpart.simps [simp del]

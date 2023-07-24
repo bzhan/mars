@@ -26,7 +26,7 @@ definition ex1a :: "'a proc" where
                                      [(ch2[?]Y, Skip)]))"
 lemma ex1a_ode:
   "spec_of (Interrupt (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 2))) (\<lambda>_. True) [(ch2[?]Y, Skip)])
-           (interrupt_solInf_c (\<lambda>s0 t. (rpart s0)(X := val s0 X + 2 * t))
+           (interrupt_solInf_c (\<lambda>s t. upd s X (val s X + 2 * t))
                                [InSpec2 ch2 (\<lambda>d v. init {{Y := (\<lambda>_. v)}} {{X := (\<lambda>s. val s X + 2 * d)}})])"
 proof -
   have 1: "paramODEsolInf (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 2)))
@@ -63,6 +63,7 @@ proof -
       apply auto apply (rule spec_of_es.intros)
      apply (rule spec_of_skip)
     subgoal for s0
+      apply (simp only: updr_rpart_simp)
       apply (rule interrupt_solInf_mono)
        apply auto
       apply (intro spec2_entails.intros)
@@ -77,7 +78,7 @@ qed
 lemma ex1a_ode2:
   "spec_of (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True)
                       [(dh[?]Y, Skip)])
-           (interrupt_solInf_c (\<lambda>s0 t. (rpart s0)(X := val s0 X + t))
+           (interrupt_solInf_c (\<lambda>s t. upd s X (val s X + t))
                                [InSpec2 dh (\<lambda>d v. init {{Y := (\<lambda>_. v)}} {{X := (\<lambda>s. val s X + d)}})])"
 proof -
   have 1: "paramODEsolInf (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))
@@ -114,6 +115,7 @@ proof -
       apply auto apply (rule spec_of_es.intros)
      apply (rule spec_of_skip)
     subgoal for s0
+      apply (simp only: updr_rpart_simp)
       apply (rule interrupt_solInf_mono)
        apply auto
       apply (intro spec2_entails.intros)
@@ -128,10 +130,10 @@ qed
 lemma ex1a_sp:
   "spec_of ex1a
      ((wait_out_c ch1 (\<lambda>_. 1)
-        (\<lambda>d. interrupt_solInf_c (\<lambda>s0 t. (rpart s0)(X := val s0 X + 2 * t))
+        (\<lambda>d. interrupt_solInf_c (\<lambda>s t. upd s X (val s X + 2 * t))
                                 [InSpec2 ch2 (\<lambda>d v. init {{Y := (\<lambda>_. v)}} {{X := (\<lambda>s. val s X + 2 * d)}})]) \<or>\<^sub>a
        wait_out_c ch1 (\<lambda>_. 2)
-        (\<lambda>d. interrupt_solInf_c (\<lambda>s0 t. (rpart s0)(X := val s0 X + t))
+        (\<lambda>d. interrupt_solInf_c (\<lambda>s t. upd s X (val s X + t))
                                 [InSpec2 ch2 (\<lambda>d v. init {{Y := (\<lambda>_. v)}} {{X := (\<lambda>s. val s X + d)}})]))
       {{X := (\<lambda>_. 0)}})"
   unfolding ex1a_def
@@ -164,11 +166,11 @@ datatype 'a comm_specg2 =
 | OutSpecg2 cname "real \<Rightarrow> 'a gstate \<Rightarrow> real" "real \<Rightarrow> 'a gassn2"
 
 text \<open>Mapping from path on a single state to path on general states\<close>
-definition single_path :: "pname \<Rightarrow> ('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow> 'a gstate \<Rightarrow> real \<Rightarrow> 'a gstate" where
-  "single_path pn p gs t = gs (pn \<mapsto> updr (the (gs pn)) (p (the (gs pn)) t))"
+definition single_path :: "pname \<Rightarrow> ('a estate \<Rightarrow> real \<Rightarrow> 'a estate) \<Rightarrow> 'a gstate \<Rightarrow> real \<Rightarrow> 'a gstate" where
+  "single_path pn p gs t = gs (pn \<mapsto> p (the (gs pn)) t)"
 
 lemma single_path_State:
-  "single_path pn p (State pn s) t = State pn (updr s (p s t))"
+  "single_path pn p (State pn s) t = State pn (p s t)"
   unfolding single_path_def
   by (auto simp add: State_def)
 
@@ -240,8 +242,7 @@ lemma rdy_of_comm_spec_gassn_of:
   "rdy_of_comm_spec2 specs = rdy_of_comm_specg2 (map (gassn_of pn) specs)"
   sorry
 
-inductive interrupt_solInf_cg :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate) \<Rightarrow>
-  'a comm_specg2 list \<Rightarrow> 'a gassn2" where
+inductive interrupt_solInf_cg :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate) \<Rightarrow> 'a comm_specg2 list \<Rightarrow> 'a gassn2" where
   "i < length specs \<Longrightarrow> specs ! i = InSpecg2 ch Q \<Longrightarrow>
    Q 0 v gs0 gs tr \<Longrightarrow> interrupt_solInf_cg p specs gs0 gs (InBlockP ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = InSpecg2 ch Q \<Longrightarrow>
@@ -639,13 +640,13 @@ lemma ex1b:
               {ch1, ch2}
               (Single ''b'' ex1b))
    ((wait_sol_cg
-      (merge_path {''a''} {''b''} (single_path ''a'' (\<lambda>s0 t. (rpart s0)(X := val s0 X + 2 * t))) id_path)
+      (merge_path {''a''} {''b''} (single_path ''a'' (\<lambda>s t. upd s X (val s X + 2 * t))) id_path)
       ''b'' (\<lambda>s. val s Y)
       (\<lambda>d. (init_single {''b'', ''a''} {{Y := (\<lambda>_. 0)}}\<^sub>g at ''a'')
                                        {{X := (\<lambda>s. val s X + 2 * d)}}\<^sub>g at ''a'')
         {{Y := (\<lambda>_. 1)}}\<^sub>g at ''b'' \<or>\<^sub>g
      wait_sol_cg
-      (merge_path {''a''} {''b''} (single_path ''a'' (\<lambda>s0 t. (rpart s0)(X := val s0 X + t))) id_path)
+      (merge_path {''a''} {''b''} (single_path ''a'' (\<lambda>s t. upd s X (val s X + t))) id_path)
       ''b'' (\<lambda>s. val s Y)
       (\<lambda>d. (init_single {''b'', ''a''} {{Y := (\<lambda>_. 0)}}\<^sub>g at ''a'')
                                        {{X := (\<lambda>s. val s X + d)}}\<^sub>g at ''a'')
@@ -739,9 +740,61 @@ lemma wait_inv_cg_mono:
     using assms unfolding entails_g_def by auto
   done
 
+lemma merge_restrict:
+  assumes "proc_set s = pns1 \<union> pns2"
+    and "pns1 \<inter> pns2 = {}"
+  shows "merge_state (restrict_state pns1 s) (restrict_state pns2 s) = s"
+  unfolding merge_state_def restrict_state_def
+  apply (rule ext) apply auto
+  using assms(1,2) unfolding proc_set_def apply auto
+  subgoal for p apply (cases "s p") by auto
+  subgoal for p apply (cases "s p") by auto
+  done
+
+lemma proc_set_restrict_state:
+  assumes "pns1 \<subseteq> proc_set s"
+  shows "proc_set (restrict_state pns1 s) = pns1"
+  using assms unfolding restrict_state_def proc_set_def by auto
+
+lemma merge_state_elim:
+  assumes "proc_set s = pns1 \<union> pns2"
+    and "pns1 \<inter> pns2 = {}"
+    and "\<And>s1 s2. s = merge_state s1 s2 \<Longrightarrow> proc_set s1 = pns1 \<Longrightarrow> proc_set s2 = pns2 \<Longrightarrow> P"
+  shows P
+  apply (rule assms(3)[of "restrict_state pns1 s" "restrict_state pns2 s"])
+  by (auto simp add: merge_restrict proc_set_restrict_state assms)  
+
+lemma merge_state_updg_left:
+  assumes "pn \<in> proc_set s1"
+  shows "merge_state (updg s1 pn v e) s2 = updg (merge_state s1 s2) pn v e"
+  apply (rule ext)
+  using assms by (auto simp add: proc_set_def merge_state_def updg_def)
+
+lemma valg_merge_state_left:
+  assumes "pn \<in> proc_set s1"
+  shows "valg (merge_state s1 s2) pn v = valg s1 pn v"
+  using assms by (auto simp add: proc_set_def merge_state_def valg_def)
+
+lemma merge_test:
+  assumes "proc_set s0 = {''a'', ''b''}"
+  shows
+  "merge_path {''a''} {''b''} (single_path ''a'' (\<lambda>s t. upd s X (val s X + 2 * t))) id_path s0 =
+   (\<lambda>t. updg s0 ''a'' X (valg s0 ''a'' X + 2 * t))"
+  apply (rule merge_state_elim[of s0 "{''a''}" "{''b''}"])
+  using assms apply auto[1] apply auto[1]
+  subgoal for s1 s2
+    apply simp apply (rule ext) subgoal for t
+      apply (subst merge_path_eval) apply auto[1] apply auto[1] apply auto[1]
+      by (simp add: single_path_def valg_def[symmetric] updg_def[symmetric]
+                    merge_state_updg_left valg_merge_state_left)
+    done
+  done
+
 lemma test:
+  assumes "proc_set s0 = {''a'', ''b''}"
+  shows
   "((wait_sol_cg
-      (merge_path {''a''} {''b''} (single_path ''a'' (\<lambda>s0 t. (rpart s0)(X := val s0 X + 2 * t))) id_path)
+      (merge_path {''a''} {''b''} (single_path ''a'' (\<lambda>s t. upd s X (val s X + 2 * t))) id_path)
       ''b'' (\<lambda>s. val s Y)
       (\<lambda>d. (init_single {''b'', ''a''} {{Y := (\<lambda>_. 0)}}\<^sub>g at ''a'')
                                        {{X := (\<lambda>s. val s X + 2 * d)}}\<^sub>g at ''a'')
@@ -757,7 +810,8 @@ lemma test:
    apply (rule wait_inv_cgI[where d=1 and I="\<lambda>gs. valg gs ''a'' X \<in> {0..2}"])
      apply (simp only: valg_def[symmetric]) apply auto[1]
   apply auto[1]
-  subgoal sorry
+  subgoal apply (subst merge_test)
+    using assms by auto
   apply (rule wait_inv_cg_mono)
   apply (rule entails_g_trans)
    apply (rule gassn_subst)
