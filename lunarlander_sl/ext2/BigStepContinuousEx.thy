@@ -746,7 +746,7 @@ lemma ex2'':
              {{Y := (\<lambda>a. 0)}}\<^sub>g at ''a'' {{X := (\<lambda>s. val s X + d)}}\<^sub>g at ''a''))
         {{Y := (\<lambda>_. 2)}}\<^sub>g at ''b'') {{X := (\<lambda>_. 0)}}\<^sub>g at ''a'') s0 \<Longrightarrow>\<^sub>g
     (wait_inv_cg (\<lambda>gs. valg gs ''a'' X \<in> {0..2})
-       (\<lambda>s0. \<exists>\<^sub>gs1. !\<^sub>g[(valg s1 ''a'' X = 2)] \<and>\<^sub>g
+       (\<lambda>s0. \<exists>\<^sub>gs1. !\<^sub>g[(valg s1 ''a'' X = 2)] \<and>\<^sub>g !\<^sub>g[(proc_set s1 = {''a'', ''b''})] \<and>\<^sub>g
          sync_gassn {ch1, ch2} {''a''} {''b''}
             (single_assn ''a'' (ex2a_c n1 init))
             (single_assn ''b'' (ex2b_c n2 init)) s1)) s0"
@@ -777,7 +777,11 @@ lemma ex2'':
     apply (rule exI[where x="updg (updg (updg (updg s0 ''a'' X 0) ''b'' Y 1) ''a'' X 2) ''a'' Y 0"])
     apply (rule conj_gassn_intro)
      apply (rule pure_gassn_intro)
-    by (auto simp add: entails_g_def X_def Y_def)
+    apply (auto simp add: X_def Y_def)
+    apply (rule conj_gassn_intro)
+     apply (rule pure_gassn_intro)
+     apply (auto simp add: assms)
+    by (rule entails_g_triv)
   subgoal
     (* Right branch *)
     apply (rule entails_g_trans)
@@ -802,25 +806,28 @@ lemma ex2'':
     apply (rule exI[where x="updg (updg (updg (updg s0 ''a'' X 0) ''b'' Y 2) ''a'' X 2) ''a'' Y 0"])
     apply (rule conj_gassn_intro)
      apply (rule pure_gassn_intro)
-    by (auto simp add: entails_g_def X_def Y_def)
+    apply (auto simp add: X_def Y_def)
+    apply (rule conj_gassn_intro)
+     apply (rule pure_gassn_intro)
+     apply (auto simp add: assms)
+    by (rule entails_g_triv)
   done
 
 fun ex2_c :: "nat \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2" where
   "ex2_c 0 Q = Q"
 | "ex2_c (Suc n) Q =
     (wait_inv_cg (\<lambda>gs. valg gs ''a'' X \<in> {0..2})
-       (\<lambda>s0. \<exists>\<^sub>gs1. !\<^sub>g[(valg s1 ''a'' X = 2)] \<and>\<^sub>g ex2_c n Q s1))"
+       (\<lambda>s0. \<exists>\<^sub>gs1. !\<^sub>g[(valg s1 ''a'' X = 2)] \<and>\<^sub>g !\<^sub>g[(proc_set s1 = {''a'', ''b''})] \<and>\<^sub>g ex2_c n Q s1))"
 
 lemma exists_gassn_mono:
   assumes "\<And>n. P1 n \<Longrightarrow>\<^sub>g P2 n"
   shows "(\<exists>\<^sub>gn. P1 n) \<Longrightarrow>\<^sub>g (\<exists>\<^sub>gn. P2 n)"
   using assms unfolding entails_g_def exists_gassn_def by auto
 
-lemma conj_gassn_mono:
-  assumes "P1 \<Longrightarrow>\<^sub>g P2"
-    and "Q1 \<Longrightarrow>\<^sub>g Q2"
-  shows "(P1 \<and>\<^sub>g Q1) \<Longrightarrow>\<^sub>g (P2 \<and>\<^sub>g Q2)"
-  using assms unfolding entails_g_def conj_gassn_def by auto
+lemma conj_pure_gassn_mono:
+  assumes "b \<Longrightarrow> Q1 \<Longrightarrow>\<^sub>g Q2"
+  shows "(!\<^sub>g[b] \<and>\<^sub>g Q1) \<Longrightarrow>\<^sub>g (!\<^sub>g[b] \<and>\<^sub>g Q2)"
+  using assms unfolding entails_g_def conj_gassn_def pure_gassn_def by auto
 
 lemma ex2''':
   "proc_set s0 = {''a'', ''b''} \<Longrightarrow>
@@ -865,10 +872,44 @@ next
     apply simp
     apply (rule wait_inv_cg_mono)
     apply (rule exists_gassn_mono)
-    apply (rule conj_gassn_mono)
-     apply (rule entails_g_triv)
-    apply (rule 3(1))
-    sorry
+    apply (rule conj_pure_gassn_mono)
+    apply (rule conj_pure_gassn_mono)
+    apply (rule 3(1)) by auto
 qed
+
+lemma ex2'''':
+  "spec_of_global
+    (Parallel (Single ''a'' ex2a)
+              {ch1, ch2}
+              (Single ''b'' ex2b))
+    (\<lambda>s0. \<exists>\<^sub>gn1 n2. sync_gassn {ch1, ch2} {''a''} {''b''}
+                      (single_assn ''a'' (ex2a_c n1 init))
+                      (single_assn ''b'' (ex2b_c n2 init)) s0)"
+  (* Stage 1: merge ex2a_c and ex2b_c *)
+  apply (rule spec_of_global_post)
+   apply (rule spec_of_parallel)
+      apply (rule spec_of_single[OF ex2a_sp])
+     apply (rule spec_of_single[OF ex2b_sp])
+  apply auto
+  apply (auto simp add: single_assn_exists sync_gassn_exists_left sync_gassn_exists_right)
+  by (rule entails_g_triv)
+
+lemma ex2:
+  "proc_set s0 = {''a'', ''b''} \<Longrightarrow>
+    \<Turnstile>\<^sub>p {init_global s0}
+          (Parallel (Single ''a'' ex2a)
+                    {ch1, ch2}
+                    (Single ''b'' ex2b))
+        {\<exists>\<^sub>gn. ex2_c n (init_single {''a'', ''b''}) s0}"
+  apply (rule weaken_post_global)
+   apply (rule spec_of_globalE[OF ex2''''])
+  apply (rule exists_gassn_elim)
+  apply (rule exists_gassn_elim)
+  subgoal for n1 n2
+    apply (rule exists_gassn_intro)
+    apply (rule exI[where x=n1])
+    apply (rule ex2''')
+    by auto
+  done
 
 end
