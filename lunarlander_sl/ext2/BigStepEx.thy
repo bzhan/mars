@@ -41,7 +41,7 @@ lemma ex1:
     apply simp apply simp apply auto
   (* Stage 2: simplify assertion *)
   subgoal for s0
-    apply (auto simp: single_assn_wait_in single_assn_wait_out updg_subst2 single_assn_init)
+    apply (auto simp: single_assn_simps)
   (* Stage 3: perform merge *)
     apply (rule entails_g_trans)
      apply (rule sync_gassn_in_out) apply auto
@@ -93,7 +93,7 @@ lemma ex2:
     apply simp apply simp
     (* Stage 2: rewrite the assertions *)
   apply auto subgoal for s0
-    apply (auto simp: single_assn_wait_in single_assn_wait_out updg_subst2 single_assn_init)
+    apply (auto simp: single_assn_simps)
       (* Stage 3: combine the two assertions *)
     apply (rule entails_g_trans)
      apply (rule sync_gassn_out_in) apply auto
@@ -203,8 +203,7 @@ lemma ex3':
     apply (auto simp add: X_def Y_def)
     by (auto simp add: algebra_simps)
   subgoal
-    apply simp
-    apply (auto simp: single_assn_wait_in single_assn_wait_out updg_subst2)
+    apply (auto simp: single_assn_simps)
     apply (rule entails_g_trans)
      apply (rule sync_gassn_out_in) apply auto
     apply (rule entails_g_trans)
@@ -242,7 +241,7 @@ proof (induction n1 n2 arbitrary: s0 rule: diff_induct)
       apply (rule exI[where x=s0])
       apply (rule conjI) using 1 apply simp
       apply (rule entails_g_trans)
-      apply (auto simp add: single_assn_init)
+      apply (auto simp add: single_assn_simps)
        apply (rule sync_gassn_emp) apply auto
       by (rule entails_g_triv)
   next
@@ -252,7 +251,7 @@ proof (induction n1 n2 arbitrary: s0 rule: diff_induct)
       apply (rule exI[where x=s0])
       apply (rule conjI) using 1 apply simp
       apply auto
-       apply (auto simp add: single_assn_init single_assn_wait_out)
+       apply (auto simp add: single_assn_simps)
        apply (rule sync_gassn_out_emp_unpair)
       by auto
   qed
@@ -262,7 +261,7 @@ next
     apply (rule exI[where x=s0])
     apply (rule conjI) using 2 apply simp
     apply auto
-    apply (auto simp add: single_assn_init single_assn_wait_in)
+    apply (auto simp add: single_assn_simps)
     apply (rule sync_gassn_emp_in_unpair)
     by auto
 next
@@ -304,7 +303,7 @@ lemma ex3''':
   apply (rule ex3a_sp)
      apply (rule spec_of_single)
   apply (rule ex3b_sp) apply auto
-  apply (auto simp add: single_assn_exists sync_gassn_exists_left sync_gassn_exists_right)
+  apply (auto simp add: single_assn_simps sync_gassn_exists_left sync_gassn_exists_right)
   by (rule entails_g_triv)
 
 lemma ex3:
@@ -444,7 +443,7 @@ lemma ex5':
     subgoal using ex5_inv_preserve[OF assms]
       unfolding epartg_def by auto
     subgoal
-      unfolding single_assn_wait_out single_assn_wait_in updg_subst2 updeg_subst2
+      apply (auto simp add: single_assn_simps)
       apply (rule entails_g_trans)
        apply (rule sync_gassn_out_in) apply auto
       apply (rule entails_g_trans)
@@ -480,7 +479,7 @@ proof (induction n1 n2 arbitrary: s0 rule: diff_induct)
   show ?case
     apply (rule exists_gassn_intro)
     apply (rule exI[where x=s0])
-    unfolding ex5b_c.simps single_assn_init
+    unfolding ex5b_c.simps single_assn_simps
   proof (induction n1)
     case 0
     show ?case
@@ -488,7 +487,7 @@ proof (induction n1 n2 arbitrary: s0 rule: diff_induct)
        apply (rule pure_gassn_intro)
       using 1 apply simp
       apply (rule entails_g_trans)
-      apply (auto simp add: single_assn_init)
+      apply (auto simp add: single_assn_simps)
        apply (rule sync_gassn_emp) apply auto
       by (rule entails_g_triv)
   next
@@ -507,7 +506,7 @@ next
   show ?case
     apply (rule exists_gassn_intro)
     apply (rule exI[where x=s0])
-    apply (auto simp add: single_assn_init single_assn_wait_in)
+    apply (auto simp add: single_assn_simps)
     apply (rule sync_gassn_emp_in_unpair)
     by auto
 next
@@ -618,8 +617,7 @@ lemma ex6:
     apply simp apply simp
   (* Stage 2: rewrite the assertions *)
   apply auto subgoal for s0
-    apply (auto simp add: single_assn_wait_in0 single_assn_wait updg_subst2
-                          single_assn_wait_out single_assn_wait_in single_assn_init)
+    apply (auto simp add: single_assn_simps)
   (* Stage 3: combine the two assertions *)
     apply (rule entails_g_trans)
      apply (rule sync_gassn_out_unpair_wait0)
@@ -683,7 +681,7 @@ lemma ex6_full:
     apply simp apply simp
   (* Stage 2: rewrite the assertions *)
   apply auto subgoal for s0
-    apply (auto simp add: single_assn_wait_out single_assn_wait single_assn_init)
+    apply (auto simp add: single_assn_simps)
   (* Stage 3: combine the two assertions *)
     apply (rule entails_g_trans)
      apply (rule sync_gassn_in_alt_out) apply auto

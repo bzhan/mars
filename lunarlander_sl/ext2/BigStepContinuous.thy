@@ -896,7 +896,7 @@ inductive interrupt_solInf_cg :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a
    rdy = rdy_of_comm_specg2 specs \<Longrightarrow>
    interrupt_solInf_cg p specs gs0 gs (WaitBlkP d p' rdy # OutBlockP ch v # tr)"
 
-lemma single_assn_interrupt_solInf:
+lemma single_assn_interrupt_solInf [single_assn_simps]:
   "single_assn pn (interrupt_solInf_c p specs) =
    interrupt_solInf_cg (single_path pn p) (map (comm_spec_gassn_of pn) specs)"
   apply (rule ext) apply (rule ext) apply (rule ext)

@@ -1250,10 +1250,12 @@ definition wait_in_cg0 :: "pname \<Rightarrow> cname \<Rightarrow> pname set \<R
 
 subsubsection \<open>Conversion from sequential to parallel assertions\<close>
 
+named_theorems single_assn_simps
+
 inductive single_assn :: "pname \<Rightarrow> 'a assn2 \<Rightarrow> 'a gassn2" where
   "Q s s' tr \<Longrightarrow> single_assn pn Q (State pn s) (State pn s') (ptrace_of pn tr)"
 
-lemma single_assn_true:
+lemma single_assn_true [single_assn_simps]:
   "single_assn pn true_assn2 = true_gassn {pn}"
   apply (rule ext) apply (rule ext) apply (rule ext)
   subgoal for s0 s tr
@@ -1269,7 +1271,7 @@ lemma single_assn_true:
     done
   done
 
-lemma single_assn_false:
+lemma single_assn_false [single_assn_simps]:
   "single_assn pn false_assn2 = false_gassn"
   apply (rule ext) apply (rule ext) apply (rule ext)
   subgoal for s0 s tr
@@ -1280,8 +1282,8 @@ lemma single_assn_false:
     done
   done
 
-lemma single_assn_exists:
-  "single_assn pn (\<lambda>s0. \<exists>\<^sub>an. P n s0) = (\<lambda>s0. (\<exists>\<^sub>g n. single_assn pn (P n) s0))"
+lemma single_assn_exists [single_assn_simps]:
+  "single_assn pn (\<lambda>s0. \<exists>\<^sub>an. P n s0) = (\<lambda>s0. (\<exists>\<^sub>gn. single_assn pn (P n) s0))"
   apply (rule ext) apply (rule ext) apply (rule ext)
   subgoal for s tr s0
     apply (rule iffI)
@@ -1289,7 +1291,7 @@ lemma single_assn_exists:
       by (auto elim: single_assn.cases intro: single_assn.intros)
     done
 
-lemma single_assn_disj:
+lemma single_assn_disj [single_assn_simps]:
   "single_assn pn (P \<or>\<^sub>a Q) = (single_assn pn P \<or>\<^sub>g single_assn pn Q)"
   apply (rule ext) apply (rule ext) apply (rule ext)
   subgoal for s0 s tr
@@ -1305,7 +1307,7 @@ lemma single_assn_disj:
     done
   done
 
-lemma single_assn_wait_in:
+lemma single_assn_wait_in [single_assn_simps]:
   "single_assn pn (wait_in_c ch1 P) = wait_in_cg ch1 (\<lambda>d v. single_assn pn (P d v))"
   apply (rule ext) apply (rule ext) apply (rule ext)
   subgoal for s0 s tr
@@ -1334,7 +1336,7 @@ lemma single_assn_wait_in:
     done
   done
 
-lemma single_assn_wait_out:
+lemma single_assn_wait_out [single_assn_simps]:
   "single_assn pn (wait_out_c ch1 e P) = wait_out_cg pn ch1 e (\<lambda>d. single_assn pn (P d))"
   apply (rule ext) apply (rule ext) apply (rule ext)
   subgoal for s0 s tr
@@ -1371,7 +1373,7 @@ lemma single_assn_wait_out:
     done
   done
 
-lemma single_assn_wait:
+lemma single_assn_wait [single_assn_simps]:
   "single_assn pn (wait_c e P) = wait_cg pn e (single_assn pn P)"
   apply (rule ext) apply (rule ext) apply (rule ext)
   subgoal for gs0 gs tr
@@ -1417,7 +1419,7 @@ lemma single_assn_wait:
     done
   done
 
-lemma updg_subst2:
+lemma single_assn_subst [single_assn_simps]:
   "single_assn pn (P {{ var := e }}) = (single_assn pn P) {{ var := e }}\<^sub>g at pn"
   apply (rule ext) apply (rule ext) apply (rule ext)
   subgoal for s0 s tr
@@ -1440,7 +1442,7 @@ lemma updg_subst2:
     done
   done
 
-lemma updeg_subst2:
+lemma single_assn_subste [single_assn_simps]:
   "single_assn pn (P {{ f }}) = (single_assn pn P) {{ f }}\<^sub>g at pn"
   apply (rule ext) apply (rule ext) apply (rule ext)
   subgoal for s0 s tr
@@ -1463,7 +1465,7 @@ lemma updeg_subst2:
     done
   done
 
-lemma single_assn_init:
+lemma single_assn_init [single_assn_simps]:
   "single_assn pn init = init_single {pn}"
   apply (rule ext) apply (rule ext) apply (rule ext)
   subgoal for s0 s tr
@@ -1480,7 +1482,7 @@ lemma single_assn_init:
     done
   done
 
-lemma single_assn_cond:
+lemma single_assn_cond [single_assn_simps]:
   "single_assn pn (IFA b THEN a1 ELSE a2 FI) =
     (IFG [pn] b THEN single_assn pn a1 ELSE single_assn pn a2 FI)"
   apply (rule ext) apply (rule ext) apply (rule ext)
@@ -1496,7 +1498,7 @@ lemma single_assn_cond:
     done
   done
 
-lemma single_assn_wait_in0:
+lemma single_assn_wait_in0 [single_assn_simps]:
   "single_assn pn (wait_in_c0 ch P) = wait_in_cg0 pn ch {pn} (\<lambda>v. single_assn pn (P v))"
   unfolding wait_in_c0_def wait_in_cg0_def
   apply (subst single_assn_wait_in)
