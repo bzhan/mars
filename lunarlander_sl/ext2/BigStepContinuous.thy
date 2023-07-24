@@ -2,6 +2,186 @@ theory BigStepContinuous
   imports BigStepSimple
 begin
 
+subsection \<open>Preliminary\<close>
+
+text \<open>Parameterized solution to ODE\<close>
+definition paramODEsol :: "ODE \<Rightarrow> 'a eform \<Rightarrow> ('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow> 'a eexp \<Rightarrow> bool" where
+  "paramODEsol ode b p d \<longleftrightarrow>
+    (\<forall>s. p s 0 = rpart s \<and>
+        (if b s then
+            d s > 0 \<and> ODEsol ode (p s) (d s) \<and> (\<forall>t. t \<ge> 0 \<and> t < d s \<longrightarrow> b (updr s (p s t))) \<and>
+            \<not> b (updr s (p s (d s)))
+         else
+            \<not> d s > 0))"
+
+lemma paramODEsolD:
+  assumes "paramODEsol ode b p d"
+    and "b s"
+  shows "d s > 0"
+        "ODEsol ode (p s) (d s)"
+        "t \<ge> 0 \<and> t < d s \<longrightarrow> b (updr s (p s t))"
+        "\<not> b (updr s (p s (d s)))"
+  using assms unfolding paramODEsol_def by auto
+
+lemma paramODEsolD2:
+  assumes "paramODEsol ode b p d"
+  shows "p s 0 = rpart s"
+  using assms unfolding paramODEsol_def by auto
+
+text \<open>Parameterized solution to ODE, infinite version\<close>
+definition paramODEsolInf :: "ODE \<Rightarrow> ('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow> bool" where
+  "paramODEsolInf ode p \<longleftrightarrow>
+    (\<forall>s. p s 0 = rpart s \<and> ODEsolInf ode (p s))"
+
+text \<open>The key result is to show that, for any other solution satisfying
+  the ODE, it must be equal to the solution given by d, p.
+\<close>
+lemma paramODEsol_unique:
+  assumes
+    "paramODEsol ode b p d"
+    "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
+    "b s" "0 < d2" 
+    "ODEsol ode p2 d2"
+    "\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (updr s (p2 t))"
+    "\<not>b (updr s (p2 d2))"
+    "p2 0 = rpart s"
+  shows
+    "d2 = d s \<and> p s (d s) = p2 d2 \<and>
+     WaitBlk (d s) (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
+proof -
+  interpret loc:ll_on_open_it "{-1<..}"
+    "\<lambda>t v. ODE2Vec ode (vec2state v)" UNIV 0
+    apply standard
+    using assms(2) by auto
+  have s0: "0 < d s"
+    using assms(1) unfolding paramODEsol_def using assms(3) by auto
+  have s1: "((\<lambda>t. state2vec (p s t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d s} UNIV"
+    using paramODEsolD(2)[OF assms(1,3)] ODEsol_old unfolding ODEsol_def solves_ode_def by auto
+  have s2: "(loc.flow 0 (state2vec (rpart s))) t = (\<lambda>t. state2vec (p s t)) t" if "t \<in> {0..d s}" for t
+    apply (rule loc.maximal_existence_flow(2)[OF s1])
+    using that by (auto simp add: state2vec_def paramODEsolD[OF assms(1,3)] paramODEsolD2[OF assms(1)])
+  have s3: "((\<lambda>t. state2vec (p2 t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d2} UNIV"
+    using assms(5) ODEsol_old unfolding ODEsol_def solves_ode_def by auto
+  have s4: "loc.flow 0 (state2vec (rpart s)) t = state2vec (p2 t)" if "t\<in>{0..d2}" for t
+    apply (rule loc.maximal_existence_flow(2)[OF s3])
+    using assms(4,8) that by auto
+  have s5: "d s \<le> d2"
+  proof (rule ccontr)
+    assume 0: "\<not>(d s \<le> d2)"
+    from 0 have 1: "(\<lambda>t. state2vec (p s t)) d2 = (\<lambda>t. state2vec (p2 t)) d2"
+      using s2[of d2] s4[of d2] assms(4) by auto
+    from 1 have "p s d2 = p2 d2"
+      by (auto simp add: state2vec_def)
+    show False
+      using "0" \<open>p s d2 = p2 d2\<close> paramODEsolD(3)[OF assms(1,3)] assms(4,7)
+      using less_eq_real_def by fastforce
+  qed
+  have s6: "d2 \<le> d s"
+  proof (rule ccontr)
+    assume 0: "\<not>(d2 \<le> d s)"
+    from 0 have 1: "(\<lambda>t. state2vec (p s t)) (d s) = (\<lambda>t. state2vec (p2 t)) (d s)"
+      using s2[of "d s"] s4[of "d s"] s0 by auto
+    from 1 have "p s (d s) = p2 (d s)"
+      by (auto simp add: state2vec_def)
+    show False
+      using "0" \<open>p s (d s) = p2 (d s)\<close> paramODEsolD[OF assms(1,3)] assms(3,6)
+      by auto
+  qed
+  have s7: "d s = d2" using s5 s6 by auto
+  have s8: "t\<in>{0..d s} \<Longrightarrow> p2 t = p s t" for t
+    using s2 s4 s7 by (metis vec_state_map1)
+  have s9: "p s (d s) = p2 (d s)"
+    using s8 by (simp add: s0 less_eq_real_def)
+  have s10: "WaitBlk (d s) (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
+    apply (rule ext) apply (rule WaitBlk_eqI) using s7 s8 by auto
+  show ?thesis using s7 s9 s10 by auto
+qed
+
+lemma paramODEsol_unique2:
+  assumes
+    "paramODEsol ode b p d"
+    "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
+    "b s" "0 < d2"
+    "ODEsol ode p2 d2"
+    "\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (updr s (p2 t))"
+    "p2 0 = rpart s"
+  shows
+    "d2 \<le> d s \<and> p s d2 = p2 d2 \<and>
+     WaitBlk d2 (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
+proof -
+  interpret loc:ll_on_open_it "{-1<..}"
+    "\<lambda>t v. ODE2Vec ode (vec2state v)" UNIV 0
+    apply standard
+    using assms(2) by auto
+  have s0: "0 < d s"
+    using assms(1) unfolding paramODEsol_def using assms(3) by auto
+  have s1: "((\<lambda>t. state2vec (p s t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d s} UNIV"
+    using paramODEsolD(2)[OF assms(1,3)] ODEsol_old unfolding ODEsol_def solves_ode_def by auto
+  have s2: "(loc.flow 0 (state2vec (rpart s))) t = (\<lambda>t. state2vec (p s t)) t" if "t \<in> {0..d s}" for t
+    apply (rule loc.maximal_existence_flow(2)[OF s1])
+    using that by (auto simp add: state2vec_def paramODEsolD[OF assms(1,3)] paramODEsolD2[OF assms(1)])
+  have s3: "((\<lambda>t. state2vec (p2 t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d2} UNIV"
+    using assms(5) ODEsol_old unfolding ODEsol_def solves_ode_def by auto
+  have s4: "loc.flow 0 (state2vec (rpart s)) t = state2vec (p2 t)" if "t\<in>{0..d2}" for t
+    apply (rule loc.maximal_existence_flow(2)[OF s3])
+    using assms that by auto
+  have s6: "d2 \<le> d s"
+  proof (rule ccontr)
+    assume 0: "\<not>(d2 \<le> d s)"
+    from 0 have 1: "(\<lambda>t. state2vec (p s t)) (d s) = (\<lambda>t. state2vec (p2 t)) (d s)"
+      using s2[of "d s"] s4[of "d s"] s0 by auto
+    from 1 have "p s (d s) = p2 (d s)"
+      by (auto simp add: state2vec_def)
+    show False
+      using "0" \<open>p s (d s) = p2 (d s)\<close> paramODEsolD[OF assms(1,3)] assms(3,6)
+      by auto
+  qed
+  have s7: "t\<in>{0..d2} \<Longrightarrow> loc.flow 0 (state2vec (rpart s)) t = state2vec (p s t)" for t
+    using s2 s6 by auto
+  have s8: "t\<in>{0..d2} \<Longrightarrow> p2 t = p s t" for t
+    using s7 s4 by (metis vec_state_map1)
+  have s9: "p s d2 = p2 d2"
+    using s8 assms(4) by fastforce
+  have s10: "WaitBlk d2 (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
+    apply (rule ext) apply (rule WaitBlk_eqI) using s7 s8 by auto
+  show ?thesis using s6 s9 s10 by auto
+qed
+
+lemma paramODEsolInf_unique:
+  assumes
+    "paramODEsolInf ode p"
+    "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
+    "0 < d2" "ODEsol ode p2 d2" "p2 0 = rpart s"
+  shows
+    "p s d2 = p2 d2 \<and>
+     WaitBlk d2 (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
+proof -
+  interpret loc:ll_on_open_it "{-1<..}"
+    "\<lambda>t v. ODE2Vec ode (vec2state v)" UNIV 0
+    apply standard
+    using assms(2) by auto
+  have s1: "((\<lambda>t. state2vec (p s t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..} UNIV"
+    using assms(1) ODEsolInf_old unfolding paramODEsolInf_def solves_ode_def by auto
+  have s2: "(loc.flow 0 (state2vec (rpart s))) t = (\<lambda>t. state2vec (p s t)) t" if "t \<in> {0..d2}" for t
+    apply (rule loc.maximal_existence_flow(2)[OF s1])
+    using that assms(1) unfolding paramODEsolInf_def
+    by (auto simp add: state2vec_def)
+  have s3: "((\<lambda>t. state2vec (p2 t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d2} UNIV"
+    using assms(4) ODEsol_old unfolding ODEsol_def solves_ode_def by auto
+  have s4: "loc.flow 0 (state2vec (rpart s)) t = state2vec (p2 t)" if "t\<in>{0..d2}" for t
+    apply (rule loc.maximal_existence_flow(2)[OF s3])
+    using assms that by auto
+  have s7: "t\<in>{0..d2} \<Longrightarrow> loc.flow 0 (state2vec (rpart s)) t = state2vec (p s t)" for t
+    using s2 by auto
+  have s8: "t\<in>{0..d2} \<Longrightarrow> p2 t = p s t" for t
+    using s7 s4 by (metis vec_state_map1)
+  have s9: "p s d2 = p2 d2"
+    using s8 assms(3) by fastforce
+  have s10: "WaitBlk d2 (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
+    apply (rule ext) apply (rule WaitBlk_eqI) using s7 s8 by auto
+  show ?thesis using s8 s9 s10 by auto
+qed
+
 subsection \<open>Continuous evolution\<close>
 
 inductive ode_c :: "ODE \<Rightarrow> 'a eform \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" where
@@ -65,119 +245,34 @@ lemma wait_sol_mono:
     done
   done
 
-definition paramODEsol :: "ODE \<Rightarrow> 'a eform \<Rightarrow> ('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow> 'a eexp \<Rightarrow> bool" where
-  "paramODEsol ode b p d \<longleftrightarrow>
-    (\<forall>s. p s 0 = rpart s \<and>
-        (if b s then
-            d s > 0 \<and> ODEsol ode (p s) (d s) \<and> (\<forall>t. t \<ge> 0 \<and> t < d s \<longrightarrow> b (updr s (p s t))) \<and>
-            \<not> b (updr s (p s (d s)))
-         else
-            \<not> d s > 0))"
-
-lemma paramODEsolD:
-  assumes "paramODEsol ode b p d"
-    and "b s"
-  shows "d s > 0"
-        "ODEsol ode (p s) (d s)"
-        "t \<ge> 0 \<and> t < d s \<longrightarrow> b (updr s (p s t))"
-        "\<not> b (updr s (p s (d s)))"
-  using assms unfolding paramODEsol_def by auto
-
-lemma paramODEsolD2:
-  assumes "paramODEsol ode b p d"
-  shows "p s 0 = rpart s"
-  using assms unfolding paramODEsol_def by auto
-
 lemma ode_c_unique:
   assumes
     "paramODEsol ode b p d"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
   shows
     "ode_c ode b P s0 \<Longrightarrow>\<^sub>A wait_sol_c (\<lambda>s t. updr s (p s t)) d (\<lambda>d' s. P (updr s (p s d'))) s0"
-proof -
-  \<comment> \<open>The key result is to show that, for any other solution satisfying
-      the ODE, it must be equal to the solution given by d, p.\<close>
-  have main:
-    "d2 = d s \<and> p s (d s) = p2 d2 \<and>
-     WaitBlk (d s) (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
-    if cond: "b s" "0 < d2"
-      "ODEsol ode p2 d2"
-      "\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (updr s (p2 t))"
-      "\<not>b (updr s (p2 d2))"
-      "p2 0 = rpart s"
-    for s p2 d2
-  proof -
-    interpret loc:ll_on_open_it "{-1<..}"
-      "\<lambda>t v. ODE2Vec ode (vec2state v)" UNIV 0
-      apply standard
-      using assms(2) by auto
-    have s0: "0 < d s"
-      using assms(1) unfolding paramODEsol_def using cond(1) by auto
-    have s1: "((\<lambda>t. state2vec (p s t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d s} UNIV"
-      using paramODEsolD(2)[OF assms(1) cond(1)] ODEsol_old unfolding ODEsol_def solves_ode_def by auto
-    have s2: "(loc.flow 0 (state2vec (rpart s))) t = (\<lambda>t. state2vec (p s t)) t" if "t \<in> {0..d s}" for t
-      apply (rule loc.maximal_existence_flow(2)[OF s1])
-      using that by (auto simp add: state2vec_def paramODEsolD[OF assms(1) cond(1)] paramODEsolD2[OF assms(1)])
-    have s3: "((\<lambda>t. state2vec (p2 t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d2} UNIV"
-      using cond(3) ODEsol_old unfolding ODEsol_def solves_ode_def by auto
-    have s4: "loc.flow 0 (state2vec (rpart s)) t = state2vec (p2 t)" if "t\<in>{0..d2}" for t
-      apply (rule loc.maximal_existence_flow(2)[OF s3])
-      using cond(2,6) that by auto
-    have s5: "d s \<le> d2"
-    proof (rule ccontr)
-      assume 0: "\<not>(d s \<le> d2)"
-      from 0 have 1: "(\<lambda>t. state2vec (p s t)) d2 = (\<lambda>t. state2vec (p2 t)) d2"
-        using s2[of d2] s4[of d2] cond(2) by auto
-      from 1 have "p s d2 = p2 d2"
-        by (auto simp add: state2vec_def)
-      show False
-        using "0" \<open>p s d2 = p2 d2\<close> paramODEsolD(3)[OF assms(1) cond(1)] cond(2,5)
-        using less_eq_real_def by fastforce
+  unfolding entails_def apply auto
+  subgoal for s tr
+    apply (auto simp add: ode_c.simps)
+    subgoal
+      apply (rule wait_sol_c.intros)
+      using assms(1) unfolding paramODEsol_def by auto
+    subgoal premises pre for d' p' tr'
+    proof -
+      have "b (updr s0 (p' 0))"
+        using pre(2,5,6) by auto
+      then have "b s0" by (auto simp add: pre(5))
+      have a: "d' = d s0"
+        "p s0 (d s0) = p' d'"
+        "WaitBlk (d s0) (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d' (\<lambda>t. updr s0 (p' t))"
+        using paramODEsol_unique[OF assms \<open>b s0\<close> pre(2,4,6,7,5)] by auto
+      show ?thesis
+        unfolding a(3)[symmetric]
+        apply (rule wait_sol_c.intros(1))
+        using pre(2,3) a(1,2) by auto
     qed
-    have s6: "d2 \<le> d s"
-    proof (rule ccontr)
-      assume 0: "\<not>(d2 \<le> d s)"
-      from 0 have 1: "(\<lambda>t. state2vec (p s t)) (d s) = (\<lambda>t. state2vec (p2 t)) (d s)"
-        using s2[of "d s"] s4[of "d s"] s0 by auto
-      from 1 have "p s (d s) = p2 (d s)"
-        by (auto simp add: state2vec_def)
-      show False
-        using "0" \<open>p s (d s) = p2 (d s)\<close> paramODEsolD[OF assms(1) cond(1)] cond(1,4)
-        by auto
-    qed
-    have s7: "d s = d2" using s5 s6 by auto
-    have s8: "t\<in>{0..d s} \<Longrightarrow> p2 t = p s t" for t
-      using s2 s4 s7 by (metis vec_state_map1)
-    have s9: "p s (d s) = p2 (d s)"
-      using s8 by (simp add: s0 less_eq_real_def)
-    have s10: "WaitBlk (d s) (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
-      apply (rule ext) apply (rule WaitBlk_eqI) using s7 s8 by auto
-    show ?thesis using s7 s9 s10 by auto
-  qed
-  show ?thesis
-    unfolding entails_def apply auto
-    subgoal for s tr
-      apply (auto simp add: ode_c.simps)
-      subgoal
-        apply (rule wait_sol_c.intros)
-        using assms(1) unfolding paramODEsol_def by auto
-      subgoal premises pre for d' p' tr'
-      proof -
-        have "b (updr s0 (p' 0))"
-          using pre(2,5,6) by auto
-        then have "b s0" by (auto simp add: pre(5))
-        have a: "d' = d s0"
-              "p s0 (d s0) = p' d'"
-              "WaitBlk (d s0) (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d' (\<lambda>t. updr s0 (p' t))"
-          using main[of s0 d' p', OF \<open>b s0\<close> pre(2,4,6,7,5)] by auto
-        show ?thesis
-          unfolding a(3)[symmetric]
-          apply (rule wait_sol_c.intros(1))
-          using pre(2,3) a(1,2) by auto
-      qed
-      done
     done
-qed
+  done
 
 lemma spec_of_cont_unique:
   assumes
@@ -379,111 +474,6 @@ lemma interrupt_c_unique:
     "interrupt_c ode b P specs s0 \<Longrightarrow>\<^sub>A
      interrupt_sol_c (\<lambda>s t. updr s (p s t)) d (\<lambda>d' s. P (updr s (p s d'))) (map (spec2_of p) specs) s0"
 proof -
-  \<comment> \<open>The key result is to show that, for any other solution satisfying
-      the ODE, it must be equal to the solution given by d, p.\<close>
-  have main:
-    "d2 = d s \<and> p s (d s) = p2 d2 \<and>
-     WaitBlk (d s) (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
-    if cond: "b s" "0 < d2"
-      "ODEsol ode p2 d2"
-      "\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (updr s (p2 t))"
-      "\<not>b (updr s (p2 d2))"
-      "p2 0 = rpart s"
-    for s p2 d2
-  proof -
-    interpret loc:ll_on_open_it "{-1<..}"
-      "\<lambda>t v. ODE2Vec ode (vec2state v)" UNIV 0
-      apply standard
-      using assms(2) by auto
-    have s0: "0 < d s"
-      using assms(1) unfolding paramODEsol_def using cond(1) by auto
-    have s1: "((\<lambda>t. state2vec (p s t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d s} UNIV"
-      using paramODEsolD(2)[OF assms(1) cond(1)] ODEsol_old unfolding ODEsol_def solves_ode_def by auto
-    have s2: "(loc.flow 0 (state2vec (rpart s))) t = (\<lambda>t. state2vec (p s t)) t" if "t \<in> {0..d s}" for t
-      apply (rule loc.maximal_existence_flow(2)[OF s1])
-      using that by (auto simp add: state2vec_def paramODEsolD[OF assms(1) cond(1)] paramODEsolD2[OF assms(1)])
-    have s3: "((\<lambda>t. state2vec (p2 t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d2} UNIV"
-      using cond(3) ODEsol_old unfolding ODEsol_def solves_ode_def by auto
-    have s4: "loc.flow 0 (state2vec (rpart s)) t = state2vec (p2 t)" if "t\<in>{0..d2}" for t
-      apply (rule loc.maximal_existence_flow(2)[OF s3])
-      using cond(2,6) that by auto
-    have s5: "d s \<le> d2"
-    proof (rule ccontr)
-      assume 0: "\<not>(d s \<le> d2)"
-      from 0 have 1: "(\<lambda>t. state2vec (p s t)) d2 = (\<lambda>t. state2vec (p2 t)) d2"
-        using s2[of d2] s4[of d2] cond(2) by auto
-      from 1 have "p s d2 = p2 d2"
-        by (auto simp add: state2vec_def)
-      show False
-        using "0" \<open>p s d2 = p2 d2\<close> paramODEsolD(3)[OF assms(1) cond(1)] cond(2,5)
-        using less_eq_real_def by fastforce
-    qed
-    have s6: "d2 \<le> d s"
-    proof (rule ccontr)
-      assume 0: "\<not>(d2 \<le> d s)"
-      from 0 have 1: "(\<lambda>t. state2vec (p s t)) (d s) = (\<lambda>t. state2vec (p2 t)) (d s)"
-        using s2[of "d s"] s4[of "d s"] s0 by auto
-      from 1 have "p s (d s) = p2 (d s)"
-        by (auto simp add: state2vec_def)
-      show False
-        using "0" \<open>p s (d s) = p2 (d s)\<close> paramODEsolD[OF assms(1) cond(1)] cond(1,4)
-        by auto
-    qed
-    have s7: "d s = d2" using s5 s6 by auto
-    have s8: "t\<in>{0..d s} \<Longrightarrow> p2 t = p s t" for t
-      using s2 s4 s7 by (metis vec_state_map1)
-    have s9: "p s (d s) = p2 (d s)"
-      using s8 by (simp add: s0 less_eq_real_def)
-    have s10: "WaitBlk (d s) (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
-      apply (rule ext) apply (rule WaitBlk_eqI) using s7 s8 by auto
-    show ?thesis using s7 s9 s10 by auto
-  qed
-  have main2:
-    "d2 \<le> d s \<and> p s d2 = p2 d2 \<and>
-     WaitBlk d2 (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
-    if cond: "b s" "0 < d2"
-      "ODEsol ode p2 d2"
-      "\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (updr s (p2 t))"
-      "p2 0 = rpart s"
-    for s p2 d2
-  proof -
-    interpret loc:ll_on_open_it "{-1<..}"
-      "\<lambda>t v. ODE2Vec ode (vec2state v)" UNIV 0
-      apply standard
-      using assms(2) by auto
-    have s0: "0 < d s"
-      using assms(1) unfolding paramODEsol_def using cond(1) by auto
-    have s1: "((\<lambda>t. state2vec (p s t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d s} UNIV"
-      using paramODEsolD(2)[OF assms(1) cond(1)] ODEsol_old unfolding ODEsol_def solves_ode_def by auto
-    have s2: "(loc.flow 0 (state2vec (rpart s))) t = (\<lambda>t. state2vec (p s t)) t" if "t \<in> {0..d s}" for t
-      apply (rule loc.maximal_existence_flow(2)[OF s1])
-      using that by (auto simp add: state2vec_def paramODEsolD[OF assms(1) cond(1)] paramODEsolD2[OF assms(1)])
-    have s3: "((\<lambda>t. state2vec (p2 t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d2} UNIV"
-      using cond(3) ODEsol_old unfolding ODEsol_def solves_ode_def by auto
-    have s4: "loc.flow 0 (state2vec (rpart s)) t = state2vec (p2 t)" if "t\<in>{0..d2}" for t
-      apply (rule loc.maximal_existence_flow(2)[OF s3])
-      using cond that by auto
-    have s6: "d2 \<le> d s"
-    proof (rule ccontr)
-      assume 0: "\<not>(d2 \<le> d s)"
-      from 0 have 1: "(\<lambda>t. state2vec (p s t)) (d s) = (\<lambda>t. state2vec (p2 t)) (d s)"
-        using s2[of "d s"] s4[of "d s"] s0 by auto
-      from 1 have "p s (d s) = p2 (d s)"
-        by (auto simp add: state2vec_def)
-      show False
-        using "0" \<open>p s (d s) = p2 (d s)\<close> paramODEsolD[OF assms(1) cond(1)] cond(1,4)
-        by auto
-    qed
-    have s7: "t\<in>{0..d2} \<Longrightarrow> loc.flow 0 (state2vec (rpart s)) t = state2vec (p s t)" for t
-      using s2 s6 by auto
-    have s8: "t\<in>{0..d2} \<Longrightarrow> p2 t = p s t" for t
-      using s7 s4 by (metis vec_state_map1)
-    have s9: "p s d2 = p2 d2"
-      using s8 that(2) by fastforce
-    have s10: "WaitBlk d2 (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
-      apply (rule ext) apply (rule WaitBlk_eqI) using s7 s8 by auto
-    show ?thesis using s6 s9 s10 by auto
-  qed
   have p0: "p s0 0 = rpart s0"
     using paramODEsolD2[OF assms(1)] by auto
   let ?specs2 = "map (spec2_of p) specs"
@@ -506,7 +496,7 @@ proof -
         have a: "d' = d s0"
               "p s0 (d s0) = p' d'"
               "WaitBlk (d s0) (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d' (\<lambda>t. updr s0 (p' t))"
-          using main[of s0 d' p', OF \<open>b s0\<close> pre(2,4,6,7,5)] by auto
+          using paramODEsol_unique[OF assms \<open>b s0\<close> pre(2,4,6,7,5)] by auto
         show ?thesis
           unfolding a(3)[symmetric]
           apply (rule interrupt_sol_c.intros(1))
@@ -529,7 +519,7 @@ proof -
         have a: "d' \<le> d s0"
               "p s0 d' = p' d'"
               "WaitBlk d' (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d' (\<lambda>t. updr s0 (p' t))"
-          using main2[of s0 d' p', OF \<open>b s0\<close> pre(4,6,8,7)] by auto
+          using paramODEsol_unique2[OF assms \<open>b s0\<close> pre(4,6,8,7)] by auto
         let ?Q' = "\<lambda>d v s0. Q (updr s0 ((p s0 d)(var := v)))"
         have Q: "?specs2 ! i = InSpec2 ch ?Q'"
           using speci[OF pre(2)] unfolding pre(3) by auto
@@ -556,7 +546,7 @@ proof -
         have a: "d' \<le> d s0"
               "p s0 d' = p' d'"
               "WaitBlk d' (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d' (\<lambda>t. updr s0 (p' t))"
-          using main2[of s0 d' p', OF \<open>b s0\<close> pre(4,6,8,7)] by auto
+          using paramODEsol_unique2[OF assms \<open>b s0\<close> pre(4,6,8,7)] by auto
         let ?Q' = "\<lambda>d s0. Q (updr s0 (p s0 d))"
         let ?e' = "\<lambda>d s0. e (updr s0 (p s0 d))"
         have Q: "?specs2 ! i = OutSpec2 ch ?e' ?Q'"
@@ -659,10 +649,6 @@ inductive interrupt_solInf_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a 
    rdy = rdy_of_comm_spec2 specs \<Longrightarrow>
    interrupt_solInf_c p specs s0 s (WaitBlk d (\<lambda>\<tau>. p s0 \<tau>) rdy # OutBlock ch v # tr)"
 
-definition paramODEsolInf :: "ODE \<Rightarrow> ('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow> bool" where
-  "paramODEsolInf ode p \<longleftrightarrow>
-    (\<forall>s. p s 0 = rpart s \<and> ODEsolInf ode (p s))"
-
 lemma interrupt_inf_c_unique:
   assumes
     "paramODEsolInf ode p"
@@ -671,36 +657,6 @@ lemma interrupt_inf_c_unique:
     "interrupt_c ode (\<lambda>_. True) P specs s0 \<Longrightarrow>\<^sub>A
      interrupt_solInf_c (\<lambda>s t. updr s (p s t)) (map (spec2_of p) specs) s0"
 proof -
-  have main:
-    "p s d2 = p2 d2 \<and>
-     WaitBlk d2 (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
-    if cond: "0 < d2" "ODEsol ode p2 d2" "p2 0 = rpart s" for s p2 d2
-  proof -
-    interpret loc:ll_on_open_it "{-1<..}"
-      "\<lambda>t v. ODE2Vec ode (vec2state v)" UNIV 0
-      apply standard
-      using assms(2) by auto
-    have s1: "((\<lambda>t. state2vec (p s t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..} UNIV"
-      using assms(1) ODEsolInf_old unfolding paramODEsolInf_def solves_ode_def by auto
-    have s2: "(loc.flow 0 (state2vec (rpart s))) t = (\<lambda>t. state2vec (p s t)) t" if "t \<in> {0..d2}" for t
-      apply (rule loc.maximal_existence_flow(2)[OF s1])
-      using that assms(1) unfolding paramODEsolInf_def
-      by (auto simp add: state2vec_def)
-    have s3: "((\<lambda>t. state2vec (p2 t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d2} UNIV"
-      using cond(2) ODEsol_old unfolding ODEsol_def solves_ode_def by auto
-    have s4: "loc.flow 0 (state2vec (rpart s)) t = state2vec (p2 t)" if "t\<in>{0..d2}" for t
-      apply (rule loc.maximal_existence_flow(2)[OF s3])
-      using cond that by auto
-    have s7: "t\<in>{0..d2} \<Longrightarrow> loc.flow 0 (state2vec (rpart s)) t = state2vec (p s t)" for t
-      using s2 by auto
-    have s8: "t\<in>{0..d2} \<Longrightarrow> p2 t = p s t" for t
-      using s7 s4 by (metis vec_state_map1)
-    have s9: "p s d2 = p2 d2"
-      using s8 that(1) by fastforce
-    have s10: "WaitBlk d2 (\<lambda>t. updr s (p s t)) = WaitBlk d2 (\<lambda>t. updr s (p2 t))"
-      apply (rule ext) apply (rule WaitBlk_eqI) using s7 s8 by auto
-    show ?thesis using s8 s9 s10 by auto
-  qed
   have p0: "p s0 0 = rpart s0"
     using assms(1) unfolding paramODEsolInf_def by auto
   let ?specs2 = "map (spec2_of p) specs"
@@ -723,7 +679,7 @@ proof -
       proof -
         have a: "p s0 d = p2 d"
              "WaitBlk d (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d (\<lambda>t. updr s0 (p2 t))"
-          using main[of d p2 s0, OF pre(4,6,7)] by auto
+          using paramODEsolInf_unique[OF assms pre(4,6,7)] by auto
         let ?Q' = "\<lambda>d v s0. Q (updr s0 ((p s0 d)(var := v)))"
         show ?thesis
           unfolding a(2)[symmetric]
@@ -742,7 +698,7 @@ proof -
       proof -
         have a: "p s0 d = p2 d"
              "WaitBlk d (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d (\<lambda>t. updr s0 (p2 t))"
-          using main[of d p2 s0, OF pre(4,6,7)] by auto
+          using paramODEsolInf_unique[OF assms pre(4,6,7)] by auto
         let ?Q' = "\<lambda>d s0. Q (updr s0 (p s0 d))"
         let ?e' = "\<lambda>d s0. e (updr s0 (p s0 d))"
         show ?thesis
