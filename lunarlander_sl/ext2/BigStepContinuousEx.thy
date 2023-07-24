@@ -66,7 +66,7 @@ qed
 
 lemma test_interrupt_unique:
   "spec_of (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. val s X < 1)
-                      [(dh[?]Y, Skip)])
+                      [(dh[?]Y, Skip)] Skip)
            (interrupt_sol_c (\<lambda>s t. upd s X (val s X + t)) (\<lambda>s. 1 - val s X)
                             (\<lambda>d s. init (upd s X (val s X + d)))
                             [InSpec2 dh (\<lambda>d v s. init (upd (upd s X (val s X + d)) Y v))])"
@@ -111,8 +111,9 @@ proof -
   show ?thesis
     apply (rule spec_of_post)
      apply (rule spec_of_interrupt_unique[where specs="?specs"])
-       apply (rule 1) apply (rule 2)
-     apply (auto intro!: rel_list.intros) apply (rule spec_of_es.intros)
+        apply (rule 1) apply (rule 2)
+      apply (auto intro!: rel_list.intros) apply (rule spec_of_es.intros)
+      apply (rule spec_of_skip)
      apply (rule spec_of_skip)
     subgoal for s0
       apply (simp only: updr_rpart_simp1)
@@ -139,14 +140,16 @@ text \<open>
 definition ex1a :: "'a proc" where
   "ex1a = (X ::= (\<lambda>_. 0); IChoice
       (Cm (ch1[!](\<lambda>_. 1)); Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 2)))) (\<lambda>_. True)
-                                     [(ch2[?]Y, Skip)])
+                                     [(ch2[?]Y, Skip)] Skip)
       (Cm (ch1[!](\<lambda>_. 2)); Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True)
-                                     [(ch2[?]Y, Skip)]))"
+                                     [(ch2[?]Y, Skip)] Skip))"
 
 lemma ex1a_ode:
-  "spec_of (Interrupt (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 2))) (\<lambda>_. True) [(ch2[?]Y, Skip)])
+  assumes "spec_of c1 Q1" "spec_of c2 Q2"
+  shows
+  "spec_of (Interrupt (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 2))) (\<lambda>_. True) [(ch2[?]Y, c2)] c1)
            (interrupt_solInf_c (\<lambda>s t. upd s X (val s X + 2 * t))
-                               [InSpec2 ch2 (\<lambda>d v. init {{Y := (\<lambda>_. v)}} {{X := (\<lambda>s. val s X + 2 * d)}})])"
+                               [InSpec2 ch2 (\<lambda>d v. Q2 {{Y := (\<lambda>_. v)}} {{X := (\<lambda>s. val s X + 2 * d)}})])"
 proof -
   have 1: "paramODEsolInf (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 2)))
                           (\<lambda>s0 t. (rpart s0)(X := val s0 X + 2 * t))"
@@ -174,13 +177,13 @@ proof -
       apply (auto simp add: state2vec_def eq)
       by (rule local_lipschitz_constI)
   qed
-  let ?specs = "[InSpec ch2 Y init]"
+  let ?specs = "[InSpec ch2 Y Q2]"
   show ?thesis
     apply (rule spec_of_post)
      apply (rule spec_of_interrupt_inf_unique[where specs="?specs"])
         apply (rule 1) apply (rule 2)
       apply (auto intro!: rel_list.intros) apply (rule spec_of_es.intros)
-     apply (rule spec_of_skip)
+      apply (rule assms) apply (rule assms)
     subgoal for s0
       apply (simp only: updr_rpart_simp1)
       apply (rule interrupt_solInf_mono)
@@ -195,10 +198,12 @@ proof -
 qed
 
 lemma ex1a_ode2:
+  assumes "spec_of c1 Q1" "spec_of c2 Q2"
+  shows
   "spec_of (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True)
-                      [(dh[?]Y, Skip)])
+                      [(dh[?]Y, c2)] c1)
            (interrupt_solInf_c (\<lambda>s t. upd s X (val s X + t))
-                               [InSpec2 dh (\<lambda>d v. init {{Y := (\<lambda>_. v)}} {{X := (\<lambda>s. val s X + d)}})])"
+                               [InSpec2 dh (\<lambda>d v. Q2 {{Y := (\<lambda>_. v)}} {{X := (\<lambda>s. val s X + d)}})])"
 proof -
   have 1: "paramODEsolInf (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))
                        (\<lambda>s0 t. (rpart s0)(X := val s0 X + t))"
@@ -226,13 +231,13 @@ proof -
       apply (auto simp add: state2vec_def eq)
       by (rule local_lipschitz_constI)
   qed
-  let ?specs = "[InSpec dh Y init]"
+  let ?specs = "[InSpec dh Y Q2]"
   show ?thesis
     apply (rule spec_of_post)
      apply (rule spec_of_interrupt_inf_unique[where specs="?specs"])
         apply (rule 1) apply (rule 2)
       apply (auto intro!: rel_list.intros) apply (rule spec_of_es.intros)
-     apply (rule spec_of_skip)
+      apply (rule assms) apply (rule assms)
     subgoal for s0
       apply (simp only: updr_rpart_simp1)
       apply (rule interrupt_solInf_mono)
@@ -261,8 +266,10 @@ lemma ex1a_sp:
    apply (rule spec_of_ichoice)
     apply (rule Valid_send_sp)
     apply (rule ex1a_ode)
-  apply (rule Valid_send_sp)
+     apply (rule spec_of_skip) apply (rule spec_of_skip)
+   apply (rule Valid_send_sp)
    apply (rule ex1a_ode2)
+    apply (rule spec_of_skip) apply (rule spec_of_skip)
   apply auto by (rule entails_triv)
 
 definition ex1b :: "'a proc" where
@@ -479,12 +486,156 @@ text \<open>
 definition ex2a :: "'a proc" where
   "ex2a = Rep (X ::= (\<lambda>_. 0); IChoice
       (Cm (ch1[!](\<lambda>_. 1)); Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 2)))) (\<lambda>_. True)
-                                     [(ch2[?]Y, Skip)])
+                                     [(ch2[?]Y, Skip)] Skip)
       (Cm (ch1[!](\<lambda>_. 2)); Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True)
-                                     [(ch2[?]Y, Skip)]))"
+                                     [(ch2[?]Y, Skip)] Skip))"
 
 definition ex2b :: "'a proc" where
   "ex2b = Rep (Cm (ch1[?]Y); Wait (\<lambda>s. val s Y); Cm (ch2[!](\<lambda>_. 0)))"
+
+fun ex2a_c :: "nat \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" where
+  "ex2a_c 0 Q = Q"
+| "ex2a_c (Suc n) Q =
+   ((wait_out_c ch1 (\<lambda>_. 1)
+        (\<lambda>d. interrupt_solInf_c (\<lambda>s t. upd s X (val s X + 2 * t))
+                                [InSpec2 ch2 (\<lambda>d v. (ex2a_c n Q) {{Y := (\<lambda>_. v)}} {{X := (\<lambda>s. val s X + 2 * d)}})]) \<or>\<^sub>a
+       wait_out_c ch1 (\<lambda>_. 2)
+        (\<lambda>d. interrupt_solInf_c (\<lambda>s t. upd s X (val s X + t))
+                                [InSpec2 ch2 (\<lambda>d v. (ex2a_c n Q) {{Y := (\<lambda>_. v)}} {{X := (\<lambda>s. val s X + d)}})]))
+      {{X := (\<lambda>_. 0)}})"
+
+lemma big_step_ichoice_distrib:
+  "big_step (IChoice c1 c2; c) s1 tr1 s2 \<longleftrightarrow>
+   big_step (IChoice (c1; c) (c2; c)) s1 tr1 s2"
+  apply (rule iffI)
+  subgoal apply (elim seqE ichoiceE)
+    by (auto intro: IChoiceB1 IChoiceB2 seqB)
+  subgoal apply (elim seqE ichoiceE)
+    by (auto intro: IChoiceB1 IChoiceB2 seqB)
+  done
+
+lemma spec_of_ichoice_distrib:
+  "spec_of (IChoice c1 c2; c) Q \<longleftrightarrow> spec_of (IChoice (c1; c) (c2; c)) Q"
+  unfolding spec_of_def Valid_def
+  using big_step_ichoice_distrib by blast
+
+fun cs_append :: "'a proc \<Rightarrow> 'a comm \<times> 'a proc \<Rightarrow> 'a comm \<times> 'a proc" where
+  "cs_append c (ch[!]e, p) = (ch[!]e, p; c)"
+| "cs_append c (ch[?]var, p) = (ch[?]var, p; c)"
+
+lemma cs_appendE1:
+  "cs_append c es = (ch[!]e, p2) \<Longrightarrow> (\<And>p. es = (ch[!]e, p) \<Longrightarrow> p2 = p; c \<Longrightarrow> P) \<Longrightarrow> P"
+  apply (cases es) subgoal for comm proc
+    apply (cases comm) by auto
+  done
+
+lemma cs_appendE2:
+  "cs_append c es = (ch[?]var, p2) \<Longrightarrow> (\<And>p. es = (ch[?]var, p) \<Longrightarrow> p2 = p; c \<Longrightarrow> P) \<Longrightarrow> P"
+  apply (cases es) subgoal for comm proc
+    apply (cases comm) by auto
+  done
+
+lemma rdy_of_echoice_cs_append [simp]:
+  "rdy_of_echoice (map (cs_append c) cs) = rdy_of_echoice cs"
+  unfolding rdy_of_echoice_def apply (rule sym)
+  apply (rule rdy_info_of_list_cong)
+  apply (rule rel_list_map)
+  subgoal for es apply (cases es)
+    subgoal for comm proc apply (cases comm) by auto
+    done
+  done
+
+lemma cons_append:
+  "x # ys @ zs = (x # ys) @ zs"
+  by auto
+
+lemma big_step_interrupt_distrib:
+  "big_step (Interrupt ode b cs pr; c) s1 tr s2 \<longleftrightarrow>
+   big_step (Interrupt ode b (map (cs_append c) cs) (pr; c)) s1 tr s2"
+  apply (rule iffI)
+  subgoal apply (elim seqE interruptE)
+    by (auto intro: big_step.intros)
+  subgoal apply (elim interruptE) apply auto
+    subgoal for i ch e p2 tr2
+      apply (elim cs_appendE1) subgoal for p
+        apply auto apply (elim seqE)
+        by (auto simp only: cons_append intro: seqB InterruptSendB1)
+      done
+    subgoal for d p i ch e p2 tr2
+      apply (elim cs_appendE1) subgoal for p'
+        apply auto apply (elim seqE)
+        by (auto simp only: cons_append intro: seqB InterruptSendB2)
+      done
+    subgoal for i ch var p2 v tr2
+      apply (elim cs_appendE2) subgoal for p'
+        apply auto apply (elim seqE)
+        by (auto simp only: cons_append intro: seqB InterruptReceiveB1)
+      done
+    subgoal for d p i ch var p2 v tr2
+      apply (elim cs_appendE2) subgoal for p'
+        apply auto apply (elim seqE)
+        by (auto simp only: cons_append intro: seqB InterruptReceiveB2)
+      done
+    subgoal
+      apply (elim seqE)
+      by (auto simp only: cons_append intro: seqB InterruptB1)
+    subgoal for d p tr2
+      apply (elim seqE)
+      by (auto simp only: cons_append intro: seqB InterruptB2)
+    done
+  done
+
+lemma spec_of_interrupt_distrib:
+  "spec_of (Interrupt ode b cs pr; c) Q \<longleftrightarrow>
+   spec_of (Interrupt ode b (map (cs_append c) cs) (pr; c)) Q"
+  unfolding spec_of_def Valid_def
+  using big_step_interrupt_distrib by blast
+
+lemma big_step_skip_left:
+  "big_step (Skip; c) s1 tr s2 \<longleftrightarrow> big_step c s1 tr s2"
+  apply (rule iffI)
+  subgoal apply (elim seqE skipE) by (auto intro!: seqB)
+  subgoal by (metis append_Nil seqB skipB)
+  done
+
+lemma spec_of_skip_left:
+  "spec_of (Skip; c) Q \<longleftrightarrow> spec_of c Q"
+  unfolding spec_of_def Valid_def
+  using big_step_skip_left by blast
+
+lemma ex2a_sp:
+  "spec_of ex2a
+           (\<lambda>s0. \<exists>\<^sub>an. ex2a_c n init s0)"
+  unfolding ex2a_def
+  apply (rule spec_of_rep)
+  subgoal for n
+    apply (induction n)
+     apply simp apply (rule spec_of_skip)
+    subgoal premises pre for n
+      apply (simp only: RepN.simps ex2a_c.simps)
+      apply (subst spec_of_seq_assoc)
+      apply (rule Valid_assign_sp)
+      unfolding spec_of_ichoice_distrib
+      apply (rule spec_of_ichoice)
+      subgoal
+        (* Left part *)
+        apply (subst spec_of_seq_assoc)
+        apply (rule Valid_send_sp)
+        apply (subst spec_of_interrupt_distrib) apply auto
+        apply (rule ex1a_ode)
+        apply (subst spec_of_skip_left) apply (rule pre)
+        apply (subst spec_of_skip_left) by (rule pre)
+      subgoal
+        (* Right part *)
+        apply (subst spec_of_seq_assoc)
+        apply (rule Valid_send_sp)
+        apply (subst spec_of_interrupt_distrib) apply auto
+        apply (rule ex1a_ode2)
+        apply (subst spec_of_skip_left) apply (rule pre)
+        apply (subst spec_of_skip_left) by (rule pre)
+      done
+    done
+  done
 
 fun ex2b_c :: "nat \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" where
   "ex2b_c 0 Q = Q"
@@ -504,14 +655,11 @@ lemma ex2b_sp:
     subgoal premises pre for n
       apply simp
       apply (subst spec_of_seq_assoc)
-      apply (rule spec_of_post)
-       apply (rule Valid_receive_sp)
-       apply (subst spec_of_seq_assoc)
-       apply (rule Valid_wait_sp)
-       apply (rule Valid_send_sp)
-       apply (rule pre) apply clarify
-      apply (rule entails_triv)
-      done
+      apply (rule Valid_receive_sp)
+      apply (subst spec_of_seq_assoc)
+      apply (rule Valid_wait_sp)
+      apply (rule Valid_send_sp)
+      by (rule pre)
     done
   done
 

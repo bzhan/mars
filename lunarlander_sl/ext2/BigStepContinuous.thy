@@ -379,31 +379,32 @@ lemma rdy_of_comm_spec_correct:
 
 lemma spec_of_interrupt:
   assumes "rel_list spec_of_es es specs"
-  shows "spec_of (Interrupt ode b es)
-                 (interrupt_c ode b init specs)"
+    and "spec_of pr P"
+  shows "spec_of (Interrupt ode b es pr)
+                 (interrupt_c ode b P specs)"
   unfolding Valid_def spec_of_def init_def apply clarify
   apply (auto elim!: interruptE)
   subgoal premises pre for s0 s2 i ch e p2 tr2
   proof -
     have "spec_of_es (es ! i) (specs ! i)"
-      using rel_listD2[OF assms pre(1)] by auto
+      using rel_listD2[OF assms(1) pre(1)] by auto
     then obtain Q where Q: "specs ! i = OutSpec ch e Q" "spec_of p2 Q"
       apply (cases rule: spec_of_es.cases) using pre by auto
     show ?thesis
       apply (rule interrupt_c.intros(5))
-      using rel_listD1[OF assms] pre(1) apply auto[1]
+      using rel_listD1[OF assms(1)] pre(1) apply auto[1]
       using Q(1) apply auto[1]
       using pre(3) Q(2) unfolding spec_of_def Valid_def init_def by auto
   qed
   subgoal premises pre for s0 s2 d p i ch e p2 tr2
   proof -
     have "spec_of_es (es ! i) (specs ! i)"
-      using rel_listD2[OF assms pre(5)] by auto
+      using rel_listD2[OF assms(1) pre(5)] by auto
     then obtain Q where Q: "specs ! i = OutSpec ch e Q" "spec_of p2 Q"
       apply (cases rule: spec_of_es.cases) using pre by auto
     show ?thesis
       apply (rule interrupt_c.intros(6))
-      using rel_listD1[OF assms] pre(5) apply auto[1]
+      using rel_listD1[OF assms(1)] pre(5) apply auto[1]
       using Q(1) apply auto[1]
       using pre(1) apply auto[1]
       using pre(7) Q(2) unfolding spec_of_def Valid_def init_def apply auto[1]
@@ -412,35 +413,36 @@ lemma spec_of_interrupt:
   subgoal premises pre for s0 s2 i ch var p2 v tr2
   proof -
     have "spec_of_es (es ! i) (specs ! i)"
-      using rel_listD2[OF assms pre(1)] by auto
+      using rel_listD2[OF assms(1) pre(1)] by auto
     then obtain Q where Q: "specs ! i = InSpec ch var Q" "spec_of p2 Q"
       apply (cases rule: spec_of_es.cases) using pre by auto
     show ?thesis
       apply (rule interrupt_c.intros(3))
-      using rel_listD1[OF assms] pre(1) apply auto[1]
+      using rel_listD1[OF assms(1)] pre(1) apply auto[1]
       using Q(1) apply auto[1]
       using pre(3) Q(2) unfolding spec_of_def Valid_def init_def by auto
   qed
   subgoal premises pre for s0 s2 d p i ch var p2 v tr2
   proof -
     have "spec_of_es (es ! i) (specs ! i)"
-      using rel_listD2[OF assms pre(5)] by auto
+      using rel_listD2[OF assms(1) pre(5)] by auto
     then obtain Q where Q: "specs ! i = InSpec ch var Q" "spec_of p2 Q"
       apply (cases rule: spec_of_es.cases) using pre by auto
     show ?thesis
       apply (rule interrupt_c.intros(4))
-      using rel_listD1[OF assms] pre(5) apply auto[1]
+      using rel_listD1[OF assms(1)] pre(5) apply auto[1]
       using Q(1) apply auto[1]
       using pre(1) apply auto[1]
       using pre(7) Q(2) unfolding spec_of_def Valid_def init_def apply auto[1]
       using pre assms rdy_of_comm_spec_correct by auto
   qed
-  subgoal premises pre for s0
+  subgoal premises pre for s0 s2 tr2
     apply (rule interrupt_c.intros(1))
-    using pre by auto
-  subgoal premises pre for s0 d p
+    using pre assms(2) unfolding spec_of_def Valid_def init_def by auto
+  subgoal premises pre for s0 s2 d p tr2
     apply (rule interrupt_c.intros(2))
-    using pre assms rdy_of_comm_spec_correct by auto
+    using pre assms(1) rdy_of_comm_spec_correct apply auto
+    using pre assms(2) unfolding spec_of_def Valid_def init_def by auto
   done
 
 text \<open>Unique solution rule for interrupt\<close>
@@ -592,11 +594,12 @@ lemma spec_of_interrupt_unique:
     "paramODEsol ode b p d"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
     "rel_list spec_of_es es specs"
+    "spec_of pr P"
   shows
-    "spec_of (Interrupt ode b es)
-             (interrupt_sol_c (\<lambda>s t. updr s (p s t)) d (\<lambda>d' s. init (updr s (p s d'))) (map (spec2_of p) specs))"
+    "spec_of (Interrupt ode b es pr)
+             (interrupt_sol_c (\<lambda>s t. updr s (p s t)) d (\<lambda>d' s. P (updr s (p s d'))) (map (spec2_of p) specs))"
   apply (rule spec_of_post)
-   apply (rule spec_of_interrupt[OF assms(3)]) apply auto
+   apply (rule spec_of_interrupt[OF assms(3,4)]) apply auto
   apply (rule entails_trans)
    apply (rule interrupt_c_unique[OF assms(1,2)])
   by (rule entails_triv)
@@ -743,11 +746,12 @@ lemma spec_of_interrupt_inf_unique:
     "paramODEsolInf ode p"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
     "rel_list spec_of_es es specs"
+    "spec_of pr P"
   shows
-    "spec_of (Interrupt ode (\<lambda>_. True) es)
+    "spec_of (Interrupt ode (\<lambda>_. True) es pr)
              (interrupt_solInf_c (\<lambda>s t. updr s (p s t)) (map (spec2_of p) specs))"
   apply (rule spec_of_post)
-   apply (rule spec_of_interrupt[OF assms(3)]) apply auto
+   apply (rule spec_of_interrupt[OF assms(3,4)]) apply auto
   apply (rule entails_trans)
    apply (rule interrupt_inf_c_unique[OF assms(1,2)])
   by (rule entails_triv)

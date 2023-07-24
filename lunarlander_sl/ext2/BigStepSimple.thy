@@ -120,7 +120,7 @@ datatype 'a proc =
 | EChoice "('a comm \<times> 'a proc) list"  \<comment> \<open>External choice\<close>
 | Rep "'a proc"   \<comment> \<open>Nondeterministic repetition\<close>
 | Cont ODE "'a eform"  \<comment> \<open>ODE with boundary\<close>
-| Interrupt ODE "'a eform" "('a comm \<times> 'a proc) list"  \<comment> \<open>Interrupt\<close>
+| Interrupt ODE "'a eform" "('a comm \<times> 'a proc) list" "'a proc" \<comment> \<open>Interrupt\<close>
 
 text \<open>Parallel of several HCSP processes\<close>
 datatype 'a pproc =
@@ -244,30 +244,31 @@ inductive big_step :: "'a proc \<Rightarrow> 'a estate \<Rightarrow> 'a trace \<
     big_step (Cont ode b) s1 [WaitBlk d (\<lambda>\<tau>. updr s1 (p \<tau>)) ({}, {})] (updr s1 (p d))"
 | InterruptSendB1: "i < length cs \<Longrightarrow> cs ! i = (Send ch e, p2) \<Longrightarrow>
     big_step p2 s tr2 s2 \<Longrightarrow>
-    big_step (Interrupt ode b cs) s (OutBlock ch (e s) # tr2) s2"
+    big_step (Interrupt ode b cs pr) s (OutBlock ch (e s) # tr2) s2"
 | InterruptSendB2: "d > 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = rpart s1 \<Longrightarrow>
     (\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (updr s1 (p t))) \<Longrightarrow>
     i < length cs \<Longrightarrow> cs ! i = (Send ch e, p2) \<Longrightarrow>
     rdy = rdy_of_echoice cs \<Longrightarrow>
     big_step p2 (updr s1 (p d)) tr2 s2 \<Longrightarrow>
-    big_step (Interrupt ode b cs) s1 (WaitBlk d (\<lambda>\<tau>. updr s1 (p \<tau>)) rdy #
-                                      OutBlock ch (e (updr s1 (p d))) # tr2) s2"
+    big_step (Interrupt ode b cs pr) s1 (WaitBlk d (\<lambda>\<tau>. updr s1 (p \<tau>)) rdy #
+                                         OutBlock ch (e (updr s1 (p d))) # tr2) s2"
 | InterruptReceiveB1: "i < length cs \<Longrightarrow> cs ! i = (Receive ch var, p2) \<Longrightarrow>
     big_step p2 (upd s var v) tr2 s2 \<Longrightarrow>
-    big_step (Interrupt ode b cs) s (InBlock ch v # tr2) s2"
+    big_step (Interrupt ode b cs pr) s (InBlock ch v # tr2) s2"
 | InterruptReceiveB2: "d > 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = rpart s1 \<Longrightarrow>
     (\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (updr s1 (p t))) \<Longrightarrow>
     i < length cs \<Longrightarrow> cs ! i = (Receive ch var, p2) \<Longrightarrow>
     rdy = rdy_of_echoice cs \<Longrightarrow>
     big_step p2 (updr s1 ((p d)(var := v))) tr2 s2 \<Longrightarrow>
-    big_step (Interrupt ode b cs) s1 (WaitBlk d (\<lambda>\<tau>. updr s1 (p \<tau>)) rdy #
-                                      InBlock ch v # tr2) s2"
-| InterruptB1: "\<not>b s \<Longrightarrow> big_step (Interrupt ode b cs) s [] s"
+    big_step (Interrupt ode b cs pr) s1 (WaitBlk d (\<lambda>\<tau>. updr s1 (p \<tau>)) rdy #
+                                         InBlock ch v # tr2) s2"
+| InterruptB1: "\<not>b s \<Longrightarrow> big_step pr s tr s2 \<Longrightarrow> big_step (Interrupt ode b cs pr) s tr s2"
 | InterruptB2: "d > 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
     (\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (updr s1 (p t))) \<Longrightarrow>
     \<not>b (updr s1 (p d)) \<Longrightarrow> p 0 = rpart s1 \<Longrightarrow>
     rdy = rdy_of_echoice cs \<Longrightarrow>
-    big_step (Interrupt ode b cs) s1 [WaitBlk d (\<lambda>\<tau>. updr s1 (p \<tau>)) rdy] (updr s1 (p d))"
+    big_step pr (updr s1 (p d)) tr2 s2 \<Longrightarrow>
+    big_step (Interrupt ode b cs pr) s1 (WaitBlk d (\<lambda>\<tau>. updr s1 (p \<tau>)) rdy # tr2) s2"
 
 inductive_cases skipE: "big_step Skip s1 tr s2"
 inductive_cases assignE: "big_step (Assign var e) s1 tr s2"
@@ -281,7 +282,7 @@ inductive_cases waitE: "big_step (Wait d) s1 tr s2"
 inductive_cases echoiceE: "big_step (EChoice es) s1 tr s2"
 inductive_cases ichoiceE: "big_step (IChoice p1 p2) s1 tr s2"
 inductive_cases contE: "big_step (Cont ode b) s1 tr s2"
-inductive_cases interruptE: "big_step (Interrupt ode b cs) s1 tr s2"
+inductive_cases interruptE: "big_step (Interrupt ode b cs pr) s1 tr s2"
 
 subsection \<open>Assertions on sequential processes\<close>
 
