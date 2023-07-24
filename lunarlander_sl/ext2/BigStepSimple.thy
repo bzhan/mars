@@ -184,15 +184,18 @@ type_synonym 'a trace = "'a trace_block list"
 
 subsection \<open>Big-step semantics\<close>
 
-text \<open>Compute list of ready communications for an external choice.\<close>
-fun rdy_of_echoice :: "('a comm \<times> 'a proc) list \<Rightarrow> rdy_info" where
-  "rdy_of_echoice [] = ({}, {})"
-| "rdy_of_echoice ((ch[!]e, _) # rest) = (
-    let rdy = rdy_of_echoice rest in
-      (insert ch (fst rdy), snd rdy))"
-| "rdy_of_echoice ((ch[?]var, _) # rest) = (
-    let rdy = rdy_of_echoice rest in
-      (fst rdy, insert ch (snd rdy)))"
+text \<open>Compute list of ready communications for an external choice\<close>
+
+fun rdy_info_of_list :: "('a \<Rightarrow> rdy_info) \<Rightarrow> 'a list \<Rightarrow> rdy_info" where
+  "rdy_info_of_list f [] = ({}, {})"
+| "rdy_info_of_list f (x # xs) = (
+    let rdy = rdy_info_of_list f xs in
+      (fst (f x) \<union> fst rdy, snd (f x) \<union> snd rdy))"
+
+definition rdy_of_echoice :: "('a comm \<times> 'a proc) list \<Rightarrow> rdy_info" where
+  "rdy_of_echoice = rdy_info_of_list (\<lambda>es.
+    case es of (ch[!]e, _) \<Rightarrow> ({ch}, {})
+             | (ch[?]var, _) \<Rightarrow> ({}, {ch}))"
 
 text \<open>big_step p s1 tr s2 means executing p starting from
   state s1 results in a trace tr and final state s2.

@@ -111,16 +111,14 @@ proof -
   show ?thesis
     apply (rule spec_of_post)
      apply (rule spec_of_interrupt_unique[where specs="?specs"])
-        apply (rule 1) apply (rule 2)
-      apply auto apply (rule spec_of_es.intros)
+       apply (rule 1) apply (rule 2)
+     apply (auto intro!: rel_list.intros) apply (rule spec_of_es.intros)
      apply (rule spec_of_skip)
     subgoal for s0
       apply (simp only: updr_rpart_simp1)
       apply (rule interrupt_sol_mono)
       subgoal by (rule entails_triv)
-      subgoal by auto
-      subgoal for i
-        apply auto apply (intro spec2_entails.intros)
+      subgoal apply (auto intro!: rel_list.intros spec2_entails.intros)
         subgoal for d v s0 apply (simp only: updr_rpart_simp2)
           by (rule entails_triv)
         done
@@ -180,12 +178,12 @@ proof -
     apply (rule spec_of_post)
      apply (rule spec_of_interrupt_inf_unique[where specs="?specs"])
         apply (rule 1) apply (rule 2)
-      apply auto apply (rule spec_of_es.intros)
+      apply (auto intro!: rel_list.intros) apply (rule spec_of_es.intros)
      apply (rule spec_of_skip)
     subgoal for s0
       apply (simp only: updr_rpart_simp1)
       apply (rule interrupt_solInf_mono)
-       apply auto
+       apply (auto intro!: rel_list.intros)
       apply (intro spec2_entails.intros)
       subgoal for d v s0
         apply (cases s0)
@@ -232,12 +230,12 @@ proof -
     apply (rule spec_of_post)
      apply (rule spec_of_interrupt_inf_unique[where specs="?specs"])
         apply (rule 1) apply (rule 2)
-      apply auto apply (rule spec_of_es.intros)
+      apply (auto intro!: rel_list.intros) apply (rule spec_of_es.intros)
      apply (rule spec_of_skip)
     subgoal for s0
       apply (simp only: updr_rpart_simp1)
       apply (rule interrupt_solInf_mono)
-       apply auto
+       apply (auto intro!: rel_list.intros)
       apply (intro spec2_entails.intros)
       subgoal for d v s0
         apply (cases s0)

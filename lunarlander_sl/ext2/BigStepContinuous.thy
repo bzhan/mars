@@ -310,14 +310,10 @@ datatype 'a comm_spec =
   InSpec cname var "'a assn2"
 | OutSpec cname "'a eexp" "'a assn2"
 
-fun rdy_of_comm_spec :: "'a comm_spec list \<Rightarrow> rdy_info" where
-  "rdy_of_comm_spec [] = ({}, {})"
-| "rdy_of_comm_spec (InSpec ch var P # rest) = (
-    let rdy = rdy_of_comm_spec rest in
-      (insert ch (fst rdy), snd rdy))"
-| "rdy_of_comm_spec (OutSpec ch e P # rest) = (
-    let rdy = rdy_of_comm_spec rest in
-      (fst rdy, insert ch (snd rdy)))"
+definition rdy_of_comm_spec :: "'a comm_spec list \<Rightarrow> rdy_info" where
+  "rdy_of_comm_spec = rdy_info_of_list (\<lambda>spec.
+    case spec of InSpec ch var P \<Rightarrow> ({}, {ch})
+               | OutSpec ch e P \<Rightarrow> ({ch}, {}))"
 
 inductive interrupt_c :: "ODE \<Rightarrow> 'a eform \<Rightarrow> 'a assn2 \<Rightarrow> 'a comm_spec list \<Rightarrow> 'a assn2" where
   "\<not>b s0 \<Longrightarrow> P s0 s tr \<Longrightarrow> interrupt_c ode b P specs s0 s tr"
@@ -349,77 +345,102 @@ inductive spec_of_es :: "'a comm \<times> 'a proc \<Rightarrow> 'a comm_spec \<R
   "spec_of c Q \<Longrightarrow> spec_of_es (ch[?]var, c) (InSpec ch var Q)"
 | "spec_of c Q \<Longrightarrow> spec_of_es (ch[!]e, c) (OutSpec ch e Q)"
 
+inductive rel_list :: "('a \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> bool" for r where
+  "rel_list r [] []"
+| "r a b \<Longrightarrow> rel_list r as bs \<Longrightarrow> rel_list r (a # as) (b # bs)"
+
+lemma rel_listD1:
+  "rel_list r xs ys \<Longrightarrow> length xs = length ys"
+  apply (induct rule: rel_list.induct) by auto
+
+lemma rel_listD2:
+  "rel_list r xs ys \<Longrightarrow> i < length xs \<Longrightarrow> r (xs ! i) (ys ! i)"
+  apply (induct arbitrary: i rule: rel_list.induct) apply auto
+  unfolding less_Suc_eq_0_disj by auto
+
+lemma rel_list_mono:
+  assumes "\<And>x y. r x y \<Longrightarrow> r2 x y"
+  shows "rel_list r xs ys \<Longrightarrow> rel_list r2 xs ys"
+  apply (induct rule: rel_list.induct)
+  using assms by (auto intro!: rel_list.intros)
+
+lemma rdy_info_of_list_cong:
+  "rel_list (\<lambda>x y. f x = g y) xs ys \<Longrightarrow> rdy_info_of_list f xs = rdy_info_of_list g ys"
+  apply (induct xs ys rule: rel_list.induct)
+  by (auto simp add: Let_def)
+
 lemma rdy_of_comm_spec_correct:
-  assumes "\<forall>i. i < length es \<longrightarrow> spec_of_es (es ! i) (specs ! i)"
-    shows "rdy_of_echoice es = rdy_of_comm_spec specs"
-  sorry
+  assumes "rel_list spec_of_es es specs"
+  shows "rdy_of_echoice es = rdy_of_comm_spec specs"
+  unfolding rdy_of_echoice_def rdy_of_comm_spec_def
+  apply (rule rdy_info_of_list_cong)
+  apply (rule rel_list_mono[OF _ assms])
+  apply (elim spec_of_es.cases) by auto
 
 lemma spec_of_interrupt:
-  assumes "length es = length specs"
-    and "\<forall>i. i < length es \<longrightarrow> spec_of_es (es ! i) (specs ! i)"
-  shows
-  "spec_of (Interrupt ode b es)
-           (interrupt_c ode b init specs)"
+  assumes "rel_list spec_of_es es specs"
+  shows "spec_of (Interrupt ode b es)
+                 (interrupt_c ode b init specs)"
   unfolding Valid_def spec_of_def init_def apply clarify
   apply (auto elim!: interruptE)
   subgoal premises pre for s0 s2 i ch e p2 tr2
   proof -
     have "spec_of_es (es ! i) (specs ! i)"
-      using assms(2) pre(1) by auto
+      using rel_listD2[OF assms pre(1)] by auto
     then obtain Q where Q: "specs ! i = OutSpec ch e Q" "spec_of p2 Q"
       apply (cases rule: spec_of_es.cases) using pre by auto
     show ?thesis
       apply (rule interrupt_c.intros(5))
-      using assms pre(1) apply auto[1]
+      using rel_listD1[OF assms] pre(1) apply auto[1]
       using Q(1) apply auto[1]
       using pre(3) Q(2) unfolding spec_of_def Valid_def init_def by auto
   qed
   subgoal premises pre for s0 s2 d p i ch e p2 tr2
   proof -
     have "spec_of_es (es ! i) (specs ! i)"
-      using assms(2) pre(5) by auto
+      using rel_listD2[OF assms pre(5)] by auto
     then obtain Q where Q: "specs ! i = OutSpec ch e Q" "spec_of p2 Q"
       apply (cases rule: spec_of_es.cases) using pre by auto
     show ?thesis
       apply (rule interrupt_c.intros(6))
-      using assms pre(5) apply auto[1]
+      using rel_listD1[OF assms] pre(5) apply auto[1]
       using Q(1) apply auto[1]
       using pre(1) apply auto[1]
       using pre(7) Q(2) unfolding spec_of_def Valid_def init_def apply auto[1]
-      using pre assms(2) rdy_of_comm_spec_correct by auto
+      using pre assms rdy_of_comm_spec_correct by auto
   qed
   subgoal premises pre for s0 s2 i ch var p2 v tr2
   proof -
     have "spec_of_es (es ! i) (specs ! i)"
-      using assms(2) pre(1) by auto
+      using rel_listD2[OF assms pre(1)] by auto
     then obtain Q where Q: "specs ! i = InSpec ch var Q" "spec_of p2 Q"
       apply (cases rule: spec_of_es.cases) using pre by auto
     show ?thesis
       apply (rule interrupt_c.intros(3))
-      using assms pre(1) apply auto[1]
+      using rel_listD1[OF assms] pre(1) apply auto[1]
       using Q(1) apply auto[1]
       using pre(3) Q(2) unfolding spec_of_def Valid_def init_def by auto
   qed
   subgoal premises pre for s0 s2 d p i ch var p2 v tr2
   proof -
     have "spec_of_es (es ! i) (specs ! i)"
-      using assms(2) pre(5) by auto
+      using rel_listD2[OF assms pre(5)] by auto
     then obtain Q where Q: "specs ! i = InSpec ch var Q" "spec_of p2 Q"
       apply (cases rule: spec_of_es.cases) using pre by auto
     show ?thesis
       apply (rule interrupt_c.intros(4))
-      using assms pre(5) apply auto[1]
+      using rel_listD1[OF assms] pre(5) apply auto[1]
       using Q(1) apply auto[1]
       using pre(1) apply auto[1]
       using pre(7) Q(2) unfolding spec_of_def Valid_def init_def apply auto[1]
-      using pre assms(2) rdy_of_comm_spec_correct by auto
+      using pre assms rdy_of_comm_spec_correct by auto
   qed
   subgoal premises pre for s0
     apply (rule interrupt_c.intros(1))
     using pre by auto
   subgoal premises pre for s0 d p
     apply (rule interrupt_c.intros(2))
-    using pre assms(2) rdy_of_comm_spec_correct by auto
+    using pre assms rdy_of_comm_spec_correct by auto
   done
 
 text \<open>Unique solution rule for interrupt\<close>
@@ -432,18 +453,24 @@ fun spec2_of :: "('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow
   "spec2_of p (InSpec ch var Q) = InSpec2 ch (\<lambda>d v s0. Q (updr s0 ((p s0 d)(var := v))))"
 | "spec2_of p (OutSpec ch e Q) = OutSpec2 ch (\<lambda>d s0. e (updr s0 (p s0 d))) (\<lambda>d s0. Q (updr s0 (p s0 d)))"
 
-fun rdy_of_comm_spec2 :: "'a comm_spec2 list \<Rightarrow> rdy_info" where
-  "rdy_of_comm_spec2 [] = ({}, {})"
-| "rdy_of_comm_spec2 (InSpec2 ch P # rest) = (
-    let rdy = rdy_of_comm_spec2 rest in
-      (insert ch (fst rdy), snd rdy))"
-| "rdy_of_comm_spec2 (OutSpec2 ch e P # rest) = (
-    let rdy = rdy_of_comm_spec2 rest in
-      (fst rdy, insert ch (snd rdy)))"
+definition rdy_of_comm_spec2 :: "'a comm_spec2 list \<Rightarrow> rdy_info" where
+  "rdy_of_comm_spec2 = rdy_info_of_list (\<lambda>spec2.
+    case spec2 of InSpec2 ch P \<Rightarrow> ({}, {ch})
+                | OutSpec2 ch e P \<Rightarrow> ({ch}, {}))"
+
+lemma rel_list_map:
+  assumes "\<And>x. r x (f x)"
+  shows "rel_list r xs (map f xs)"
+  apply (induct xs)
+  using assms by (auto intro: rel_list.intros)
 
 lemma rdy_of_comm_spec2_of:
   "rdy_of_comm_spec specs = rdy_of_comm_spec2 (map (spec2_of p) specs)"
-  sorry
+  unfolding rdy_of_comm_spec_def rdy_of_comm_spec2_def
+  apply (rule rdy_info_of_list_cong)
+  apply (rule rel_list_map) subgoal for spec
+    apply (cases spec) by auto
+  done
 
 inductive interrupt_sol_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate) \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow>
   'a comm_spec2 list \<Rightarrow> 'a assn2" where
@@ -564,13 +591,12 @@ lemma spec_of_interrupt_unique:
   assumes
     "paramODEsol ode b p d"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
-    "length es = length specs"
-    "\<forall>i. i < length es \<longrightarrow> spec_of_es (es ! i) (specs ! i)"
+    "rel_list spec_of_es es specs"
   shows
     "spec_of (Interrupt ode b es)
              (interrupt_sol_c (\<lambda>s t. updr s (p s t)) d (\<lambda>d' s. init (updr s (p s d'))) (map (spec2_of p) specs))"
   apply (rule spec_of_post)
-   apply (rule spec_of_interrupt[OF assms(3,4)]) apply auto
+   apply (rule spec_of_interrupt[OF assms(3)]) apply auto
   apply (rule entails_trans)
    apply (rule interrupt_c_unique[OF assms(1,2)])
   by (rule entails_triv)
@@ -583,14 +609,16 @@ inductive_cases spec2_entails_inE: "spec2_entails (InSpec2 ch P1) spec2"
 inductive_cases spec2_entails_outE: "spec2_entails (OutSpec2 ch e Q1) spec2"
 
 lemma rdy_of_spec2_entails:
-  assumes "\<And>i. i < length specs \<Longrightarrow> spec2_entails (specs ! i) (specs2 ! i)"
+  assumes "rel_list spec2_entails specs specs2"
   shows "rdy_of_comm_spec2 specs = rdy_of_comm_spec2 specs2"
-  sorry
+  unfolding rdy_of_comm_spec2_def
+  apply (rule rdy_info_of_list_cong)
+  apply (rule rel_list_mono[OF _ assms])
+  apply (elim spec2_entails.cases) by auto
 
 lemma interrupt_sol_mono:
   assumes "\<And>d s0. P d s0 \<Longrightarrow>\<^sub>A P2 d s0"
-    and "length specs = length specs2"
-    and "\<And>i. i < length specs \<Longrightarrow> spec2_entails (specs ! i) (specs2 ! i)"
+    and "rel_list spec2_entails specs specs2"
   shows "interrupt_sol_c p d P specs s0 \<Longrightarrow>\<^sub>A interrupt_sol_c p d P2 specs2 s0"
   unfolding entails_def apply auto
   subgoal for s tr
@@ -598,39 +626,39 @@ lemma interrupt_sol_mono:
     subgoal for tr' a b
       apply (rule interrupt_sol_c.intros(1))
       using assms(1) unfolding entails_def apply auto
-      apply (rule rdy_of_spec2_entails) using assms(3) by auto
+      apply (rule rdy_of_spec2_entails) using assms(2) by auto
     subgoal
       apply (rule interrupt_sol_c.intros(2))
       using assms(1) unfolding entails_def by auto
     subgoal for i ch Q v tr'
-      using assms(3)[of i] apply simp
+      using rel_listD2[OF assms(2), of i] rel_listD1[OF assms(2)] apply simp
       apply (elim spec2_entails_inE)
       subgoal for Q2
         apply (rule interrupt_sol_c.intros(3)[of i _ _ Q2])
         using assms(2) unfolding entails_def by auto
       done
     subgoal for i ch Q d' v tr' a b
-      using assms(3)[of i] apply simp
+      using rel_listD2[OF assms(2), of i] rel_listD1[OF assms(2)] apply simp
       apply (elim spec2_entails_inE)
       subgoal for Q2
         apply (rule interrupt_sol_c.intros(4)[of i _ _ Q2])
         using assms(2) unfolding entails_def apply auto
-        apply (rule rdy_of_spec2_entails) using assms(3) by auto
+        apply (rule rdy_of_spec2_entails) by auto
       done
     subgoal for i ch e Q tr'
-      using assms(3)[of i] apply simp
+      using rel_listD2[OF assms(2), of i] rel_listD1[OF assms(2)] apply simp
       apply (elim spec2_entails_outE)
       subgoal for Q2
         apply (rule interrupt_sol_c.intros(5)[of i _ _ _ Q2])
         using assms(2) unfolding entails_def by auto
       done
     subgoal for i ch e Q d' tr' a b
-      using assms(3)[of i] apply simp
+      using rel_listD2[OF assms(2), of i] rel_listD1[OF assms(2)] apply simp
       apply (elim spec2_entails_outE)
       subgoal for Q2
         apply (rule interrupt_sol_c.intros(6)[of i _ _ _ Q2])
         using assms(2) unfolding entails_def apply auto
-        apply (rule rdy_of_spec2_entails) using assms(3) by auto
+        apply (rule rdy_of_spec2_entails) by auto
       done
     done
   done
@@ -714,53 +742,51 @@ lemma spec_of_interrupt_inf_unique:
   assumes
     "paramODEsolInf ode p"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
-    "length es = length specs"
-    "\<forall>i. i < length es \<longrightarrow> spec_of_es (es ! i) (specs ! i)"
+    "rel_list spec_of_es es specs"
   shows
     "spec_of (Interrupt ode (\<lambda>_. True) es)
              (interrupt_solInf_c (\<lambda>s t. updr s (p s t)) (map (spec2_of p) specs))"
   apply (rule spec_of_post)
-   apply (rule spec_of_interrupt[OF assms(3,4)]) apply auto
+   apply (rule spec_of_interrupt[OF assms(3)]) apply auto
   apply (rule entails_trans)
    apply (rule interrupt_inf_c_unique[OF assms(1,2)])
   by (rule entails_triv)
 
 lemma interrupt_solInf_mono:
-  assumes "length specs = length specs2"
-    and "\<And>i. i < length specs \<Longrightarrow> spec2_entails (specs ! i) (specs2 ! i)"
+  assumes "rel_list spec2_entails specs specs2"
   shows "interrupt_solInf_c p specs s0 \<Longrightarrow>\<^sub>A interrupt_solInf_c p specs2 s0"
   unfolding entails_def apply auto
   subgoal for s tr
     apply (induct rule: interrupt_solInf_c.cases) apply auto
     subgoal for i ch Q v tr'
-      using assms(2)[of i] apply simp
+      using rel_listD2[OF assms, of i] rel_listD1[OF assms] apply simp
       apply (elim spec2_entails_inE)
       subgoal for Q2
         apply (rule interrupt_solInf_c.intros(1)[of i _ _ Q2])
         using assms(1) unfolding entails_def by auto
       done
     subgoal for i ch Q d' v tr' a b
-      using assms(2)[of i] apply simp
+      using rel_listD2[OF assms, of i] rel_listD1[OF assms] apply simp
       apply (elim spec2_entails_inE)
       subgoal for Q2
         apply (rule interrupt_solInf_c.intros(2)[of i _ _ Q2])
         using assms(1) unfolding entails_def apply auto
-        apply (rule rdy_of_spec2_entails) using assms(2) by auto
+        apply (rule rdy_of_spec2_entails) by auto
       done
     subgoal for i ch e Q tr'
-      using assms(2)[of i] apply simp
+      using rel_listD2[OF assms, of i] rel_listD1[OF assms] apply simp
       apply (elim spec2_entails_outE)
       subgoal for Q2
         apply (rule interrupt_solInf_c.intros(3)[of i _ _ _ Q2])
         using assms(1) unfolding entails_def by auto
       done
     subgoal for i ch E Q d tr' a b
-      using assms(2)[of i] apply simp
+      using rel_listD2[OF assms, of i] rel_listD1[OF assms] apply simp
       apply (elim spec2_entails_outE)
       subgoal for Q2
         apply (rule interrupt_solInf_c.intros(4)[of i _ _ _ Q2])
         using assms(1) unfolding entails_def apply auto
-        apply (rule rdy_of_spec2_entails) using assms(2) by auto
+        apply (rule rdy_of_spec2_entails) by auto
       done
     done
   done
@@ -837,18 +863,18 @@ fun comm_spec_gassn_of :: "pname \<Rightarrow> 'a comm_spec2 \<Rightarrow> 'a co
   "comm_spec_gassn_of pn (InSpec2 ch Q) = InSpecg2 ch (\<lambda>d v. single_assn pn (Q d v))"
 | "comm_spec_gassn_of pn (OutSpec2 ch e Q) = OutSpecg2 ch (\<lambda>d. single_val pn (e d)) (\<lambda>d. single_assn pn (Q d))"
 
-fun rdy_of_comm_specg2 :: "'a comm_specg2 list \<Rightarrow> rdy_info" where
-  "rdy_of_comm_specg2 [] = ({}, {})"
-| "rdy_of_comm_specg2 (InSpecg2 ch P # rest) = (
-    let rdy = rdy_of_comm_specg2 rest in
-      (insert ch (fst rdy), snd rdy))"
-| "rdy_of_comm_specg2 (OutSpecg2 ch e P # rest) = (
-    let rdy = rdy_of_comm_specg2 rest in
-      (fst rdy, insert ch (snd rdy)))"
+definition rdy_of_comm_specg2 :: "'a comm_specg2 list \<Rightarrow> rdy_info" where
+  "rdy_of_comm_specg2 = rdy_info_of_list (\<lambda>specg.
+     case specg of InSpecg2 ch P \<Rightarrow> ({}, {ch})
+                 | OutSpecg2 ch e P \<Rightarrow> ({ch}, {}))"
 
 lemma rdy_of_comm_spec_gassn_of:
   "rdy_of_comm_spec2 specs = rdy_of_comm_specg2 (map (comm_spec_gassn_of pn) specs)"
-  sorry
+  unfolding rdy_of_comm_spec2_def rdy_of_comm_specg2_def
+  apply (rule rdy_info_of_list_cong)
+  apply (rule rel_list_map)
+  subgoal for spec2 apply (cases spec2) by auto
+  done
 
 inductive interrupt_solInf_cg :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate) \<Rightarrow> 'a comm_specg2 list \<Rightarrow> 'a gassn2" where
   "i < length specs \<Longrightarrow> specs ! i = InSpecg2 ch Q \<Longrightarrow>
@@ -973,7 +999,11 @@ lemma merge_rdy_simp1:
 
 lemma rdy_of_spec_wait_of [simp]:
   "rdy_of_comm_specg2 (map (spec_wait_of d p) specs) = rdy_of_comm_specg2 specs"
-  sorry
+  unfolding rdy_of_comm_specg2_def apply (rule sym)
+  apply (rule rdy_info_of_list_cong)
+  apply (rule rel_list_map)
+  subgoal for specg2 apply (cases specg2) by auto
+  done
 
 subsection \<open>Synchronization rules for interrupt\<close>
 
