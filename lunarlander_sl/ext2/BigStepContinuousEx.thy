@@ -258,10 +258,10 @@ qed
 
 lemma ex1a_sp:
   "spec_of ex1a
-     ((wait_out_c ch1 (\<lambda>_. 1)
+     ((wait_out_cv ch1 (\<lambda>_. 1)
         (\<lambda>d. interrupt_solInf_c (\<lambda>s t. upd s X (val s X + 2 * t))
                                 [InSpec2 ch2 (\<lambda>d v. init {{Y := (\<lambda>_. v)}} {{X := (\<lambda>s. val s X + 2 * d)}})]) \<or>\<^sub>a
-       wait_out_c ch1 (\<lambda>_. 2)
+       wait_out_cv ch1 (\<lambda>_. 2)
         (\<lambda>d. interrupt_solInf_c (\<lambda>s t. upd s X (val s X + t))
                                 [InSpec2 ch2 (\<lambda>d v. init {{Y := (\<lambda>_. v)}} {{X := (\<lambda>s. val s X + d)}})]))
       {{X := (\<lambda>_. 0)}})"
@@ -284,7 +284,7 @@ lemma ex1b_sp:
   "spec_of ex1b
            (wait_in_c ch1 (\<lambda>d v.
               wait_c (\<lambda>s. val s Y) (
-                wait_out_c ch2 (\<lambda>_. 0) (\<lambda>d. init)) {{Y := (\<lambda>_. v)}}))"
+                wait_out_cv ch2 (\<lambda>_. 0) (\<lambda>d. init)) {{Y := (\<lambda>_. v)}}))"
   unfolding ex1b_def
   apply (rule spec_of_post)
   apply (rule Valid_receive_sp)
@@ -325,7 +325,7 @@ lemma ex1':
     (* Left branch *)
     subgoal
       apply (rule entails_g_trans)
-       apply (rule sync_gassn_out_in) apply auto
+       apply (rule sync_gassn_outv_in) apply auto
       apply (rule entails_g_trans)
        apply (rule sync_gassn_subst_right) apply auto
       apply (rule updg_mono)

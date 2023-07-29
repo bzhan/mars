@@ -13,6 +13,12 @@ definition Z :: char where "Z = CHR ''z''"
 definition ch1 :: cname where "ch1 = ''ch1''"
 definition ch2 :: cname where "ch2 = ''ch2''"
 
+lemma pname_neq [simp]: "A \<noteq> B" "B \<noteq> A"
+  by (auto simp add: A_def B_def)
+
+lemma cname_neq [simp]: "ch1 \<noteq> ch2" "ch2 \<noteq> ch1"
+  by (auto simp add: ch1_def ch2_def)
+
 subsubsection \<open>Example 1\<close>
 
 text \<open>
@@ -25,11 +31,42 @@ definition ex1a :: "'a proc" where
 definition ex1b :: "'a proc" where
   "ex1b = (Cm (ch1[!](\<lambda>_. 3)))"
 
+lemma valg_restrict_state:
+  assumes "pn \<in> pns"
+    and "proc_set s \<subseteq> pns"
+  shows "valg (restrict_state pns s) pn v = valg s pn v"
+  unfolding valg_def restrict_state_def apply auto
+  using assms unfolding proc_set_def by auto
+
+lemma init_single_mono:
+  assumes "pns1 = pns2"
+  shows "init_single pns1 s0 \<Longrightarrow>\<^sub>g init_single pns2 s0"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim init_single.cases)
+    using assms by (auto intro!: init_single.intros)
+  done
+
+lemma wait_out_cgv_mono:
+  assumes "\<And>d. P d s0 \<Longrightarrow>\<^sub>g Q d s0"
+    and "pns1 = pns2"
+  shows "wait_out_cgv ch pns1 pn e P s0 \<Longrightarrow>\<^sub>g wait_out_cgv ch pns2 pn e Q s0"
+  unfolding wait_out_cgv_def
+  apply (rule wait_out_cg_mono)
+  using assms(2) apply auto
+  apply (rule conj_pure_gassn_mono)
+  using assms by auto
+
+lemma proc_set_wait_out_cgv [intro!]:
+  assumes "\<And>d. proc_set_gassn pns (P d)"
+  shows "proc_set_gassn pns (wait_out_cgv ch pns pn e P)"
+  unfolding wait_out_cgv_def using assms by auto
+
 lemma ex1:
   "spec_of_global
     (Parallel (Single A ex1a) {ch1}
               (Single B ex1b))
-    (\<lambda>s0. wait_out_cg A ch2 (\<lambda>s. val s X + 1) (\<lambda>d. init_single {A, B})
+    (\<lambda>s0. wait_out_cgv ch2 {A, B} A (\<lambda>s. val s X + 1) (\<lambda>d. init_single {A, B})
           (updg s0 A X 3))"
   apply (rule spec_of_global_post)
   (* Stage 1: obtain spec for both sides *)
@@ -47,18 +84,17 @@ lemma ex1:
     apply (auto simp: single_assn_simps)
   (* Stage 3: perform merge *)
     apply (rule entails_g_trans)
-     apply (rule sync_gassn_in_out) apply (auto simp add: A_def B_def)
+     apply (rule sync_gassn_in_outv) apply auto
     apply (rule entails_g_trans)
      apply (rule sync_gassn_subst_left) apply simp
     apply (rule entails_g_trans)
      apply (rule gassn_subst)
     apply (rule entails_g_trans)
-     apply (rule sync_gassn_out_emp)
-      apply (auto simp add: ch1_def ch2_def)
-    apply (rule wait_out_cg_mono)
-    subgoal for d s0
-      apply (rule sync_gassn_emp) by auto
-    done
+     apply (rule sync_gassn_outv_emp) apply auto
+    apply (rule wait_out_cgv_mono) apply auto
+    apply (rule entails_g_trans)
+     apply (rule sync_gassn_emp) apply auto
+    apply (rule init_single_mono) by auto
   done
 
 subsubsection \<open>Example 2\<close>
@@ -99,13 +135,13 @@ lemma ex2:
     apply (auto simp: single_assn_simps)
       (* Stage 3: combine the two assertions *)
     apply (rule entails_g_trans)
-     apply (rule sync_gassn_out_in) apply (auto simp add: A_def B_def)
+     apply (rule sync_gassn_outv_in) apply auto
     apply (rule entails_g_trans)
      apply (rule sync_gassn_subst_right) apply auto
     apply (rule entails_g_trans)
      apply (rule gassn_subst)
     apply (rule entails_g_trans)
-     apply (rule sync_gassn_in_out) apply auto
+     apply (rule sync_gassn_in_outv) apply auto
     apply (rule entails_g_trans)
      apply (rule sync_gassn_subst_left) apply auto
     apply (rule entails_g_trans)
@@ -130,11 +166,11 @@ definition ex3a :: "'a proc" where
 
 fun rinv_c :: "nat \<Rightarrow> ('a estate \<Rightarrow> 'a assn) \<Rightarrow> ('a estate \<Rightarrow> 'a assn)" where
   "rinv_c 0 Q = Q"
-| "rinv_c (Suc n) Q = wait_out_c ch1 (\<lambda>s. val s X) (\<lambda>d. rinv_c n Q {{ Y := (\<lambda>s0. val s0 Y + 1) }})"
+| "rinv_c (Suc n) Q = wait_out_cv ch1 (\<lambda>s. val s X) (\<lambda>d. rinv_c n Q {{ Y := (\<lambda>s0. val s0 Y + 1) }})"
 
 lemma ex3a_sp:
   "spec_of ex3a
-           (\<lambda>s0. \<exists>\<^sub>an. rinv_c n init s0)"
+           (\<exists>\<^sub>an. rinv_c n init)"
   unfolding ex3a_def
   apply (rule spec_of_rep)
   subgoal for n
@@ -159,7 +195,7 @@ fun linv_c :: "nat \<Rightarrow> ('a estate \<Rightarrow> 'a assn) \<Rightarrow>
 
 lemma ex3b_sp:
   "spec_of ex3b
-           (\<lambda>s0. \<exists>\<^sub>an. linv_c n init s0)"
+           (\<exists>\<^sub>an. linv_c n init)"
   unfolding ex3b_def
   apply (rule spec_of_rep)
   subgoal for n
@@ -197,9 +233,9 @@ lemma ex3':
    (sync_gassn {ch1} {A} {B}
      (single_assn A (rinv_c (Suc n1) init))
      (single_assn B (linv_c (Suc n2) init)) s0 \<Longrightarrow>\<^sub>g
-    sync_gassn {ch1} {A} {B}
+    (sync_gassn {ch1} {A} {B}
      (single_assn A (rinv_c n1 init))
-     (single_assn B (linv_c n2 init)) s1)"
+     (single_assn B (linv_c n2 init))) s1)"
   apply (rule exI[where x="ex3_one_step s0"])
   apply (rule conjI)
   subgoal using assms unfolding ex3_one_step_def ex3_inv_def
@@ -208,7 +244,7 @@ lemma ex3':
   subgoal
     apply (auto simp: single_assn_simps)
     apply (rule entails_g_trans)
-     apply (rule sync_gassn_out_in) apply (auto simp add: A_def B_def)
+     apply (rule sync_gassn_outv_in) apply auto
     apply (rule entails_g_trans)
      apply (rule sync_gassn_subst_right) apply auto
     apply (rule entails_g_trans)
@@ -255,7 +291,7 @@ proof (induction n1 n2 arbitrary: s0 rule: diff_induct)
       apply (rule conjI) using 1 apply simp
       apply auto
        apply (auto simp add: single_assn_simps)
-       apply (rule sync_gassn_out_emp_unpair)
+       apply (rule sync_gassn_outv_emp_unpair)
       by auto
   qed
 next
@@ -296,9 +332,9 @@ lemma ex3''':
     (Parallel (Single A ex3a)
               {ch1}
               (Single B ex3b))
-    (\<lambda>s0. \<exists>\<^sub>gn1 n2. sync_gassn {ch1} {A} {B}
-                    (single_assn A (rinv_c n1 init))
-                    (single_assn B (linv_c n2 init)) s0)"
+    (\<exists>\<^sub>gn1 n2. sync_gassn {ch1} {A} {B}
+                (single_assn A (rinv_c n1 init))
+                (single_assn B (linv_c n2 init)))"
   (* Stage 1: merge ex3_c and ex4_c *)
   apply (rule spec_of_global_post)
    apply (rule spec_of_parallel)
@@ -306,22 +342,25 @@ lemma ex3''':
   apply (rule ex3a_sp)
      apply (rule spec_of_single)
   apply (rule ex3b_sp) apply auto
-  apply (auto simp add: single_assn_simps sync_gassn_exists_left sync_gassn_exists_right)
+  apply (auto simp add: single_assn_simps sync_gassn_exists_left)
+  apply (auto simp add: sync_gassn_exists_right)
   by (rule entails_g_triv)
 
 lemma ex3:
-  "ex3_inv s0 \<Longrightarrow>
-    \<Turnstile>\<^sub>p {init_global s0}
-        (Parallel (Single A ex3a)
-                  {ch1}
-                  (Single B ex3b))
-       {\<exists>\<^sub>gs1. (\<lambda>s tr. ex3_inv s1 \<and> init_single {B, A} s1 s tr)}"
+  "spec_of_global_gen ex3_inv
+    (Parallel (Single A ex3a)
+              {ch1}
+              (Single B ex3b))
+   (!\<^sub>g[ex3_inv] at {B, A} \<and>\<^sub>g init_single {B, A})"
+  unfolding spec_of_global_gen_def apply auto
   apply (rule weaken_post_global)
-  apply (rule spec_of_globalE[OF ex3'''])
-  apply (auto simp add: exists_gassn_def entails_g_def)
-  subgoal for s tr n1 n2
+   apply (rule spec_of_globalE[OF ex3'''])
+  apply (rule exists_gassn_elim)
+  apply (rule exists_gassn_elim)
+  apply (intro conj_gassn_intro pure_gassn_intro) apply auto
+  subgoal for s0 n1 n2
     using ex3''[of s0 n1 n2] unfolding entails_g_def
-    by auto
+    sorry
   done
 
 subsubsection \<open>Example 5\<close>
@@ -349,12 +388,12 @@ fun ex5a_c :: "nat \<Rightarrow> ex5_state assn2 \<Rightarrow> ex5_state assn2" 
   "ex5a_c 0 Q = Q"
 | "ex5a_c (Suc n) Q =
    (IFA (\<lambda>s. epart s \<noteq> []) THEN
-      wait_out_c ch1 (\<lambda>s. hd (epart s)) (\<lambda>d. ex5a_c n Q {{ (\<lambda>s0. tl (epart s0)) }})
+      wait_out_cv ch1 (\<lambda>s. hd (epart s)) (\<lambda>d. ex5a_c n Q {{ (\<lambda>s0. tl (epart s0)) }})
     ELSE false_assn2 FI)"
 
 lemma ex5a_sp:
   "spec_of ex5a
-           (\<lambda>s0. \<exists>\<^sub>an. ex5a_c n init s0)"
+           (\<exists>\<^sub>an. ex5a_c n init)"
   unfolding ex5a_def
   apply (rule spec_of_rep)
   subgoal for n
@@ -390,7 +429,7 @@ fun ex5b_c :: "nat \<Rightarrow> ex5_state assn2 \<Rightarrow> ex5_state assn2" 
 
 lemma ex5b_sp:
   "spec_of ex5b
-           (\<lambda>s0. \<exists>\<^sub>an. ex5b_c n init s0)"
+           (\<exists>\<^sub>an. ex5b_c n init)"
   unfolding ex5b_def
   apply (rule spec_of_rep)
   subgoal for n
@@ -575,7 +614,7 @@ definition ex6a :: "'a proc" where
 lemma ex6a_sp:
   "spec_of ex6a
     (wait_in_c0 ch2 (\<lambda>v.
-     (wait_c (\<lambda>_. 1) (wait_out_c ch1 (\<lambda>s. val s X) (\<lambda>d. init)) {{ X := (\<lambda>_. v) }})))"
+     (wait_c (\<lambda>_. 1) (wait_out_cv ch1 (\<lambda>s. val s X) (\<lambda>d. init)) {{ X := (\<lambda>_. v) }})))"
   unfolding ex6a_def
   apply (rule spec_of_post)
    apply (rule Valid_receive_sp)
@@ -625,17 +664,8 @@ lemma ex6:
     apply (rule entails_g_trans)
      apply (rule sync_gassn_out_unpair_wait0)
     apply (auto simp add: ch1_def ch2_def A_def B_def)
-    subgoal for v
-      apply (rule proc_set_updg_subst)
-       apply (rule proc_set_wait_cg)
-       apply (rule proc_set_wait_out_cg)
-      apply (rule proc_set_init_single) by auto
-    subgoal
-      apply (rule proc_set_wait_in_cg)
-      apply (rule proc_set_updg_subst)
-       apply (rule proc_set_init_single) by auto
     apply (rule wait_in_cg_alt_mono)
-    subgoal for d v s0
+    subgoal for d v
       apply (rule cond_gassn_mono)
       subgoal
         apply (rule entails_g_trans)
@@ -645,14 +675,14 @@ lemma ex6:
          apply (rule sync_gassn_wait_same) apply auto
          apply (rule wait_cg_mono)
         apply (rule entails_g_trans)
-         apply (rule sync_gassn_out_in) apply auto
+         apply (rule sync_gassn_outv_in) apply auto
         apply (rule entails_g_trans)
          apply (rule sync_gassn_subst_right) apply auto
         apply (simp only: valg_def[symmetric]) apply auto
         apply (rule updg_mono)
         apply (rule sync_gassn_emp) by auto
       by (rule entails_g_triv)
-    subgoal for d s0
+    subgoal for d
       by (rule entails_g_triv)
     done
   done
@@ -687,7 +717,7 @@ lemma ex6_full:
     apply (auto simp add: single_assn_simps)
   (* Stage 3: combine the two assertions *)
     apply (rule entails_g_trans)
-     apply (rule sync_gassn_in_alt_out) apply (auto simp add: A_def B_def C_def)
+     apply (rule sync_gassn_in_alt_outv) apply (auto simp add: A_def B_def C_def)
     apply (rule entails_g_trans)
      apply (rule sync_gassn_subst_left) apply auto
     apply (rule entails_g_trans)

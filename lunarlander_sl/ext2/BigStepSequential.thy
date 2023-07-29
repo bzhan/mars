@@ -320,10 +320,6 @@ type_synonym 'a assn = "'a estate \<Rightarrow> 'a trace \<Rightarrow> bool"
 text \<open>We also define assertions parameterized by starting state\<close>
 type_synonym 'a assn2 = "'a estate \<Rightarrow> 'a assn"
 
-text \<open>Assertion stating the trace is empty\<close>
-definition emp :: "'a assn" where
-  "emp = (\<lambda>s tr. tr = [])"
-
 text \<open>True and false assertions\<close>
 inductive true_assn2 :: "'a assn2" where
   "true_assn2 s0 s tr"
@@ -332,11 +328,11 @@ definition false_assn2 :: "'a assn2" where
   "false_assn2 = (\<lambda>s0 s tr. False)"
 
 text \<open>Quantifiers on assertions.\<close>
-definition forall_assn :: "('b \<Rightarrow> 'a assn) \<Rightarrow> 'a assn" (binder "\<forall>\<^sub>a" 10)where
-  "(\<forall>\<^sub>a n. P n) = (\<lambda>s tr. \<forall>n. P n s tr)"
+definition forall_assn :: "('b \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" (binder "\<forall>\<^sub>a" 10)where
+  "(\<forall>\<^sub>an. P n) = (\<lambda>s0 s tr. \<forall>n. P n s0 s tr)"
 
-definition exists_assn :: "('b \<Rightarrow> 'a assn) \<Rightarrow> 'a assn" (binder "\<exists>\<^sub>a" 10)where
-  "(\<exists>\<^sub>a n. P n) = (\<lambda>s tr. \<exists>n. P n s tr)"
+definition exists_assn :: "('b \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" (binder "\<exists>\<^sub>a" 10)where
+  "(\<exists>\<^sub>an. P n) = (\<lambda>s0 s tr. \<exists>n. P n s0 s tr)"
 
 text \<open>Substitution on assertions: real part.
   Starting from a parameterized assertion P, let P act on the
@@ -354,8 +350,14 @@ definition subste_assn2 :: "'a assn2 \<Rightarrow> ('a estate \<Rightarrow> 'a) 
   ("_ {{_}}" [90,90] 91) where 
   "P {{f}} = (\<lambda>s0. P (upde s0 (f s0)))"
 
-definition disj_assn2 :: "'a assn2 \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" (infixr "\<or>\<^sub>a" 35) where
-  "(P \<or>\<^sub>a Q) s0 = (\<lambda>s tr. P s0 s tr \<or> Q s0 s tr)"
+definition pure_assn :: "('a estate \<Rightarrow> bool) \<Rightarrow> 'a assn2" ("!\<^sub>a[_]" [71] 70) where
+  "(!\<^sub>a[b]) = (\<lambda>s0 s tr. b s0)"
+
+definition conj_assn :: "'a assn2 \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" (infixr "\<and>\<^sub>a" 35) where
+  "(P \<and>\<^sub>a Q) = (\<lambda>s0 s tr. P s0 s tr \<and> Q s0 s tr)"
+
+definition disj_assn :: "'a assn2 \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" (infixr "\<or>\<^sub>a" 35) where
+  "(P \<or>\<^sub>a Q) = (\<lambda>s0 s tr. P s0 s tr \<or> Q s0 s tr)"
 
 text \<open>Entailment relation between assertions\<close>
 definition entails :: "'a assn \<Rightarrow> 'a assn \<Rightarrow> bool" (infixr "\<Longrightarrow>\<^sub>A" 25) where
@@ -397,9 +399,12 @@ text \<open>Assertion for output.
   computed by the function e. The ensuing assertion is
   parameterized by waiting time.
 \<close>
-inductive wait_out_c :: "cname \<Rightarrow> ('a estate \<Rightarrow> real) \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
-  "P 0 s0 s tr \<Longrightarrow> wait_out_c ch e P s0 s (OutBlock ch (e s0) # tr)"
-| "0 < d \<Longrightarrow> P d s0 s tr \<Longrightarrow> wait_out_c ch e P s0 s (WaitBlk d (\<lambda>_. s0) ({ch}, {}) # OutBlock ch (e s0) # tr)"
+inductive wait_out_c :: "cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
+  "P 0 v s0 s tr \<Longrightarrow> wait_out_c ch P s0 s (OutBlock ch v # tr)"
+| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> wait_out_c ch P s0 s (WaitBlk d (\<lambda>_. s0) ({ch}, {}) # OutBlock ch v # tr)"
+
+definition wait_out_cv :: "cname \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
+  "wait_out_cv ch e P = wait_out_c ch (\<lambda>d v. !\<^sub>a[(\<lambda>s0. v = e s0)] \<and>\<^sub>a P d)"
 
 text \<open>Waiting an amount of time, without state change\<close>
 inductive wait_c :: "'a eexp \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" where
@@ -409,10 +414,9 @@ inductive wait_c :: "'a eexp \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" wher
 subsubsection \<open>Various rules about entailment\<close>
 
 lemma entails_exists:
-  assumes "\<exists>n. P \<Longrightarrow>\<^sub>A Q n"
-  shows "P \<Longrightarrow>\<^sub>A (\<exists>\<^sub>a n. Q n)"
-  using assms unfolding exists_assn_def entails_def
-  by auto
+  assumes "\<exists>n. P s0 \<Longrightarrow>\<^sub>A Q n s0"
+  shows "P s0 \<Longrightarrow>\<^sub>A (\<exists>\<^sub>an. Q n) s0"
+  using assms unfolding exists_assn_def entails_def by auto
 
 lemma entails_assumption:
   "P s \<Longrightarrow>\<^sub>A (IFA b THEN P ELSE true_assn2 FI) s"
@@ -425,9 +429,9 @@ text \<open>The following rules state commutativity between
   assertions and quantifiers.
 \<close>
 lemma wait_in_c_exists:
-  "wait_in_c ch (\<lambda>d v s0. \<exists>\<^sub>an. P d v s0 n) s0 = (\<exists>\<^sub>an. wait_in_c ch (\<lambda>d v s0. P d v s0 n) s0)"
-  apply (rule ext) apply (rule ext)
-  subgoal for s tr
+  "wait_in_c ch (\<lambda>d v. \<exists>\<^sub>an. P d v n) = (\<exists>\<^sub>an. wait_in_c ch (\<lambda>d v. P d v n))"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s0 s tr
     apply (rule iffI)
     subgoal unfolding exists_assn_def
       apply (induct rule: wait_in_c.cases) apply auto
@@ -453,32 +457,40 @@ lemma wait_in_c_exists:
   done
 
 lemma wait_out_c_exists:
-  "wait_out_c ch e (\<lambda>d s0. \<exists>\<^sub>a n. P d s0 n) s0 = (\<exists>\<^sub>a n. wait_out_c ch e (\<lambda>d s0. P d s0 n) s0)"
-  apply (rule ext) apply (rule ext)
-  subgoal for s tr
+  "wait_out_c ch (\<lambda>d v. \<exists>\<^sub>an. P d v n) = (\<exists>\<^sub>an. wait_out_c ch (\<lambda>d v. P d v n))"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s0 s tr
     apply (rule iffI)
     subgoal unfolding exists_assn_def
       apply (induct rule: wait_out_c.cases) apply auto
-      subgoal for tr' n
+      subgoal for v tr' n
         apply (rule exI[where x=n])
         apply (rule wait_out_c.intros(1)) by auto
-      subgoal for d tr' n
+      subgoal for d v tr' n
         apply (rule exI[where x=n])
         apply (rule wait_out_c.intros(2)) by auto
       done
     subgoal unfolding exists_assn_def
       apply auto subgoal for n
         apply (induction rule: wait_out_c.cases) apply auto
-        subgoal for tr'
+        subgoal for v tr'
           apply (rule wait_out_c.intros(1))
           apply (rule exI[where x=n]) by auto
-        subgoal for d tr'
+        subgoal for d v tr'
           apply (rule wait_out_c.intros(2))
            apply simp apply (rule exI[where x=n]) by auto
         done
       done
     done
   done
+
+lemma conj_assn_exists:
+  "(P \<and>\<^sub>a (\<exists>\<^sub>an. Q n)) = (\<exists>\<^sub>an. P \<and>\<^sub>a Q n)"
+  unfolding conj_assn_def exists_assn_def by auto
+
+lemma wait_out_cv_exists:
+  "wait_out_cv ch e (\<lambda>d. \<exists>\<^sub>an. P d n) = (\<exists>\<^sub>an. wait_out_cv ch e (\<lambda>d. P d n))"
+  unfolding wait_out_cv_def conj_assn_exists wait_out_c_exists by auto
 
 subsubsection \<open>Monotonicity rules\<close>
 
@@ -499,19 +511,32 @@ lemma wait_in_c_mono:
   done
 
 lemma wait_out_c_mono:
-  assumes "\<And>d s. P1 d s \<Longrightarrow>\<^sub>A P2 d s"
-  shows "wait_out_c ch e P1 s0 \<Longrightarrow>\<^sub>A wait_out_c ch e P2 s0"
+  assumes "\<And>d v s. P1 d v s \<Longrightarrow>\<^sub>A P2 d v s"
+  shows "wait_out_c ch P1 s0 \<Longrightarrow>\<^sub>A wait_out_c ch P2 s0"
   unfolding entails_def apply auto
   subgoal for s tr
     apply (induct rule: wait_out_c.cases) apply auto
-    subgoal for tr'
+    subgoal for v tr'
       apply (rule wait_out_c.intros(1))
       using assms unfolding entails_def by auto
-    subgoal for d tr'
+    subgoal for d v tr'
       apply (rule wait_out_c.intros(2))
       using assms unfolding entails_def by auto
     done
   done
+
+lemma conj_pure_mono:
+  assumes "b s0 \<Longrightarrow> (P1 s0 \<Longrightarrow>\<^sub>A P2 s0)"
+  shows "(!\<^sub>a[b] \<and>\<^sub>a P1) s0 \<Longrightarrow>\<^sub>A (!\<^sub>a[b] \<and>\<^sub>a P2) s0"
+  using assms unfolding entails_def conj_assn_def pure_assn_def by auto
+
+lemma wait_out_cv_mono:
+  assumes "\<And>d s. P1 d s \<Longrightarrow>\<^sub>A P2 d s"
+  shows "wait_out_cv ch e P1 s0 \<Longrightarrow>\<^sub>A wait_out_cv ch e P2 s0"
+  unfolding wait_out_cv_def
+  apply (rule wait_out_c_mono)
+  apply (rule conj_pure_mono)
+  using assms by auto
 
 subsection \<open>Hoare logic for sequential processes\<close>
 
@@ -593,7 +618,7 @@ lemma spec_of_ichoice:
   shows "spec_of (IChoice c1 c2) (Q1 \<or>\<^sub>a Q2)"
   unfolding Valid_def spec_of_def
   apply (auto elim!: ichoiceE)
-  using assms unfolding spec_of_def Valid_def disj_assn2_def by auto
+  using assms unfolding spec_of_def Valid_def disj_assn_def by auto
 
 text \<open>Hoare rule for error\<close>
 lemma spec_of_error:
@@ -637,8 +662,8 @@ lemma Valid_receive_sp:
 
 text \<open>Hoare rule for output\<close>
 lemma spec_of_send:
-  "spec_of (Cm (ch[!]e)) (wait_out_c ch e (\<lambda>d. init))"
-  unfolding Valid_def spec_of_def init_def
+  "spec_of (Cm (ch[!]e)) (wait_out_cv ch e (\<lambda>d. init))"
+  unfolding Valid_def spec_of_def init_def wait_out_cv_def pure_assn_def conj_assn_def
   apply (auto elim!: sendE)
    apply (rule wait_out_c.intros(1)) apply auto[1]
   apply (rule wait_out_c.intros(2)) by auto
@@ -646,8 +671,8 @@ lemma spec_of_send:
 lemma Valid_send_sp:
   assumes "spec_of c Q"
   shows "spec_of (Cm (ch[!]e); c)
-                 (wait_out_c ch e (\<lambda>d s0. Q s0))"
-  using assms unfolding Valid_def spec_of_def init_def
+                 (wait_out_cv ch e (\<lambda>d. Q))"
+  using assms unfolding Valid_def spec_of_def init_def wait_out_cv_def pure_assn_def conj_assn_def
   apply (auto elim!: seqE sendE)
    apply (rule wait_out_c.intros(1))
   using Valid_def spec_of_def init_def assms apply auto[1]
@@ -701,7 +726,7 @@ qed
 
 lemma spec_of_rep:
   assumes "\<And>n. spec_of (RepN n c) (Q n)"
-  shows "spec_of (Rep c) (\<lambda>s0. \<exists>\<^sub>a n. Q n s0)"
+  shows "spec_of (Rep c) (\<exists>\<^sub>an. Q n)"
   using assms unfolding spec_of_def Valid_def big_step_rep exists_assn_def
   by blast
 
