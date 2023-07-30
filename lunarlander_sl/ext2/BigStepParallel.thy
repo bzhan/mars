@@ -989,7 +989,7 @@ lemma proc_set_wait_out_cg [intro!]:
     done
   done
 
-lemma proc_set_wait_cg [intro]:
+lemma proc_set_wait_cg [intro!]:
   assumes "proc_set_gassn pns P"
   shows "proc_set_gassn pns (wait_cg pn e P)"
   unfolding proc_set_gassn_def apply clarify
@@ -999,7 +999,7 @@ lemma proc_set_wait_cg [intro]:
     apply (rule proc_set_trace.intros) by auto
   done
 
-lemma proc_set_cond_gassn [intro]:
+lemma proc_set_cond_gassn [intro!]:
   assumes "proc_set_gassn pns P"
     and "proc_set_gassn pns Q"
   shows "proc_set_gassn pns (IFG [pn] b THEN P ELSE Q FI)"
@@ -1017,7 +1017,7 @@ lemma proc_set_true_gassn [intro]:
   unfolding proc_set_gassn_def apply clarify
   apply (elim true_gassn.cases) by auto
 
-lemma proc_set_updg_subst [intro]:
+lemma proc_set_updg_subst [intro!]:
   assumes "proc_set_gassn pns P"
     and "pn \<in> pns"
   shows "proc_set_gassn pns (P {{ x := v }}\<^sub>g at pn)"
@@ -1050,6 +1050,11 @@ lemma proc_set_disj [intro!]:
 lemma proc_set_pure [intro]:
   "proc_set_gassn pn (!\<^sub>g[b] at pn)"
   unfolding proc_set_gassn_def pure_gassn_def by auto
+
+lemma proc_set_wait_out_cgv [intro!]:
+  assumes "\<And>d. proc_set_gassn pns (P d)"
+  shows "proc_set_gassn pns (wait_out_cgv ch pns pn e P)"
+  unfolding wait_out_cgv_def using assms by auto
 
 subsubsection \<open>Entailments on parallel assertions\<close>
 
@@ -2104,7 +2109,7 @@ lemma sync_gassn_in_alt_outv:
 
 subsection \<open>General specification\<close>
 
-definition spec_of_global_gen :: "('a gstate \<Rightarrow> bool) \<Rightarrow> 'a pproc \<Rightarrow> ('a gstate \<Rightarrow> 'a gassn) \<Rightarrow> bool" where
+definition spec_of_global_gen :: "('a gstate \<Rightarrow> bool) \<Rightarrow> 'a pproc \<Rightarrow> 'a gassn2 \<Rightarrow> bool" where
   "spec_of_global_gen P c Q \<longleftrightarrow> (\<forall>s0. P s0 \<longrightarrow> \<Turnstile>\<^sub>p {init_global s0} c {Q s0})"
 
 end

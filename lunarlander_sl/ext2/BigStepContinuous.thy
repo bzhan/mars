@@ -1094,8 +1094,7 @@ text \<open>Synchronization between interrupt and synchronized output
   the communication happens immediately.
 \<close>
 lemma sync_gassn_interrupt_solInf_out:
-  assumes "pn2 \<in> pns2"
-    and "pns1 \<inter> pns2 = {}"
+  assumes "pns1 \<inter> pns2 = {}"
     and "\<And>i. i < length specs \<Longrightarrow> ch_of_specg2 (specs ! i) \<in> chs"
     and "\<And>i j. i < length specs \<Longrightarrow> j < length specs \<Longrightarrow> i \<noteq> j \<Longrightarrow>
                ch_of_specg2 (specs ! i) \<noteq> ch_of_specg2 (specs ! j)"
@@ -1114,54 +1113,76 @@ lemma sync_gassn_interrupt_solInf_out:
         apply (elim wait_out_cg.cases) apply auto
         subgoal for v' tr''
           apply (cases "i = i'")
-          subgoal using assms(5,6) apply auto
+          subgoal using assms(4,5) apply auto
             apply (elim combine_blocks_pairE)
-            using assms(3) apply fastforce
-            using assms(3) apply fastforce
+            using assms(2) apply fastforce
+            using assms(2) apply fastforce
             unfolding exists_gassn_def apply (rule exI[where x=v])
             apply (rule sync_gassn.intros)
             using assms by (auto simp add: assms)
           subgoal
             apply (elim combine_blocks_pairE)
-            using assms(3) apply fastforce
-            apply (metis assms(3,5,6) ch_of_specg2.simps(1))
-            by (metis assms(4,5,6) ch_of_specg2.simps(1))
+            using assms(2) apply fastforce
+            apply (metis assms(2,4,5) ch_of_specg2.simps(1))
+            by (metis assms(3,4,5) ch_of_specg2.simps(1))
           done
         subgoal for d tr''
           apply (elim combine_blocks_pairE2)
-          using assms(3) by fastforce
+          using assms(2) by fastforce
         done
       subgoal for i ch' Q' d v tr' a b
         apply (elim wait_out_cg.cases) apply auto
         subgoal for tr''
           apply (elim combine_blocks_pairE2')
-          by (metis assms(3,5,6) ch_of_specg2.simps(1))
+          by (metis assms(2,4,5) ch_of_specg2.simps(1))
         subgoal for d' tr''
           apply (elim combine_blocks_waitE1)
-          apply (rule not_compat_rdy_comm_specg2) using assms(5,6) by auto
+          apply (rule not_compat_rdy_comm_specg2) using assms(4,5) by auto
         done
       subgoal for i ch' e' Q' tr'
         apply (elim wait_out_cg.cases) apply auto
         subgoal for tr''
           apply (elim combine_blocks_pairE)
-          using assms(3) apply fastforce
-           apply (metis assms(3,5,6) ch_of_specg2.simps(1))
+          using assms(2) apply fastforce
+           apply (metis assms(2,4,5) ch_of_specg2.simps(1))
           by auto
         subgoal for d' tr''
           apply (elim combine_blocks_pairE2)
-          using assms(3) by fastforce
+          using assms(2) by fastforce
         done
       subgoal for i ch' e' Q' d tr' a b
         apply (elim wait_out_cg.cases) apply auto
         subgoal for tr''
           apply (elim combine_blocks_pairE2')
-          by (metis assms(3,5,6) ch_of_specg2.simps(1))
+          by (metis assms(2,4,5) ch_of_specg2.simps(1))
         subgoal for d' tr''
           apply (elim combine_blocks_waitE1)
-          apply (rule not_compat_rdy_comm_specg2) using assms(5,6) by auto
+          apply (rule not_compat_rdy_comm_specg2) using assms(4,5) by auto
         done
       done
     done
+  done
+
+lemma sync_gassn_interrupt_solInf_outv:
+  assumes "pn2 \<in> pns2"
+    and "pns1 \<inter> pns2 = {}"
+    and "\<And>i. i < length specs \<Longrightarrow> ch_of_specg2 (specs ! i) \<in> chs"
+    and "\<And>i j. i < length specs \<Longrightarrow> j < length specs \<Longrightarrow> i \<noteq> j \<Longrightarrow>
+               ch_of_specg2 (specs ! i) \<noteq> ch_of_specg2 (specs ! j)"
+    and "i < length specs"
+    and "specs ! i = InSpecg2 ch P"
+  shows
+    "sync_gassn chs pns1 pns2 (interrupt_solInf_cg p specs)
+                              (wait_out_cgv ch pns2 pn2 e Q) s0 \<Longrightarrow>\<^sub>g
+     sync_gassn chs pns1 pns2 (P 0 (e (the (s0 pn2)))) (Q 0) s0"
+  unfolding wait_out_cgv_def
+  apply (rule entails_g_trans)
+   apply (rule sync_gassn_interrupt_solInf_out) using assms apply auto
+  apply (rule exists_gassn_elim)
+  subgoal for v
+    apply (rule sync_gassn_conj_pure_right)
+     apply (simp add: restrict_state_def)
+    by (rule entails_g_triv)
   done
 
 subsection \<open>Invariant assertions\<close>
