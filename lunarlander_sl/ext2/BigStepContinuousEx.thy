@@ -19,7 +19,7 @@ lemma test_ode_unique:
   assumes "spec_of c Q"
   shows
   "spec_of (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. val s X < 1); c)
-           (wait_sol_c (\<lambda>s t. upd s X (val s X + t)) (\<lambda>s. 1 - val s X)
+           (wait_sol_c (\<lambda>s0 t s. s = upd s0 X (val s0 X + t)) (\<lambda>s. 1 - val s X)
                        (\<lambda>d s. Q (upd s X (val s X + d))))"
 proof -
   have 1: "paramODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>s. val s X < 1)
@@ -72,7 +72,7 @@ qed
 lemma test_interrupt_unique:
   "spec_of (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. val s X < 1)
                       [(dh[?]Y, Skip)] Skip)
-           (interrupt_sol_c (\<lambda>s t. upd s X (val s X + t)) (\<lambda>s. 1 - val s X)
+           (interrupt_sol_c (\<lambda>s0 t s. s = upd s0 X (val s0 X + t)) (\<lambda>s. 1 - val s X)
                             (\<lambda>d s. init (upd s X (val s X + d)))
                             [InSpec2 dh (\<lambda>d v s. init (upd (upd s X (val s X + d)) Y v))])"
 proof -
@@ -153,7 +153,7 @@ lemma ex1a_ode:
   assumes "spec_of c1 Q1" "spec_of c2 Q2"
   shows
   "spec_of (Interrupt (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 2))) (\<lambda>_. True) [(ch2[?]Y, c2)] c1)
-           (interrupt_solInf_c (\<lambda>s t. upd s X (val s X + 2 * t))
+           (interrupt_solInf_c (\<lambda>s0 t s. s = upd s0 X (val s0 X + 2 * t))
                                [InSpec2 ch2 (\<lambda>d v. Q2 {{Y := (\<lambda>_. v)}} {{X := (\<lambda>s. val s X + 2 * d)}})])"
 proof -
   have 1: "paramODEsolInf (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 2)))
@@ -207,7 +207,7 @@ lemma ex1a_ode2:
   shows
   "spec_of (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True)
                       [(dh[?]Y, c2)] c1)
-           (interrupt_solInf_c (\<lambda>s t. upd s X (val s X + t))
+           (interrupt_solInf_c (\<lambda>s0 t s. s = upd s0 X (val s0 X + t))
                                [InSpec2 dh (\<lambda>d v. Q2 {{Y := (\<lambda>_. v)}} {{X := (\<lambda>s. val s X + d)}})])"
 proof -
   have 1: "paramODEsolInf (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))
@@ -259,10 +259,10 @@ qed
 lemma ex1a_sp:
   "spec_of ex1a
      ((wait_out_cv ch1 (\<lambda>_. 1)
-        (\<lambda>d. interrupt_solInf_c (\<lambda>s t. upd s X (val s X + 2 * t))
+        (\<lambda>d. interrupt_solInf_c (\<lambda>s0 t s. s = upd s0 X (val s0 X + 2 * t))
                                 [InSpec2 ch2 (\<lambda>d v. init {{Y := (\<lambda>_. v)}} {{X := (\<lambda>s. val s X + 2 * d)}})]) \<or>\<^sub>a
        wait_out_cv ch1 (\<lambda>_. 2)
-        (\<lambda>d. interrupt_solInf_c (\<lambda>s t. upd s X (val s X + t))
+        (\<lambda>d. interrupt_solInf_c (\<lambda>s0 t s. s = upd s0 X (val s0 X + t))
                                 [InSpec2 ch2 (\<lambda>d v. init {{Y := (\<lambda>_. v)}} {{X := (\<lambda>s. val s X + d)}})]))
       {{X := (\<lambda>_. 0)}})"
   unfolding ex1a_def
@@ -298,13 +298,13 @@ lemma ex1':
               {ch1, ch2}
               (Single B ex1b))
    ((wait_sol_cg
-      (merge_path {A} {B} (single_path A (\<lambda>s t. upd s X (val s X + 2 * t))) id_path)
+      (merge_inv (single_inv A (\<lambda>s0 t s. s = upd s0 X (val s0 X + 2 * t))) id_inv)
       B (\<lambda>s. val s Y)
       (\<lambda>d. (init_single {B, A} {{Y := (\<lambda>_. 0)}}\<^sub>g at A)
                                        {{X := (\<lambda>s. val s X + 2 * d)}}\<^sub>g at A)
         {{Y := (\<lambda>_. 1)}}\<^sub>g at B \<or>\<^sub>g
      wait_sol_cg
-      (merge_path {A} {B} (single_path A (\<lambda>s t. upd s X (val s X + t))) id_path)
+      (merge_inv (single_inv A (\<lambda>s0 t s. s = upd s0 X (val s0 X + t))) id_inv)
       B (\<lambda>s. val s Y)
       (\<lambda>d. (init_single {B, A} {{Y := (\<lambda>_. 0)}}\<^sub>g at A)
                                        {{X := (\<lambda>s. val s X + d)}}\<^sub>g at A)
@@ -370,38 +370,40 @@ lemma ex1':
 lemma ex1_merge1:
   assumes "proc_set s0 = {A, B}"
   shows
-  "merge_path {A} {B} (single_path A (\<lambda>s t. upd s X (val s X + 2 * t))) id_path s0 =
-   (\<lambda>t. updg s0 A X (valg s0 A X + 2 * t))"
+  "merge_inv (single_inv A (\<lambda>s0 t s. s = upd s0 X (val s0 X + 2 * t))) id_inv s0 =
+   (\<lambda>t s. s = updg s0 A X (valg s0 A X + 2 * t))"
   apply (rule merge_state_elim[of s0 "{A}" "{B}"])
   using assms apply auto
-  apply (rule ext)
+  apply (rule ext) apply (rule ext) sorry
+(*
   apply (subst merge_path_eval) apply auto
   by (simp add: single_path_def valg_def[symmetric] updg_def[symmetric]
       single_subst_merge_state1[symmetric] valg_merge_state_left)
-
+*)
 lemma ex1_merge2:
   assumes "proc_set s0 = {A, B}"
   shows
-  "merge_path {A} {B} (single_path A (\<lambda>s t. upd s X (val s X + t))) id_path s0 =
-   (\<lambda>t. updg s0 A X (valg s0 A X + t))"
+  "merge_inv (single_inv A (\<lambda>s0 t s. s = upd s0 X (val s0 X + t))) id_inv s0 =
+   (\<lambda>t s. s = updg s0 A X (valg s0 A X + t))"
   apply (rule merge_state_elim[of s0 "{A}" "{B}"])
   using assms apply auto
-  apply (rule ext)
+  apply (rule ext) apply (rule ext) sorry
+(*
   apply (subst merge_path_eval) apply auto
   by (simp add: single_path_def valg_def[symmetric] updg_def[symmetric]
       single_subst_merge_state1[symmetric] valg_merge_state_left)
-
+*)
 lemma ex1'':
   assumes "proc_set s0 = {A, B}"
   shows
   "((wait_sol_cg
-      (merge_path {A} {B} (single_path A (\<lambda>s t. upd s X (val s X + 2 * t))) id_path)
+      (merge_inv (single_inv A (\<lambda>s0 t s. s = upd s0 X (val s0 X + 2 * t))) id_inv)
       B (\<lambda>s. val s Y)
       (\<lambda>d. (init_single {B, A} {{Y := (\<lambda>_. 0)}}\<^sub>g at A)
                                        {{X := (\<lambda>s. val s X + 2 * d)}}\<^sub>g at A)
         {{Y := (\<lambda>_. 1)}}\<^sub>g at B \<or>\<^sub>g
      wait_sol_cg
-      (merge_path {A} {B} (single_path A (\<lambda>s t. upd s X (val s X + t))) id_path)
+      (merge_inv (single_inv A (\<lambda>s0 t s. s = upd s0 X (val s0 X + t))) id_inv)
       B (\<lambda>s. val s Y)
       (\<lambda>d. (init_single {B, A} {{Y := (\<lambda>_. 0)}}\<^sub>g at A)
                                        {{X := (\<lambda>s. val s X + d)}}\<^sub>g at A)
@@ -416,15 +418,15 @@ lemma ex1'':
     apply (rule entails_g_trans)
      apply (rule gassn_subst)
     apply (rule entails_g_trans)
-     apply (rule wait_inv_cgI[where d=1 and I="\<lambda>gs. valg gs A X \<in> {0..2}"])
+     apply (rule wait_inv_cgI[where d=1 and J="\<lambda>gs. valg gs A X \<in> {0..2}"])
        apply (simp only: valg_def[symmetric]) apply auto[1]
       apply auto[1]
     subgoal apply (subst ex1_merge1)
       using assms by (auto simp add: A_def B_def)
     apply (rule entails_g_trans)
-     apply (rule wait_inv_cg_state)
+     apply (rule wait_inv_cg_updg)
     apply (rule entails_g_trans)
-     apply (rule wait_inv_cg_state)
+     apply (rule wait_inv_cg_updg)
     apply (rule wait_inv_cg_mono)
     apply (rule entails_g_trans)
      apply (rule gassn_subst)
@@ -442,15 +444,15 @@ done
     apply (rule entails_g_trans)
      apply (rule gassn_subst)
     apply (rule entails_g_trans)
-     apply (rule wait_inv_cgI[where d=2 and I="\<lambda>gs. valg gs A X \<in> {0..2}"])
+     apply (rule wait_inv_cgI[where d=2 and J="\<lambda>gs. valg gs A X \<in> {0..2}"])
        apply (simp only: valg_def[symmetric]) apply auto[1]
       apply auto[1]
     subgoal apply (subst ex1_merge2)
       using assms by (auto simp add: A_def B_def)
     apply (rule entails_g_trans)
-     apply (rule wait_inv_cg_state)
+     apply (rule wait_inv_cg_updg)
     apply (rule entails_g_trans)
-     apply (rule wait_inv_cg_state)
+     apply (rule wait_inv_cg_updg)
     apply (rule wait_inv_cg_mono)
     apply (rule entails_g_trans)
      apply (rule gassn_subst)
@@ -503,10 +505,10 @@ fun ex2a_c :: "nat \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" where
   "ex2a_c 0 Q = Q"
 | "ex2a_c (Suc n) Q =
    ((wait_out_cv ch1 (\<lambda>_. 1)
-      (\<lambda>d. interrupt_solInf_c (\<lambda>s t. upd s X (val s X + 2 * t))
+      (\<lambda>d. interrupt_solInf_c (\<lambda>s0 t s. s = upd s0 X (val s0 X + 2 * t))
                               [InSpec2 ch2 (\<lambda>d v. (ex2a_c n Q) {{Y := (\<lambda>_. v)}} {{X := (\<lambda>s. val s X + 2 * d)}})]) \<or>\<^sub>a
      wait_out_cv ch1 (\<lambda>_. 2)
-      (\<lambda>d. interrupt_solInf_c (\<lambda>s t. upd s X (val s X + t))
+      (\<lambda>d. interrupt_solInf_c (\<lambda>s0 t s. s = upd s0 X (val s0 X + t))
                               [InSpec2 ch2 (\<lambda>d v. (ex2a_c n Q) {{Y := (\<lambda>_. v)}} {{X := (\<lambda>s. val s X + d)}})]))
     {{X := (\<lambda>_. 0)}})"
 
@@ -575,7 +577,7 @@ lemma ex2':
     (single_assn A (ex2a_c (Suc n1) init))
     (single_assn B (ex2b_c (Suc n2) init)) s0 \<Longrightarrow>\<^sub>g
    ((wait_sol_cg
-      (merge_path {A} {B} (single_path A (\<lambda>s t. upd s X (val s X + 2 * t))) id_path)
+      (merge_inv (single_inv A (\<lambda>s0 t s. s = upd s0 X (val s0 X + 2 * t))) id_inv)
       B (\<lambda>s. val s Y)
       (\<lambda>d. (sync_gassn {ch1, ch2} {A} {B}
              (single_assn A (ex2a_c n1 init))
@@ -583,7 +585,7 @@ lemma ex2':
              {{Y := (\<lambda>a. 0)}}\<^sub>g at A {{X := (\<lambda>s. val s X + 2 * d)}}\<^sub>g at A))
         {{Y := (\<lambda>_. 1)}}\<^sub>g at B \<or>\<^sub>g
      wait_sol_cg
-      (merge_path {A} {B} (single_path A (\<lambda>s t. upd s X (val s X + t))) id_path)
+      (merge_inv (single_inv A (\<lambda>s0 t s. s = upd s0 X (val s0 X + t))) id_inv)
       B (\<lambda>s. val s Y)
       (\<lambda>d. (sync_gassn {ch1, ch2} {A} {B}
              (single_assn A (ex2a_c n1 init))
@@ -638,7 +640,7 @@ lemma ex2'':
   assumes "proc_set s0 = {A, B}"
   shows
    "((wait_sol_cg
-      (merge_path {A} {B} (single_path A (\<lambda>s t. upd s X (val s X + 2 * t))) id_path)
+      (merge_inv (single_inv A (\<lambda>s0 t s. s = upd s0 X (val s0 X + 2 * t))) id_inv)
       B (\<lambda>s. val s Y)
       (\<lambda>d. (sync_gassn {ch1, ch2} {A} {B}
              (single_assn A (ex2a_c n1 init))
@@ -646,7 +648,7 @@ lemma ex2'':
              {{Y := (\<lambda>a. 0)}}\<^sub>g at A {{X := (\<lambda>s. val s X + 2 * d)}}\<^sub>g at A))
         {{Y := (\<lambda>_. 1)}}\<^sub>g at B \<or>\<^sub>g
      wait_sol_cg
-      (merge_path {A} {B} (single_path A (\<lambda>s t. upd s X (val s X + t))) id_path)
+      (merge_inv (single_inv A (\<lambda>s0 t s. s = upd s0 X (val s0 X + t))) id_inv)
       B (\<lambda>s. val s Y)
       (\<lambda>d. (sync_gassn {ch1, ch2} {A} {B}
              (single_assn A (ex2a_c n1 init))
@@ -666,15 +668,15 @@ lemma ex2'':
     apply (rule entails_g_trans)
      apply (rule gassn_subst)
     apply (rule entails_g_trans)
-     apply (rule wait_inv_cgI[where d=1 and I="\<lambda>gs. valg gs A X \<in> {0..2}"])
+     apply (rule wait_inv_cgI[where d=1 and J="\<lambda>gs. valg gs A X \<in> {0..2}"])
        apply (simp only: valg_def[symmetric]) apply auto[1]
       apply auto[1]
     subgoal apply (subst ex1_merge1)
       using assms by (auto simp add: A_def B_def)
     apply (rule entails_g_trans)
-     apply (rule wait_inv_cg_state)
+     apply (rule wait_inv_cg_updg)
     apply (rule entails_g_trans)
-     apply (rule wait_inv_cg_state)
+     apply (rule wait_inv_cg_updg)
     apply (rule wait_inv_cg_mono)
     apply (rule entails_g_trans)
      apply (rule gassn_subst)
@@ -694,15 +696,15 @@ lemma ex2'':
     apply (rule entails_g_trans)
      apply (rule gassn_subst)
     apply (rule entails_g_trans)
-     apply (rule wait_inv_cgI[where d=2 and I="\<lambda>gs. valg gs A X \<in> {0..2}"])
+     apply (rule wait_inv_cgI[where d=2 and J="\<lambda>gs. valg gs A X \<in> {0..2}"])
        apply (simp only: valg_def[symmetric]) apply auto[1]
       apply auto[1]
     subgoal apply (subst ex1_merge2)
       using assms by (auto simp add: A_def B_def)
     apply (rule entails_g_trans)
-     apply (rule wait_inv_cg_state)
+     apply (rule wait_inv_cg_updg)
     apply (rule entails_g_trans)
-     apply (rule wait_inv_cg_state)
+     apply (rule wait_inv_cg_updg)
     apply (rule wait_inv_cg_mono)
     apply (rule entails_g_trans)
      apply (rule gassn_subst)

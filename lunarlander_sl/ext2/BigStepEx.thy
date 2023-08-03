@@ -57,11 +57,6 @@ lemma wait_out_cgv_mono:
   apply (rule conj_pure_gassn_mono)
   using assms by auto
 
-lemma proc_set_wait_out_cgv [intro!]:
-  assumes "\<And>d. proc_set_gassn pns (P d)"
-  shows "proc_set_gassn pns (wait_out_cgv ch pns pn e P)"
-  unfolding wait_out_cgv_def using assms by auto
-
 lemma ex1:
   "spec_of_global
     (Parallel (Single A ex1a) {ch1}
