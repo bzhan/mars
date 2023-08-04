@@ -862,7 +862,7 @@ lemma single_assn_subst [single_assn_simps]:
   done
 
 lemma single_assn_subste [single_assn_simps]:
-  "single_assn pn (P {{ f }}) = (single_assn pn P) {{ f }}\<^sub>g at pn"
+  "single_assn pn (P {{ f }}\<^sub>e) = (single_assn pn P) {{ f }}\<^sub>g at pn"
   apply (rule ext) apply (rule ext) apply (rule ext)
   subgoal for s0 s tr
     apply (rule iffI)

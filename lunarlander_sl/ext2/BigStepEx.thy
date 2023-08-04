@@ -392,7 +392,7 @@ fun ex5a_c :: "nat \<Rightarrow> ex5_state assn2 \<Rightarrow> ex5_state assn2" 
   "ex5a_c 0 Q = Q"
 | "ex5a_c (Suc n) Q =
    (IFA (\<lambda>s. epart s \<noteq> []) THEN
-      wait_out_cv ch1 (\<lambda>s. hd (epart s)) (\<lambda>d. ex5a_c n Q {{ (\<lambda>s0. tl (epart s0)) }})
+      wait_out_cv ch1 (\<lambda>s. hd (epart s)) (\<lambda>d. ex5a_c n Q {{ (\<lambda>s0. tl (epart s0)) }}\<^sub>e)
     ELSE false_assn2 FI)"
 
 lemma ex5a_sp:
@@ -429,7 +429,7 @@ definition ex5b :: "ex5_state proc" where
 fun ex5b_c :: "nat \<Rightarrow> ex5_state assn2 \<Rightarrow> ex5_state assn2" where
   "ex5b_c 0 Q = Q"
 | "ex5b_c (Suc n) Q =
-   wait_in_c ch1 (\<lambda>d v. ex5b_c n Q {{ (\<lambda>s. val s X # epart s) }} {{ X := (\<lambda>_. v) }})"
+   wait_in_c ch1 (\<lambda>d v. ex5b_c n Q {{ (\<lambda>s. val s X # epart s) }}\<^sub>e {{ X := (\<lambda>_. v) }})"
 
 lemma ex5b_sp:
   "spec_of ex5b

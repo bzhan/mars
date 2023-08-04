@@ -125,7 +125,7 @@ proof -
       apply (rule interrupt_sol_mono)
       subgoal by (rule entails_triv)
       subgoal apply (auto intro!: rel_list.intros spec2_entails.intros)
-        subgoal for d v s0 apply (simp only: updr_rpart_simp2)
+        subgoal for d v s0 apply (simp only: substr_assn2_def updr_rpart_simp2)
           by (rule entails_triv)
         done
       done
@@ -196,7 +196,7 @@ proof -
       apply (intro spec2_entails.intros)
       subgoal for d v s0
         apply (cases s0)
-        apply (auto simp add: subst_assn2_def updr.simps rpart.simps val.simps upd.simps)
+        apply (auto simp add: substr_assn2_def subst_assn2_def updr.simps rpart.simps val.simps upd.simps)
         by (rule entails_triv)
       done
     done
@@ -250,7 +250,7 @@ proof -
       apply (intro spec2_entails.intros)
       subgoal for d v s0
         apply (cases s0)
-        apply (auto simp add: subst_assn2_def updr.simps rpart.simps val.simps upd.simps)
+        apply (auto simp add: substr_assn2_def subst_assn2_def updr.simps rpart.simps val.simps upd.simps)
         by (rule entails_triv)
       done
     done

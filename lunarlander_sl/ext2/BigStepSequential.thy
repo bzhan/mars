@@ -342,13 +342,17 @@ definition subst_assn2 :: "'a assn2 \<Rightarrow> var \<Rightarrow> ('a estate \
   ("_ {{_ := _}}" [90,90,90] 91) where 
   "P {{var := e}} = (\<lambda>s0. P (upd s0 var (e s0)))"
 
+definition substr_assn2 :: "'a assn2 \<Rightarrow> ('a estate \<Rightarrow> state) \<Rightarrow> 'a assn2"
+  ("_ {{_}}\<^sub>r" [90,90] 91) where
+  "P {{f}}\<^sub>r = (\<lambda>s0. P (updr s0 (f s0)))"
+
 text \<open>Substitution on assertions: extra part.
   Starting from a parameterized assertion P, let P act on the
   state after updating the extra part using function f.  
 \<close>
 definition subste_assn2 :: "'a assn2 \<Rightarrow> ('a estate \<Rightarrow> 'a) \<Rightarrow> 'a assn2"
-  ("_ {{_}}" [90,90] 91) where 
-  "P {{f}} = (\<lambda>s0. P (upde s0 (f s0)))"
+  ("_ {{_}}\<^sub>e" [90,90] 91) where 
+  "P {{f}}\<^sub>e = (\<lambda>s0. P (upde s0 (f s0)))"
 
 definition pure_assn :: "('a estate \<Rightarrow> bool) \<Rightarrow> 'a assn2" ("!\<^sub>a[_]" [71] 70) where
   "(!\<^sub>a[b]) = (\<lambda>s0 s tr. b s0)"
@@ -607,7 +611,7 @@ lemma spec_of_basic:
 
 lemma Valid_basic_sp:
   assumes "spec_of c Q"
-  shows "spec_of (Basic f; c) (Q {{ f }})"
+  shows "spec_of (Basic f; c) (Q {{ f }}\<^sub>e)"
   unfolding Valid_def spec_of_def
   apply (auto elim!: seqE basicE)
   using assms unfolding spec_of_def Valid_def init_def subste_assn2_def by auto

@@ -425,16 +425,16 @@ text \<open>Unique solution rule for interrupt\<close>
 
 datatype 'a comm_spec2 =
   InSpec2 cname "real \<Rightarrow> real \<Rightarrow> 'a assn2"
-| OutSpec2 cname "real \<Rightarrow> 'a eexp" "real \<Rightarrow> 'a assn2"
+| OutSpec2 cname "real \<Rightarrow> real \<Rightarrow> 'a assn2"
 
 fun spec2_of :: "('a estate \<Rightarrow> real \<Rightarrow> state) \<Rightarrow> 'a comm_spec \<Rightarrow> 'a comm_spec2" where
-  "spec2_of p (InSpec ch var Q) = InSpec2 ch (\<lambda>d v s0. Q (updr s0 ((p s0 d)(var := v))))"
-| "spec2_of p (OutSpec ch e Q) = OutSpec2 ch (\<lambda>d s0. e (updr s0 (p s0 d))) (\<lambda>d s0. Q (updr s0 (p s0 d)))"
+  "spec2_of p (InSpec ch var Q) = InSpec2 ch (\<lambda>d v. Q {{ (\<lambda>s0. (p s0 d)(var := v)) }}\<^sub>r )"
+| "spec2_of p (OutSpec ch e Q) = OutSpec2 ch (\<lambda>d v. !\<^sub>a[(\<lambda>s0. v = e (updr s0 (p s0 d)))] \<and>\<^sub>a Q {{ (\<lambda>s0. (p s0 d)) }}\<^sub>r )"
 
 definition rdy_of_comm_spec2 :: "'a comm_spec2 list \<Rightarrow> rdy_info" where
   "rdy_of_comm_spec2 = rdy_info_of_list (\<lambda>spec2.
     case spec2 of InSpec2 ch P \<Rightarrow> ({}, {ch})
-                | OutSpec2 ch e P \<Rightarrow> ({ch}, {}))"
+                | OutSpec2 ch P \<Rightarrow> ({ch}, {}))"
 
 lemma rdy_of_comm_spec2_of:
   "rdy_of_comm_spec specs = rdy_of_comm_spec2 (map (spec2_of p) specs)"
@@ -458,10 +458,10 @@ inductive interrupt_sol_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a est
    0 < d' \<Longrightarrow> d' \<le> d s0 \<Longrightarrow> Q d' v s0 s tr \<Longrightarrow>
    rdy = rdy_of_comm_spec2 specs \<Longrightarrow> \<forall>t\<in>{0..d s0}. I s0 t (p t) \<Longrightarrow>
    interrupt_sol_c I d P specs s0 s (WaitBlk d' (\<lambda>\<tau>. p \<tau>) rdy # InBlock ch v # tr)"
-| "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch e Q \<Longrightarrow> v = e 0 s0 \<Longrightarrow>
-   Q 0 s0 s tr \<Longrightarrow> interrupt_sol_c I d P specs s0 s (OutBlock ch v # tr)"
-| "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch e Q \<Longrightarrow>
-   0 < d' \<Longrightarrow> d' \<le> d s0 \<Longrightarrow> Q d' s0 s tr \<Longrightarrow> v = e d' s0 \<Longrightarrow>
+| "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch Q \<Longrightarrow>
+   Q 0 v s0 s tr \<Longrightarrow> interrupt_sol_c I d P specs s0 s (OutBlock ch v # tr)"
+| "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch Q \<Longrightarrow>
+   0 < d' \<Longrightarrow> d' \<le> d s0 \<Longrightarrow> Q d' v s0 s tr \<Longrightarrow>
    rdy = rdy_of_comm_spec2 specs \<Longrightarrow> \<forall>t\<in>{0..d s0}. I s0 t (p t) \<Longrightarrow>
    interrupt_sol_c I d P specs s0 s (WaitBlk d' (\<lambda>\<tau>. p \<tau>) rdy # OutBlock ch v # tr)"
 
@@ -495,13 +495,13 @@ lemma interrupt_c_unique:
     qed
     subgoal premises pre for i ch var Q v tr'
     proof -
-      let ?Q' = "\<lambda>d v s0. Q (updr s0 ((p s0 d)(var := v)))"
+      let ?Q' = "\<lambda>d v. Q {{ (\<lambda>s0. ((p s0 d)(var := v))) }}\<^sub>r"
       have Q: "map (spec2_of p) specs ! i = InSpec2 ch ?Q'"
         using pre(2) by (simp add: pre(3))
       show ?thesis
         apply (rule interrupt_sol_c.intros(3)[of i _ _ ?Q'])
         using pre Q paramODEsolD2[OF assms(1)]
-        by (auto simp add: updr_rpart_simp1)
+        by (auto simp add: substr_assn2_def updr_rpart_simp1)
     qed
     subgoal premises pre for i ch var Q d' p' v tr'
     proof -
@@ -512,23 +512,24 @@ lemma interrupt_c_unique:
         "p s0 d' = p' d'"
         "WaitBlk d' (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d' (\<lambda>t. updr s0 (p' t))"
         using paramODEsol_unique2[OF assms \<open>b s0\<close> pre(4,6,8,7)] by auto
-      let ?Q' = "\<lambda>d v s0. Q (updr s0 ((p s0 d)(var := v)))"
+      let ?Q' = "\<lambda>d v. Q {{ (\<lambda>s0. ((p s0 d)(var := v))) }}\<^sub>r"
       have Q: "map (spec2_of p) specs ! i = InSpec2 ch ?Q'"
         using pre(2) by (simp add: pre(3))
       show ?thesis
         unfolding a(3)[symmetric]
         apply (rule interrupt_sol_c.intros(4)[of i _ _ ?Q'])
-        using pre(2,3,4,5) a(1,2) Q rdy_of_comm_spec2_of by auto
+        using pre(2,3,4,5) a(1,2) Q rdy_of_comm_spec2_of
+        unfolding substr_assn2_def by auto
     qed
     subgoal premises pre for i ch e Q tr'
     proof -
-      let ?Q' = "\<lambda>d s0. Q (updr s0 (p s0 d))"
-      let ?e' = "\<lambda>d s0. e (updr s0 (p s0 d))"
-      have Q: "map (spec2_of p) specs ! i = OutSpec2 ch ?e' ?Q'"
+      let ?Q' = "\<lambda>d v. !\<^sub>a[(\<lambda>s0. v = e (updr s0 (p s0 d)))] \<and>\<^sub>a Q {{ (\<lambda>s0. (p s0 d)) }}\<^sub>r"
+      have Q: "map (spec2_of p) specs ! i = OutSpec2 ch ?Q'"
         using pre(2) by (simp add: pre(3))
       show ?thesis
-        apply (rule interrupt_sol_c.intros(5)[of i _ _ ?e' ?Q'])
-        using pre(2,3,4) Q paramODEsolD2[OF assms(1)] by auto
+        apply (rule interrupt_sol_c.intros(5)[of i _ _ ?Q'])
+        using pre(2,3,4) Q paramODEsolD2[OF assms(1)]
+        unfolding substr_assn2_def conj_assn_def pure_assn_def by auto
     qed
     subgoal premises pre for i ch e Q d' p' tr'
     proof -
@@ -539,14 +540,14 @@ lemma interrupt_c_unique:
         "p s0 d' = p' d'"
         "WaitBlk d' (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d' (\<lambda>t. updr s0 (p' t))"
         using paramODEsol_unique2[OF assms \<open>b s0\<close> pre(4,6,8,7)] by auto
-      let ?Q' = "\<lambda>d s0. Q (updr s0 (p s0 d))"
-      let ?e' = "\<lambda>d s0. e (updr s0 (p s0 d))"
-      have Q: "map (spec2_of p) specs ! i = OutSpec2 ch ?e' ?Q'"
+      let ?Q' = "\<lambda>d v. !\<^sub>a[(\<lambda>s0. v = e (updr s0 (p s0 d)))] \<and>\<^sub>a Q {{ (\<lambda>s0. (p s0 d)) }}\<^sub>r"
+      have Q: "map (spec2_of p) specs ! i = OutSpec2 ch ?Q'"
         using pre(2) by (simp add: pre(3))
       show ?thesis
         unfolding a(3)[symmetric] a(2)[symmetric]
-        apply (rule interrupt_sol_c.intros(6)[of i _ _ ?e' ?Q'])
-        using pre(2,3,4,5) a(1,2) Q rdy_of_comm_spec2_of by auto
+        apply (rule interrupt_sol_c.intros(6)[of i _ _ ?Q'])
+        using pre(2,3,4,5) a(1,2) Q rdy_of_comm_spec2_of
+        unfolding substr_assn2_def conj_assn_def pure_assn_def by auto
     qed
     done
   done
@@ -569,10 +570,10 @@ lemma spec_of_interrupt_unique:
 
 inductive spec2_entails :: "'a comm_spec2 \<Rightarrow> 'a comm_spec2 \<Rightarrow> bool" where
   "(\<And>d v s0. P1 d v s0 \<Longrightarrow>\<^sub>A P2 d v s0) \<Longrightarrow> spec2_entails (InSpec2 ch P1) (InSpec2 ch P2)"
-| "(\<And>d s0. Q1 d s0 \<Longrightarrow>\<^sub>A Q2 d s0) \<Longrightarrow> spec2_entails (OutSpec2 ch e Q1) (OutSpec2 ch e Q2)"
+| "(\<And>d v s0. Q1 d v s0 \<Longrightarrow>\<^sub>A Q2 d v s0) \<Longrightarrow> spec2_entails (OutSpec2 ch Q1) (OutSpec2 ch Q2)"
 
 inductive_cases spec2_entails_inE: "spec2_entails (InSpec2 ch P1) spec2"
-inductive_cases spec2_entails_outE: "spec2_entails (OutSpec2 ch e Q1) spec2"
+inductive_cases spec2_entails_outE: "spec2_entails (OutSpec2 ch Q1) spec2"
 
 lemma rdy_of_spec2_entails:
   assumes "rel_list spec2_entails specs specs2"
@@ -615,14 +616,14 @@ lemma interrupt_sol_mono:
       using rel_listD2[OF assms(2), of i] rel_listD1[OF assms(2)] apply simp
       apply (elim spec2_entails_outE)
       subgoal for Q2
-        apply (rule interrupt_sol_c.intros(5)[of i _ _ _ Q2])
+        apply (rule interrupt_sol_c.intros(5)[of i _ _ Q2])
         using assms(2) unfolding entails_def by auto
       done
     subgoal for i ch e Q d' tr' a b
       using rel_listD2[OF assms(2), of i] rel_listD1[OF assms(2)] apply simp
       apply (elim spec2_entails_outE)
       subgoal for Q2
-        apply (rule interrupt_sol_c.intros(6)[of i _ _ _ Q2])
+        apply (rule interrupt_sol_c.intros(6)[of i _ _ Q2])
         using assms(2) unfolding entails_def apply auto
         apply (rule rdy_of_spec2_entails) by auto
       done
@@ -636,10 +637,10 @@ inductive interrupt_solInf_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a 
    0 < d \<Longrightarrow> Q d v s0 s tr \<Longrightarrow>
    rdy = rdy_of_comm_spec2 specs \<Longrightarrow> \<forall>t\<in>{0..}. I s0 t (p t) \<Longrightarrow>
    interrupt_solInf_c I specs s0 s (WaitBlk d (\<lambda>\<tau>. p \<tau>) rdy # InBlock ch v # tr)"
-| "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch e Q \<Longrightarrow> v = e 0 s0 \<Longrightarrow>
-   Q 0 s0 s tr \<Longrightarrow> interrupt_solInf_c I specs s0 s (OutBlock ch v # tr)"
-| "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch e Q \<Longrightarrow>
-   0 < d \<Longrightarrow> Q d s0 s tr \<Longrightarrow> v = e d s0 \<Longrightarrow>
+| "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch Q \<Longrightarrow>
+   Q 0 v s0 s tr \<Longrightarrow> interrupt_solInf_c I specs s0 s (OutBlock ch v # tr)"
+| "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch Q \<Longrightarrow>
+   0 < d \<Longrightarrow> Q d v s0 s tr \<Longrightarrow>
    rdy = rdy_of_comm_spec2 specs \<Longrightarrow> \<forall>t\<in>{0..}. I s0 t (p t) \<Longrightarrow>
    interrupt_solInf_c I specs s0 s (WaitBlk d (\<lambda>\<tau>. p \<tau>) rdy # OutBlock ch v # tr)"
 
@@ -664,41 +665,43 @@ proof -
       apply (auto simp add: interrupt_c.simps)
       subgoal premises pre for i ch var Q v tr'
       proof -
-        let ?Q' = "\<lambda>d v s0. Q (updr s0 ((p s0 d)(var := v)))"
+        let ?Q' = "\<lambda>d v. Q {{ (\<lambda>s0. ((p s0 d)(var := v))) }}\<^sub>r"
         show ?thesis
           apply (rule interrupt_solInf_c.intros(1)[of i _ _ ?Q'])
-          using pre length p0 by (auto simp add: updr_rpart_simp1)
+          using pre length p0
+          by (auto simp add: substr_assn2_def updr_rpart_simp1)
       qed
       subgoal premises pre for i ch var Q d p2 v tr'
       proof -
         have a: "p s0 d = p2 d"
              "WaitBlk d (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d (\<lambda>t. updr s0 (p2 t))"
           using paramODEsolInf_unique[OF assms pre(4,6,7)] by auto
-        let ?Q' = "\<lambda>d v s0. Q (updr s0 ((p s0 d)(var := v)))"
+        let ?Q' = "\<lambda>d v. Q {{ (\<lambda>s0. ((p s0 d)(var := v))) }}\<^sub>r"
         show ?thesis
           unfolding a(2)[symmetric]
           apply (rule interrupt_solInf_c.intros(2)[of i _ _ ?Q'])
-          using pre a length rdy_of_comm_spec2_of by auto
+          using pre a length rdy_of_comm_spec2_of
+          by (auto simp add: substr_assn2_def)
       qed
       subgoal premises pre for i ch e Q tr'
       proof -
-        let ?Q' = "\<lambda>d s0. Q (updr s0 (p s0 d))"
-        let ?e' = "\<lambda>d s0. e (updr s0 (p s0 d))"
+        let ?Q' = "\<lambda>d v. !\<^sub>a[(\<lambda>s0. v = e (updr s0 (p s0 d)))] \<and>\<^sub>a Q {{ (\<lambda>s0. (p s0 d)) }}\<^sub>r"
         show ?thesis
-          apply (rule interrupt_solInf_c.intros(3)[of i _ _ ?e' ?Q'])
-          using pre length p0 by auto
+          apply (rule interrupt_solInf_c.intros(3)[of i _ _ ?Q'])
+          using pre length p0
+          by (auto simp add: substr_assn2_def conj_assn_def pure_assn_def)
       qed
       subgoal premises pre for i ch e Q d p2 tr'
       proof -
         have a: "p s0 d = p2 d"
              "WaitBlk d (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d (\<lambda>t. updr s0 (p2 t))"
           using paramODEsolInf_unique[OF assms pre(4,6,7)] by auto
-        let ?Q' = "\<lambda>d s0. Q (updr s0 (p s0 d))"
-        let ?e' = "\<lambda>d s0. e (updr s0 (p s0 d))"
+        let ?Q' = "\<lambda>d v. !\<^sub>a[(\<lambda>s0. v = e (updr s0 (p s0 d)))] \<and>\<^sub>a Q {{ (\<lambda>s0. (p s0 d)) }}\<^sub>r"
         show ?thesis
           unfolding a(2)[symmetric] a(1)[symmetric]
-          apply (rule interrupt_solInf_c.intros(4)[of i _ _ ?e' ?Q'])
-          using pre length a(1) rdy_of_comm_spec2_of by auto
+          apply (rule interrupt_solInf_c.intros(4)[of i _ _ ?Q'])
+          using pre length a(1) rdy_of_comm_spec2_of
+          by (auto simp add: substr_assn2_def conj_assn_def pure_assn_def)
       qed
       done
     done
@@ -744,18 +747,19 @@ lemma interrupt_solInf_mono:
       using rel_listD2[OF assms, of i] rel_listD1[OF assms] apply simp
       apply (elim spec2_entails_outE)
       subgoal for Q2
-        apply (rule interrupt_solInf_c.intros(3)[of i _ _ _ Q2])
+        apply (rule interrupt_solInf_c.intros(3)[of i _ _ Q2])
         using assms(1) unfolding entails_def by auto
       done
     subgoal for i ch E Q d tr' a b
       using rel_listD2[OF assms, of i] rel_listD1[OF assms] apply simp
       apply (elim spec2_entails_outE)
       subgoal for Q2
-        apply (rule interrupt_solInf_c.intros(4)[of i _ _ _ Q2])
+        apply (rule interrupt_solInf_c.intros(4)[of i _ _ Q2])
         using assms(1) unfolding entails_def apply auto
         apply (rule rdy_of_spec2_entails) by auto
       done
     done
   done
+
 
 end
