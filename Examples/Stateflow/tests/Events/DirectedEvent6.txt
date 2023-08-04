@@ -19,7 +19,7 @@ procedure during_Chart1_A begin
       Chart1_A_done := 1;
     }
   }
-  if (Chart1_st == "Chart1_A" && Chart1_A_done == 0 && Chart1EL != [] && top(Chart1EL) == "F") {
+  if (Chart1_st == "Chart1_A" && Chart1_A_done == 0 && len(Chart1EL) != 0 && top(Chart1EL) == "F") {
     s := "c";
     log("c" + "\n");
     if (Chart1_st == "Chart1_A") {
@@ -46,7 +46,7 @@ begin
       Chart1_ret := 0;
       if (Chart1_C_st == "Chart1_C_C1") {
         Chart1_C_C1_done := 0;
-        if (Chart1EL != [] && top(Chart1EL) == "F") {
+        if (len(Chart1EL) != 0 && top(Chart1EL) == "F") {
           s := "d";
           log("d" + "\n");
           if (Chart1_C_st == "Chart1_C_C1") {

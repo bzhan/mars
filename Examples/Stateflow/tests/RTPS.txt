@@ -129,7 +129,7 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_waiting begin
       Chart_model_RTPS_Writer_Writer_repair_waiting_done := 1;
     }
   }
-  if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_waiting" && Chart_model_RTPS_Writer_Writer_repair_waiting_done == 0 && (ChartEL != [] && top(ChartEL) == "ACKNACK2") && (id <= 0 || request_num[id - 1] <= acked_num[id - 1])) {
+  if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_waiting" && Chart_model_RTPS_Writer_Writer_repair_waiting_done == 0 && (len(ChartEL) != 0 && top(ChartEL) == "ACKNACK2") && (id <= 0 || request_num[id - 1] <= acked_num[id - 1])) {
     id := ack_id;
     wid := WriterId;
     rid := id;
@@ -173,7 +173,7 @@ end
 
 procedure during_Chart_model_RTPS_Writer_Writer_repair_must_repair_en begin
   Chart_model_RTPS_Writer_Writer_repair_must_repair_en_done := 0;
-  if (ChartEL != [] && top(ChartEL) == "ACKNACK2") {
+  if (len(ChartEL) != 0 && top(ChartEL) == "ACKNACK2") {
     id := ack_id;
     wid := WriterId;
     rid := id;
@@ -413,7 +413,7 @@ end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready begin
   Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready_done := 0;
-  if (ChartEL != [] && top(ChartEL) == "HEARTBEAT2") {
+  if (len(ChartEL) != 0 && top(ChartEL) == "HEARTBEAT2") {
     wid := 1;
     rid := 1;
     firstSN := buffer_heartbeat[1 - 1][2];
@@ -429,7 +429,7 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready begi
       Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready_done := 1;
     }
   }
-  if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready" && Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready_done == 0 && (ChartEL != [] && top(ChartEL) == "SUCCESS") && seq_num_1 > received_num) {
+  if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready" && Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready_done == 0 && (len(ChartEL) != 0 && top(ChartEL) == "SUCCESS") && seq_num_1 > received_num) {
     index := seq_num_1;
     received_set[WriterId - 1][index - 1] := 1;
     wid := WriterId;
@@ -496,7 +496,7 @@ end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting begin
   Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting_done := 0;
-  if (ChartEL != [] && top(ChartEL) == "HEARTBEAT2") {
+  if (len(ChartEL) != 0 && top(ChartEL) == "HEARTBEAT2") {
     hFlag := 1;
     if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting") {
       J224_done := 0;
@@ -563,7 +563,7 @@ end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready begin
   Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready_done := 0;
-  if (ChartEL != [] && top(ChartEL) == "HEARTBEAT2") {
+  if (len(ChartEL) != 0 && top(ChartEL) == "HEARTBEAT2") {
     wid := 1;
     rid := 2;
     firstSN := buffer_heartbeat[1 - 1][2];
@@ -579,7 +579,7 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready begi
       Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready_done := 1;
     }
   }
-  if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" && Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready_done == 0 && (ChartEL != [] && top(ChartEL) == "SUCCESS") && seq_num_2 > received_num2) {
+  if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" && Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready_done == 0 && (len(ChartEL) != 0 && top(ChartEL) == "SUCCESS") && seq_num_2 > received_num2) {
     index2 := seq_num_2;
     received_set[ReaderId_2 - 1][index2 - 1] := 1;
     wid := WriterId;
@@ -671,7 +671,7 @@ end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting begin
   Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting_done := 0;
-  if (ChartEL != [] && top(ChartEL) == "HEARTBEAT2") {
+  if (len(ChartEL) != 0 && top(ChartEL) == "HEARTBEAT2") {
     hFlag := 1;
     if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting") {
       J191_done := 0;
@@ -713,7 +713,7 @@ end
 
 procedure during_Chart_model_channel_channel_1_try begin
   Chart_model_channel_channel_1_try_done := 0;
-  if (ChartEL != [] && top(ChartEL) == "TRY") {
+  if (len(ChartEL) != 0 && top(ChartEL) == "TRY") {
     if (Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_try") {
       J360_done := 0;
       x := uniform(0,1);
@@ -846,7 +846,7 @@ end
 
 procedure during_Chart_model_channel_channel_2_try begin
   Chart_model_channel_channel_2_try_done := 0;
-  if (ChartEL != [] && top(ChartEL) == "TRY") {
+  if (len(ChartEL) != 0 && top(ChartEL) == "TRY") {
     if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try") {
       J517_done := 0;
       x := uniform(0,1);
@@ -979,7 +979,7 @@ end
 
 procedure during_Chart_model_channel_channel_3_try begin
   Chart_model_channel_channel_3_try_done := 0;
-  if (ChartEL != [] && top(ChartEL) == "TRY") {
+  if (len(ChartEL) != 0 && top(ChartEL) == "TRY") {
     if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try") {
       J535_done := 0;
       x := uniform(0,1);
@@ -1112,7 +1112,7 @@ end
 
 procedure during_Chart_model_channel_channel_4_try begin
   Chart_model_channel_channel_4_try_done := 0;
-  if (ChartEL != [] && top(ChartEL) == "TRY") {
+  if (len(ChartEL) != 0 && top(ChartEL) == "TRY") {
     if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try") {
       J553_done := 0;
       x := uniform(0,1);
@@ -1245,7 +1245,7 @@ end
 
 procedure during_Chart_model_channel_channel_5_try begin
   Chart_model_channel_channel_5_try_done := 0;
-  if (ChartEL != [] && top(ChartEL) == "TRY") {
+  if (len(ChartEL) != 0 && top(ChartEL) == "TRY") {
     if (Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try") {
       J571_done := 0;
       x := uniform(0,1);
@@ -1378,7 +1378,7 @@ end
 
 procedure during_Chart_model_channel_Heartbeat_try begin
   Chart_model_channel_Heartbeat_try_done := 0;
-  if (ChartEL != [] && top(ChartEL) == "HEARTBEAT") {
+  if (len(ChartEL) != 0 && top(ChartEL) == "HEARTBEAT") {
     if (Chart_model_channel_Heartbeat_st == "Chart_model_channel_Heartbeat_try") {
       J764_done := 0;
       x := uniform(0,1);
@@ -1458,7 +1458,7 @@ end
 
 procedure during_Chart_model_channel_Acknack_1_try begin
   Chart_model_channel_Acknack_1_try_done := 0;
-  if (ChartEL != [] && top(ChartEL) == "ACKNACK") {
+  if (len(ChartEL) != 0 && top(ChartEL) == "ACKNACK") {
     if (Chart_model_channel_Acknack_1_st == "Chart_model_channel_Acknack_1_try") {
       J723_done := 0;
       x := uniform(0,1);
@@ -1536,7 +1536,7 @@ end
 
 procedure during_Chart_model_channel_Acknack_2_try begin
   Chart_model_channel_Acknack_2_try_done := 0;
-  if (ChartEL != [] && top(ChartEL) == "ACKNACK") {
+  if (len(ChartEL) != 0 && top(ChartEL) == "ACKNACK") {
     if (Chart_model_channel_Acknack_2_st == "Chart_model_channel_Acknack_2_try") {
       J807_done := 0;
       x := uniform(0,1);

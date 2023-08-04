@@ -31,9 +31,9 @@ procedure exec_Chart begin
       log("c" + "\n");
       if (Chart_A_st == "Chart_A_A1") {
         J40_done := 0;
-        if (ChartEL != [] && top(ChartEL) == "E") {
+        if (len(ChartEL) != 0 && top(ChartEL) == "E") {
           J41_done := 0;
-          if (ChartEL != [] && top(ChartEL) == "E") {
+          if (len(ChartEL) != 0 && top(ChartEL) == "E") {
             if (Chart_A_st == "Chart_A_A1") {
               s := "ex_A1";
               log("ex_A1" + "\n");
@@ -63,7 +63,7 @@ procedure exec_Chart begin
   Chart_ret := 0;
   if (Chart_B_st == "Chart_B_B1") {
     Chart_B_B1_done := 0;
-    if (ChartEL != [] && top(ChartEL) == "E") {
+    if (len(ChartEL) != 0 && top(ChartEL) == "E") {
       if (Chart_B_st == "Chart_B_B1") {
         Chart_B_st := "Chart_B_B3";
         s := "en_B3";

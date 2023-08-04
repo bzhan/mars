@@ -3,7 +3,7 @@
 module Chart():
 procedure during_Chart_AM_B_B1_B2 begin
   Chart_AM_B_B1_B2_done := 0;
-  if (ChartEL != [] && top(ChartEL) == "E_two") {
+  if (len(ChartEL) != 0 && top(ChartEL) == "E_two") {
     if (Chart_AM_B_B1_st == "Chart_AM_B_B1_B2") {
       if (Chart_AM_B_B1_B2_st == "Chart_AM_B_B1_B2_B21") {
         log("ex_B21" + "\n");
@@ -34,7 +34,7 @@ end
 
 procedure during_Chart_AM_B_B1_B2_B21 begin
   Chart_AM_B_B1_B2_B21_done := 0;
-  if (ChartEL != [] && top(ChartEL) == "E_one") {
+  if (len(ChartEL) != 0 && top(ChartEL) == "E_one") {
     if (Chart_AM_B_B1_B2_st == "Chart_AM_B_B1_B2_B21") {
       s := "ex_B21";
       log("ex_B21" + "\n");
@@ -69,7 +69,7 @@ begin
     if (Chart_st == "Chart_AM") {
       Chart_ret := 0;
       if (Chart_AM_A_st == "Chart_AM_A_A2") {
-        if (ChartEL != [] && top(ChartEL) == "E_two") {
+        if (len(ChartEL) != 0 && top(ChartEL) == "E_two") {
           if (Chart_AM_A_st == "Chart_AM_A_A2") {
             s := "ex_A2";
             log("ex_A2" + "\n");
@@ -110,7 +110,7 @@ begin
       Chart_ret := 0;
       if (Chart_AM_B_st == "Chart_AM_B_B1") {
         Chart_AM_B_B1_done := 0;
-        if (ChartEL != [] && top(ChartEL) == "E_one") {
+        if (len(ChartEL) != 0 && top(ChartEL) == "E_one") {
           if (Chart_AM_B_st == "Chart_AM_B_B1") {
             if (Chart_AM_B_B1_st == "Chart_AM_B_B1_B2") {
               if (Chart_AM_B_B1_B2_st == "Chart_AM_B_B1_B2_B21") {
@@ -160,7 +160,7 @@ begin
             }
           } else if (Chart_AM_B_B1_st == "Chart_AM_B_B1_B3") {
             Chart_AM_B_B1_B3_done := 0;
-            if (ChartEL != [] && top(ChartEL) == "E_one") {
+            if (len(ChartEL) != 0 && top(ChartEL) == "E_one") {
               if (Chart_AM_B_B1_st == "Chart_AM_B_B1_B3") {
                 s := "ex_B2";
                 log("ex_B2" + "\n");
@@ -182,7 +182,7 @@ begin
         }
       } else if (Chart_AM_B_st == "Chart_AM_B_B4") {
         Chart_AM_B_B4_done := 0;
-        if (ChartEL != [] && top(ChartEL) == "E_two") {
+        if (len(ChartEL) != 0 && top(ChartEL) == "E_two") {
           if (Chart_AM_B_st == "Chart_AM_B_B4") {
             s := "ex_B4";
             log("ex_B4" + "\n");

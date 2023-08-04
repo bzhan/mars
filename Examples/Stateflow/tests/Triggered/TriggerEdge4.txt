@@ -7,7 +7,7 @@ procedure exec_Trig_SF begin
   Trig_SF_ret := 0;
   if (Trig_SF_st == "Trig_SF_A") {
     Trig_SF_A_done := 0;
-    if (Trig_SFEL != [] && top(Trig_SFEL) == "event") {
+    if (len(Trig_SFEL) != 0 && top(Trig_SFEL) == "event") {
       a := 0;
       if (Trig_SF_st == "Trig_SF_A") {
         Trig_SF_st := "Trig_SF_B";
@@ -18,7 +18,7 @@ procedure exec_Trig_SF begin
     Trig_SF_ret := Trig_SF_A_done;
   } else if (Trig_SF_st == "Trig_SF_B") {
     Trig_SF_B_done := 0;
-    if (Trig_SFEL != [] && top(Trig_SFEL) == "event1") {
+    if (len(Trig_SFEL) != 0 && top(Trig_SFEL) == "event1") {
       a := 1;
       if (Trig_SF_st == "Trig_SF_B") {
         if (Trig_SF_B_st == "Trig_SF_B_B1") {
@@ -39,7 +39,7 @@ procedure exec_Trig_SF begin
     if (Trig_SF_ret == 0) {
       if (Trig_SF_B_st == "Trig_SF_B_B1") {
         Trig_SF_B_B1_done := 0;
-        if (Trig_SFEL != [] && top(Trig_SFEL) == "event2") {
+        if (len(Trig_SFEL) != 0 && top(Trig_SFEL) == "event2") {
           a := 2;
           if (Trig_SF_B_st == "Trig_SF_B_B1") {
             Trig_SF_B_st := "";
@@ -52,7 +52,7 @@ procedure exec_Trig_SF begin
         Trig_SF_ret := Trig_SF_B_B1_done;
       } else if (Trig_SF_B_st == "Trig_SF_B_B2") {
         Trig_SF_B_B2_done := 0;
-        if (Trig_SFEL != [] && top(Trig_SFEL) == "event3") {
+        if (len(Trig_SFEL) != 0 && top(Trig_SFEL) == "event3") {
           a := 3;
           if (Trig_SF_B_st == "Trig_SF_B_B2") {
             Trig_SF_B_st := "";

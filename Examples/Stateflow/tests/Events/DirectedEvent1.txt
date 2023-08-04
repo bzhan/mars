@@ -31,7 +31,7 @@ end
 
 procedure during_Chart_AM_A_A2 begin
   Chart_AM_A_A2_done := 0;
-  if (ChartEL != [] && top(ChartEL) == "E_two") {
+  if (len(ChartEL) != 0 && top(ChartEL) == "E_two") {
     if (Chart_AM_A_st == "Chart_AM_A_A2") {
       s := "ex_A2";
       log("ex_A2" + "\n");
@@ -51,7 +51,7 @@ end
 
 procedure during_Chart_AM_B_B1 begin
   Chart_AM_B_B1_done := 0;
-  if (ChartEL != [] && top(ChartEL) == "E_one") {
+  if (len(ChartEL) != 0 && top(ChartEL) == "E_one") {
     ChartEL := push(ChartEL,"E_one");
     Chart_ret := 0;
     if (Chart_AM_C_st == "Chart_AM_C_C1") {
@@ -79,7 +79,7 @@ end
 
 procedure during_Chart_AM_B_B2 begin
   Chart_AM_B_B2_done := 0;
-  if (ChartEL != [] && top(ChartEL) == "E_two") {
+  if (len(ChartEL) != 0 && top(ChartEL) == "E_two") {
     ChartEL := push(ChartEL,"E_two");
     Chart_ret := 0;
     if (Chart_AM_A_st == "Chart_AM_A_A1") {
@@ -107,7 +107,7 @@ end
 
 procedure during_Chart_AM_C_C1 begin
   Chart_AM_C_C1_done := 0;
-  if (ChartEL != [] && top(ChartEL) == "E_one") {
+  if (len(ChartEL) != 0 && top(ChartEL) == "E_one") {
     if (Chart_AM_C_st == "Chart_AM_C_C1") {
       s := "ex_C1";
       log("ex_C1" + "\n");
