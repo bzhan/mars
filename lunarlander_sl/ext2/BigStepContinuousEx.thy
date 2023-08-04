@@ -1,5 +1,5 @@
 theory BigStepContinuousEx
-  imports BigStepContinuous
+  imports BigStepContParallel
 begin
 
 definition A :: pname where "A = ''a''"
