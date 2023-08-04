@@ -1509,6 +1509,34 @@ def exec_parallel(infos: List[SimInfo], *, num_io_events=None, num_steps=3000, n
     res['statemap'] = statemap
     return res
 
+def graph(res, proc_name, separate=True, variables=None):
+    import matplotlib.pyplot as plt
+    DataState = {}
+    temp = res.get("time_series")
+    lst = temp.get(proc_name)
+    for t in lst:
+        state = t.get("state")
+        for key in state.keys():
+            if variables is not None and key not in variables:
+                continue
+            if key not in DataState.keys():
+                DataState.update({key:([],[])})
+            DataState.get(key)[0].append(state.get(key))
+            DataState.get(key)[1].append(t.get('time'))
+
+    if separate:
+        for t in DataState.keys():
+            x = DataState.get(t)[1]
+            y = DataState.get(t)[0]
+            plt.plot(x, y, label=t)
+            plt.show()
+    else:
+        for t in DataState.keys():
+            x = DataState.get(t)[1]
+            y = DataState.get(t)[0]
+            plt.plot(x, y, label=t)
+            plt.legend()
+
 def get_comm_maps(comm_in_map,comm_out_map,hp,name):
     for ch_name, direction in hcsp.get_comm_chs(hp):
         # do not check channels with vars and number in args
