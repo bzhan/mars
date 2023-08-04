@@ -761,5 +761,64 @@ lemma interrupt_solInf_mono:
     done
   done
 
+fun comm_spec2_updg :: "var \<Rightarrow> ('a estate \<Rightarrow> real) \<Rightarrow> 'a comm_spec2 \<Rightarrow> 'a comm_spec2" where
+  "comm_spec2_updg var e (InSpec2 ch P) = InSpec2 ch (\<lambda>d v. P d v {{ var := e }})"
+| "comm_spec2_updg var e (OutSpec2 ch P) = OutSpec2 ch (\<lambda>d v. P d v {{ var := e }})"
+
+lemma rdy_of_comm_spec2_updg [simp]:
+  "rdy_of_comm_spec2 (map (comm_spec2_updg var e) specs) = rdy_of_comm_spec2 specs"
+  unfolding rdy_of_comm_spec2_def apply (rule sym)
+  apply (rule rdy_info_of_list_cong)
+  apply (rule rel_list_map)
+  subgoal for spec apply (cases spec) by auto
+  done
+
+lemma interrupt_solInf_c_updg:
+  "(interrupt_solInf_c I specs {{ var := e }}) s0 \<Longrightarrow>\<^sub>A
+   interrupt_solInf_c (\<lambda>s0 t s. I (upd s0 var (e s0)) t s) (map (comm_spec2_updg var e) specs) s0"
+  unfolding entails_def apply clarify
+  subgoal for s tr unfolding subst_assn2_def
+    apply (induct rule: interrupt_solInf_c.cases) apply auto
+    subgoal for i ch Q v tr'
+      apply (rule interrupt_solInf_c.intros(1)[of i _ _ "\<lambda>d v. Q d v {{ var := e }}"])
+      by (auto simp add: subst_assn2_def)
+    subgoal for i ch Q d v tr' a b p'
+      apply (rule interrupt_solInf_c.intros(2)[of i _ _ "\<lambda>d v. Q d v {{ var := e }}"])
+      by (auto simp add: subst_assn2_def)
+    subgoal for i ch Q v tr'
+      apply (rule interrupt_solInf_c.intros(3)[of i _ _ "\<lambda>d v. Q d v {{ var := e }}"])
+      by (auto simp add: subst_assn2_def)
+    subgoal for i ch Q d v tr' a b p'
+      apply (rule interrupt_solInf_c.intros(4)[of i _ _ "\<lambda>d v. Q d v {{ var := e }}"])
+      by (auto simp add: subst_assn2_def)
+    done
+  done
+
+lemma interrupt_sol_c_updg:
+  "(interrupt_sol_c I d P specs {{ var := e }}) s0 \<Longrightarrow>\<^sub>A
+   interrupt_sol_c (\<lambda>s0 t s. I (upd s0 var (e s0)) t s) (\<lambda>s0. d (upd s0 var (e s0)))
+                   (\<lambda>d. P d {{ var := e }}) (map (comm_spec2_updg var e) specs) s0"
+  unfolding entails_def apply clarify
+  subgoal for s tr unfolding subst_assn2_def
+    apply (induct rule: interrupt_sol_c.cases) apply auto
+    subgoal for tr' a b p
+      apply (rule interrupt_sol_c.intros(1)) by auto
+    subgoal 
+      apply (rule interrupt_sol_c.intros(2)) by auto
+    subgoal for i ch Q v tr'
+      apply (rule interrupt_sol_c.intros(3)[of i _ _ "\<lambda>d v. Q d v {{ var := e }}"])
+      by (auto simp add: subst_assn2_def)
+    subgoal for i ch Q d v tr' a b p'
+      apply (rule interrupt_sol_c.intros(4)[of i _ _ "\<lambda>d v. Q d v {{ var := e }}"])
+      by (auto simp add: subst_assn2_def)
+    subgoal for i ch Q v tr'
+      apply (rule interrupt_sol_c.intros(5)[of i _ _ "\<lambda>d v. Q d v {{ var := e }}"])
+      by (auto simp add: subst_assn2_def)
+    subgoal for i ch Q d v tr' a b p'
+      apply (rule interrupt_sol_c.intros(6)[of i _ _ "\<lambda>d v. Q d v {{ var := e }}"])
+      by (auto simp add: subst_assn2_def)
+    done
+  done
+
 
 end
