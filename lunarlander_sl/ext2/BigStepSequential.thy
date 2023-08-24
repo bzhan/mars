@@ -392,9 +392,10 @@ text \<open>Assertion for input.
   or after waiting for some time. The ensuing assertion is
   parameterized by waiting time and communicated value.
 \<close>
-inductive wait_in_c :: "cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
-  "P 0 v s0 s tr \<Longrightarrow> wait_in_c ch P s0 s (InBlock ch v # tr)"
-| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> wait_in_c ch P s0 s (WaitBlk d (\<lambda>_. s0) ({}, {ch}) # InBlock ch v # tr)"
+inductive wait_in_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate \<Rightarrow> bool) \<Rightarrow> cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
+  "P 0 v s0 s tr \<Longrightarrow> wait_in_c I ch P s0 s (InBlock ch v # tr)"
+| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> \<forall>t\<in>{0..}. I s0 t (p t) \<Longrightarrow>
+   wait_in_c I ch P s0 s (WaitBlk d (\<lambda>\<tau>. p \<tau>) ({}, {ch}) # InBlock ch v # tr)"
 
 text \<open>Assertion for output.
 
@@ -403,17 +404,22 @@ text \<open>Assertion for output.
   computed by the function e. The ensuing assertion is
   parameterized by waiting time.
 \<close>
-inductive wait_out_c :: "cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
-  "P 0 v s0 s tr \<Longrightarrow> wait_out_c ch P s0 s (OutBlock ch v # tr)"
-| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> wait_out_c ch P s0 s (WaitBlk d (\<lambda>_. s0) ({ch}, {}) # OutBlock ch v # tr)"
+inductive wait_out_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate \<Rightarrow> bool) \<Rightarrow> cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
+  "P 0 v s0 s tr \<Longrightarrow> wait_out_c I ch P s0 s (OutBlock ch v # tr)"
+| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> \<forall>t\<in>{0..}. I s0 t (p t) \<Longrightarrow>
+   wait_out_c I ch P s0 s (WaitBlk d (\<lambda>\<tau>. p \<tau>) ({ch}, {}) # OutBlock ch v # tr)"
 
-definition wait_out_cv :: "cname \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
-  "wait_out_cv ch e P = wait_out_c ch (\<lambda>d v. !\<^sub>a[(\<lambda>s0. v = e s0)] \<and>\<^sub>a P d)"
+definition wait_out_cv :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate \<Rightarrow> bool) \<Rightarrow> cname \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
+  "wait_out_cv I ch e P = wait_out_c I ch (\<lambda>d v. !\<^sub>a[(\<lambda>s0. v = e s0)] \<and>\<^sub>a P d)"
 
 text \<open>Waiting an amount of time, without state change\<close>
-inductive wait_c :: "'a eexp \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" where
-  "e s0 > 0 \<Longrightarrow> P s0 s tr \<Longrightarrow> wait_c e P s0 s (WaitBlk (e s0) (\<lambda>_. s0) ({}, {}) # tr)"
-| "\<not>e s0 > 0 \<Longrightarrow> P s0 s tr \<Longrightarrow> wait_c e P s0 s tr"
+inductive wait_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate \<Rightarrow> bool) \<Rightarrow> 'a eexp \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" where
+  "e s0 > 0 \<Longrightarrow> P s0 s tr \<Longrightarrow> \<forall>t\<in>{0..}. I s0 t (p t) \<Longrightarrow>
+   wait_c I e P s0 s (WaitBlk (e s0) (\<lambda>\<tau>. p \<tau>) ({}, {}) # tr)"
+| "\<not>e s0 > 0 \<Longrightarrow> P s0 s tr \<Longrightarrow> wait_c I e P s0 s tr"
+
+fun single_id_inv :: "'a estate \<Rightarrow> real \<Rightarrow> 'a estate \<Rightarrow> bool" where
+  "single_id_inv s0 t s = (s0 = s)"
 
 subsubsection \<open>Various rules about entailment\<close>
 
@@ -433,7 +439,7 @@ text \<open>The following rules state commutativity between
   assertions and quantifiers.
 \<close>
 lemma wait_in_c_exists:
-  "wait_in_c ch (\<lambda>d v. \<exists>\<^sub>an. P d v n) = (\<exists>\<^sub>an. wait_in_c ch (\<lambda>d v. P d v n))"
+  "wait_in_c I ch (\<lambda>d v. \<exists>\<^sub>an. P d v n) = (\<exists>\<^sub>an. wait_in_c I ch (\<lambda>d v. P d v n))"
   apply (rule ext) apply (rule ext) apply (rule ext)
   subgoal for s0 s tr
     apply (rule iffI)
@@ -442,7 +448,7 @@ lemma wait_in_c_exists:
       subgoal for v tr' n
         apply (rule exI[where x=n])
         apply (rule wait_in_c.intros(1)) by auto
-      subgoal for d v tr' n
+      subgoal for d v tr' s' n
         apply (rule exI[where x=n])
         apply (rule wait_in_c.intros(2)) by auto
       done
@@ -461,7 +467,7 @@ lemma wait_in_c_exists:
   done
 
 lemma wait_out_c_exists:
-  "wait_out_c ch (\<lambda>d v. \<exists>\<^sub>an. P d v n) = (\<exists>\<^sub>an. wait_out_c ch (\<lambda>d v. P d v n))"
+  "wait_out_c I ch (\<lambda>d v. \<exists>\<^sub>an. P d v n) = (\<exists>\<^sub>an. wait_out_c I ch (\<lambda>d v. P d v n))"
   apply (rule ext) apply (rule ext) apply (rule ext)
   subgoal for s0 s tr
     apply (rule iffI)
@@ -470,7 +476,7 @@ lemma wait_out_c_exists:
       subgoal for v tr' n
         apply (rule exI[where x=n])
         apply (rule wait_out_c.intros(1)) by auto
-      subgoal for d v tr' n
+      subgoal for d v tr' s' n
         apply (rule exI[where x=n])
         apply (rule wait_out_c.intros(2)) by auto
       done
@@ -493,7 +499,7 @@ lemma conj_assn_exists:
   unfolding conj_assn_def exists_assn_def by auto
 
 lemma wait_out_cv_exists:
-  "wait_out_cv ch e (\<lambda>d. \<exists>\<^sub>an. P d n) = (\<exists>\<^sub>an. wait_out_cv ch e (\<lambda>d. P d n))"
+  "wait_out_cv I ch e (\<lambda>d. \<exists>\<^sub>an. P d n) = (\<exists>\<^sub>an. wait_out_cv I ch e (\<lambda>d. P d n))"
   unfolding wait_out_cv_def conj_assn_exists wait_out_c_exists by auto
 
 subsubsection \<open>Monotonicity rules\<close>
@@ -501,7 +507,7 @@ subsubsection \<open>Monotonicity rules\<close>
 text \<open>The following rules state monotonicity of assertions\<close>
 lemma wait_in_c_mono:
   assumes "\<And>d v s. P1 d v s \<Longrightarrow>\<^sub>A P2 d v s"
-  shows "wait_in_c ch P1 s0 \<Longrightarrow>\<^sub>A wait_in_c ch P2 s0"
+  shows "wait_in_c I ch P1 s0 \<Longrightarrow>\<^sub>A wait_in_c I ch P2 s0"
   unfolding entails_def apply auto
   subgoal for s tr
     apply (induct rule: wait_in_c.cases) apply auto
@@ -516,7 +522,7 @@ lemma wait_in_c_mono:
 
 lemma wait_out_c_mono:
   assumes "\<And>d v s. P1 d v s \<Longrightarrow>\<^sub>A P2 d v s"
-  shows "wait_out_c ch P1 s0 \<Longrightarrow>\<^sub>A wait_out_c ch P2 s0"
+  shows "wait_out_c I ch P1 s0 \<Longrightarrow>\<^sub>A wait_out_c I ch P2 s0"
   unfolding entails_def apply auto
   subgoal for s tr
     apply (induct rule: wait_out_c.cases) apply auto
@@ -536,7 +542,7 @@ lemma conj_pure_mono:
 
 lemma wait_out_cv_mono:
   assumes "\<And>d s. P1 d s \<Longrightarrow>\<^sub>A P2 d s"
-  shows "wait_out_cv ch e P1 s0 \<Longrightarrow>\<^sub>A wait_out_cv ch e P2 s0"
+  shows "wait_out_cv I ch e P1 s0 \<Longrightarrow>\<^sub>A wait_out_cv I ch e P2 s0"
   unfolding wait_out_cv_def
   apply (rule wait_out_c_mono)
   apply (rule conj_pure_mono)
@@ -646,7 +652,7 @@ lemma spec_of_cond:
 
 text \<open>Hoare rule for input\<close>
 lemma spec_of_receive:
-  "spec_of (Cm (ch[?]var)) (wait_in_c ch (\<lambda>d v. init {{ var := (\<lambda>_. v) }}))"
+  "spec_of (Cm (ch[?]var)) (wait_in_c single_id_inv ch (\<lambda>d v. init {{ var := (\<lambda>_. v) }}))"
   unfolding Valid_def spec_of_def init_def subst_assn2_def
   apply (auto elim!: receiveE)
    apply (rule wait_in_c.intros(1)) apply auto[1]
@@ -655,18 +661,18 @@ lemma spec_of_receive:
 lemma Valid_receive_sp:
   assumes "spec_of c Q"
   shows "spec_of (Cm (ch[?]var); c)
-                 (wait_in_c ch (\<lambda>d v. Q {{ var := (\<lambda>_. v) }}))"
+                 (wait_in_c single_id_inv ch (\<lambda>d v. Q {{ var := (\<lambda>_. v) }}))"
   using assms unfolding Valid_def spec_of_def init_def subst_assn2_def
   apply (auto elim!: seqE receiveE)
   apply (rule wait_in_c.intros(1)) apply auto[1]
   using Valid_def spec_of_def init_def assms apply auto[1]
   apply (rule wait_in_c.intros(2)) apply auto[1]
   using Valid_def spec_of_def init_def assms apply auto[1]
-  done
+  by auto
 
 text \<open>Hoare rule for output\<close>
 lemma spec_of_send:
-  "spec_of (Cm (ch[!]e)) (wait_out_cv ch e (\<lambda>d. init))"
+  "spec_of (Cm (ch[!]e)) (wait_out_cv single_id_inv ch e (\<lambda>d. init))"
   unfolding Valid_def spec_of_def init_def wait_out_cv_def pure_assn_def conj_assn_def
   apply (auto elim!: sendE)
    apply (rule wait_out_c.intros(1)) apply auto[1]
@@ -675,18 +681,18 @@ lemma spec_of_send:
 lemma Valid_send_sp:
   assumes "spec_of c Q"
   shows "spec_of (Cm (ch[!]e); c)
-                 (wait_out_cv ch e (\<lambda>d. Q))"
+                 (wait_out_cv single_id_inv ch e (\<lambda>d. Q))"
   using assms unfolding Valid_def spec_of_def init_def wait_out_cv_def pure_assn_def conj_assn_def
   apply (auto elim!: seqE sendE)
    apply (rule wait_out_c.intros(1))
   using Valid_def spec_of_def init_def assms apply auto[1]
   apply (rule wait_out_c.intros(2)) apply auto[1]
   using Valid_def spec_of_def init_def assms apply auto[1]
-  done
+  by auto
 
 text \<open>Hoare rules for wait\<close>
 lemma spec_of_wait:
-  "spec_of (Wait e) (wait_c e init)"
+  "spec_of (Wait e) (wait_c single_id_inv e init)"
   unfolding Valid_def spec_of_def init_def
   apply (auto elim!: waitE)
    apply (rule wait_c.intros(1)) apply auto
@@ -694,7 +700,7 @@ lemma spec_of_wait:
 
 lemma Valid_wait_sp:
   assumes "spec_of c Q"
-  shows "spec_of (Wait e; c) (wait_c e Q)"
+  shows "spec_of (Wait e; c) (wait_c single_id_inv e Q)"
   using assms unfolding Valid_def spec_of_def init_def
   apply (auto elim!: seqE waitE)
    apply (rule wait_c.intros(1)) apply auto

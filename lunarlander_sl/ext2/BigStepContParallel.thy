@@ -2,47 +2,6 @@ theory BigStepContParallel
   imports BigStepContinuous BigStepParallel
 begin
 
-subsection \<open>More definition of paths\<close>
-
-text \<open>Mapping from invariant on a single state to invariant on general states\<close>
-inductive single_inv :: "pname \<Rightarrow> ('a estate \<Rightarrow> real \<Rightarrow> 'a estate \<Rightarrow> bool) \<Rightarrow>
-                         'a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool" where
-  "I s0 t s \<Longrightarrow> single_inv pn I (State pn s0) t (State pn s)"
-
-inductive_cases single_inv_State: "single_inv pn I gs0 t gs"
-
-lemma single_inv_infE:
-  assumes "\<forall>t\<in>{0..}. single_inv pn I (State pn s0) t (p t)"
-    and "(\<And>p'. \<forall>t\<in>{0..}. p t = State pn (p' t) \<and> I s0 t (p' t) \<Longrightarrow> P)"
-  shows P
-proof -
-  have a: "\<exists>s. p t = State pn s \<and> I s0 t s" if "t\<in>{0..}" for t
-    using assms(1) that
-    by (metis State_inj single_inv.cases)
-  then obtain p' where p': "\<forall>t\<in>{0..}. p t = State pn (p' t) \<and> I s0 t (p' t)"
-    by metis
-  show ?thesis
-    apply (rule assms(2)[where p'="\<lambda>t. SOME s. p t = State pn s \<and> I s0 t s"])
-    apply clarify subgoal for t
-      apply (rule someI[where x="p' t"])
-      using p' by auto
-    done
-qed
-
-text \<open>Merging two invariant\<close>
-inductive merge_inv :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool) \<Rightarrow>
-                        ('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool) \<Rightarrow>
-                        'a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool" where
-  "I1 s10 t s1 \<Longrightarrow> I2 s20 t s2 \<Longrightarrow> merge_inv I1 I2 (merge_state s10 s20) t (merge_state s1 s2)"
-
-text \<open>Delay a invariant by a certain amount of time\<close>
-inductive delay_inv :: "real \<Rightarrow> ('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool) \<Rightarrow>
-                        'a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool" where
-  "I s0 (t + d) s \<Longrightarrow> delay_inv d I s0 t s"
-
-fun id_inv :: "'a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool" where
-  "id_inv gs0 t gs = (gs0 = gs)"
-
 subsection \<open>Interrupt specification for global states\<close>
 
 datatype 'a comm_specg2 =
@@ -217,9 +176,9 @@ lemma sync_gassn_interrupt_solInf_wait:
     and "pns1 \<inter> pns2 = {}"
     and "\<And>i. i < length specs \<Longrightarrow> ch_of_specg2 (specs ! i) \<in> chs"
   shows
-  "sync_gassn chs pns1 pns2 (interrupt_solInf_cg I specs) (wait_cg pn2 e Q) s0 \<Longrightarrow>\<^sub>g
-   wait_sol_cg (merge_inv I id_inv) pn2 e
-    (\<lambda>d. sync_gassn chs pns1 pns2 (interrupt_solInf_cg (delay_inv d I) (map (spec_wait_of d p) specs)) Q) s0"
+  "sync_gassn chs pns1 pns2 (interrupt_solInf_cg I1 specs) (wait_cg I2 pn2 e Q) s0 \<Longrightarrow>\<^sub>g
+   wait_sol_cg (merge_inv I1 I2) pn2 e
+    (\<lambda>d. sync_gassn chs pns1 pns2 (interrupt_solInf_cg (delay_inv d I1) (map (spec_wait_of d p) specs)) Q) s0"
   unfolding entails_g_def apply auto
   subgoal for s tr
     apply (elim sync_gassn.cases) apply auto
@@ -359,7 +318,7 @@ lemma sync_gassn_interrupt_solInf_out:
     and "specs ! i = InSpecg2 ch P"
   shows
   "sync_gassn chs pns1 pns2 (interrupt_solInf_cg p specs)
-                            (wait_out_cg ch Q) s0 \<Longrightarrow>\<^sub>g
+                            (wait_out_cg I ch Q) s0 \<Longrightarrow>\<^sub>g
    (\<exists>\<^sub>gv. sync_gassn chs pns1 pns2 (P 0 v) (Q 0 v)) s0"
   unfolding entails_g_def apply auto
   subgoal for s tr
@@ -430,7 +389,7 @@ lemma sync_gassn_interrupt_solInf_outv:
     and "specs ! i = InSpecg2 ch P"
   shows
     "sync_gassn chs pns1 pns2 (interrupt_solInf_cg p specs)
-                              (wait_out_cgv ch pns2 pn2 e Q) s0 \<Longrightarrow>\<^sub>g
+                              (wait_out_cgv I ch pns2 pn2 e Q) s0 \<Longrightarrow>\<^sub>g
      sync_gassn chs pns1 pns2 (P 0 (e (the (s0 pn2)))) (Q 0) s0"
   unfolding wait_out_cgv_def
   apply (rule entails_g_trans)

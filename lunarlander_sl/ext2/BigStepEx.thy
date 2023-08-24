@@ -50,7 +50,7 @@ lemma init_single_mono:
 lemma wait_out_cgv_mono:
   assumes "\<And>d. P d s0 \<Longrightarrow>\<^sub>g Q d s0"
     and "pns1 = pns2"
-  shows "wait_out_cgv ch pns1 pn e P s0 \<Longrightarrow>\<^sub>g wait_out_cgv ch pns2 pn e Q s0"
+  shows "wait_out_cgv I ch pns1 pn e P s0 \<Longrightarrow>\<^sub>g wait_out_cgv I ch pns2 pn e Q s0"
   unfolding wait_out_cgv_def
   apply (rule wait_out_cg_mono)
   using assms(2) apply auto
@@ -61,7 +61,7 @@ lemma ex1:
   "spec_of_global
     (Parallel (Single A ex1a) {ch1}
               (Single B ex1b))
-    (\<lambda>s0. wait_out_cgv ch2 {A, B} A (\<lambda>s. val s X + 1) (\<lambda>d. init_single {A, B})
+    (\<lambda>s0. wait_out_cgv (id_inv {A}) ch2 {A, B} A (\<lambda>s. val s X + 1) (\<lambda>d. init_single {A, B})
           (updg s0 A X 3))"
   apply (rule spec_of_global_post)
   (* Stage 1: obtain spec for both sides *)
@@ -161,7 +161,7 @@ definition ex3a :: "'a proc" where
 
 fun rinv_c :: "nat \<Rightarrow> ('a estate \<Rightarrow> 'a assn) \<Rightarrow> ('a estate \<Rightarrow> 'a assn)" where
   "rinv_c 0 Q = Q"
-| "rinv_c (Suc n) Q = wait_out_cv ch1 (\<lambda>s. val s X) (\<lambda>d. rinv_c n Q {{ Y := (\<lambda>s0. val s0 Y + 1) }})"
+| "rinv_c (Suc n) Q = wait_out_cv single_id_inv ch1 (\<lambda>s. val s X) (\<lambda>d. rinv_c n Q {{ Y := (\<lambda>s0. val s0 Y + 1) }})"
 
 lemma ex3a_sp:
   "spec_of ex3a
@@ -186,7 +186,7 @@ definition ex3b :: "'a proc" where
 
 fun linv_c :: "nat \<Rightarrow> ('a estate \<Rightarrow> 'a assn) \<Rightarrow> ('a estate \<Rightarrow> 'a assn)" where
   "linv_c 0 Q = Q"
-| "linv_c (Suc n) Q = wait_in_c ch1 (\<lambda>d v. linv_c n Q {{Y := (\<lambda>s. val s Y + val s X)}} {{X := (\<lambda>_. v)}} )"
+| "linv_c (Suc n) Q = wait_in_c single_id_inv ch1 (\<lambda>d v. linv_c n Q {{Y := (\<lambda>s. val s Y + val s X)}} {{X := (\<lambda>_. v)}} )"
 
 lemma ex3b_sp:
   "spec_of ex3b
@@ -392,7 +392,7 @@ fun ex5a_c :: "nat \<Rightarrow> ex5_state assn2 \<Rightarrow> ex5_state assn2" 
   "ex5a_c 0 Q = Q"
 | "ex5a_c (Suc n) Q =
    (IFA (\<lambda>s. epart s \<noteq> []) THEN
-      wait_out_cv ch1 (\<lambda>s. hd (epart s)) (\<lambda>d. ex5a_c n Q {{ (\<lambda>s0. tl (epart s0)) }}\<^sub>e)
+      wait_out_cv single_id_inv ch1 (\<lambda>s. hd (epart s)) (\<lambda>d. ex5a_c n Q {{ (\<lambda>s0. tl (epart s0)) }}\<^sub>e)
     ELSE false_assn2 FI)"
 
 lemma ex5a_sp:
@@ -429,7 +429,7 @@ definition ex5b :: "ex5_state proc" where
 fun ex5b_c :: "nat \<Rightarrow> ex5_state assn2 \<Rightarrow> ex5_state assn2" where
   "ex5b_c 0 Q = Q"
 | "ex5b_c (Suc n) Q =
-   wait_in_c ch1 (\<lambda>d v. ex5b_c n Q {{ (\<lambda>s. val s X # epart s) }}\<^sub>e {{ X := (\<lambda>_. v) }})"
+   wait_in_c single_id_inv ch1 (\<lambda>d v. ex5b_c n Q {{ (\<lambda>s. val s X # epart s) }}\<^sub>e {{ X := (\<lambda>_. v) }})"
 
 lemma ex5b_sp:
   "spec_of ex5b
@@ -487,7 +487,7 @@ lemma ex5':
   subgoal
     apply (auto simp add: single_assn_simps)
     apply (rule entails_g_trans)
-     apply (rule sync_gassn_outv_in) apply auto subgoal sorry
+     apply (rule sync_gassn_outv_in) apply auto
     apply (rule entails_g_trans)
      apply (rule sync_gassn_subste_left) apply auto
     apply (rule entails_g_trans)
@@ -637,8 +637,9 @@ definition ex6a :: "'a proc" where
 
 lemma ex6a_sp:
   "spec_of ex6a
-    (wait_in_c0 ch2 (\<lambda>v.
-     (wait_c (\<lambda>_. 1) (wait_out_cv ch1 (\<lambda>s. val s X) (\<lambda>d. init)) {{ X := (\<lambda>_. v) }})))"
+    (wait_in_c0 single_id_inv ch2 (\<lambda>v.
+      (wait_c single_id_inv (\<lambda>_. 1)
+        (wait_out_cv single_id_inv ch1 (\<lambda>s. val s X) (\<lambda>d. init)) {{ X := (\<lambda>_. v) }})))"
   unfolding ex6a_def
   apply (rule spec_of_post)
    apply (rule Valid_receive_sp)
@@ -655,10 +656,24 @@ definition ex6b :: "'a proc" where
 
 lemma ex6b_sp:
   "spec_of ex6b
-    (wait_c (\<lambda>_. 1) (wait_in_c ch1 (\<lambda>d v. init {{ X := (\<lambda>_. v) }})))"
+    (wait_c single_id_inv (\<lambda>_. 1)
+      (wait_in_c single_id_inv ch1 (\<lambda>d v. init {{ X := (\<lambda>_. v) }})))"
   unfolding ex6b_def
   apply (rule Valid_wait_sp)
   apply (rule spec_of_receive)
+  done
+
+lemma merge_inv_id [simp]:
+  assumes "pns1 \<inter> pns2 = {}"
+  shows "merge_inv (id_inv pns1) (id_inv pns2) = id_inv (pns1 \<union> pns2)"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s0 t s
+    apply (rule iffI)
+    subgoal apply (elim merge_inv.cases) by auto
+    subgoal apply auto
+      apply (elim merge_state_elim) using assms apply auto[1]
+      by (auto intro: merge_inv.intros)
+    done
   done
 
 lemma ex6:
@@ -666,9 +681,9 @@ lemma ex6:
     (Parallel (Single A ex6a)
               {ch1}
               (Single B ex6b))
-    (wait_in_cg_alt ch2 B (\<lambda>_. 1)
+    (wait_in_cg_alt (id_inv {B, A}) ch2 B (\<lambda>_. 1)
       (\<lambda>d v. IFG [A] (\<lambda>s. d = 0) THEN
-               ((wait_cg A (\<lambda>_. 1)
+               ((wait_cg (id_inv {B, A}) A (\<lambda>_. 1)
                    (init_single {B, A} {{X := (\<lambda>_. v)}}\<^sub>g at B)
                    {{ X := (\<lambda>_. v) }}\<^sub>g at A))
              ELSE true_gassn {B, A} FI)
@@ -687,7 +702,8 @@ lemma ex6:
   (* Stage 3: combine the two assertions *)
     apply (rule entails_g_trans)
      apply (rule sync_gassn_out_unpair_wait0)
-    apply (auto simp add: ch1_def ch2_def A_def B_def)
+            apply (auto simp add: ch1_def ch2_def A_def B_def)[8]
+    apply simp
     apply (rule wait_in_cg_alt_mono)
     subgoal for d v
       apply (rule cond_gassn_mono)
@@ -726,7 +742,7 @@ lemma ex6_full:
     (Parallel (Parallel (Single A ex6a) {ch1} (Single B ex6b))
               {ch2}
               (Single C (Cm (ch2[!](\<lambda>_. v)); Wait (\<lambda>_. 1))))
-    (\<lambda>s0. wait_cg A (\<lambda>_. 1) (init_single {C, B, A} {{X := (\<lambda>_. v)}}\<^sub>g at B)
+    (\<lambda>s0. wait_cg (id_inv {C, B, A}) A (\<lambda>_. 1) (init_single {C, B, A} {{X := (\<lambda>_. v)}}\<^sub>g at B)
         (updg s0 A X v))"
   (* Stage 1: merge with ex6 *)
   apply (rule spec_of_global_post)
