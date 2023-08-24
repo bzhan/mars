@@ -57,19 +57,70 @@ lemma wait_out_cgv_mono:
   apply (rule conj_pure_gassn_mono)
   using assms by auto
 
+lemma wait_out_c_upd:
+  "(wait_out_c I ch P {{ var := e }}) s0 \<Longrightarrow>\<^sub>A
+   wait_out_c (\<lambda>s0 t s. I (upd s0 var (e s0)) t s) ch (\<lambda>d v. P d v {{ var := e }}) s0"
+  unfolding entails_def apply clarify
+  subgoal for s tr unfolding subst_assn2_def
+    apply (elim wait_out_c.cases) apply auto
+    subgoal for v tr'
+      apply (rule wait_out_c.intros(1)) by auto
+    subgoal for d v tr' p
+      apply (rule wait_out_c.intros(2)) by auto
+    done
+  done
+
+lemma conj_assn_upd:
+  "((P \<and>\<^sub>a Q) {{ var := e }}) s0 \<Longrightarrow>\<^sub>A
+   (P {{ var := e }} \<and>\<^sub>a Q {{ var := e }}) s0"
+  unfolding conj_assn_def subst_assn2_def
+  by (rule entails_triv)
+
+lemma pure_assn_upd:
+  "((!\<^sub>a[b]) {{ var := e }}) s0 \<Longrightarrow>\<^sub>A
+   (!\<^sub>a[(\<lambda>s0. b (upd s0 var (e s0)))]) s0"
+  unfolding pure_assn_def subst_assn2_def
+  by (rule entails_triv)
+
+lemma wait_out_cv_upd:
+  "(wait_out_cv I ch e' P {{ var := e }}) s0 \<Longrightarrow>\<^sub>A
+   wait_out_cv (\<lambda>s0 t s. I (upd s0 var (e s0)) t s) ch (\<lambda>s0. e' (upd s0 var (e s0)))
+               (\<lambda>d. P d {{ var := e }}) s0"
+  unfolding wait_out_cv_def
+  apply (rule entails_trans)
+   apply (rule wait_out_c_upd)
+  apply (rule wait_out_c_mono)
+  apply (rule entails_trans)
+   apply (rule conj_assn_upd)
+  apply (rule conj_assn_mono1)
+  by (rule pure_assn_upd)
+
+lemma ex1a:
+  "spec_of ex1a
+    (wait_in_c single_id_inv ch1
+      (\<lambda>d v. wait_out_cv (\<lambda>s0 t s. upd s0 X v = s) ch2 (\<lambda>s0. v + 1)
+         (\<lambda>d. init {{ X := (\<lambda>_. v) }})))"
+  unfolding ex1a_def
+  apply (rule spec_of_post)
+   apply (rule Valid_receive_sp)
+   apply (rule spec_of_send) apply clarify
+  apply (rule wait_in_c_mono)
+  apply (rule entails_trans)
+   apply (rule wait_out_cv_upd)
+  apply simp by (rule entails_triv)
+
 lemma ex1:
   "spec_of_global
     (Parallel (Single A ex1a) {ch1}
               (Single B ex1b))
-    (\<lambda>s0. wait_out_cgv (id_inv {A}) ch2 {A, B} A (\<lambda>s. val s X + 1) (\<lambda>d. init_single {A, B})
-          (updg s0 A X 3))"
+    (wait_out_cgv (single_inv A (\<lambda>s0 t s. upd s0 X 3 = s)) ch2 {B, A} A (\<lambda>_. 4)
+                  (\<lambda>d. init_single {A, B} {{X := (\<lambda>_. 3)}}\<^sub>g at A))"
   apply (rule spec_of_global_post)
   (* Stage 1: obtain spec for both sides *)
    apply (rule spec_of_parallel)
     (* ex1a *)
-      apply (rule spec_of_single) unfolding ex1a_def
-      apply (rule Valid_receive_sp)
-      apply (rule spec_of_send)
+      apply (rule spec_of_single)
+      apply (rule ex1a)
     (* ex1b *)
      apply (rule spec_of_single) unfolding ex1b_def
      apply (rule spec_of_send)
@@ -81,15 +132,12 @@ lemma ex1:
     apply (rule entails_g_trans)
      apply (rule sync_gassn_in_outv) apply auto
     apply (rule entails_g_trans)
-     apply (rule sync_gassn_subst_left) apply simp
-    apply (rule entails_g_trans)
-     apply (rule gassn_subst)
-    apply (rule entails_g_trans)
      apply (rule sync_gassn_outv_emp) apply auto
     apply (rule wait_out_cgv_mono) apply auto
     apply (rule entails_g_trans)
-     apply (rule sync_gassn_emp) apply auto
-    apply (rule init_single_mono) by auto
+     apply (rule sync_gassn_subst_left) apply auto
+    apply (rule updg_mono)
+    apply (rule sync_gassn_emp) by auto
   done
 
 subsubsection \<open>Example 2\<close>
@@ -105,25 +153,49 @@ definition ex2a :: "'a proc" where
 definition ex2b :: "'a proc" where
   "ex2b = (Cm (ch1[?]Z); Cm (ch2[!](\<lambda>s. val s Z + 1)))"
 
+lemma ex2a:
+  "spec_of ex2a
+    (wait_out_cv single_id_inv ch1 (\<lambda>s. val s X)
+      (\<lambda>d. wait_in_c single_id_inv ch2 (\<lambda>d v. init {{Y := (\<lambda>_. v)}})))"
+  unfolding ex2a_def
+  apply (rule spec_of_post)
+  apply (rule Valid_send_sp)
+  apply (rule spec_of_receive)
+  apply auto by (rule entails_triv)
+
+lemma ex2b:
+  "spec_of ex2b
+    (wait_in_c single_id_inv ch1
+      (\<lambda>d v. wait_out_cv (\<lambda>s0 t s. upd s0 Z v = s) ch2 (\<lambda>s0. v + 1)
+         (\<lambda>d. init {{Z := (\<lambda>_. v)}})))"
+  unfolding ex2b_def
+  apply (rule spec_of_post)
+  apply (rule Valid_receive_sp)
+   apply (rule spec_of_send) apply clarify
+  apply (rule wait_in_c_mono)
+  apply (rule entails_trans)
+   apply (rule wait_out_cv_upd)
+  apply simp by (rule entails_triv)
+
+lemma proc_set_path_single_inv [intro]:
+  "proc_set_path {pn} (single_inv pn I)"
+  unfolding proc_set_path_def apply clarify
+  apply (elim single_inv.cases) by auto
+
 lemma ex2:
   "spec_of_global
     (Parallel (Single A ex2a)
               {ch1, ch2}
               (Single B ex2b))
-    (\<lambda>s0. init_single {B, A}
-       (updg (updg s0 B Z (valg s0 A X))
-                      A Y (valg s0 A X + 1)))"
+    (\<lambda>s0. ((init_single {B, A} {{Z := (\<lambda>_. valg s0 A X)}}\<^sub>g at B)
+                               {{Y := (\<lambda>_. valg s0 A X + 1)}}\<^sub>g at A) s0)"
   (* Stage 1: merge ex2a_sp and ex2b_sp *)
   apply (rule spec_of_global_post)
    apply (rule spec_of_parallel)
     (* ex2a *)
-      apply (rule spec_of_single) unfolding ex2a_def
-      apply (rule Valid_send_sp)
-      apply (rule spec_of_receive)
+      apply (rule spec_of_single) apply (rule ex2a)
     (* ex2b *)
-     apply (rule spec_of_single) unfolding ex2b_def
-     apply (rule Valid_receive_sp)
-     apply (rule spec_of_send)
+     apply (rule spec_of_single) apply (rule ex2b)
     apply simp apply simp
     (* Stage 2: rewrite the assertions *)
   apply auto subgoal for s0
@@ -132,19 +204,14 @@ lemma ex2:
     apply (rule entails_g_trans)
      apply (rule sync_gassn_outv_in) apply auto
     apply (rule entails_g_trans)
-     apply (rule sync_gassn_subst_right) apply auto
-    apply (rule entails_g_trans)
-     apply (rule gassn_subst)
-    apply (rule entails_g_trans)
      apply (rule sync_gassn_in_outv) apply auto
     apply (rule entails_g_trans)
-     apply (rule sync_gassn_subst_left) apply auto
+     apply (rule sync_gassn_subst_left) apply (auto simp add: valg_def[symmetric])
+    apply (rule updg_mono)
     apply (rule entails_g_trans)
-     apply (rule gassn_subst)
-    apply (rule entails_g_trans)
-     apply (rule sync_gassn_emp) apply simp
-    apply (simp only: valg_def[symmetric]) apply auto
-    by (rule entails_g_triv)
+     apply (rule sync_gassn_subst_right) apply auto
+    apply (rule updg_mono)
+     apply (rule sync_gassn_emp) by simp
   done
 
 subsubsection \<open>Example 3\<close>

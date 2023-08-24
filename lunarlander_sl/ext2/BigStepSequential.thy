@@ -540,6 +540,11 @@ lemma conj_pure_mono:
   shows "(!\<^sub>a[b] \<and>\<^sub>a P1) s0 \<Longrightarrow>\<^sub>A (!\<^sub>a[b] \<and>\<^sub>a P2) s0"
   using assms unfolding entails_def conj_assn_def pure_assn_def by auto
 
+lemma conj_assn_mono1:
+  assumes "P1 s0 \<Longrightarrow>\<^sub>A P2 s0"
+  shows "(P1 \<and>\<^sub>a Q) s0 \<Longrightarrow>\<^sub>A (P2 \<and>\<^sub>a Q) s0"
+  using assms unfolding entails_def conj_assn_def by auto
+
 lemma wait_out_cv_mono:
   assumes "\<And>d s. P1 d s \<Longrightarrow>\<^sub>A P2 d s"
   shows "wait_out_cv I ch e P1 s0 \<Longrightarrow>\<^sub>A wait_out_cv I ch e P2 s0"
