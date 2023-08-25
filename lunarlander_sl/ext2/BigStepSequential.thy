@@ -711,6 +711,45 @@ lemma Valid_wait_sp:
    apply (rule wait_c.intros(1)) apply auto
   apply (rule wait_c.intros(2)) by auto
 
+subsection \<open>Update rules\<close>
+
+lemma wait_out_c_upd:
+  "(wait_out_c I ch P {{ var := e }}) s0 \<Longrightarrow>\<^sub>A
+   wait_out_c (\<lambda>s0 t s. I (upd s0 var (e s0)) t s) ch (\<lambda>d v. P d v {{ var := e }}) s0"
+  unfolding entails_def apply clarify
+  subgoal for s tr unfolding subst_assn2_def
+    apply (elim wait_out_c.cases) apply auto
+    subgoal for v tr'
+      apply (rule wait_out_c.intros(1)) by auto
+    subgoal for d v tr' p
+      apply (rule wait_out_c.intros(2)) by auto
+    done
+  done
+
+lemma conj_assn_upd:
+  "((P \<and>\<^sub>a Q) {{ var := e }}) s0 \<Longrightarrow>\<^sub>A
+   (P {{ var := e }} \<and>\<^sub>a Q {{ var := e }}) s0"
+  unfolding conj_assn_def subst_assn2_def
+  by (rule entails_triv)
+
+lemma pure_assn_upd:
+  "((!\<^sub>a[b]) {{ var := e }}) s0 \<Longrightarrow>\<^sub>A
+   (!\<^sub>a[(\<lambda>s0. b (upd s0 var (e s0)))]) s0"
+  unfolding pure_assn_def subst_assn2_def
+  by (rule entails_triv)
+
+lemma wait_out_cv_upd:
+  "(wait_out_cv I ch e' P {{ var := e }}) s0 \<Longrightarrow>\<^sub>A
+   wait_out_cv (\<lambda>s0 t s. I (upd s0 var (e s0)) t s) ch (\<lambda>s0. e' (upd s0 var (e s0)))
+               (\<lambda>d. P d {{ var := e }}) s0"
+  unfolding wait_out_cv_def
+  apply (rule entails_trans)
+   apply (rule wait_out_c_upd)
+  apply (rule wait_out_c_mono)
+  apply (rule entails_trans)
+   apply (rule conj_assn_upd)
+  apply (rule conj_assn_mono1)
+  by (rule pure_assn_upd)
 
 subsection \<open>Rewrite rules for big-step semantics\<close>
 

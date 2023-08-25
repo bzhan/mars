@@ -173,6 +173,13 @@ lemma valg_merge_state_left:
   shows "valg (merge_state s1 s2) pn v = valg s1 pn v"
   using assms by (auto simp add: proc_set_def merge_state_def valg_def)
 
+lemma valg_restrict_state:
+  assumes "pn \<in> pns"
+    and "proc_set s \<subseteq> pns"
+  shows "valg (restrict_state pns s) pn v = valg s pn v"
+  unfolding valg_def restrict_state_def apply auto
+  using assms unfolding proc_set_def by auto
+
 lemma single_subst_merge_state1:
   assumes "pn \<in> proc_set s11"
   shows "updg (merge_state s11 s12) pn var e = merge_state (updg s11 pn var e) s12"
@@ -1047,6 +1054,11 @@ lemma proc_set_path_delay [intro!]:
   "proc_set_path pns I \<Longrightarrow> proc_set_path pns (delay_inv d I)"
   unfolding proc_set_path_def by (auto elim: delay_inv.cases)
 
+lemma proc_set_path_single_inv [intro]:
+  "proc_set_path {pn} (single_inv pn I)"
+  unfolding proc_set_path_def apply clarify
+  apply (elim single_inv.cases) by auto
+
 lemma proc_set_wait_in_cg [intro!]:
   assumes "\<And>d v. proc_set_gassn pns (P d v)"
     and "proc_set_path pns I"
@@ -1437,6 +1449,15 @@ lemma sync_gassn_exists_right:
 
 subsubsection \<open>Monotonicity rules\<close>
 
+lemma init_single_mono:
+  assumes "pns1 = pns2"
+  shows "init_single pns1 s0 \<Longrightarrow>\<^sub>g init_single pns2 s0"
+  unfolding entails_g_def apply auto
+  subgoal for s tr
+    apply (elim init_single.cases)
+    using assms by (auto intro!: init_single.intros)
+  done
+
 lemma exists_gassn_mono:
   assumes "\<And>n. P1 n s0 \<Longrightarrow>\<^sub>g P2 n s0"
   shows "(\<exists>\<^sub>gn. P1 n) s0 \<Longrightarrow>\<^sub>g (\<exists>\<^sub>gn. P2 n) s0"
@@ -1478,6 +1499,16 @@ lemma wait_out_cg_mono:
       using assms unfolding entails_g_def by auto
     done
   done
+
+lemma wait_out_cgv_mono:
+  assumes "\<And>d. P d s0 \<Longrightarrow>\<^sub>g Q d s0"
+    and "pns1 = pns2"
+  shows "wait_out_cgv I ch pns1 pn e P s0 \<Longrightarrow>\<^sub>g wait_out_cgv I ch pns2 pn e Q s0"
+  unfolding wait_out_cgv_def
+  apply (rule wait_out_cg_mono)
+  using assms(2) apply auto
+  apply (rule conj_pure_gassn_mono)
+  using assms by auto
 
 lemma wait_in_cg_mono:
   assumes "\<And>d v. P d v s0 \<Longrightarrow>\<^sub>g Q d v s0"

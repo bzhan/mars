@@ -31,70 +31,6 @@ definition ex1a :: "'a proc" where
 definition ex1b :: "'a proc" where
   "ex1b = (Cm (ch1[!](\<lambda>_. 3)))"
 
-lemma valg_restrict_state:
-  assumes "pn \<in> pns"
-    and "proc_set s \<subseteq> pns"
-  shows "valg (restrict_state pns s) pn v = valg s pn v"
-  unfolding valg_def restrict_state_def apply auto
-  using assms unfolding proc_set_def by auto
-
-lemma init_single_mono:
-  assumes "pns1 = pns2"
-  shows "init_single pns1 s0 \<Longrightarrow>\<^sub>g init_single pns2 s0"
-  unfolding entails_g_def apply auto
-  subgoal for s tr
-    apply (elim init_single.cases)
-    using assms by (auto intro!: init_single.intros)
-  done
-
-lemma wait_out_cgv_mono:
-  assumes "\<And>d. P d s0 \<Longrightarrow>\<^sub>g Q d s0"
-    and "pns1 = pns2"
-  shows "wait_out_cgv I ch pns1 pn e P s0 \<Longrightarrow>\<^sub>g wait_out_cgv I ch pns2 pn e Q s0"
-  unfolding wait_out_cgv_def
-  apply (rule wait_out_cg_mono)
-  using assms(2) apply auto
-  apply (rule conj_pure_gassn_mono)
-  using assms by auto
-
-lemma wait_out_c_upd:
-  "(wait_out_c I ch P {{ var := e }}) s0 \<Longrightarrow>\<^sub>A
-   wait_out_c (\<lambda>s0 t s. I (upd s0 var (e s0)) t s) ch (\<lambda>d v. P d v {{ var := e }}) s0"
-  unfolding entails_def apply clarify
-  subgoal for s tr unfolding subst_assn2_def
-    apply (elim wait_out_c.cases) apply auto
-    subgoal for v tr'
-      apply (rule wait_out_c.intros(1)) by auto
-    subgoal for d v tr' p
-      apply (rule wait_out_c.intros(2)) by auto
-    done
-  done
-
-lemma conj_assn_upd:
-  "((P \<and>\<^sub>a Q) {{ var := e }}) s0 \<Longrightarrow>\<^sub>A
-   (P {{ var := e }} \<and>\<^sub>a Q {{ var := e }}) s0"
-  unfolding conj_assn_def subst_assn2_def
-  by (rule entails_triv)
-
-lemma pure_assn_upd:
-  "((!\<^sub>a[b]) {{ var := e }}) s0 \<Longrightarrow>\<^sub>A
-   (!\<^sub>a[(\<lambda>s0. b (upd s0 var (e s0)))]) s0"
-  unfolding pure_assn_def subst_assn2_def
-  by (rule entails_triv)
-
-lemma wait_out_cv_upd:
-  "(wait_out_cv I ch e' P {{ var := e }}) s0 \<Longrightarrow>\<^sub>A
-   wait_out_cv (\<lambda>s0 t s. I (upd s0 var (e s0)) t s) ch (\<lambda>s0. e' (upd s0 var (e s0)))
-               (\<lambda>d. P d {{ var := e }}) s0"
-  unfolding wait_out_cv_def
-  apply (rule entails_trans)
-   apply (rule wait_out_c_upd)
-  apply (rule wait_out_c_mono)
-  apply (rule entails_trans)
-   apply (rule conj_assn_upd)
-  apply (rule conj_assn_mono1)
-  by (rule pure_assn_upd)
-
 lemma ex1a:
   "spec_of ex1a
     (wait_in_c single_id_inv ch1
@@ -177,11 +113,6 @@ lemma ex2b:
    apply (rule wait_out_cv_upd)
   apply simp by (rule entails_triv)
 
-lemma proc_set_path_single_inv [intro]:
-  "proc_set_path {pn} (single_inv pn I)"
-  unfolding proc_set_path_def apply clarify
-  apply (elim single_inv.cases) by auto
-
 lemma ex2:
   "spec_of_global
     (Parallel (Single A ex2a)
@@ -226,13 +157,15 @@ text \<open>
 definition ex3a :: "'a proc" where
   "ex3a = (Rep (Cm (ch1[!](\<lambda>s. val s X)); Y ::= (\<lambda>s. val s Y + 1)))"
 
-fun rinv_c :: "nat \<Rightarrow> ('a estate \<Rightarrow> 'a assn) \<Rightarrow> ('a estate \<Rightarrow> 'a assn)" where
-  "rinv_c 0 Q = Q"
-| "rinv_c (Suc n) Q = wait_out_cv single_id_inv ch1 (\<lambda>s. val s X) (\<lambda>d. rinv_c n Q {{ Y := (\<lambda>s0. val s0 Y + 1) }})"
+fun ex3a_c :: "nat \<Rightarrow> ('a estate \<Rightarrow> 'a assn) \<Rightarrow> ('a estate \<Rightarrow> 'a assn)" where
+  "ex3a_c 0 Q = Q"
+| "ex3a_c (Suc n) Q =
+    wait_out_cv single_id_inv ch1 (\<lambda>s. val s X)
+      (\<lambda>d. ex3a_c n Q {{ Y := (\<lambda>s. val s Y + 1) }})"
 
 lemma ex3a_sp:
   "spec_of ex3a
-           (\<exists>\<^sub>an. rinv_c n init)"
+           (\<exists>\<^sub>an. ex3a_c n init)"
   unfolding ex3a_def
   apply (rule spec_of_rep)
   subgoal for n
@@ -251,13 +184,15 @@ lemma ex3a_sp:
 definition ex3b :: "'a proc" where
   "ex3b = (Rep (Cm (ch1[?]X); Y ::= (\<lambda>s. val s Y + val s X)))"
 
-fun linv_c :: "nat \<Rightarrow> ('a estate \<Rightarrow> 'a assn) \<Rightarrow> ('a estate \<Rightarrow> 'a assn)" where
-  "linv_c 0 Q = Q"
-| "linv_c (Suc n) Q = wait_in_c single_id_inv ch1 (\<lambda>d v. linv_c n Q {{Y := (\<lambda>s. val s Y + val s X)}} {{X := (\<lambda>_. v)}} )"
+fun ex3b_c :: "nat \<Rightarrow> ('a estate \<Rightarrow> 'a assn) \<Rightarrow> ('a estate \<Rightarrow> 'a assn)" where
+  "ex3b_c 0 Q = Q"
+| "ex3b_c (Suc n) Q =
+    wait_in_c single_id_inv ch1
+     (\<lambda>d v. ex3b_c n Q {{Y := (\<lambda>s. val s Y + val s X)}} {{X := (\<lambda>_. v)}} )"
 
 lemma ex3b_sp:
   "spec_of ex3b
-           (\<exists>\<^sub>an. linv_c n init)"
+           (\<exists>\<^sub>an. ex3b_c n init)"
   unfolding ex3b_def
   apply (rule spec_of_rep)
   subgoal for n
@@ -275,13 +210,13 @@ lemma ex3b_sp:
   done
 
 definition ex3_inv :: "'a gstate \<Rightarrow> bool" where
-  "ex3_inv s0 \<longleftrightarrow> (valg s0 B Y = valg s0 A X * valg s0 A Y)"
+  "ex3_inv s \<longleftrightarrow> (valg s B Y = valg s A X * valg s A Y)"
 
 definition ex3_one_step :: "'a gstate \<Rightarrow> 'a gstate" where
-  "ex3_one_step s0 =
-      updg (updg (updg s0 B X (valg s0 A X))
-                          A Y (valg s0 A Y + 1))
-                          B Y (valg s0 B Y + valg s0 A X)"
+  "ex3_one_step s =
+      updg (updg (updg s B X (valg s A X))
+                         A Y (valg s A Y + 1))
+                         B Y (valg s B Y + valg s A X)"
 
 text \<open>This is the crucial lemma, stating that from a starting state s0
   satisfying invariant ex3_inv, there is another state s1 also satisfying
@@ -293,11 +228,11 @@ lemma ex3':
   shows
   "\<exists>s1. ex3_inv s1 \<and>
    (sync_gassn {ch1} {A} {B}
-     (single_assn A (rinv_c (Suc n1) init))
-     (single_assn B (linv_c (Suc n2) init)) s0 \<Longrightarrow>\<^sub>g
+     (single_assn A (ex3a_c (Suc n1) init))
+     (single_assn B (ex3b_c (Suc n2) init)) s0 \<Longrightarrow>\<^sub>g
     (sync_gassn {ch1} {A} {B}
-     (single_assn A (rinv_c n1 init))
-     (single_assn B (linv_c n2 init))) s1)"
+     (single_assn A (ex3a_c n1 init))
+     (single_assn B (ex3b_c n2 init))) s1)"
   apply (rule exI[where x="ex3_one_step s0"])
   apply (rule conjI)
   subgoal using assms unfolding ex3_one_step_def ex3_inv_def
@@ -329,8 +264,8 @@ lemma ex3'':
   "ex3_inv s0 \<Longrightarrow>
    \<exists>s1. ex3_inv s1 \<and>
     (sync_gassn {ch1} {A} {B}
-      (single_assn A (rinv_c n1 init))
-      (single_assn B (linv_c n2 init)) s0 \<Longrightarrow>\<^sub>g
+      (single_assn A (ex3a_c n1 init))
+      (single_assn B (ex3b_c n2 init)) s0 \<Longrightarrow>\<^sub>g
     init_single {B, A} s1)"
 proof (induction n1 n2 arbitrary: s0 rule: diff_induct)
   case (1 n1)
@@ -369,16 +304,16 @@ next
   case (3 n1 n2)
   obtain s1 where s1: "ex3_inv s1"
     "sync_gassn {ch1} {A} {B}
-      (single_assn A (rinv_c (Suc n1) init))
-      (single_assn B (linv_c (Suc n2) init)) s0 \<Longrightarrow>\<^sub>g
+      (single_assn A (ex3a_c (Suc n1) init))
+      (single_assn B (ex3b_c (Suc n2) init)) s0 \<Longrightarrow>\<^sub>g
      sync_gassn {ch1} {A} {B}
-      (single_assn A (rinv_c n1 init))
-      (single_assn B (linv_c n2 init)) s1"
+      (single_assn A (ex3a_c n1 init))
+      (single_assn B (ex3b_c n2 init)) s1"
     using ex3' 3 by blast
   obtain s2 where s2: "ex3_inv s2"
     "sync_gassn {ch1} {A} {B}
-       (single_assn A (rinv_c n1 init))
-       (single_assn B (linv_c n2 init)) s1 \<Longrightarrow>\<^sub>g
+       (single_assn A (ex3a_c n1 init))
+       (single_assn B (ex3b_c n2 init)) s1 \<Longrightarrow>\<^sub>g
      init_single {B, A} s2"
     using 3 s1(1) by blast 
   show ?case
@@ -395,9 +330,9 @@ lemma ex3''':
               {ch1}
               (Single B ex3b))
     (\<exists>\<^sub>gn1 n2. sync_gassn {ch1} {A} {B}
-                (single_assn A (rinv_c n1 init))
-                (single_assn B (linv_c n2 init)))"
-  (* Stage 1: merge ex3_c and ex4_c *)
+                (single_assn A (ex3a_c n1 init))
+                (single_assn B (ex3b_c n2 init)))"
+  (* Stage 1: merge ex3a_c and ex3b_c *)
   apply (rule spec_of_global_post)
    apply (rule spec_of_parallel)
       apply (rule spec_of_single)
@@ -422,7 +357,7 @@ lemma ex3:
   subgoal premises pre for s0 n1 n2
   proof -
     obtain s1 where s1: "ex3_inv s1"
-     "sync_gassn {ch1} {A} {B} (single_assn A (rinv_c n1 init)) (single_assn B (linv_c n2 init)) s0 \<Longrightarrow>\<^sub>g
+     "sync_gassn {ch1} {A} {B} (single_assn A (ex3a_c n1 init)) (single_assn B (ex3b_c n2 init)) s0 \<Longrightarrow>\<^sub>g
       init_single {B, A} s1"
       using ex3''[of s0 n1 n2] pre by auto
     show ?thesis
