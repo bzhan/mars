@@ -84,7 +84,7 @@ lemma single_assn_interrupt_solInf [single_assn_simps]:
         apply (cases "specs ! i") apply auto
         apply (elim single_assn.cases) apply auto
         subgoal for Q' s0'' s' tr''
-          apply (elim single_inv_infE) subgoal for p''
+          apply (elim single_inv_inf_intervalE) subgoal for p''
             apply (rule single_assn.intros[where tr=
                   "WaitBlk d p'' (rdy_of_comm_specg2 (map (comm_spec_gassn_of pn) specs)) #
                    InBlock ch v # tr''"])
@@ -105,7 +105,7 @@ lemma single_assn_interrupt_solInf [single_assn_simps]:
         apply (cases "specs ! i") apply auto
         apply (elim single_assn.cases) apply auto
         subgoal for Q' s0'' s' tr''
-          apply (elim single_inv_infE) subgoal for p''
+          apply (elim single_inv_inf_intervalE) subgoal for p''
             apply (rule single_assn.intros[where tr=
                   "WaitBlk d p'' (rdy_of_comm_specg2 (map (comm_spec_gassn_of pn) specs)) #
                    OutBlock ch v # tr''"])

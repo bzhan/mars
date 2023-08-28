@@ -583,7 +583,7 @@ definition wait_out_cgv :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstat
 text \<open>Assertion for wait\<close>
 inductive wait_cg :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool) \<Rightarrow> pname \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
   "e (the (gs0 pn)) > 0 \<Longrightarrow> d = e (the (gs0 pn)) \<Longrightarrow>
-   P d gs0 gs tr \<Longrightarrow> \<forall>t\<in>{0..}. I gs0 t (p t) \<Longrightarrow> rdy = ({}, {}) \<Longrightarrow>
+   P d gs0 gs tr \<Longrightarrow> \<forall>t\<in>{0..d}. I gs0 t (p t) \<Longrightarrow> rdy = ({}, {}) \<Longrightarrow>
    wait_cg I pn e P gs0 gs (WaitBlkP d (\<lambda>\<tau>. p \<tau>) rdy # tr)"
 | "\<not>e (the (gs0 pn)) > 0 \<Longrightarrow> P 0 gs0 gs tr \<Longrightarrow> wait_cg I pn e P gs0 gs tr"
 
@@ -604,10 +604,10 @@ text \<open>
 inductive wait_in_cg_alt :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool) \<Rightarrow> cname \<Rightarrow> pname \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a gassn2) \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
   "P 0 v s0 s tr \<Longrightarrow> wait_in_cg_alt I ch pn e P Q s0 s (InBlockP ch v # tr)"
 | "0 < d \<Longrightarrow> d \<le> e (the (s0 pn)) \<Longrightarrow> P d v s0 s tr \<Longrightarrow>
-   \<forall>t\<in>{0..}. I s0 t (p t) \<Longrightarrow>
+   \<forall>t\<in>{0..d}. I s0 t (p t) \<Longrightarrow>
    wait_in_cg_alt I ch pn e P Q s0 s (WaitBlkP d (\<lambda>\<tau>. p \<tau>) ({}, {ch}) # InBlockP ch v # tr)"
 | "0 < e (the (s0 pn)) \<Longrightarrow> d \<ge> e (the (s0 pn)) \<Longrightarrow> Q d s0 s tr \<Longrightarrow>
-   \<forall>t\<in>{0..}. I s0 t (p t) \<Longrightarrow>   
+   \<forall>t\<in>{0..d}. I s0 t (p t) \<Longrightarrow>   
    wait_in_cg_alt I ch pn e P Q s0 s (WaitBlkP d (\<lambda>\<tau>. p \<tau>) ({}, {ch}) # tr)"
 | "\<not>0 < e (the (s0 pn)) \<Longrightarrow> Q 0 s0 s tr \<Longrightarrow>
    wait_in_cg_alt I ch pn e P Q s0 s tr"
@@ -651,7 +651,25 @@ inductive single_inv :: "pname \<Rightarrow> ('a estate \<Rightarrow> real \<Rig
 
 inductive_cases single_inv_State: "single_inv pn I gs0 t gs"
 
-lemma single_inv_infE:
+lemma single_inv_intervalE:
+  assumes "\<forall>t\<in>{0..d}. single_inv pn I (State pn s0) t (p t)"
+    and "(\<And>p'. \<forall>t\<in>{0..d}. p t = State pn (p' t) \<and> I s0 t (p' t) \<Longrightarrow> P)"
+  shows P
+proof -
+  have a: "\<exists>s. p t = State pn s \<and> I s0 t s" if "t\<in>{0..d}" for t
+    using assms(1) that
+    by (metis State_inj single_inv.cases)
+  then obtain p' where p': "\<forall>t\<in>{0..d}. p t = State pn (p' t) \<and> I s0 t (p' t)"
+    by metis
+  show ?thesis
+    apply (rule assms(2)[where p'="\<lambda>t. SOME s. p t = State pn s \<and> I s0 t s"])
+    apply clarify subgoal for t
+      apply (rule someI[where x="p' t"])
+      using p' by auto
+    done
+qed
+
+lemma single_inv_inf_intervalE:
   assumes "\<forall>t\<in>{0..}. single_inv pn I (State pn s0) t (p t)"
     and "(\<And>p'. \<forall>t\<in>{0..}. p t = State pn (p' t) \<and> I s0 t (p' t) \<Longrightarrow> P)"
   shows P
@@ -788,7 +806,7 @@ lemma single_assn_wait_in [single_assn_simps]:
       subgoal for d v tr' p
         apply (elim single_assn.cases) apply auto
         subgoal for s0' s' tr''
-          apply (elim single_inv_infE) subgoal for p'
+          apply (elim single_inv_inf_intervalE) subgoal for p'
             apply (rule single_assn.intros)
              apply (rule wait_in_c.intros(2))
             by (auto intro!: ptrace_of.intros WaitBlkP_eqI)
@@ -826,7 +844,7 @@ lemma single_assn_wait_out [single_assn_simps]:
       subgoal for d v tr' p
         apply (elim single_assn.cases) apply auto
         subgoal for s0' s' tr''
-          apply (elim single_inv_infE) subgoal for p'
+          apply (elim single_inv_inf_intervalE) subgoal for p'
             apply (rule single_assn.intros)
              apply (rule wait_out_c.intros(2))
             by (auto intro!: ptrace_of.intros WaitBlkP_eqI)
@@ -911,7 +929,7 @@ lemma single_assn_wait [single_assn_simps]:
       subgoal for tr' p
         apply (elim single_assn.cases) apply auto
         subgoal for s0' s' tr''
-          apply (elim single_inv_infE)
+          apply (elim single_inv_intervalE)
           apply (rule single_assn.intros)
            apply (rule wait_c.intros)
           by (auto intro!: ptrace_of.intros WaitBlkP_eqI)
@@ -1114,8 +1132,7 @@ lemma proc_set_wait_cg [intro!]:
     apply (elim wait_cg.cases) apply clarify
     using assms unfolding proc_set_gassn_def apply auto
     apply (rule proc_set_trace.intros) apply auto
-     apply (metis (no_types, opaque_lifting) atLeast_iff proc_set_path_def)
-    by (metis (mono_tags, opaque_lifting) atLeast_iff proc_set_path_def)
+    by (metis atLeastAtMost_iff proc_set_path_def)+
   done
 
 lemma proc_set_cond_gassn [intro!]:
@@ -2089,9 +2106,9 @@ lemma sync_gassn_in_unpair_left_wait:
           apply (rule sync_gassn.intros) apply auto
           apply (rule wait_in_cg.intros) by auto
         done
-      subgoal for d v tr1'
+      subgoal for d v tr1' p
         apply (elim wait_cg.cases) apply auto
-        subgoal for tr2'
+        subgoal for tr2' p'
           apply (cases rule: linorder_cases[of d "e (the (s12 pn))"])
           subgoal
             apply (elim combine_blocks_waitE3) apply auto
@@ -2099,7 +2116,7 @@ lemma sync_gassn_in_unpair_left_wait:
             apply (rule wait_in_cg_alt.intros(2)) apply (auto simp add: merge_state_eval2)
              apply (rule sync_gassn.intros) apply auto
              apply (rule wait_cg.intros) apply auto
-            by (auto intro: delay_inv.intros merge_inv.intros)
+            by (auto intro!: delay_inv.intros merge_inv.intros)
           subgoal apply auto
             apply (elim combine_blocks_waitE2) apply auto
             apply (rule wait_in_cg_alt.intros(3)) apply (auto simp add: merge_state_eval2)

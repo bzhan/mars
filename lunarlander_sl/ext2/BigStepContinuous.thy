@@ -795,6 +795,27 @@ lemma interrupt_sol_c_updg:
 
 subsection \<open>Simplification of interrupt assertions\<close>
 
+lemma interrupt_solInf_c_out:
+  "interrupt_solInf_c I [OutSpec2 ch P] = wait_out_c I ch P"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s0 s tr apply (rule iffI)
+    subgoal apply (elim interrupt_solInf_c.cases) apply auto
+      subgoal for v tr'
+        by (intro wait_out_c.intros(1)) 
+      subgoal for d v tr' a b p
+        unfolding rdy_of_comm_spec2_def apply simp
+        by (auto intro: wait_out_c.intros(2))
+      done
+    subgoal apply (elim wait_out_c.cases) apply auto
+      subgoal for v tr'
+        apply (intro interrupt_solInf_c.intros(3)[of 0 _ _ P]) by auto
+      subgoal for d v tr' p
+        apply (intro interrupt_solInf_c.intros(4)[of 0 _ _ P]) apply auto
+        unfolding rdy_of_comm_spec2_def by auto
+      done
+    done
+  done
+
 lemma interrupt_solInf_c_in:
   "interrupt_solInf_c I [InSpec2 ch P] = wait_in_c I ch P"
   apply (rule ext) apply (rule ext) apply (rule ext)
@@ -812,6 +833,27 @@ lemma interrupt_solInf_c_in:
       subgoal for d v tr' p
         apply (intro interrupt_solInf_c.intros(2)[of 0 _ _ P]) apply auto
         unfolding rdy_of_comm_spec2_def by auto
+      done
+    done
+  done
+
+lemma interrupt_sol_c_wait:
+  "interrupt_sol_c I d P [] = wait_c I d P"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s0 s tr apply (rule iffI)
+    subgoal apply (elim interrupt_sol_c.cases) apply auto
+      subgoal for tr' a b p
+        unfolding rdy_of_comm_spec2_def apply simp
+        by (auto intro: wait_c.intros(1))
+      subgoal
+        by (auto intro: wait_c.intros(2))
+      done
+    subgoal apply (elim wait_c.cases) apply auto
+      subgoal for tr' p
+        apply (intro interrupt_sol_c.intros(1))
+        unfolding rdy_of_comm_spec2_def by auto
+      subgoal
+        by (auto intro: interrupt_sol_c.intros(2))
       done
     done
   done

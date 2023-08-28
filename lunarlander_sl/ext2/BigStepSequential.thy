@@ -414,7 +414,7 @@ definition wait_out_cv :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate
 
 text \<open>Waiting an amount of time, without state change\<close>
 inductive wait_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate \<Rightarrow> bool) \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
-  "e s0 > 0 \<Longrightarrow> P (e s0) s0 s tr \<Longrightarrow> \<forall>t\<in>{0..}. I s0 t (p t) \<Longrightarrow>
+  "e s0 > 0 \<Longrightarrow> P (e s0) s0 s tr \<Longrightarrow> \<forall>t\<in>{0..e s0}. I s0 t (p t) \<Longrightarrow>
    wait_c I e P s0 s (WaitBlk (e s0) (\<lambda>\<tau>. p \<tau>) ({}, {}) # tr)"
 | "\<not>e s0 > 0 \<Longrightarrow> P 0 s0 s tr \<Longrightarrow> wait_c I e P s0 s tr"
 
