@@ -74,6 +74,10 @@ lemma valg_updeg_simp [simp]:
   "valg (updeg s pn e) pn2 var = valg s pn2 var"
   unfolding valg_def updeg_def by auto
 
+lemma valg_State_simp [simp]:
+  "valg (State pn s) pn var = val s var"
+  unfolding valg_def by auto
+
 definition epartg :: "'a gstate \<Rightarrow> pname \<Rightarrow> 'a" where
   "epartg gs pn = epart (the (gs pn))"
 
@@ -503,8 +507,11 @@ lemma proc_set_trace_single_elim:
 
 subsection \<open>Assertions on parallel processes\<close>
 
-text \<open>Assertion on global state\<close>
-type_synonym 'a gs_assn = "'a gstate \<Rightarrow> bool"
+text \<open>Global version of path invariant\<close>
+type_synonym 'a gpinv = "real \<Rightarrow> 'a gstate \<Rightarrow> bool"
+
+text \<open>Global version of path invariant, parameterized by starting state\<close>
+type_synonym 'a gpinv2 = "'a gstate \<Rightarrow> 'a gpinv"
 
 text \<open>Assertion on global state and trace\<close>
 type_synonym 'a gassn = "'a gstate \<Rightarrow> 'a ptrace \<Rightarrow> bool"
@@ -523,6 +530,10 @@ lemma entails_g_trans:
   "P \<Longrightarrow>\<^sub>g Q \<Longrightarrow> Q \<Longrightarrow>\<^sub>g R \<Longrightarrow> P \<Longrightarrow>\<^sub>g R"
   unfolding entails_g_def by auto
 
+lemma entails_g_elim:
+  "P s tr \<Longrightarrow> P \<Longrightarrow>\<^sub>g Q \<Longrightarrow> Q s tr"
+  unfolding entails_g_def by auto
+
 inductive true_gassn :: "pname set \<Rightarrow> 'a gassn2" where
   "proc_set gs0 = pns \<Longrightarrow> proc_set gs = pns \<Longrightarrow> proc_set_trace pns tr \<Longrightarrow>
    true_gassn pns gs0 gs tr"
@@ -530,7 +541,7 @@ inductive true_gassn :: "pname set \<Rightarrow> 'a gassn2" where
 definition false_gassn :: "'a gassn2" where
   "false_gassn s0 = (\<lambda>gs tr. False)"
 
-definition init_global :: "'a gstate \<Rightarrow> 'a gs_assn" where
+definition init_global :: "'a gstate \<Rightarrow> 'a gstate \<Rightarrow> bool" where
   "init_global s0 = (\<lambda>s. s = s0)"
 
 lemma init_global_parallel:
@@ -566,22 +577,22 @@ definition exists_gassn :: "('b \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2
   "(\<exists>\<^sub>gn. P n) = (\<lambda>s0 s tr. \<exists>n. P n s0 s tr)"
 
 text \<open>Assertion for input\<close>
-inductive wait_in_cg :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool) \<Rightarrow> cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
+inductive wait_in_cg :: "'a gpinv2 \<Rightarrow> cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
   "P 0 v s0 s tr \<Longrightarrow> wait_in_cg I ch P s0 s (InBlockP ch v # tr)"
 | "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> \<forall>t\<in>{0..}. I s0 t (p t) \<Longrightarrow>
    wait_in_cg I ch P s0 s (WaitBlkP d (\<lambda>\<tau>. p \<tau>) ({}, {ch}) # InBlockP ch v # tr)"
 
 text \<open>Assertion for output\<close>
-inductive wait_out_cg :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool) \<Rightarrow> cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
+inductive wait_out_cg :: "'a gpinv2 \<Rightarrow> cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
   "P 0 v s0 s tr \<Longrightarrow> wait_out_cg I ch P s0 s (OutBlockP ch v # tr)"
 | "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> \<forall>t\<in>{0..}. I s0 t (p t) \<Longrightarrow>
    wait_out_cg I ch P s0 s (WaitBlkP d (\<lambda>\<tau>. p \<tau>) ({ch}, {}) # OutBlockP ch v # tr)"
 
-definition wait_out_cgv :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool) \<Rightarrow> cname \<Rightarrow> pname set \<Rightarrow> pname \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
+definition wait_out_cgv :: "'a gpinv2 \<Rightarrow> cname \<Rightarrow> pname set \<Rightarrow> pname \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
   "wait_out_cgv I ch pns pn e P = wait_out_cg I ch (\<lambda>d v. !\<^sub>g[(\<lambda>gs0. v = e (the (gs0 pn)))] at pns \<and>\<^sub>g P d)"
 
 text \<open>Assertion for wait\<close>
-inductive wait_cg :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool) \<Rightarrow> pname \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
+inductive wait_cg :: "'a gpinv2 \<Rightarrow> pname \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
   "e (the (gs0 pn)) > 0 \<Longrightarrow> d = e (the (gs0 pn)) \<Longrightarrow>
    P d gs0 gs tr \<Longrightarrow> \<forall>t\<in>{0..d}. I gs0 t (p t) \<Longrightarrow> rdy = ({}, {}) \<Longrightarrow>
    wait_cg I pn e P gs0 gs (WaitBlkP d (\<lambda>\<tau>. p \<tau>) rdy # tr)"
@@ -601,7 +612,7 @@ text \<open>
   Another generalization of wait_in_c. This version combines
   waiting for input with a time limit.
 \<close>
-inductive wait_in_cg_alt :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool) \<Rightarrow> cname \<Rightarrow> pname \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a gassn2) \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
+inductive wait_in_cg_alt :: "'a gpinv2 \<Rightarrow> cname \<Rightarrow> pname \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a gassn2) \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
   "P 0 v s0 s tr \<Longrightarrow> wait_in_cg_alt I ch pn e P Q s0 s (InBlockP ch v # tr)"
 | "0 < d \<Longrightarrow> d \<le> e (the (s0 pn)) \<Longrightarrow> P d v s0 s tr \<Longrightarrow>
    \<forall>t\<in>{0..d}. I s0 t (p t) \<Longrightarrow>
@@ -613,10 +624,10 @@ inductive wait_in_cg_alt :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gsta
    wait_in_cg_alt I ch pn e P Q s0 s tr"
 
 text \<open>Version of wait_in_c with assumption of immediate communication\<close>
-definition wait_in_c0 :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate \<Rightarrow> bool) \<Rightarrow> cname \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
+definition wait_in_c0 :: "'a pinv2 \<Rightarrow> cname \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
   "wait_in_c0 I ch P = wait_in_c I ch (\<lambda>d v. IFA (\<lambda>s. d = 0) THEN P v ELSE true_assn2 FI)"
 
-definition wait_in_cg0 :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool) \<Rightarrow> pname \<Rightarrow> cname \<Rightarrow> pname set \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
+definition wait_in_cg0 :: "'a gpinv2 \<Rightarrow> pname \<Rightarrow> cname \<Rightarrow> pname set \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
   "wait_in_cg0 I pn ch pns P = wait_in_cg I ch (\<lambda>d v. IFG [pn] (\<lambda>s. d = 0) THEN P v ELSE true_gassn pns FI)"
 
 subsubsection \<open>More definition on paths\<close>
@@ -645,8 +656,7 @@ next
 qed
 
 text \<open>Mapping from invariant on a single state to invariant on general states\<close>
-inductive single_inv :: "pname \<Rightarrow> ('a estate \<Rightarrow> real \<Rightarrow> 'a estate \<Rightarrow> bool) \<Rightarrow>
-                         'a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool" where
+inductive single_inv :: "pname \<Rightarrow> 'a pinv2 \<Rightarrow> 'a gpinv2" where
   "I s0 t s \<Longrightarrow> single_inv pn I (State pn s0) t (State pn s)"
 
 inductive_cases single_inv_State: "single_inv pn I gs0 t gs"
@@ -688,14 +698,11 @@ proof -
 qed
 
 text \<open>Merging two invariant\<close>
-inductive merge_inv :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool) \<Rightarrow>
-                        ('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool) \<Rightarrow>
-                        'a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool" where
+inductive merge_inv :: "'a gpinv2 \<Rightarrow> 'a gpinv2 \<Rightarrow> 'a gpinv2" where
   "I1 s10 t s1 \<Longrightarrow> I2 s20 t s2 \<Longrightarrow> merge_inv I1 I2 (merge_state s10 s20) t (merge_state s1 s2)"
 
 text \<open>Delay a invariant by a certain amount of time\<close>
-inductive delay_inv :: "real \<Rightarrow> ('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool) \<Rightarrow>
-                        'a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool" where
+inductive delay_inv :: "real \<Rightarrow> 'a gpinv2 \<Rightarrow> 'a gpinv2" where
   "I s0 (t + d) s \<Longrightarrow> delay_inv d I s0 t s"
 
 lemma delay_inv_0 [simp]:
@@ -708,7 +715,7 @@ lemma delay_inv_0 [simp]:
     done
   done
 
-fun id_inv :: "pname set \<Rightarrow> 'a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool" where
+fun id_inv :: "pname set \<Rightarrow> 'a gpinv2" where
   "id_inv pns gs0 t gs = (proc_set gs0 = pns \<and> gs0 = gs)"
 
 lemma single_id_inv_simp [simp]:
@@ -719,6 +726,30 @@ lemma single_id_inv_simp [simp]:
     subgoal apply (elim single_inv.cases) by auto
     subgoal unfolding id_inv.simps apply clarify
       by (metis proc_set_single_elim single_id_inv.simps single_inv.intros)
+    done
+  done
+
+lemma merge_inv_elim:
+  assumes "merge_inv I1 I2 s0 t s"
+    "\<And>s01 s02 s1 s2. s0 = merge_state s01 s02 \<Longrightarrow> s = merge_state s1 s2 \<Longrightarrow>
+     I1 s01 t s1 \<Longrightarrow> I2 s02 t s2 \<Longrightarrow> P"
+  shows P
+  using assms(1) apply (elim merge_inv.cases) apply auto
+  subgoal for s01 s1 s02 s2
+    apply (rule assms(2)[of s01 s02 s1 s2])
+    by auto
+  done
+
+lemma merge_inv_id [simp]:
+  assumes "pns1 \<inter> pns2 = {}"
+  shows "merge_inv (id_inv pns1) (id_inv pns2) = id_inv (pns1 \<union> pns2)"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s0 t s
+    apply (rule iffI)
+    subgoal apply (elim merge_inv.cases) by auto
+    subgoal apply auto
+      apply (elim merge_state_elim) using assms apply auto[1]
+      by (auto intro: merge_inv.intros)
     done
   done
 
@@ -1201,18 +1232,6 @@ lemma proc_set_wait_out_cgv [intro!]:
   shows "proc_set_gassn pns (wait_out_cgv I ch pns pn e P)"
   unfolding wait_out_cgv_def using assms by auto
 
-lemma merge_inv_elim:
-  assumes
-    "merge_inv I1 I2 s0 t s"
-    "\<And>s01 s02 s1 s2. s0 = merge_state s01 s02 \<Longrightarrow> s = merge_state s1 s2 \<Longrightarrow>
-     I1 s01 t s1 \<Longrightarrow> I2 s02 t s2 \<Longrightarrow> P"
-  shows P
-  using assms(1) apply (elim merge_inv.cases) apply auto
-  subgoal for s01 s1 s02 s2
-    apply (rule assms(2)[of s01 s02 s1 s2])
-    by auto
-  done
-
 subsubsection \<open>Entailments on parallel assertions\<close>
 
 lemma pure_gassn_intro:
@@ -1249,6 +1268,13 @@ lemma entails_g_disj2:
   shows "(P1 \<or>\<^sub>g P2) gs0 \<Longrightarrow>\<^sub>g (R1 \<or>\<^sub>g R2) gs0"
   using assms unfolding entails_g_def disj_gassn_def by auto
 
+lemma entails_true_gassn:
+  assumes "proc_set_gassn pns P"
+  shows "P s0 \<Longrightarrow>\<^sub>g true_gassn pns s0"
+  unfolding entails_g_def apply auto
+  apply (intro true_gassn.intros)
+  using assms unfolding proc_set_gassn_def by auto
+
 lemma cond_gassn_true:
   "b \<Longrightarrow> (IFG [pn] (\<lambda>_. b) THEN P ELSE Q FI = P)"
   unfolding cond_gassn2_def by auto
@@ -1256,6 +1282,21 @@ lemma cond_gassn_true:
 lemma cond_gassn_false:
   "\<not>b \<Longrightarrow> (IFG [pn] (\<lambda>_. b) THEN P ELSE Q FI = Q)"
   unfolding cond_gassn2_def by auto
+
+lemma gassn_subst:
+  "(P {{ var := e }}\<^sub>g at pn) s0 \<Longrightarrow>\<^sub>g P (updg s0 pn var (e (the (s0 pn))))"
+  unfolding entails_g_def
+  by (auto simp add: updg_assn2_def)
+
+lemma gassn_subste:
+  "(P {{ f }}\<^sub>g at pn) s0 \<Longrightarrow>\<^sub>g P (updeg s0 pn (f (the (s0 pn))))"
+  unfolding entails_g_def
+  by (auto simp add: updeg_assn2_def)
+
+lemma exists_gassn_intro:
+  assumes "\<exists>n. P s0 \<Longrightarrow>\<^sub>g Q n s0"
+  shows "P s0 \<Longrightarrow>\<^sub>g (\<exists>\<^sub>g n. Q n) s0"
+  using assms unfolding exists_gassn_def entails_g_def by auto
 
 lemma sync_gassn_false_left:
   "sync_gassn chs pns1 pns2 false_gassn Q s0 \<Longrightarrow>\<^sub>g R s0"
@@ -1358,13 +1399,6 @@ lemma sync_gassn_true_left':
   shows "sync_gassn chs pns1 pns2 (true_gassn pns1) Q s0 s tr \<Longrightarrow> true_gassn (pns1 \<union> pns2) s0 s tr"
   using sync_gassn_true_left[OF assms] unfolding entails_g_def by auto
 
-lemma entails_true_gassn:
-  assumes "proc_set_gassn pns P"
-  shows "P s0 \<Longrightarrow>\<^sub>g true_gassn pns s0"
-  unfolding entails_g_def apply auto
-  apply (intro true_gassn.intros)
-  using assms unfolding proc_set_gassn_def by auto
-
 lemma sync_gassn_subst_left:
   assumes "pn \<in> pns1"
   shows "sync_gassn chs pns1 pns2 (P {{ var := e }}\<^sub>g at pn) Q s0 \<Longrightarrow>\<^sub>g
@@ -1443,26 +1477,11 @@ lemma sync_gassn_subste_right:
     done
   done
 
-lemma gassn_subst:
-  "(P {{ var := e }}\<^sub>g at pn) s0 \<Longrightarrow>\<^sub>g P (updg s0 pn var (e (the (s0 pn))))"
-  unfolding entails_g_def
-  by (auto simp add: updg_assn2_def)
-
-lemma gassn_subste:
-  "(P {{ f }}\<^sub>g at pn) s0 \<Longrightarrow>\<^sub>g P (updeg s0 pn (f (the (s0 pn))))"
-  unfolding entails_g_def
-  by (auto simp add: updeg_assn2_def)
-
 lemma sync_gassn_triv:
   assumes "s1 = s2"
   shows "sync_gassn chs pns1 pns2 P Q s1 \<Longrightarrow>\<^sub>g sync_gassn chs pns1 pns2 P Q s2"
   apply (simp add: assms)
   by (rule entails_g_triv)
-
-lemma exists_gassn_intro:
-  assumes "\<exists>n. P s0 \<Longrightarrow>\<^sub>g Q n s0"
-  shows "P s0 \<Longrightarrow>\<^sub>g (\<exists>\<^sub>g n. Q n) s0"
-  using assms unfolding exists_gassn_def entails_g_def by auto
 
 lemma sync_gassn_exists_left:
   "sync_gassn chs pns1 pns2 (\<exists>\<^sub>gn. P n) Q = (\<exists>\<^sub>gn. sync_gassn chs pns1 pns2 (P n) Q)"
@@ -1595,7 +1614,7 @@ lemma wait_in_cg_alt_mono:
 
 subsection \<open>Hoare logic for parallel programs\<close>
 
-definition ParValid :: "'a gs_assn \<Rightarrow> 'a pproc \<Rightarrow> 'a gassn \<Rightarrow> bool" ("\<Turnstile>\<^sub>p ({(1_)}/ (_)/ {(1_)})" 50) where
+definition ParValid :: "('a gstate \<Rightarrow> bool) \<Rightarrow> 'a pproc \<Rightarrow> 'a gassn \<Rightarrow> bool" ("\<Turnstile>\<^sub>p ({(1_)}/ (_)/ {(1_)})" 50) where
   "(\<Turnstile>\<^sub>p {P} c {Q}) \<longleftrightarrow> (\<forall>s1 s2 tr2. P s1 \<longrightarrow> par_big_step c s1 tr2 s2 \<longrightarrow> Q s2 tr2)"
 
 definition spec_of_global :: "'a pproc \<Rightarrow> 'a gassn2 \<Rightarrow> bool" where
@@ -1777,10 +1796,6 @@ lemma combine_blocks_emptyE3' [sync_elims]:
 
 subsection \<open>Synchronization of two assertions\<close>
 
-lemma entailsD:
-  "P s tr \<Longrightarrow> P \<Longrightarrow>\<^sub>g Q \<Longrightarrow> Q s tr"
-  unfolding entails_g_def by auto
-
 lemma sync_gassn_conj_pure_left:
   assumes "pns = pns1 \<union> pns2"
     and "pns1 \<inter> pns2 = {}"
@@ -1809,7 +1824,7 @@ lemma sync_gassn_conj_pure_right:
   subgoal for s tr
     apply (elim sync_gassn.cases) apply (auto simp add: conj_gassn_def pure_gassn_def)
     subgoal for s11 s12 s21 s22 tr1 tr2
-      apply (rule entailsD[where P="sync_gassn chs pns1 pns2 P1 P2 s0"]) apply auto
+      apply (rule entails_g_elim[where P="sync_gassn chs pns1 pns2 P1 P2 s0"]) apply auto
        apply (rule sync_gassn.intros) apply auto
       by (metis assms restrict_state_merge2)
     done

@@ -372,10 +372,6 @@ lemma ex1':
     done
   done
 
-lemma valg_State [simp]:
-  "valg (State pn s) pn var = val s var"
-  unfolding valg_def by auto
-
 lemma ex_inv1:
   assumes "proc_set s0 = {A, B}"
     "t \<in> {0..1}"
@@ -396,7 +392,7 @@ lemma ex_inv1:
           using pre(4)
           by (metis pre(2) proc_set_State restrict_state_merge1 singletonI updg_proc_set)
         then have "val s0' X = 0"
-          by (metis valg_State valg_updg_simp)
+          by (metis valg_State_simp valg_updg_simp)
         then show ?thesis
           using assms by auto
       qed
@@ -424,7 +420,7 @@ lemma ex_inv2:
           using pre(4)
           by (metis pre(2) proc_set_State restrict_state_merge1 singletonI updg_proc_set)
         then have "val s0' X = 0"
-          by (metis valg_State valg_updg_simp)
+          by (metis valg_State_simp valg_updg_simp)
         then show ?thesis
           using assms by auto
       qed

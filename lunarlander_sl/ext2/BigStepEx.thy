@@ -665,19 +665,6 @@ lemma ex6b_sp:
   apply (rule spec_of_receive)
   done
 
-lemma merge_inv_id [simp]:
-  assumes "pns1 \<inter> pns2 = {}"
-  shows "merge_inv (id_inv pns1) (id_inv pns2) = id_inv (pns1 \<union> pns2)"
-  apply (rule ext) apply (rule ext) apply (rule ext)
-  subgoal for s0 t s
-    apply (rule iffI)
-    subgoal apply (elim merge_inv.cases) by auto
-    subgoal apply auto
-      apply (elim merge_state_elim) using assms apply auto[1]
-      by (auto intro: merge_inv.intros)
-    done
-  done
-
 lemma ex6:
   "spec_of_global
     (Parallel (Single A ex6a)

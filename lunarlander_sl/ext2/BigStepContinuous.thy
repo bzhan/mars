@@ -417,7 +417,7 @@ lemma rdy_of_comm_spec2_of:
     apply (cases spec) by auto
   done
 
-inductive interrupt_sol_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate \<Rightarrow> bool) \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow>
+inductive interrupt_sol_c :: "'a pinv2 \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow>
   'a comm_spec2 list \<Rightarrow> 'a assn2" where
   "d s0 > 0 \<Longrightarrow> P (d s0) s0 s tr \<Longrightarrow>
    rdy = rdy_of_comm_spec2 specs \<Longrightarrow> \<forall>t\<in>{0..d s0}. I s0 t (p t) \<Longrightarrow>
@@ -556,54 +556,7 @@ lemma rdy_of_spec2_entails:
   apply (rule rel_list_mono[OF _ assms])
   apply (elim spec2_entails.cases) by auto
 
-lemma interrupt_sol_mono:
-  assumes "\<And>d s0. P1 d s0 \<Longrightarrow>\<^sub>A P2 d s0"
-    and "rel_list spec2_entails specs specs2"
-  shows "interrupt_sol_c I d P1 specs s0 \<Longrightarrow>\<^sub>A interrupt_sol_c I d P2 specs2 s0"
-  unfolding entails_def apply auto
-  subgoal for s tr
-    apply (induct rule: interrupt_sol_c.cases) apply auto
-    subgoal for tr' a b
-      apply (rule interrupt_sol_c.intros(1))
-      using assms(1) unfolding entails_def apply auto
-      apply (rule rdy_of_spec2_entails) using assms(2) by auto
-    subgoal
-      apply (rule interrupt_sol_c.intros(2))
-      using assms(1) unfolding entails_def by auto
-    subgoal for i ch Q v tr'
-      using rel_listD2[OF assms(2), of i] rel_listD1[OF assms(2)] apply simp
-      apply (elim spec2_entails_inE)
-      subgoal for Q2
-        apply (rule interrupt_sol_c.intros(3)[of i _ _ Q2])
-        using assms(2) unfolding entails_def by auto
-      done
-    subgoal for i ch Q d' v tr' a b
-      using rel_listD2[OF assms(2), of i] rel_listD1[OF assms(2)] apply simp
-      apply (elim spec2_entails_inE)
-      subgoal for Q2
-        apply (rule interrupt_sol_c.intros(4)[of i _ _ Q2])
-        using assms(2) unfolding entails_def apply auto
-        apply (rule rdy_of_spec2_entails) by auto
-      done
-    subgoal for i ch e Q tr'
-      using rel_listD2[OF assms(2), of i] rel_listD1[OF assms(2)] apply simp
-      apply (elim spec2_entails_outE)
-      subgoal for Q2
-        apply (rule interrupt_sol_c.intros(5)[of i _ _ Q2])
-        using assms(2) unfolding entails_def by auto
-      done
-    subgoal for i ch e Q d' tr' a b
-      using rel_listD2[OF assms(2), of i] rel_listD1[OF assms(2)] apply simp
-      apply (elim spec2_entails_outE)
-      subgoal for Q2
-        apply (rule interrupt_sol_c.intros(6)[of i _ _ Q2])
-        using assms(2) unfolding entails_def apply auto
-        apply (rule rdy_of_spec2_entails) by auto
-      done
-    done
-  done
-
-inductive interrupt_solInf_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate \<Rightarrow> bool) \<Rightarrow> 'a comm_spec2 list \<Rightarrow> 'a assn2" where
+inductive interrupt_solInf_c :: "'a pinv2 \<Rightarrow> 'a comm_spec2 list \<Rightarrow> 'a assn2" where
   "i < length specs \<Longrightarrow> specs ! i = InSpec2 ch Q \<Longrightarrow>
    Q 0 v s0 s tr \<Longrightarrow> interrupt_solInf_c I specs s0 s (InBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = InSpec2 ch Q \<Longrightarrow>
@@ -695,6 +648,55 @@ lemma spec_of_interrupt_inf_unique:
    apply (rule interrupt_inf_c_unique[OF assms(1,2)])
   by (rule entails_triv)
 
+subsubsection \<open>Monotonicity rules\<close>
+
+lemma interrupt_sol_mono:
+  assumes "\<And>d s0. P1 d s0 \<Longrightarrow>\<^sub>A P2 d s0"
+    and "rel_list spec2_entails specs specs2"
+  shows "interrupt_sol_c I d P1 specs s0 \<Longrightarrow>\<^sub>A interrupt_sol_c I d P2 specs2 s0"
+  unfolding entails_def apply auto
+  subgoal for s tr
+    apply (induct rule: interrupt_sol_c.cases) apply auto
+    subgoal for tr' a b
+      apply (rule interrupt_sol_c.intros(1))
+      using assms(1) unfolding entails_def apply auto
+      apply (rule rdy_of_spec2_entails) using assms(2) by auto
+    subgoal
+      apply (rule interrupt_sol_c.intros(2))
+      using assms(1) unfolding entails_def by auto
+    subgoal for i ch Q v tr'
+      using rel_listD2[OF assms(2), of i] rel_listD1[OF assms(2)] apply simp
+      apply (elim spec2_entails_inE)
+      subgoal for Q2
+        apply (rule interrupt_sol_c.intros(3)[of i _ _ Q2])
+        using assms(2) unfolding entails_def by auto
+      done
+    subgoal for i ch Q d' v tr' a b
+      using rel_listD2[OF assms(2), of i] rel_listD1[OF assms(2)] apply simp
+      apply (elim spec2_entails_inE)
+      subgoal for Q2
+        apply (rule interrupt_sol_c.intros(4)[of i _ _ Q2])
+        using assms(2) unfolding entails_def apply auto
+        apply (rule rdy_of_spec2_entails) by auto
+      done
+    subgoal for i ch e Q tr'
+      using rel_listD2[OF assms(2), of i] rel_listD1[OF assms(2)] apply simp
+      apply (elim spec2_entails_outE)
+      subgoal for Q2
+        apply (rule interrupt_sol_c.intros(5)[of i _ _ Q2])
+        using assms(2) unfolding entails_def by auto
+      done
+    subgoal for i ch e Q d' tr' a b
+      using rel_listD2[OF assms(2), of i] rel_listD1[OF assms(2)] apply simp
+      apply (elim spec2_entails_outE)
+      subgoal for Q2
+        apply (rule interrupt_sol_c.intros(6)[of i _ _ Q2])
+        using assms(2) unfolding entails_def apply auto
+        apply (rule rdy_of_spec2_entails) by auto
+      done
+    done
+  done
+
 lemma interrupt_solInf_mono:
   assumes "rel_list spec2_entails specs specs2"
   shows "interrupt_solInf_c I specs s0 \<Longrightarrow>\<^sub>A interrupt_solInf_c I specs2 s0"
@@ -733,6 +735,8 @@ lemma interrupt_solInf_mono:
       done
     done
   done
+
+subsubsection \<open>Update rules\<close>
 
 fun comm_spec2_updg :: "var \<Rightarrow> ('a estate \<Rightarrow> real) \<Rightarrow> 'a comm_spec2 \<Rightarrow> 'a comm_spec2" where
   "comm_spec2_updg var e (InSpec2 ch P) = InSpec2 ch (\<lambda>d v. P d v {{ var := e }})"

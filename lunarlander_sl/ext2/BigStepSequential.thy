@@ -314,6 +314,18 @@ inductive_cases interruptE: "big_step (Interrupt ode b cs pr) s1 tr s2"
 
 subsection \<open>Assertions on sequential processes\<close>
 
+text \<open>Path invariant is a predicate on time and state\<close>
+type_synonym 'a pinv = "real \<Rightarrow> 'a estate \<Rightarrow> bool"
+
+text \<open>We also define path invariant parameterized by starting state\<close>
+type_synonym 'a pinv2 = "'a estate \<Rightarrow> 'a pinv"
+
+text \<open>Simplest parameterized path invariant: state always equal
+  starting state
+\<close>
+fun single_id_inv :: "'a pinv2" where
+  "single_id_inv s0 t s = (s = s0)"
+
 text \<open>Assertion is a predicate on states and traces\<close>
 type_synonym 'a assn = "'a estate \<Rightarrow> 'a trace \<Rightarrow> bool"
 
@@ -392,7 +404,7 @@ text \<open>Assertion for input.
   or after waiting for some time. The ensuing assertion is
   parameterized by waiting time and communicated value.
 \<close>
-inductive wait_in_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate \<Rightarrow> bool) \<Rightarrow> cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
+inductive wait_in_c :: "'a pinv2 \<Rightarrow> cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
   "P 0 v s0 s tr \<Longrightarrow> wait_in_c I ch P s0 s (InBlock ch v # tr)"
 | "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> \<forall>t\<in>{0..}. I s0 t (p t) \<Longrightarrow>
    wait_in_c I ch P s0 s (WaitBlk d (\<lambda>\<tau>. p \<tau>) ({}, {ch}) # InBlock ch v # tr)"
@@ -400,26 +412,24 @@ inductive wait_in_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate \<
 text \<open>Assertion for output.
 
   There are two cases, either the output happens immediately,
-  or after waiting for some time. The communicated value is
-  computed by the function e. The ensuing assertion is
-  parameterized by waiting time.
+  or after waiting for some time. The ensuing assertion is
+  parameterized by waiting time and communicated value.
 \<close>
-inductive wait_out_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate \<Rightarrow> bool) \<Rightarrow> cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
+inductive wait_out_c :: "'a pinv2 \<Rightarrow> cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
   "P 0 v s0 s tr \<Longrightarrow> wait_out_c I ch P s0 s (OutBlock ch v # tr)"
 | "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> \<forall>t\<in>{0..}. I s0 t (p t) \<Longrightarrow>
    wait_out_c I ch P s0 s (WaitBlk d (\<lambda>\<tau>. p \<tau>) ({ch}, {}) # OutBlock ch v # tr)"
 
-definition wait_out_cv :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate \<Rightarrow> bool) \<Rightarrow> cname \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
+text \<open>A short form of wait_out_c, where the communicated value
+  is specified by the function e.\<close> 
+definition wait_out_cv :: "'a pinv2 \<Rightarrow> cname \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
   "wait_out_cv I ch e P = wait_out_c I ch (\<lambda>d v. !\<^sub>a[(\<lambda>s0. v = e s0)] \<and>\<^sub>a P d)"
 
 text \<open>Waiting an amount of time, without state change\<close>
-inductive wait_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate \<Rightarrow> bool) \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
+inductive wait_c :: "'a pinv2 \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
   "e s0 > 0 \<Longrightarrow> P (e s0) s0 s tr \<Longrightarrow> \<forall>t\<in>{0..e s0}. I s0 t (p t) \<Longrightarrow>
    wait_c I e P s0 s (WaitBlk (e s0) (\<lambda>\<tau>. p \<tau>) ({}, {}) # tr)"
 | "\<not>e s0 > 0 \<Longrightarrow> P 0 s0 s tr \<Longrightarrow> wait_c I e P s0 s tr"
-
-fun single_id_inv :: "'a estate \<Rightarrow> real \<Rightarrow> 'a estate \<Rightarrow> bool" where
-  "single_id_inv s0 t s = (s = s0)"
 
 subsubsection \<open>Various rules about entailment\<close>
 
@@ -727,6 +737,10 @@ lemma Valid_wait_sp:
   apply (rule wait_c.intros(2)) by auto
 
 subsection \<open>Update rules\<close>
+
+text \<open>The following rules specify how various assertion changes upon
+  update of a variable.
+\<close>
 
 lemma wait_out_c_upd:
   "(wait_out_c I ch P {{ var := e }}) s0 \<Longrightarrow>\<^sub>A
