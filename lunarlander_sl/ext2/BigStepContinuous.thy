@@ -218,44 +218,17 @@ lemma Valid_cont_sp:
 
 text \<open>Unique solution rule\<close>
 
-text \<open>Waiting while the state is characterized by a particular solution.
-  The parameters are:
-  - d: mapping from initial state to waiting time.
-  - p: mapping from initial state and time to new state. The value of p
-       is only used in the time interval between 0 and d for any initial
-       state.
-\<close>
-inductive wait_sol_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate \<Rightarrow> bool) \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
-  "d s0 > 0 \<Longrightarrow> P (d s0) s0 s tr \<Longrightarrow> \<forall>t\<in>{0..d s0}. I s0 t (p t) \<Longrightarrow>
-   wait_sol_c I d P s0 s (WaitBlk (d s0) (\<lambda>t. p t) ({}, {}) # tr)"
-| "\<not>d s0 > 0 \<Longrightarrow> P 0 s0 s tr \<Longrightarrow> wait_sol_c p d P s0 s tr"
-
-lemma wait_sol_mono:
-  assumes "\<And>d' s0. P d' s0 \<Longrightarrow>\<^sub>A Q d' s0"
-  shows "wait_sol_c I d P s0 \<Longrightarrow>\<^sub>A wait_sol_c I d Q s0"
-  unfolding entails_def apply auto
-  subgoal for s tr
-    apply (induct rule: wait_sol_c.cases) apply auto
-    subgoal for tr'
-      apply (rule wait_sol_c.intros(1))
-      using assms unfolding entails_def by auto
-    subgoal
-      apply (rule wait_sol_c.intros(2))
-      using assms unfolding entails_def by auto
-    done
-  done
-
 lemma ode_c_unique:
   assumes
     "paramODEsol ode b p d"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
   shows
-    "ode_c ode b P s0 \<Longrightarrow>\<^sub>A wait_sol_c (\<lambda>s0 t s. s = updr s0 (p s0 t)) d (\<lambda>d' s. P (updr s (p s d'))) s0"
+    "ode_c ode b P s0 \<Longrightarrow>\<^sub>A wait_c (\<lambda>s0 t s. s = updr s0 (p s0 t)) d (\<lambda>d' s. P (updr s (p s d'))) s0"
   unfolding entails_def apply auto
   subgoal for s tr
     apply (auto simp add: ode_c.simps)
     subgoal
-      apply (rule wait_sol_c.intros)
+      apply (rule wait_c.intros)
       using assms(1) unfolding paramODEsol_def by auto
     subgoal premises pre for d' p' tr'
     proof -
@@ -268,7 +241,7 @@ lemma ode_c_unique:
         using paramODEsol_unique[OF assms \<open>b s0\<close> pre(2,4,6,7,5)] by auto
       show ?thesis
         unfolding a(3)[symmetric]
-        apply (rule wait_sol_c.intros(1))
+        apply (rule wait_c.intros(1))
         using pre(2,3) a(1,2) by auto
     qed
     done
@@ -280,7 +253,7 @@ lemma spec_of_cont_unique:
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
   shows
     "spec_of (Cont ode b)
-             (wait_sol_c (\<lambda>s0 t s. s = updr s0 (p s0 t)) d (\<lambda>d' s. init (updr s (p s d'))))"
+             (wait_c (\<lambda>s0 t s. s = updr s0 (p s0 t)) d (\<lambda>d' s. init (updr s (p s d'))))"
   apply (rule spec_of_post)
    apply (rule spec_of_cont) apply auto
   apply (rule entails_trans)
@@ -292,7 +265,7 @@ lemma Valid_cont_unique_sp:
     "paramODEsol ode b p d"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
   shows "spec_of (Cont ode b; c)
-                 (wait_sol_c (\<lambda>s0 t s. s = updr s0 (p s0 t)) d (\<lambda>d' s. Q (updr s (p s d'))))"
+                 (wait_c (\<lambda>s0 t s. s = updr s0 (p s0 t)) d (\<lambda>d' s. Q (updr s (p s d'))))"
   apply (rule spec_of_post)
    apply (rule Valid_cont_sp[OF assms(1)]) apply auto
   apply (rule entails_trans)
@@ -820,5 +793,27 @@ lemma interrupt_sol_c_updg:
     done
   done
 
+subsection \<open>Simplification of interrupt assertions\<close>
+
+lemma interrupt_solInf_c_in:
+  "interrupt_solInf_c I [InSpec2 ch P] = wait_in_c I ch P"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s0 s tr apply (rule iffI)
+    subgoal apply (elim interrupt_solInf_c.cases) apply auto
+      subgoal for v tr'
+        by (intro wait_in_c.intros(1)) 
+      subgoal for d v tr' a b p
+        unfolding rdy_of_comm_spec2_def apply simp
+        by (auto intro: wait_in_c.intros(2))
+      done
+    subgoal apply (elim wait_in_c.cases) apply auto
+      subgoal for v tr'
+        apply (intro interrupt_solInf_c.intros(1)[of 0 _ _ P]) by auto
+      subgoal for d v tr' p
+        apply (intro interrupt_solInf_c.intros(2)[of 0 _ _ P]) apply auto
+        unfolding rdy_of_comm_spec2_def by auto
+      done
+    done
+  done
 
 end

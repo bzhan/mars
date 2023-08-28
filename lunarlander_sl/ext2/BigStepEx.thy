@@ -34,7 +34,7 @@ definition ex1b :: "'a proc" where
 lemma ex1a:
   "spec_of ex1a
     (wait_in_c single_id_inv ch1
-      (\<lambda>d v. wait_out_cv (\<lambda>s0 t s. upd s0 X v = s) ch2 (\<lambda>s0. v + 1)
+      (\<lambda>d v. wait_out_cv (\<lambda>s0 t s. s = upd s0 X v) ch2 (\<lambda>s0. v + 1)
          (\<lambda>d. init {{ X := (\<lambda>_. v) }})))"
   unfolding ex1a_def
   apply (rule spec_of_post)
@@ -49,7 +49,7 @@ lemma ex1:
   "spec_of_global
     (Parallel (Single A ex1a) {ch1}
               (Single B ex1b))
-    (wait_out_cgv (single_inv A (\<lambda>s0 t s. upd s0 X 3 = s)) ch2 {B, A} A (\<lambda>_. 4)
+    (wait_out_cgv (single_inv A (\<lambda>s0 t s. s = upd s0 X 3)) ch2 {B, A} A (\<lambda>_. 4)
                   (\<lambda>d. init_single {A, B} {{X := (\<lambda>_. 3)}}\<^sub>g at A))"
   apply (rule spec_of_global_post)
   (* Stage 1: obtain spec for both sides *)
@@ -102,7 +102,7 @@ lemma ex2a:
 lemma ex2b:
   "spec_of ex2b
     (wait_in_c single_id_inv ch1
-      (\<lambda>d v. wait_out_cv (\<lambda>s0 t s. upd s0 Z v = s) ch2 (\<lambda>s0. v + 1)
+      (\<lambda>d v. wait_out_cv (\<lambda>s0 t s. s = upd s0 Z v) ch2 (\<lambda>s0. v + 1)
          (\<lambda>d. init {{Z := (\<lambda>_. v)}})))"
   unfolding ex2b_def
   apply (rule spec_of_post)
@@ -641,7 +641,7 @@ lemma ex6a_sp:
   "spec_of ex6a
     (wait_in_c0 single_id_inv ch2 (\<lambda>v.
       (wait_c single_id_inv (\<lambda>_. 1)
-        (wait_out_cv single_id_inv ch1 (\<lambda>s. val s X) (\<lambda>d. init)) {{ X := (\<lambda>_. v) }})))"
+        (\<lambda>_. wait_out_cv single_id_inv ch1 (\<lambda>s. val s X) (\<lambda>d. init)) {{ X := (\<lambda>_. v) }})))"
   unfolding ex6a_def
   apply (rule spec_of_post)
    apply (rule Valid_receive_sp)
@@ -659,7 +659,7 @@ definition ex6b :: "'a proc" where
 lemma ex6b_sp:
   "spec_of ex6b
     (wait_c single_id_inv (\<lambda>_. 1)
-      (wait_in_c single_id_inv ch1 (\<lambda>d v. init {{ X := (\<lambda>_. v) }})))"
+      (\<lambda>_. wait_in_c single_id_inv ch1 (\<lambda>d v. init {{ X := (\<lambda>_. v) }})))"
   unfolding ex6b_def
   apply (rule Valid_wait_sp)
   apply (rule spec_of_receive)
@@ -686,7 +686,7 @@ lemma ex6:
     (wait_in_cg_alt (id_inv {B, A}) ch2 B (\<lambda>_. 1)
       (\<lambda>d v. IFG [A] (\<lambda>s. d = 0) THEN
                ((wait_cg (id_inv {B, A}) A (\<lambda>_. 1)
-                   (init_single {B, A} {{X := (\<lambda>_. v)}}\<^sub>g at B)
+                   (\<lambda>_. init_single {B, A} {{X := (\<lambda>_. v)}}\<^sub>g at B)
                    {{ X := (\<lambda>_. v) }}\<^sub>g at A))
              ELSE true_gassn {B, A} FI)
       (\<lambda>v. true_gassn {B, A}))"
@@ -744,7 +744,8 @@ lemma ex6_full:
     (Parallel (Parallel (Single A ex6a) {ch1} (Single B ex6b))
               {ch2}
               (Single C (Cm (ch2[!](\<lambda>_. v)); Wait (\<lambda>_. 1))))
-    (\<lambda>s0. wait_cg (id_inv {C, B, A}) A (\<lambda>_. 1) (init_single {C, B, A} {{X := (\<lambda>_. v)}}\<^sub>g at B)
+    (\<lambda>s0. wait_cg (id_inv {C, B, A}) A (\<lambda>_. 1)
+            (\<lambda>_. init_single {C, B, A} {{X := (\<lambda>_. v)}}\<^sub>g at B)
         (updg s0 A X v))"
   (* Stage 1: merge with ex6 *)
   apply (rule spec_of_global_post)

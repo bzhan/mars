@@ -123,26 +123,6 @@ fun spec_wait_of :: "real \<Rightarrow> ('a gstate \<Rightarrow> real \<Rightarr
   "spec_wait_of d p (InSpecg2 ch P) = InSpecg2 ch (\<lambda>d' v. P (d + d') v)"
 | "spec_wait_of d p (OutSpecg2 ch P) = OutSpecg2 ch (\<lambda>d' v. P (d + d') v)"
 
-inductive wait_sol_cg :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool) \<Rightarrow> pname \<Rightarrow> 'a eexp \<Rightarrow>
-                          (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
-  "e (the (gs0 pn)) > 0 \<Longrightarrow> d = e (the (gs0 pn)) \<Longrightarrow> \<forall>t\<in>{0..d}. I gs0 t (p t) \<Longrightarrow>
-   P d gs0 gs tr \<Longrightarrow> rdy = ({}, {}) \<Longrightarrow> 
-   wait_sol_cg I pn e P gs0 gs (WaitBlkP d p rdy # tr)"
-| "\<not>e (the (gs0 pn)) > 0 \<Longrightarrow> P 0 gs0 gs tr \<Longrightarrow> wait_sol_cg I pn e P gs0 gs tr"
-
-lemma wait_sol_cg_mono:
-  assumes "\<And>d s0. P1 d s0 \<Longrightarrow>\<^sub>g P2 d s0"
-  shows "wait_sol_cg I pn e P1 s0 \<Longrightarrow>\<^sub>g wait_sol_cg I pn e P2 s0"
-  apply (auto simp add: entails_g_def)
-  subgoal for s tr
-    apply (elim wait_sol_cg.cases) apply auto
-    subgoal apply (rule wait_sol_cg.intros)
-      using assms unfolding entails_g_def by auto
-    subgoal apply (rule wait_sol_cg.intros)
-      using assms unfolding entails_g_def by auto
-    done
-  done
-
 fun ch_of_specg2 :: "'a comm_specg2 \<Rightarrow> cname" where
   "ch_of_specg2 (InSpecg2 ch P) = ch"
 | "ch_of_specg2 (OutSpecg2 ch P) = ch"
@@ -177,8 +157,8 @@ lemma sync_gassn_interrupt_solInf_wait:
     and "\<And>i. i < length specs \<Longrightarrow> ch_of_specg2 (specs ! i) \<in> chs"
   shows
   "sync_gassn chs pns1 pns2 (interrupt_solInf_cg I1 specs) (wait_cg I2 pn2 e Q) s0 \<Longrightarrow>\<^sub>g
-   wait_sol_cg (merge_inv I1 I2) pn2 e
-    (\<lambda>d. sync_gassn chs pns1 pns2 (interrupt_solInf_cg (delay_inv d I1) (map (spec_wait_of d p) specs)) Q) s0"
+   wait_cg (merge_inv I1 I2) pn2 e
+    (\<lambda>d. sync_gassn chs pns1 pns2 (interrupt_solInf_cg (delay_inv d I1) (map (spec_wait_of d p) specs)) (Q d)) s0"
   unfolding entails_g_def apply auto
   subgoal for s tr
     apply (elim sync_gassn.cases) apply auto
@@ -190,7 +170,7 @@ lemma sync_gassn_interrupt_solInf_wait:
           apply (elim combine_blocks_pairE2)
           using assms(3)[of i] by auto
         subgoal
-          apply (rule wait_sol_cg.intros(2))
+          apply (rule wait_cg.intros(2))
           apply (subst merge_state_eval2)
           using assms apply auto
           apply (rule sync_gassn.intros) apply auto
@@ -208,35 +188,34 @@ lemma sync_gassn_interrupt_solInf_wait:
           subgoal apply auto
             apply (elim combine_blocks_waitE2) apply auto
             subgoal for tr'''
-              apply (rule wait_sol_cg.intros(1))
+              apply (rule wait_cg.intros(1))
               subgoal apply (subst merge_state_eval2)
                 using assms(1,2) by auto
               subgoal apply (subst merge_state_eval2)
                 using assms(1,2) by auto
-              subgoal apply clarify apply (intro merge_inv.intros)
-                using assms by auto
-              apply (rule sync_gassn.intros) apply auto
-              apply (rule interrupt_solInf_cg.intros(1)[of i _ _ "\<lambda>d' v. Q' (e (the (s12 pn2)) + d') v"])
-              apply auto apply (rule merge_rdy_comm_specg2_empty) using assms(3) by auto
+                apply (rule sync_gassn.intros) apply auto
+                apply (rule interrupt_solInf_cg.intros(1)[of i _ _ "\<lambda>d' v. Q' (e (the (s12 pn2)) + d') v"])
+                  apply (auto intro: merge_inv.intros)
+              apply (rule merge_rdy_comm_specg2_empty) using assms(3) by auto
             done
           subgoal
             apply (elim combine_blocks_waitE4) apply auto
             subgoal for tr'''
-              apply (rule wait_sol_cg.intros(1))
+              apply (rule wait_cg.intros(1))
               subgoal apply (subst merge_state_eval2)
                 using assms(1,2) by auto
               subgoal apply (subst merge_state_eval2)
                 using assms(1,2) by auto
-              subgoal apply clarify apply (intro merge_inv.intros)
-                using assms by auto
                apply (rule sync_gassn.intros) apply auto
                apply (rule interrupt_solInf_cg.intros(2)[of i _ _ "\<lambda>d' v. Q' (e (the (s12 pn2)) + d') v"])
                     apply (auto intro: delay_inv.intros)
+              subgoal apply (intro merge_inv.intros)
+                using assms by auto
               apply (rule merge_rdy_comm_specg2_empty) using assms(3) by auto
             done
           done
         subgoal
-          apply (rule wait_sol_cg.intros(2))
+          apply (rule wait_cg.intros(2))
           subgoal apply (subst merge_state_eval2)
             using assms(1,2) by auto
           apply (rule sync_gassn.intros) apply auto
@@ -249,7 +228,7 @@ lemma sync_gassn_interrupt_solInf_wait:
           apply (elim combine_blocks_pairE2)
           using assms(3)[of i] by auto
         subgoal
-          apply (rule wait_sol_cg.intros(2))
+          apply (rule wait_cg.intros(2))
           apply (subst merge_state_eval2)
           using assms apply auto
           apply (rule sync_gassn.intros) apply auto
@@ -267,34 +246,33 @@ lemma sync_gassn_interrupt_solInf_wait:
           subgoal apply auto
             apply (elim combine_blocks_waitE2) apply auto
             subgoal for tr'''
-              apply (rule wait_sol_cg.intros(1))
+              apply (rule wait_cg.intros(1))
               subgoal apply (subst merge_state_eval2)
                 using assms(1,2) by auto
               subgoal apply (subst merge_state_eval2)
                 using assms(1,2) by auto
-              subgoal apply clarify apply (intro merge_inv.intros)
-                using assms by auto
-              apply (rule sync_gassn.intros) apply auto
-              apply (rule interrupt_solInf_cg.intros(3)[of i _ _ "\<lambda>d' v. Q' (e (the (s12 pn2)) + d') v"])
-              apply auto apply (rule merge_rdy_comm_specg2_empty) using assms(3) by auto
+                apply (rule sync_gassn.intros) apply auto
+                apply (rule interrupt_solInf_cg.intros(3)[of i _ _ "\<lambda>d' v. Q' (e (the (s12 pn2)) + d') v"])
+                  apply (auto intro: merge_inv.intros)
+              apply (rule merge_rdy_comm_specg2_empty) using assms(3) by auto
             done
           subgoal
             apply (elim combine_blocks_waitE4) apply auto
             subgoal for tr'''
-              apply (rule wait_sol_cg.intros(1))
+              apply (rule wait_cg.intros(1))
               subgoal apply (subst merge_state_eval2)
                 using assms(1,2) by auto
               subgoal apply (subst merge_state_eval2)
                 using assms(1,2) by auto
+                apply (rule sync_gassn.intros) apply auto
+                apply (rule interrupt_solInf_cg.intros(4)[of i _ _ "\<lambda>d' v. Q' (e (the (s12 pn2)) + d') v"])
+                     apply (auto intro: delay_inv.intros)
               subgoal using assms by (auto intro: merge_inv.intros)
-               apply (rule sync_gassn.intros) apply auto
-               apply (rule interrupt_solInf_cg.intros(4)[of i _ _ "\<lambda>d' v. Q' (e (the (s12 pn2)) + d') v"])
-                    apply (auto intro: delay_inv.intros)
               apply (rule merge_rdy_comm_specg2_empty) using assms(3) by auto
             done
           done
         subgoal
-          apply (rule wait_sol_cg.intros(2))
+          apply (rule wait_cg.intros(2))
           subgoal apply (subst merge_state_eval2)
             using assms(1,2) by auto
           apply (rule sync_gassn.intros) apply auto
@@ -425,10 +403,10 @@ lemma wait_inv_cgI:
   assumes "e (the (gs0 pn)) = d"
     and "d > 0"
     and "\<forall>t\<in>{0..d}. \<forall>gs. I gs0 t gs \<longrightarrow> J gs"
-  shows "wait_sol_cg I pn e P gs0 \<Longrightarrow>\<^sub>g wait_inv_cg J (P d) gs0"
+  shows "wait_cg I pn e P gs0 \<Longrightarrow>\<^sub>g wait_inv_cg J (P d) gs0"
   unfolding entails_g_def apply auto
   subgoal for s tr
-    apply (elim wait_sol_cg.cases) apply auto
+    apply (elim wait_cg.cases) apply auto
     using assms by (auto intro!: wait_inv_cg.intros)
   done
 

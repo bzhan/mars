@@ -413,13 +413,13 @@ definition wait_out_cv :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate
   "wait_out_cv I ch e P = wait_out_c I ch (\<lambda>d v. !\<^sub>a[(\<lambda>s0. v = e s0)] \<and>\<^sub>a P d)"
 
 text \<open>Waiting an amount of time, without state change\<close>
-inductive wait_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate \<Rightarrow> bool) \<Rightarrow> 'a eexp \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" where
-  "e s0 > 0 \<Longrightarrow> P s0 s tr \<Longrightarrow> \<forall>t\<in>{0..}. I s0 t (p t) \<Longrightarrow>
+inductive wait_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a estate \<Rightarrow> bool) \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
+  "e s0 > 0 \<Longrightarrow> P (e s0) s0 s tr \<Longrightarrow> \<forall>t\<in>{0..}. I s0 t (p t) \<Longrightarrow>
    wait_c I e P s0 s (WaitBlk (e s0) (\<lambda>\<tau>. p \<tau>) ({}, {}) # tr)"
-| "\<not>e s0 > 0 \<Longrightarrow> P s0 s tr \<Longrightarrow> wait_c I e P s0 s tr"
+| "\<not>e s0 > 0 \<Longrightarrow> P 0 s0 s tr \<Longrightarrow> wait_c I e P s0 s tr"
 
 fun single_id_inv :: "'a estate \<Rightarrow> real \<Rightarrow> 'a estate \<Rightarrow> bool" where
-  "single_id_inv s0 t s = (s0 = s)"
+  "single_id_inv s0 t s = (s = s0)"
 
 subsubsection \<open>Various rules about entailment\<close>
 
@@ -531,6 +531,21 @@ lemma wait_out_c_mono:
       using assms unfolding entails_def by auto
     subgoal for d v tr'
       apply (rule wait_out_c.intros(2))
+      using assms unfolding entails_def by auto
+    done
+  done
+
+lemma wait_c_mono:
+  assumes "\<And>d. P1 d s0 \<Longrightarrow>\<^sub>A P2 d s0"
+  shows "wait_c I e P1 s0 \<Longrightarrow>\<^sub>A wait_c I e P2 s0"
+  unfolding entails_def apply auto
+  subgoal for s tr
+    apply (induct rule: wait_c.cases) apply auto
+    subgoal for tr' p
+      apply (rule wait_c.intros(1))
+      using assms unfolding entails_def by auto
+    subgoal
+      apply (rule wait_c.intros(2))
       using assms unfolding entails_def by auto
     done
   done
@@ -697,7 +712,7 @@ lemma Valid_send_sp:
 
 text \<open>Hoare rules for wait\<close>
 lemma spec_of_wait:
-  "spec_of (Wait e) (wait_c single_id_inv e init)"
+  "spec_of (Wait e) (wait_c single_id_inv e (\<lambda>_. init))"
   unfolding Valid_def spec_of_def init_def
   apply (auto elim!: waitE)
    apply (rule wait_c.intros(1)) apply auto
@@ -705,7 +720,7 @@ lemma spec_of_wait:
 
 lemma Valid_wait_sp:
   assumes "spec_of c Q"
-  shows "spec_of (Wait e; c) (wait_c single_id_inv e Q)"
+  shows "spec_of (Wait e; c) (wait_c single_id_inv e (\<lambda>_. Q))"
   using assms unfolding Valid_def spec_of_def init_def
   apply (auto elim!: seqE waitE)
    apply (rule wait_c.intros(1)) apply auto
@@ -750,6 +765,33 @@ lemma wait_out_cv_upd:
    apply (rule conj_assn_upd)
   apply (rule conj_assn_mono1)
   by (rule pure_assn_upd)
+
+lemma wait_in_c_upd:
+  "(wait_in_c I ch P {{ var := e }}) s0 \<Longrightarrow>\<^sub>A
+   wait_in_c (\<lambda>s0 t s. I (upd s0 var (e s0)) t s) ch
+             (\<lambda>d v. P d v {{ var := e }}) s0"
+  unfolding entails_def apply clarify
+  subgoal for s tr unfolding subst_assn2_def
+    apply (elim wait_in_c.cases) apply auto
+    subgoal for v tr'
+      apply (rule wait_in_c.intros(1)) by auto
+    subgoal for d v tr' p
+      apply (rule wait_in_c.intros(2)) by auto
+    done
+  done
+
+lemma wait_c_upd:
+  "(wait_c I e' P {{ var := e }}) s0 \<Longrightarrow>\<^sub>A
+   wait_c (\<lambda>s0 t s. I (upd s0 var (e s0)) t s) (\<lambda>s0. e' (upd s0 var (e s0))) (\<lambda>d. P d {{ var := e }}) s0"
+  unfolding entails_def apply clarify
+  subgoal for s tr unfolding subst_assn2_def
+    apply (elim wait_c.cases) apply auto
+    subgoal for tr' p
+      apply (rule wait_c.intros(1)) by auto
+    subgoal
+      apply (rule wait_c.intros(2)) by auto
+    done
+  done
 
 subsection \<open>Rewrite rules for big-step semantics\<close>
 
