@@ -173,6 +173,12 @@ lemma valg_merge_state_left:
   shows "valg (merge_state s1 s2) pn v = valg s1 pn v"
   using assms by (auto simp add: proc_set_def merge_state_def valg_def)
 
+lemma valg_merge_state_right:
+  assumes "pn \<in> proc_set s2"
+    and "proc_set s1 \<inter> proc_set s2 = {}"
+  shows "valg (merge_state s1 s2) pn v = valg s2 pn v"
+  using assms by (simp add: merge_state_eval2 valg_def)
+
 lemma valg_restrict_state:
   assumes "pn \<in> pns"
     and "proc_set s \<subseteq> pns"
@@ -1177,6 +1183,18 @@ lemma proc_set_wait_out_cgv [intro!]:
     and "proc_set_path pns I"
   shows "proc_set_gassn pns (wait_out_cgv I ch pns pn e P)"
   unfolding wait_out_cgv_def using assms by auto
+
+lemma merge_inv_elim:
+  assumes
+    "merge_inv I1 I2 s0 t s"
+    "\<And>s01 s02 s1 s2. s0 = merge_state s01 s02 \<Longrightarrow> s = merge_state s1 s2 \<Longrightarrow>
+     I1 s01 t s1 \<Longrightarrow> I2 s02 t s2 \<Longrightarrow> P"
+  shows P
+  using assms(1) apply (elim merge_inv.cases) apply auto
+  subgoal for s01 s1 s02 s2
+    apply (rule assms(2)[of s01 s02 s1 s2])
+    by auto
+  done
 
 subsubsection \<open>Entailments on parallel assertions\<close>
 

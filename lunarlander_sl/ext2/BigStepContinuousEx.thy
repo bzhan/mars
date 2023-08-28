@@ -372,32 +372,66 @@ lemma ex1':
     done
   done
 
-lemma ex1_merge1:
+lemma valg_State [simp]:
+  "valg (State pn s) pn var = val s var"
+  unfolding valg_def by auto
+
+lemma ex_inv1:
   assumes "proc_set s0 = {A, B}"
-  shows
-  "merge_inv (single_inv A (\<lambda>s0 t s. s = upd s0 X (val s0 X + 2 * t))) (id_inv {B}) s0 =
-   (\<lambda>t s. s = updg s0 A X (valg s0 A X + 2 * t))"
+    "t \<in> {0..1}"
+    "merge_inv (single_inv A (\<lambda>s0 t s. s = upd s0 X (val s0 X + 2 * t)))
+        (single_inv B (\<lambda>s0 t s. s = upd s0 Y 1)) (updg s0 A X 0) t gs"
+  shows "valg gs A X \<in> {0..2}"
   apply (rule merge_state_elim[of s0 "{A}" "{B}"])
-  using assms apply auto
-  apply (rule ext) apply (rule ext) sorry
-(*
-  apply (subst merge_path_eval) apply auto
-  by (simp add: single_path_def valg_def[symmetric] updg_def[symmetric]
-      single_subst_merge_state1[symmetric] valg_merge_state_left)
-*)
-lemma ex1_merge2:
+  subgoal using assms by auto
+  subgoal by auto
+  subgoal for s1 s2
+    using assms(3) apply (elim merge_inv_elim)
+    subgoal for s01 s02 s1' s2' apply simp
+      apply (elim single_inv_State)
+      apply (simp add: valg_merge_state_left valg_merge_state_right single_subst_merge_state1)
+      subgoal premises pre for s0' s' s0'' s''
+      proof -
+        have "updg s1 A X 0 = State A s0'"
+          using pre(4)
+          by (metis pre(2) proc_set_State restrict_state_merge1 singletonI updg_proc_set)
+        then have "val s0' X = 0"
+          by (metis valg_State valg_updg_simp)
+        then show ?thesis
+          using assms by auto
+      qed
+      done
+    done
+  done
+
+lemma ex_inv2:
   assumes "proc_set s0 = {A, B}"
-  shows
-  "merge_inv (single_inv A (\<lambda>s0 t s. s = upd s0 X (val s0 X + t))) (id_inv {B}) s0 =
-   (\<lambda>t s. s = updg s0 A X (valg s0 A X + t))"
+    "t \<in> {0..2}"
+    "merge_inv (single_inv A (\<lambda>s0 t s. s = upd s0 X (val s0 X + t)))
+        (single_inv B (\<lambda>s0 t s. s = upd s0 Y 2)) (updg s0 A X 0) t gs"
+  shows "valg gs A X \<in> {0..2}"
   apply (rule merge_state_elim[of s0 "{A}" "{B}"])
-  using assms apply auto
-  apply (rule ext) apply (rule ext) sorry
-(*
-  apply (subst merge_path_eval) apply auto
-  by (simp add: single_path_def valg_def[symmetric] updg_def[symmetric]
-      single_subst_merge_state1[symmetric] valg_merge_state_left)
-*)
+  subgoal using assms by auto
+  subgoal by auto
+  subgoal for s1 s2
+    using assms(3) apply (elim merge_inv_elim)
+    subgoal for s01 s02 s1' s2' apply simp
+      apply (elim single_inv_State)
+      apply (simp add: valg_merge_state_left valg_merge_state_right single_subst_merge_state1)
+      subgoal premises pre for s0' s' s0'' s''
+      proof -
+        have "updg s1 A X 0 = State A s0'"
+          using pre(4)
+          by (metis pre(2) proc_set_State restrict_state_merge1 singletonI updg_proc_set)
+        then have "val s0' X = 0"
+          by (metis valg_State valg_updg_simp)
+        then show ?thesis
+          using assms by auto
+      qed
+      done
+    done
+  done
+
 lemma ex1'':
   assumes "proc_set s0 = {A, B}"
   shows
@@ -424,12 +458,12 @@ lemma ex1'':
     apply (rule entails_g_trans)
      apply (rule wait_inv_cgI[where d=1 and J="\<lambda>gs. valg gs A X \<in> {0..2}"])
        apply (simp only: valg_def[symmetric]) apply auto[1]
-    subgoal sorry
+    subgoal using assms ex_inv1 by blast
     apply (rule entails_g_trans)
      apply (rule wait_inv_cg_updg)
     apply (rule wait_inv_cg_mono)
     apply (rule entails_g_trans)
-     apply (rule gassn_subst)
+    apply (rule gassn_subst)
     apply (rule entails_g_trans)
      apply (rule gassn_subst)
     apply (rule entails_g_trans)
@@ -446,7 +480,7 @@ done
     apply (rule entails_g_trans)
      apply (rule wait_inv_cgI[where d=2 and J="\<lambda>gs. valg gs A X \<in> {0..2}"])
        apply (simp only: valg_def[symmetric]) apply auto[1]
-    subgoal sorry
+    subgoal using assms ex_inv2 by blast
     apply (rule entails_g_trans)
      apply (rule wait_inv_cg_updg)
     apply (rule wait_inv_cg_mono)
@@ -679,7 +713,7 @@ lemma ex2'':
     apply (rule entails_g_trans)
      apply (rule wait_inv_cgI[where d=1 and J="\<lambda>gs. valg gs A X \<in> {0..2}"])
        apply (simp only: valg_def[symmetric]) apply auto[1]
-    subgoal sorry
+    subgoal using assms ex_inv1 by blast
     apply (rule entails_g_trans)
      apply (rule wait_inv_cg_updg)
     apply (rule wait_inv_cg_mono)
@@ -703,7 +737,7 @@ lemma ex2'':
     apply (rule entails_g_trans)
      apply (rule wait_inv_cgI[where d=2 and J="\<lambda>gs. valg gs A X \<in> {0..2}"])
        apply (simp only: valg_def[symmetric]) apply auto[1]
-    subgoal sorry
+    subgoal using assms ex_inv2 by blast
     apply (rule entails_g_trans)
      apply (rule wait_inv_cg_updg)
     apply (rule wait_inv_cg_mono)
