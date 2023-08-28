@@ -429,13 +429,13 @@ inductive interrupt_sol_c :: "('a estate \<Rightarrow> real \<Rightarrow> 'a est
    interrupt_sol_c I d P specs s0 s (InBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = InSpec2 ch Q \<Longrightarrow>
    0 < d' \<Longrightarrow> d' \<le> d s0 \<Longrightarrow> Q d' v s0 s tr \<Longrightarrow>
-   rdy = rdy_of_comm_spec2 specs \<Longrightarrow> \<forall>t\<in>{0..d s0}. I s0 t (p t) \<Longrightarrow>
+   rdy = rdy_of_comm_spec2 specs \<Longrightarrow> \<forall>t\<in>{0..d'}. I s0 t (p t) \<Longrightarrow>
    interrupt_sol_c I d P specs s0 s (WaitBlk d' (\<lambda>\<tau>. p \<tau>) rdy # InBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch Q \<Longrightarrow>
    Q 0 v s0 s tr \<Longrightarrow> interrupt_sol_c I d P specs s0 s (OutBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch Q \<Longrightarrow>
    0 < d' \<Longrightarrow> d' \<le> d s0 \<Longrightarrow> Q d' v s0 s tr \<Longrightarrow>
-   rdy = rdy_of_comm_spec2 specs \<Longrightarrow> \<forall>t\<in>{0..d s0}. I s0 t (p t) \<Longrightarrow>
+   rdy = rdy_of_comm_spec2 specs \<Longrightarrow> \<forall>t\<in>{0..d'}. I s0 t (p t) \<Longrightarrow>
    interrupt_sol_c I d P specs s0 s (WaitBlk d' (\<lambda>\<tau>. p \<tau>) rdy # OutBlock ch v # tr)"
 
 lemma interrupt_c_unique:

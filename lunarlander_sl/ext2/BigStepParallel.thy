@@ -606,8 +606,8 @@ inductive wait_in_cg_alt :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gsta
 | "0 < d \<Longrightarrow> d \<le> e (the (s0 pn)) \<Longrightarrow> P d v s0 s tr \<Longrightarrow>
    \<forall>t\<in>{0..d}. I s0 t (p t) \<Longrightarrow>
    wait_in_cg_alt I ch pn e P Q s0 s (WaitBlkP d (\<lambda>\<tau>. p \<tau>) ({}, {ch}) # InBlockP ch v # tr)"
-| "0 < e (the (s0 pn)) \<Longrightarrow> d \<ge> e (the (s0 pn)) \<Longrightarrow> Q d s0 s tr \<Longrightarrow>
-   \<forall>t\<in>{0..d}. I s0 t (p t) \<Longrightarrow>   
+| "0 < e (the (s0 pn)) \<Longrightarrow> d = e (the (s0 pn)) \<Longrightarrow> Q d s0 s tr \<Longrightarrow>
+   \<forall>t\<in>{0..d}. I s0 t (p t) \<Longrightarrow>
    wait_in_cg_alt I ch pn e P Q s0 s (WaitBlkP d (\<lambda>\<tau>. p \<tau>) ({}, {ch}) # tr)"
 | "\<not>0 < e (the (s0 pn)) \<Longrightarrow> Q 0 s0 s tr \<Longrightarrow>
    wait_in_cg_alt I ch pn e P Q s0 s tr"

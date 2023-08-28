@@ -28,6 +28,133 @@ lemma rdy_of_comm_spec_gassn_of:
   subgoal for spec2 apply (cases spec2) by auto
   done
 
+inductive interrupt_sol_cg ::
+      "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool) \<Rightarrow>
+       pname \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow>
+       'a comm_specg2 list \<Rightarrow> 'a gassn2" where
+  "e (the (s0 pn)) > 0 \<Longrightarrow> P d s0 s tr \<Longrightarrow> d = e (the (s0 pn)) \<Longrightarrow>
+   rdy = rdy_of_comm_specg2 specs \<Longrightarrow> \<forall>t\<in>{0..d}. I s0 t (p t) \<Longrightarrow>
+   interrupt_sol_cg I pn e P specs s0 s (WaitBlkP d (\<lambda>\<tau>. p \<tau>) rdy # tr)"
+| "\<not>e (the (s0 pn)) > 0 \<Longrightarrow> P 0 s0 s tr \<Longrightarrow>
+   interrupt_sol_cg I pn e P specs s0 s tr"
+| "i < length specs \<Longrightarrow> specs ! i = InSpecg2 ch Q \<Longrightarrow>
+   Q 0 v s0 s tr \<Longrightarrow>
+   interrupt_sol_cg I pn e P specs s0 s (InBlockP ch v # tr)"
+| "i < length specs \<Longrightarrow> specs ! i = InSpecg2 ch Q \<Longrightarrow>
+   0 < d' \<Longrightarrow> d' \<le> e (the (s0 pn)) \<Longrightarrow> Q d' v s0 s tr \<Longrightarrow>
+   rdy = rdy_of_comm_specg2 specs \<Longrightarrow> \<forall>t\<in>{0..d'}. I s0 t (p t) \<Longrightarrow>
+   interrupt_sol_cg I pn e P specs s0 s (WaitBlkP d' (\<lambda>\<tau>. p \<tau>) rdy # InBlockP ch v # tr)"
+| "i < length specs \<Longrightarrow> specs ! i = OutSpecg2 ch Q \<Longrightarrow>
+   Q 0 v s0 s tr \<Longrightarrow> interrupt_sol_cg I pn e P specs s0 s (OutBlockP ch v # tr)"
+| "i < length specs \<Longrightarrow> specs ! i = OutSpecg2 ch Q \<Longrightarrow>
+   0 < d' \<Longrightarrow> d' \<le> e (the (s0 pn)) \<Longrightarrow> Q d' v s0 s tr \<Longrightarrow>
+   rdy = rdy_of_comm_specg2 specs \<Longrightarrow> \<forall>t\<in>{0..d'}. I s0 t (p t) \<Longrightarrow>
+   interrupt_sol_cg I pn e P specs s0 s (WaitBlkP d' (\<lambda>\<tau>. p \<tau>) rdy # OutBlockP ch v # tr)"
+
+lemma single_assn_interrupt_sol [single_assn_simps]:
+  "single_assn pn (interrupt_sol_c I e P specs) =
+   interrupt_sol_cg (single_inv pn I) pn e (\<lambda>d. single_assn pn (P d))
+                    (map (comm_spec_gassn_of pn) specs)"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s0 s tr
+    apply (rule iffI)
+    subgoal apply (elim single_assn.cases) apply auto
+      subgoal for s0' s' tr'
+        apply (elim interrupt_sol_c.cases) apply auto
+        subgoal premises pre for tr'' a b p
+          using pre(3) apply (elim ptrace_of_waitE) apply auto
+          apply (rule interrupt_sol_cg.intros(1))
+          using pre rdy_of_comm_spec_gassn_of
+          by (auto intro: single_assn.intros single_inv.intros)
+        subgoal
+          apply (rule interrupt_sol_cg.intros(2))
+          by (auto intro: single_assn.intros)
+        subgoal for i ch Q v tr''
+          apply (elim ptrace_of_commE) apply auto
+          apply (rule interrupt_sol_cg.intros(3)[of i _ _ "(\<lambda>d v. single_assn pn (Q d v))"])
+          by (auto intro: single_assn.intros)
+        subgoal premises pre for i ch Q d v tr'' a b p'
+          using pre(3) apply (elim ptrace_of_waitE ptrace_of_commE) apply auto
+          apply (rule interrupt_sol_cg.intros(4)[of i _ _ "(\<lambda>d v. single_assn pn (Q d v))"])
+          using pre rdy_of_comm_spec_gassn_of
+          by (auto intro: single_assn.intros single_inv.intros)
+        subgoal for i ch Q v tr''
+          apply (elim ptrace_of_commE) apply auto
+          apply (rule interrupt_sol_cg.intros(5)[of i _ _ "(\<lambda>d v. single_assn pn (Q d v))" ])
+          by (auto intro: single_assn.intros)
+        subgoal premises pre for i ch Q d v tr'' a b
+          using pre(3) apply (elim ptrace_of_waitE ptrace_of_commE) apply auto
+          apply (rule interrupt_sol_cg.intros(6)[of i _ _ "(\<lambda>d v. single_assn pn (Q d v))"])
+          using pre rdy_of_comm_spec_gassn_of
+          by (auto intro: single_assn.intros single_inv.intros)
+        done
+      done
+    subgoal apply (elim interrupt_sol_cg.cases) apply auto
+      subgoal for tr' a b p
+        apply (elim single_assn.cases) apply auto
+        subgoal for s0' s' tr''
+          apply (elim single_inv_intervalE) subgoal for p''
+            apply (rule single_assn.intros[where tr=
+                  "WaitBlk (e s0') p'' (rdy_of_comm_specg2 (map (comm_spec_gassn_of pn) specs)) # tr''"])
+             prefer 2 apply (auto intro!: ptrace_of.intros WaitBlkP_eqI)
+            apply (rule interrupt_sol_c.intros(1))
+               apply (auto intro: ptrace_of.intros)
+            unfolding rdy_of_comm_spec_gassn_of[symmetric] by auto
+          done
+        done
+      subgoal
+        apply (elim single_assn.cases) apply auto
+        subgoal for s0' s' tr''
+          apply (rule single_assn.intros)
+           apply (rule interrupt_sol_c.intros(2))
+          by auto
+        done
+      subgoal for i ch Q v tr'
+        apply (cases "specs ! i") apply auto
+        apply (elim single_assn.cases) apply auto
+        subgoal for Q' s0' s' tr''
+          apply (rule single_assn.intros)
+           apply (rule interrupt_sol_c.intros(3)[of i _ _ Q'])
+          by (auto intro: ptrace_of.intros)
+        done
+      subgoal for i ch Q d v tr' a b p'
+        apply (cases "specs ! i") apply auto
+        apply (elim single_assn.cases) apply auto
+        subgoal for Q' s0'' s' tr''
+          apply (elim single_inv_intervalE) subgoal for p''
+            apply (rule single_assn.intros[where tr=
+                  "WaitBlk d p'' (rdy_of_comm_specg2 (map (comm_spec_gassn_of pn) specs)) #
+                   InBlock ch v # tr''"])
+             prefer 2 apply (auto intro!: ptrace_of.intros WaitBlkP_eqI)
+            apply (rule interrupt_sol_c.intros(4)[of i _ _ Q']) apply auto
+            unfolding rdy_of_comm_spec_gassn_of[symmetric] by auto
+          done
+        done
+      subgoal for i ch e Q tr'
+        apply (cases "specs ! i") apply auto
+        apply (elim single_assn.cases) apply auto
+        subgoal for Q' s0'' s' tr''
+          apply (rule single_assn.intros)
+           apply (rule interrupt_sol_c.intros(5)[of i _ _ Q'])
+          by (auto intro: ptrace_of.intros)
+        done
+      subgoal for i ch Q d v tr' a b p'
+        apply (cases "specs ! i") apply auto
+        apply (elim single_assn.cases) apply auto
+        subgoal for Q' s0'' s' tr''
+          apply (elim single_inv_intervalE) subgoal for p''
+            apply (rule single_assn.intros[where tr=
+                  "WaitBlk d p'' (rdy_of_comm_specg2 (map (comm_spec_gassn_of pn) specs)) #
+                   OutBlock ch v # tr''"])
+             prefer 2 apply (auto intro!: ptrace_of.intros WaitBlkP_eqI)
+            apply (rule interrupt_sol_c.intros(6)[of i _ _ Q']) apply auto
+            unfolding rdy_of_comm_spec_gassn_of[symmetric] by auto
+          done
+        done
+      done
+    done
+  done
+
 inductive interrupt_solInf_cg :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool) \<Rightarrow> 'a comm_specg2 list \<Rightarrow> 'a gassn2" where
   "i < length specs \<Longrightarrow> specs ! i = InSpecg2 ch Q \<Longrightarrow>
    Q 0 v gs0 gs tr \<Longrightarrow> interrupt_solInf_cg I specs gs0 gs (InBlockP ch v # tr)"
@@ -418,6 +545,104 @@ lemma wait_inv_cg_mono:
     apply (elim wait_inv_cg.cases) apply auto
     apply (rule wait_inv_cg.intros) apply auto
     using assms unfolding entails_g_def by auto
+  done
+
+subsection \<open>Simplification of interrupt assertions\<close>
+
+lemma interrupt_solInf_cg_out:
+  "interrupt_solInf_cg I [OutSpecg2 ch P] = wait_out_cg I ch P"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s0 s tr apply (rule iffI)
+    subgoal apply (elim interrupt_solInf_cg.cases) apply auto
+      subgoal for v tr'
+        by (intro wait_out_cg.intros(1)) 
+      subgoal for d v tr' a b p
+        unfolding rdy_of_comm_specg2_def apply simp
+        by (auto intro: wait_out_cg.intros(2))
+      done
+    subgoal apply (elim wait_out_cg.cases) apply auto
+      subgoal for v tr'
+        apply (intro interrupt_solInf_cg.intros(3)[of 0 _ _ P]) by auto
+      subgoal for d v tr' p
+        apply (intro interrupt_solInf_cg.intros(4)[of 0 _ _ P]) apply auto
+        unfolding rdy_of_comm_specg2_def by auto
+      done
+    done
+  done
+
+lemma interrupt_solInf_cg_in:
+  "interrupt_solInf_cg I [InSpecg2 ch P] = wait_in_cg I ch P"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s0 s tr apply (rule iffI)
+    subgoal apply (elim interrupt_solInf_cg.cases) apply auto
+      subgoal for v tr'
+        by (intro wait_in_cg.intros(1)) 
+      subgoal for d v tr' a b p
+        unfolding rdy_of_comm_specg2_def apply simp
+        by (auto intro: wait_in_cg.intros(2))
+      done
+    subgoal apply (elim wait_in_cg.cases) apply auto
+      subgoal for v tr'
+        apply (intro interrupt_solInf_cg.intros(1)[of 0 _ _ P]) by auto
+      subgoal for d v tr' p
+        apply (intro interrupt_solInf_cg.intros(2)[of 0 _ _ P]) apply auto
+        unfolding rdy_of_comm_specg2_def by auto
+      done
+    done
+  done
+
+lemma interrupt_sol_cg_wait:
+  "interrupt_sol_cg I pn e P [] = wait_cg I pn e P"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s0 s tr apply (rule iffI)
+    subgoal apply (elim interrupt_sol_cg.cases) apply auto
+      subgoal for tr' a b p
+        unfolding rdy_of_comm_specg2_def apply simp
+        by (auto intro: wait_cg.intros(1))
+      subgoal
+        by (auto intro: wait_cg.intros(2))
+      done
+    subgoal apply (elim wait_cg.cases) apply auto
+      subgoal for tr' p
+        apply (intro interrupt_sol_cg.intros(1))
+        unfolding rdy_of_comm_specg2_def by auto
+      subgoal
+        by (auto intro: interrupt_sol_cg.intros(2))
+      done
+    done
+  done
+
+text \<open>wait_in_cg_alt is also a special case of interrupt_sol_cg\<close>
+
+lemma interrupt_sol_cg_wait_in:
+  "interrupt_sol_cg I pn e P [InSpecg2 ch Q] = wait_in_cg_alt I ch pn e Q P"
+  apply (rule ext) apply (rule ext) apply (rule ext)
+  subgoal for s0 s tr apply (rule iffI)
+    subgoal apply (elim interrupt_sol_cg.cases) apply auto
+      subgoal for tr' a b p
+        unfolding rdy_of_comm_specg2_def apply simp
+        by (auto intro: wait_in_cg_alt.intros(3))
+      subgoal
+        by (auto intro: wait_in_cg_alt.intros(4))
+      subgoal for v tr'
+        by (auto intro: wait_in_cg_alt.intros(1))
+      subgoal for d v tr' a b p
+        unfolding rdy_of_comm_specg2_def apply simp
+        by (auto intro: wait_in_cg_alt.intros(2))
+      done
+    subgoal apply (elim wait_in_cg_alt.cases) apply auto
+      subgoal for v tr'
+        apply (intro interrupt_sol_cg.intros(3)[of 0 _ _ Q]) by auto
+      subgoal for d v tr' p
+        apply (intro interrupt_sol_cg.intros(4)[of 0 _ _ Q]) apply auto
+        unfolding rdy_of_comm_specg2_def by auto
+      subgoal for tr' p
+        apply (intro interrupt_sol_cg.intros(1)) apply auto
+        unfolding rdy_of_comm_specg2_def by auto
+      subgoal
+        apply (intro interrupt_sol_cg.intros(2)) by auto
+      done
+    done
   done
 
 end
