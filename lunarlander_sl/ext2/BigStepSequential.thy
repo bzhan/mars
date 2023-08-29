@@ -406,7 +406,7 @@ text \<open>Assertion for input.
 \<close>
 inductive wait_in_c :: "'a pinv2 \<Rightarrow> cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
   "P 0 v s0 s tr \<Longrightarrow> wait_in_c I ch P s0 s (InBlock ch v # tr)"
-| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> \<forall>t\<in>{0..}. I s0 t (p t) \<Longrightarrow>
+| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> \<forall>t\<in>{0..d}. I s0 t (p t) \<Longrightarrow>
    wait_in_c I ch P s0 s (WaitBlk d (\<lambda>\<tau>. p \<tau>) ({}, {ch}) # InBlock ch v # tr)"
 
 text \<open>Assertion for output.
@@ -417,7 +417,7 @@ text \<open>Assertion for output.
 \<close>
 inductive wait_out_c :: "'a pinv2 \<Rightarrow> cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a assn2) \<Rightarrow> 'a assn2" where
   "P 0 v s0 s tr \<Longrightarrow> wait_out_c I ch P s0 s (OutBlock ch v # tr)"
-| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> \<forall>t\<in>{0..}. I s0 t (p t) \<Longrightarrow>
+| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> \<forall>t\<in>{0..d}. I s0 t (p t) \<Longrightarrow>
    wait_out_c I ch P s0 s (WaitBlk d (\<lambda>\<tau>. p \<tau>) ({ch}, {}) # OutBlock ch v # tr)"
 
 text \<open>A short form of wait_out_c, where the communicated value

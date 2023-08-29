@@ -160,13 +160,13 @@ inductive interrupt_solInf_cg :: "('a gstate \<Rightarrow> real \<Rightarrow> 'a
    Q 0 v gs0 gs tr \<Longrightarrow> interrupt_solInf_cg I specs gs0 gs (InBlockP ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = InSpecg2 ch Q \<Longrightarrow>
    0 < d \<Longrightarrow> Q d v gs0 gs tr \<Longrightarrow>
-   rdy = rdy_of_comm_specg2 specs \<Longrightarrow> (\<forall>t\<in>{0..}. I gs0 t (p t)) \<Longrightarrow>
+   rdy = rdy_of_comm_specg2 specs \<Longrightarrow> (\<forall>t\<in>{0..d}. I gs0 t (p t)) \<Longrightarrow>
    interrupt_solInf_cg I specs gs0 gs (WaitBlkP d p rdy # InBlockP ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpecg2 ch Q \<Longrightarrow>
    Q 0 v gs0 gs tr \<Longrightarrow> interrupt_solInf_cg I specs gs0 gs (OutBlockP ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpecg2 ch Q \<Longrightarrow>
    0 < d \<Longrightarrow> Q d v gs0 gs tr \<Longrightarrow>
-   rdy = rdy_of_comm_specg2 specs \<Longrightarrow> (\<forall>t\<in>{0..}. I gs0 t (p t)) \<Longrightarrow>
+   rdy = rdy_of_comm_specg2 specs \<Longrightarrow> (\<forall>t\<in>{0..d}. I gs0 t (p t)) \<Longrightarrow>
    interrupt_solInf_cg I specs gs0 gs (WaitBlkP d p rdy # OutBlockP ch v # tr)"
 
 lemma single_assn_interrupt_solInf [single_assn_simps]:
@@ -211,7 +211,7 @@ lemma single_assn_interrupt_solInf [single_assn_simps]:
         apply (cases "specs ! i") apply auto
         apply (elim single_assn.cases) apply auto
         subgoal for Q' s0'' s' tr''
-          apply (elim single_inv_inf_intervalE) subgoal for p''
+          apply (elim single_inv_intervalE) subgoal for p''
             apply (rule single_assn.intros[where tr=
                   "WaitBlk d p'' (rdy_of_comm_specg2 (map (comm_spec_gassn_of pn) specs)) #
                    InBlock ch v # tr''"])
@@ -232,7 +232,7 @@ lemma single_assn_interrupt_solInf [single_assn_simps]:
         apply (cases "specs ! i") apply auto
         apply (elim single_assn.cases) apply auto
         subgoal for Q' s0'' s' tr''
-          apply (elim single_inv_inf_intervalE) subgoal for p''
+          apply (elim single_inv_intervalE) subgoal for p''
             apply (rule single_assn.intros[where tr=
                   "WaitBlk d p'' (rdy_of_comm_specg2 (map (comm_spec_gassn_of pn) specs)) #
                    OutBlock ch v # tr''"])

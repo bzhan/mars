@@ -561,13 +561,13 @@ inductive interrupt_solInf_c :: "'a pinv2 \<Rightarrow> 'a comm_spec2 list \<Rig
    Q 0 v s0 s tr \<Longrightarrow> interrupt_solInf_c I specs s0 s (InBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = InSpec2 ch Q \<Longrightarrow>
    0 < d \<Longrightarrow> Q d v s0 s tr \<Longrightarrow>
-   rdy = rdy_of_comm_spec2 specs \<Longrightarrow> \<forall>t\<in>{0..}. I s0 t (p t) \<Longrightarrow>
+   rdy = rdy_of_comm_spec2 specs \<Longrightarrow> \<forall>t\<in>{0..d}. I s0 t (p t) \<Longrightarrow>
    interrupt_solInf_c I specs s0 s (WaitBlk d (\<lambda>\<tau>. p \<tau>) rdy # InBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch Q \<Longrightarrow>
    Q 0 v s0 s tr \<Longrightarrow> interrupt_solInf_c I specs s0 s (OutBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch Q \<Longrightarrow>
    0 < d \<Longrightarrow> Q d v s0 s tr \<Longrightarrow>
-   rdy = rdy_of_comm_spec2 specs \<Longrightarrow> \<forall>t\<in>{0..}. I s0 t (p t) \<Longrightarrow>
+   rdy = rdy_of_comm_spec2 specs \<Longrightarrow> \<forall>t\<in>{0..d}. I s0 t (p t) \<Longrightarrow>
    interrupt_solInf_c I specs s0 s (WaitBlk d (\<lambda>\<tau>. p \<tau>) rdy # OutBlock ch v # tr)"
 
 lemma interrupt_inf_c_unique:

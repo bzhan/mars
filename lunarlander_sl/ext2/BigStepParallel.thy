@@ -579,13 +579,13 @@ definition exists_gassn :: "('b \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2
 text \<open>Assertion for input\<close>
 inductive wait_in_cg :: "'a gpinv2 \<Rightarrow> cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
   "P 0 v s0 s tr \<Longrightarrow> wait_in_cg I ch P s0 s (InBlockP ch v # tr)"
-| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> \<forall>t\<in>{0..}. I s0 t (p t) \<Longrightarrow>
+| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> \<forall>t\<in>{0..d}. I s0 t (p t) \<Longrightarrow>
    wait_in_cg I ch P s0 s (WaitBlkP d (\<lambda>\<tau>. p \<tau>) ({}, {ch}) # InBlockP ch v # tr)"
 
 text \<open>Assertion for output\<close>
 inductive wait_out_cg :: "'a gpinv2 \<Rightarrow> cname \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
   "P 0 v s0 s tr \<Longrightarrow> wait_out_cg I ch P s0 s (OutBlockP ch v # tr)"
-| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> \<forall>t\<in>{0..}. I s0 t (p t) \<Longrightarrow>
+| "0 < d \<Longrightarrow> P d v s0 s tr \<Longrightarrow> \<forall>t\<in>{0..d}. I s0 t (p t) \<Longrightarrow>
    wait_out_cg I ch P s0 s (WaitBlkP d (\<lambda>\<tau>. p \<tau>) ({ch}, {}) # OutBlockP ch v # tr)"
 
 definition wait_out_cgv :: "'a gpinv2 \<Rightarrow> cname \<Rightarrow> pname set \<Rightarrow> pname \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a gassn2) \<Rightarrow> 'a gassn2" where
@@ -670,24 +670,6 @@ proof -
     using assms(1) that
     by (metis State_inj single_inv.cases)
   then obtain p' where p': "\<forall>t\<in>{0..d}. p t = State pn (p' t) \<and> I s0 t (p' t)"
-    by metis
-  show ?thesis
-    apply (rule assms(2)[where p'="\<lambda>t. SOME s. p t = State pn s \<and> I s0 t s"])
-    apply clarify subgoal for t
-      apply (rule someI[where x="p' t"])
-      using p' by auto
-    done
-qed
-
-lemma single_inv_inf_intervalE:
-  assumes "\<forall>t\<in>{0..}. single_inv pn I (State pn s0) t (p t)"
-    and "(\<And>p'. \<forall>t\<in>{0..}. p t = State pn (p' t) \<and> I s0 t (p' t) \<Longrightarrow> P)"
-  shows P
-proof -
-  have a: "\<exists>s. p t = State pn s \<and> I s0 t s" if "t\<in>{0..}" for t
-    using assms(1) that
-    by (metis State_inj single_inv.cases)
-  then obtain p' where p': "\<forall>t\<in>{0..}. p t = State pn (p' t) \<and> I s0 t (p' t)"
     by metis
   show ?thesis
     apply (rule assms(2)[where p'="\<lambda>t. SOME s. p t = State pn s \<and> I s0 t s"])
@@ -837,7 +819,7 @@ lemma single_assn_wait_in [single_assn_simps]:
       subgoal for d v tr' p
         apply (elim single_assn.cases) apply auto
         subgoal for s0' s' tr''
-          apply (elim single_inv_inf_intervalE) subgoal for p'
+          apply (elim single_inv_intervalE) subgoal for p'
             apply (rule single_assn.intros)
              apply (rule wait_in_c.intros(2))
             by (auto intro!: ptrace_of.intros WaitBlkP_eqI)
@@ -875,7 +857,7 @@ lemma single_assn_wait_out [single_assn_simps]:
       subgoal for d v tr' p
         apply (elim single_assn.cases) apply auto
         subgoal for s0' s' tr''
-          apply (elim single_inv_inf_intervalE) subgoal for p'
+          apply (elim single_inv_intervalE) subgoal for p'
             apply (rule single_assn.intros)
              apply (rule wait_out_c.intros(2))
             by (auto intro!: ptrace_of.intros WaitBlkP_eqI)
@@ -1147,9 +1129,10 @@ lemma proc_set_wait_out_cg [intro!]:
       using assms(1)[of d v] unfolding proc_set_gassn_def apply auto
       apply (rule proc_set_trace.intros) apply auto
       using assms(2)[unfolded proc_set_path_def]
-        prefer 2 apply blast
+        prefer 2 using atLeastAtMost_iff apply blast
       prefer 2
-      using \<open>\<forall>gs0 t gs. I gs0 t gs \<longrightarrow> proc_set gs0 = pns \<and> proc_set gs = pns\<close> apply blast
+      using \<open>\<forall>gs0 t gs. I gs0 t gs \<longrightarrow> proc_set gs0 = pns \<and> proc_set gs = pns\<close>
+      using atLeastAtMost_iff apply blast
       apply (rule proc_set_trace.intros) by blast
     done
   done
