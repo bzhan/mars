@@ -309,18 +309,18 @@ inductive combine_blocks :: "cname set \<Rightarrow> 'a ptrace \<Rightarrow> 'a 
    compat_rdy rdy1 rdy2 \<Longrightarrow>
    hist = (\<lambda>\<tau>. merge_state (hist1 \<tau>) (hist2 \<tau>)) \<Longrightarrow>
    rdy = merge_rdy comms rdy1 rdy2 \<Longrightarrow>
-   combine_blocks comms (WaitBlkP t (\<lambda>\<tau>. hist1 \<tau>) rdy1 # blks1)
-                        (WaitBlkP t (\<lambda>\<tau>. hist2 \<tau>) rdy2 # blks2)
-                        (WaitBlkP t (\<lambda>\<tau>. hist \<tau>) rdy # blks)"
+   combine_blocks comms (WaitBlkP d (\<lambda>\<tau>. hist1 \<tau>) rdy1 # blks1)
+                        (WaitBlkP d (\<lambda>\<tau>. hist2 \<tau>) rdy2 # blks2)
+                        (WaitBlkP d (\<lambda>\<tau>. hist \<tau>) rdy # blks)"
 | combine_blocks_wait2:
-  "combine_blocks comms blks1 (WaitBlkP (t2 - t1) (\<lambda>\<tau>. hist2 (\<tau> + t1)) rdy2 # blks2) blks \<Longrightarrow>
+  "combine_blocks comms blks1 (WaitBlkP (d2 - d1) (\<lambda>\<tau>. hist2 (\<tau> + d1)) rdy2 # blks2) blks \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
-   t1 < t2 \<Longrightarrow> t1 > 0 \<Longrightarrow>
+   d1 < d2 \<Longrightarrow> d1 > 0 \<Longrightarrow>
    hist = (\<lambda>\<tau>. merge_state (hist1 \<tau>) (hist2 \<tau>)) \<Longrightarrow>
    rdy = merge_rdy comms rdy1 rdy2 \<Longrightarrow>
-   combine_blocks comms (WaitBlkP t1 (\<lambda>\<tau>. hist1 \<tau>) rdy1 # blks1)
-                        (WaitBlkP t2 (\<lambda>\<tau>. hist2 \<tau>) rdy2 # blks2)
-                        (WaitBlkP t1 (\<lambda>\<tau>. hist \<tau>) rdy # blks)"
+   combine_blocks comms (WaitBlkP d1 (\<lambda>\<tau>. hist1 \<tau>) rdy1 # blks1)
+                        (WaitBlkP d2 (\<lambda>\<tau>. hist2 \<tau>) rdy2 # blks2)
+                        (WaitBlkP d1 (\<lambda>\<tau>. hist \<tau>) rdy # blks)"
 | combine_blocks_wait3:
   "combine_blocks comms (WaitBlkP (t1 - t2) (\<lambda>\<tau>. hist1 (\<tau> + t2)) rdy1 # blks1) blks2 blks \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
@@ -1594,6 +1594,14 @@ lemma wait_in_cg_alt_mono:
       using assms(2) unfolding entails_g_def by auto
     done
   done
+
+lemma wait_in_c0_mono:
+  assumes "\<And>v. P1 v s0 \<Longrightarrow>\<^sub>A P2 v s0"
+  shows "wait_in_c0 I ch P1 s0 \<Longrightarrow>\<^sub>A wait_in_c0 I ch P2 s0"
+  unfolding wait_in_c0_def
+  apply (rule wait_in_c_mono)
+  apply (rule cond_assn_mono)
+  using assms by (auto intro: entails_triv)
 
 subsection \<open>Hoare logic for parallel programs\<close>
 

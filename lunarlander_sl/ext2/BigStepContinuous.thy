@@ -220,24 +220,24 @@ text \<open>Unique solution rule\<close>
 
 lemma ode_c_unique:
   assumes
-    "paramODEsol ode b p d"
+    "paramODEsol ode b p e"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
   shows
-    "ode_c ode b P s0 \<Longrightarrow>\<^sub>A wait_c (\<lambda>s0 t s. s = updr s0 (p s0 t)) d (\<lambda>d' s. P (updr s (p s d'))) s0"
+    "ode_c ode b P s0 \<Longrightarrow>\<^sub>A wait_c (\<lambda>s0 t s. s = updr s0 (p s0 t)) e (\<lambda>d' s. P (updr s (p s d'))) s0"
   unfolding entails_def apply auto
   subgoal for s tr
     apply (auto simp add: ode_c.simps)
     subgoal
       apply (rule wait_c.intros)
       using assms(1) unfolding paramODEsol_def by auto
-    subgoal premises pre for d' p' tr'
+    subgoal premises pre for d p' tr'
     proof -
       have "b (updr s0 (p' 0))"
         using pre(2,5,6) by auto
       then have "b s0" by (auto simp add: pre(5))
-      have a: "d' = d s0"
-        "p s0 (d s0) = p' d'"
-        "WaitBlk (d s0) (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d' (\<lambda>t. updr s0 (p' t))"
+      have a: "d = e s0"
+        "p s0 (e s0) = p' d"
+        "WaitBlk (e s0) (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d (\<lambda>t. updr s0 (p' t))"
         using paramODEsol_unique[OF assms \<open>b s0\<close> pre(2,4,6,7,5)] by auto
       show ?thesis
         unfolding a(3)[symmetric]
@@ -249,11 +249,11 @@ lemma ode_c_unique:
 
 lemma spec_of_cont_unique:
   assumes
-    "paramODEsol ode b p d"
+    "paramODEsol ode b p e"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
   shows
     "spec_of (Cont ode b)
-             (wait_c (\<lambda>s0 t s. s = updr s0 (p s0 t)) d (\<lambda>d' s. init (updr s (p s d'))))"
+             (wait_c (\<lambda>s0 t s. s = updr s0 (p s0 t)) e (\<lambda>d' s. init (updr s (p s d'))))"
   apply (rule spec_of_post)
    apply (rule spec_of_cont) apply auto
   apply (rule entails_trans)
@@ -262,10 +262,10 @@ lemma spec_of_cont_unique:
 
 lemma Valid_cont_unique_sp:
   assumes "spec_of c Q"
-    "paramODEsol ode b p d"
+    "paramODEsol ode b p e"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
   shows "spec_of (Cont ode b; c)
-                 (wait_c (\<lambda>s0 t s. s = updr s0 (p s0 t)) d (\<lambda>d' s. Q (updr s (p s d'))))"
+                 (wait_c (\<lambda>s0 t s. s = updr s0 (p s0 t)) e (\<lambda>d' s. Q (updr s (p s d'))))"
   apply (rule spec_of_post)
    apply (rule Valid_cont_sp[OF assms(1)]) apply auto
   apply (rule entails_trans)
@@ -419,32 +419,32 @@ lemma rdy_of_comm_spec2_of:
 
 inductive interrupt_sol_c :: "'a pinv2 \<Rightarrow> 'a eexp \<Rightarrow> (real \<Rightarrow> 'a assn2) \<Rightarrow>
   'a comm_spec2 list \<Rightarrow> 'a assn2" where
-  "d s0 > 0 \<Longrightarrow> P (d s0) s0 s tr \<Longrightarrow>
-   rdy = rdy_of_comm_spec2 specs \<Longrightarrow> \<forall>t\<in>{0..d s0}. I s0 t (p t) \<Longrightarrow>
-   interrupt_sol_c I d P specs s0 s (WaitBlk (d s0) (\<lambda>\<tau>. p \<tau>) rdy # tr)"
-| "\<not>d s0 > 0 \<Longrightarrow> P 0 s0 s tr \<Longrightarrow>
-   interrupt_sol_c I d P specs s0 s tr"
+  "e s0 > 0 \<Longrightarrow> P (e s0) s0 s tr \<Longrightarrow>
+   rdy = rdy_of_comm_spec2 specs \<Longrightarrow> \<forall>t\<in>{0..e s0}. I s0 t (p t) \<Longrightarrow>
+   interrupt_sol_c I e P specs s0 s (WaitBlk (e s0) (\<lambda>\<tau>. p \<tau>) rdy # tr)"
+| "\<not>e s0 > 0 \<Longrightarrow> P 0 s0 s tr \<Longrightarrow>
+   interrupt_sol_c I e P specs s0 s tr"
 | "i < length specs \<Longrightarrow> specs ! i = InSpec2 ch Q \<Longrightarrow>
    Q 0 v s0 s tr \<Longrightarrow>
-   interrupt_sol_c I d P specs s0 s (InBlock ch v # tr)"
+   interrupt_sol_c I e P specs s0 s (InBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = InSpec2 ch Q \<Longrightarrow>
-   0 < d' \<Longrightarrow> d' \<le> d s0 \<Longrightarrow> Q d' v s0 s tr \<Longrightarrow>
-   rdy = rdy_of_comm_spec2 specs \<Longrightarrow> \<forall>t\<in>{0..d'}. I s0 t (p t) \<Longrightarrow>
-   interrupt_sol_c I d P specs s0 s (WaitBlk d' (\<lambda>\<tau>. p \<tau>) rdy # InBlock ch v # tr)"
+   0 < d \<Longrightarrow> d \<le> e s0 \<Longrightarrow> Q d v s0 s tr \<Longrightarrow>
+   rdy = rdy_of_comm_spec2 specs \<Longrightarrow> \<forall>t\<in>{0..d}. I s0 t (p t) \<Longrightarrow>
+   interrupt_sol_c I e P specs s0 s (WaitBlk d (\<lambda>\<tau>. p \<tau>) rdy # InBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch Q \<Longrightarrow>
-   Q 0 v s0 s tr \<Longrightarrow> interrupt_sol_c I d P specs s0 s (OutBlock ch v # tr)"
+   Q 0 v s0 s tr \<Longrightarrow> interrupt_sol_c I e P specs s0 s (OutBlock ch v # tr)"
 | "i < length specs \<Longrightarrow> specs ! i = OutSpec2 ch Q \<Longrightarrow>
-   0 < d' \<Longrightarrow> d' \<le> d s0 \<Longrightarrow> Q d' v s0 s tr \<Longrightarrow>
-   rdy = rdy_of_comm_spec2 specs \<Longrightarrow> \<forall>t\<in>{0..d'}. I s0 t (p t) \<Longrightarrow>
-   interrupt_sol_c I d P specs s0 s (WaitBlk d' (\<lambda>\<tau>. p \<tau>) rdy # OutBlock ch v # tr)"
+   0 < d \<Longrightarrow> d \<le> e s0 \<Longrightarrow> Q d v s0 s tr \<Longrightarrow>
+   rdy = rdy_of_comm_spec2 specs \<Longrightarrow> \<forall>t\<in>{0..d}. I s0 t (p t) \<Longrightarrow>
+   interrupt_sol_c I e P specs s0 s (WaitBlk d (\<lambda>\<tau>. p \<tau>) rdy # OutBlock ch v # tr)"
 
 lemma interrupt_c_unique:
   assumes
-    "paramODEsol ode b p d"
+    "paramODEsol ode b p e"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
   shows
     "interrupt_c ode b P specs s0 \<Longrightarrow>\<^sub>A
-     interrupt_sol_c (\<lambda>s0 t s. s = updr s0 (p s0 t)) d (\<lambda>d' s. P (updr s (p s d')))
+     interrupt_sol_c (\<lambda>s0 t s. s = updr s0 (p s0 t)) e (\<lambda>d' s. P (updr s (p s d')))
                      (map (spec2_of p) specs) s0"
   unfolding entails_def apply auto
   subgoal for s tr
@@ -452,14 +452,14 @@ lemma interrupt_c_unique:
     subgoal
       apply (rule interrupt_sol_c.intros(2))
       using assms(1) unfolding paramODEsol_def by auto
-    subgoal premises pre for d' p' tr'
+    subgoal premises pre for d p' tr'
     proof -
       have "b (updr s0 (p' 0))"
         using pre(2,5,6) by auto
       then have "b s0" by (auto simp add: pre(5))
-      have a: "d' = d s0"
-        "p s0 (d s0) = p' d'"
-        "WaitBlk (d s0) (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d' (\<lambda>t. updr s0 (p' t))"
+      have a: "d = e s0"
+        "p s0 (e s0) = p' d"
+        "WaitBlk (e s0) (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d (\<lambda>t. updr s0 (p' t))"
         using paramODEsol_unique[OF assms \<open>b s0\<close> pre(2,4,6,7,5)] by auto
       show ?thesis
         unfolding a(3)[symmetric]
@@ -476,14 +476,14 @@ lemma interrupt_c_unique:
         using pre Q paramODEsolD2[OF assms(1)]
         by (auto simp add: substr_assn2_def updr_rpart_simp1)
     qed
-    subgoal premises pre for i ch var Q d' p' v tr'
+    subgoal premises pre for i ch var Q d p' v tr'
     proof -
       have "b (updr s0 (p' 0))"
         using pre by auto
       then have "b s0" using pre by auto
-      have a: "d' \<le> d s0"
-        "p s0 d' = p' d'"
-        "WaitBlk d' (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d' (\<lambda>t. updr s0 (p' t))"
+      have a: "d \<le> e s0"
+        "p s0 d = p' d"
+        "WaitBlk d (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d (\<lambda>t. updr s0 (p' t))"
         using paramODEsol_unique2[OF assms \<open>b s0\<close> pre(4,6,8,7)] by auto
       let ?Q' = "\<lambda>d v. Q {{ (\<lambda>s0. ((p s0 d)(var := v))) }}\<^sub>r"
       have Q: "map (spec2_of p) specs ! i = InSpec2 ch ?Q'"
@@ -504,16 +504,16 @@ lemma interrupt_c_unique:
         using pre(2,3,4) Q paramODEsolD2[OF assms(1)]
         unfolding substr_assn2_def conj_assn_def pure_assn_def by auto
     qed
-    subgoal premises pre for i ch e Q d' p' tr'
+    subgoal premises pre for i ch e' Q d p' tr'
     proof -
       have "b (updr s0 (p' 0))"
         using pre by auto
       then have "b s0" using pre by auto
-      have a: "d' \<le> d s0"
-        "p s0 d' = p' d'"
-        "WaitBlk d' (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d' (\<lambda>t. updr s0 (p' t))"
+      have a: "d \<le> e s0"
+        "p s0 d = p' d"
+        "WaitBlk d (\<lambda>t. updr s0 (p s0 t)) = WaitBlk d (\<lambda>t. updr s0 (p' t))"
         using paramODEsol_unique2[OF assms \<open>b s0\<close> pre(4,6,8,7)] by auto
-      let ?Q' = "\<lambda>d v. !\<^sub>a[(\<lambda>s0. v = e (updr s0 (p s0 d)))] \<and>\<^sub>a Q {{ (\<lambda>s0. (p s0 d)) }}\<^sub>r"
+      let ?Q' = "\<lambda>d v. !\<^sub>a[(\<lambda>s0. v = e' (updr s0 (p s0 d)))] \<and>\<^sub>a Q {{ (\<lambda>s0. (p s0 d)) }}\<^sub>r"
       have Q: "map (spec2_of p) specs ! i = OutSpec2 ch ?Q'"
         using pre(2) by (simp add: pre(3))
       show ?thesis
@@ -527,13 +527,13 @@ lemma interrupt_c_unique:
 
 lemma spec_of_interrupt_unique:
   assumes
-    "paramODEsol ode b p d"
+    "paramODEsol ode b p e"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
     "rel_list spec_of_es es specs"
     "spec_of pr P"
   shows
     "spec_of (Interrupt ode b es pr)
-             (interrupt_sol_c (\<lambda>s0 t s. s = updr s0 (p s0 t)) d (\<lambda>d' s. P (updr s (p s d')))
+             (interrupt_sol_c (\<lambda>s0 t s. s = updr s0 (p s0 t)) e (\<lambda>d' s. P (updr s (p s d')))
                               (map (spec2_of p) specs))"
   apply (rule spec_of_post)
    apply (rule spec_of_interrupt[OF assms(3,4)]) apply auto

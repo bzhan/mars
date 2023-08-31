@@ -184,7 +184,7 @@ lemma ex3a_sp:
 definition ex3b :: "'a proc" where
   "ex3b = (Rep (Cm (ch1[?]X); Y ::= (\<lambda>s. val s Y + val s X)))"
 
-fun ex3b_c :: "nat \<Rightarrow> ('a estate \<Rightarrow> 'a assn) \<Rightarrow> ('a estate \<Rightarrow> 'a assn)" where
+fun ex3b_c :: "nat \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" where
   "ex3b_c 0 Q = Q"
 | "ex3b_c (Suc n) Q =
     wait_in_c single_id_inv ch1
@@ -637,11 +637,11 @@ text \<open>This example tests unmatched communications, and
 definition ex6a :: "'a proc" where
   "ex6a = (Cm (ch2[?]X); Wait (\<lambda>_. 1); Cm (ch1[!](\<lambda>s. val s X)))"
 
-lemma ex6a_sp:
+lemma ex6a_sp':
   "spec_of ex6a
     (wait_in_c0 single_id_inv ch2 (\<lambda>v.
-      (wait_c single_id_inv (\<lambda>_. 1)
-        (\<lambda>_. wait_out_cv single_id_inv ch1 (\<lambda>s. val s X) (\<lambda>d. init)) {{ X := (\<lambda>_. v) }})))"
+      wait_c single_id_inv (\<lambda>_. 1) (\<lambda>_.
+       wait_out_cv single_id_inv ch1 (\<lambda>s. val s X) (\<lambda>d. init)) {{ X := (\<lambda>_. v) }}))"
   unfolding ex6a_def
   apply (rule spec_of_post)
    apply (rule Valid_receive_sp)
@@ -652,6 +652,22 @@ lemma ex6a_sp:
   apply (rule Valid_wait_sp)
   apply (rule spec_of_send)
   done
+
+lemma ex6a_sp:
+  "spec_of ex6a
+    (wait_in_c0 single_id_inv ch2 (\<lambda>v.
+      wait_c (\<lambda>s0 t s. s = upd s0 X v) (\<lambda>_. 1) (\<lambda>_.
+       wait_out_cv (\<lambda>s0 t s. s = upd s0 X v) ch1 (\<lambda>_. v) (\<lambda>d. init {{ X := (\<lambda>_. v) }}))))"
+  apply (rule spec_of_post)
+   apply (rule ex6a_sp') apply clarify
+  apply (rule wait_in_c0_mono)
+  apply (rule entails_trans)
+   apply (rule wait_c_upd)
+  apply simp apply (rule wait_c_mono)
+  apply (rule entails_trans)
+   apply (rule wait_out_cv_upd)
+  apply simp apply (rule wait_out_cv_mono)
+  by (rule entails_triv)
 
 definition ex6b :: "'a proc" where
   "ex6b = (Wait (\<lambda>_. 1); Cm (ch1[?]X))"
@@ -672,9 +688,8 @@ lemma ex6:
               (Single B ex6b))
     (wait_in_cg_alt (id_inv {B, A}) ch2 B (\<lambda>_. 1)
       (\<lambda>d v. IFG [A] (\<lambda>s. d = 0) THEN
-               ((wait_cg (id_inv {B, A}) A (\<lambda>_. 1)
-                   (\<lambda>_. init_single {B, A} {{X := (\<lambda>_. v)}}\<^sub>g at B)
-                   {{ X := (\<lambda>_. v) }}\<^sub>g at A))
+               ((wait_cg (merge_inv (single_inv A (\<lambda>s0 t s. s = upd s0 X v)) (id_inv {B})) A (\<lambda>_. 1)
+                   (\<lambda>_. (init_single {B, A} {{X := (\<lambda>_. v)}}\<^sub>g at A) {{X := (\<lambda>_. v)}}\<^sub>g at B)))
              ELSE true_gassn {B, A} FI)
       (\<lambda>v. true_gassn {B, A}))"
   (* Stage 1: merge ex6a_sp and ex6b_sp *)
@@ -698,16 +713,16 @@ lemma ex6:
       apply (rule cond_gassn_mono)
       subgoal
         apply (rule entails_g_trans)
-         apply (rule sync_gassn_subst_left) apply auto
-        apply (rule updg_mono)
         apply (rule entails_g_trans)
          apply (rule sync_gassn_wait_same) apply auto
          apply (rule wait_cg_mono)
         apply (rule entails_g_trans)
          apply (rule sync_gassn_outv_in) apply auto
-        apply (rule entails_g_trans)
          apply (rule sync_gassn_subst_right) apply auto
-        apply (simp only: valg_def[symmetric]) apply auto
+        apply (rule wait_cg_mono)
+        apply (rule updg_mono)
+        apply (rule entails_g_trans)
+         apply (rule sync_gassn_subst_left) apply auto
         apply (rule updg_mono)
         apply (rule sync_gassn_emp) by auto
       by (rule entails_g_triv)
@@ -731,9 +746,8 @@ lemma ex6_full:
     (Parallel (Parallel (Single A ex6a) {ch1} (Single B ex6b))
               {ch2}
               (Single C (Cm (ch2[!](\<lambda>_. v)); Wait (\<lambda>_. 1))))
-    (\<lambda>s0. wait_cg (id_inv {C, B, A}) A (\<lambda>_. 1)
-            (\<lambda>_. init_single {C, B, A} {{X := (\<lambda>_. v)}}\<^sub>g at B)
-        (updg s0 A X v))"
+    (wait_cg (merge_inv (merge_inv (single_inv ''a'' (\<lambda>s0 t s. s = upd s0 X v)) (id_inv {''b''})) (id_inv {''c''})) A (\<lambda>_. 1)
+            (\<lambda>_. (init_single {C, B, A} {{X := (\<lambda>_. v)}}\<^sub>g at ''a'') {{X := (\<lambda>_. v)}}\<^sub>g at B))"
   (* Stage 1: merge with ex6 *)
   apply (rule spec_of_global_post)
    apply (rule spec_of_parallel)
@@ -749,18 +763,15 @@ lemma ex6_full:
     apply (rule entails_g_trans)
      apply (rule sync_gassn_in_alt_outv) apply (auto simp add: A_def B_def C_def)
     apply (rule entails_g_trans)
-     apply (rule sync_gassn_subst_left) apply auto
-    apply (rule entails_g_trans)
-     apply (rule gassn_subst)
-    apply (rule entails_g_trans)
      apply (rule sync_gassn_wait_same) apply auto
     apply (rule wait_cg_mono)
     apply (rule entails_g_trans)
      apply (rule sync_gassn_subst_left) apply auto
     apply (rule updg_mono)
     apply (rule entails_g_trans)
-     apply (rule sync_gassn_emp) apply auto
-    by (rule entails_g_triv)
+     apply (rule sync_gassn_subst_left) apply auto
+    apply (rule updg_mono)
+     apply (rule sync_gassn_emp) by auto
   done
 
 end

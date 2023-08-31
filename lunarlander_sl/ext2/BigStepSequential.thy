@@ -72,6 +72,10 @@ lemma upd_val_simp [simp]:
   "upd s X (val s X) = s"
   apply (cases s) by auto
 
+lemma upd_upd_simp [simp]:
+  "upd (upd s X v1) X v2 = upd s X v2"
+  apply (cases s) by auto
+
 text \<open>The following lemmas need to be invoked by hand\<close>
 lemma updr_rpart_simp1:
   "updr s ((rpart s)(X := v)) = upd s X v"
@@ -515,8 +519,15 @@ lemma wait_out_cv_exists:
 subsubsection \<open>Monotonicity rules\<close>
 
 text \<open>The following rules state monotonicity of assertions\<close>
+
+lemma cond_assn_mono:
+  assumes "P1 s0 \<Longrightarrow>\<^sub>A P2 s0"
+    and "Q1 s0 \<Longrightarrow>\<^sub>A Q2 s0"
+  shows "(IFA b THEN P1 ELSE Q1 FI) s0 \<Longrightarrow>\<^sub>A (IFA b THEN P2 ELSE Q2 FI) s0"
+  using assms unfolding cond_assn2_def entails_def by auto
+
 lemma wait_in_c_mono:
-  assumes "\<And>d v s. P1 d v s \<Longrightarrow>\<^sub>A P2 d v s"
+  assumes "\<And>d v. P1 d v s0 \<Longrightarrow>\<^sub>A P2 d v s0"
   shows "wait_in_c I ch P1 s0 \<Longrightarrow>\<^sub>A wait_in_c I ch P2 s0"
   unfolding entails_def apply auto
   subgoal for s tr
@@ -531,7 +542,7 @@ lemma wait_in_c_mono:
   done
 
 lemma wait_out_c_mono:
-  assumes "\<And>d v s. P1 d v s \<Longrightarrow>\<^sub>A P2 d v s"
+  assumes "\<And>d v. P1 d v s0 \<Longrightarrow>\<^sub>A P2 d v s0"
   shows "wait_out_c I ch P1 s0 \<Longrightarrow>\<^sub>A wait_out_c I ch P2 s0"
   unfolding entails_def apply auto
   subgoal for s tr
@@ -570,8 +581,14 @@ lemma conj_assn_mono1:
   shows "(P1 \<and>\<^sub>a Q) s0 \<Longrightarrow>\<^sub>A (P2 \<and>\<^sub>a Q) s0"
   using assms unfolding entails_def conj_assn_def by auto
 
+lemma disj_assn_mono:
+  assumes "P1 s0 \<Longrightarrow>\<^sub>A P2 s0"
+    and "Q1 s0 \<Longrightarrow>\<^sub>A Q2 s0"
+  shows "(P1 \<or>\<^sub>a Q1) s0 \<Longrightarrow>\<^sub>A (P2 \<or>\<^sub>a Q2) s0"
+  using assms unfolding entails_def disj_assn_def by auto
+
 lemma wait_out_cv_mono:
-  assumes "\<And>d s. P1 d s \<Longrightarrow>\<^sub>A P2 d s"
+  assumes "\<And>d. P1 d s0 \<Longrightarrow>\<^sub>A P2 d s0"
   shows "wait_out_cv I ch e P1 s0 \<Longrightarrow>\<^sub>A wait_out_cv I ch e P2 s0"
   unfolding wait_out_cv_def
   apply (rule wait_out_c_mono)
@@ -759,6 +776,12 @@ lemma conj_assn_upd:
   "((P \<and>\<^sub>a Q) {{ var := e }}) s0 \<Longrightarrow>\<^sub>A
    (P {{ var := e }} \<and>\<^sub>a Q {{ var := e }}) s0"
   unfolding conj_assn_def subst_assn2_def
+  by (rule entails_triv)
+
+lemma disj_assn_upd:
+  "((P \<or>\<^sub>a Q) {{ var := e }}) s0 \<Longrightarrow>\<^sub>A
+   (P {{ var := e }} \<or>\<^sub>a Q {{ var := e }}) s0"
+  unfolding disj_assn_def subst_assn2_def
   by (rule entails_triv)
 
 lemma pure_assn_upd:
