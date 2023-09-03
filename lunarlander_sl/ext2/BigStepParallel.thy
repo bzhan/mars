@@ -541,14 +541,6 @@ inductive true_gassn :: "pname set \<Rightarrow> 'a gassn2" where
 definition false_gassn :: "'a gassn2" where
   "false_gassn s0 = (\<lambda>gs tr. False)"
 
-definition init_global :: "'a gstate \<Rightarrow> 'a gstate \<Rightarrow> bool" where
-  "init_global s0 = (\<lambda>s. s = s0)"
-
-lemma init_global_parallel:
-  "init_global s0 (merge_state s1 s2) \<Longrightarrow>
-   (\<And>s01 s02. s0 = merge_state s01 s02 \<Longrightarrow> init_global s01 s1 \<Longrightarrow> init_global s02 s2 \<Longrightarrow> P) \<Longrightarrow> P"
-  unfolding init_global_def by auto
-
 inductive sync_gassn :: "cname set \<Rightarrow> pname set \<Rightarrow> pname set \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2 \<Rightarrow> 'a gassn2" where
   "proc_set s11 = pns1 \<Longrightarrow> proc_set s12 = pns2 \<Longrightarrow>
    proc_set s21 = pns1 \<Longrightarrow> proc_set s22 = pns2 \<Longrightarrow>
@@ -1079,7 +1071,7 @@ lemma proc_set_single_gassn [intro]:
   apply (elim single_assn.cases) apply auto
   by (simp add: proc_set_trace_single)
 
-definition proc_set_path :: "pname set \<Rightarrow> ('a gstate \<Rightarrow> real \<Rightarrow> 'a gstate \<Rightarrow> bool) \<Rightarrow> bool" where
+definition proc_set_path :: "pname set \<Rightarrow> 'a gpinv2 \<Rightarrow> bool" where
   "proc_set_path pns I \<longleftrightarrow>
     (\<forall>gs0 t gs. I gs0 t gs \<longrightarrow> proc_set gs0 = pns \<and> proc_set gs = pns)"
 
@@ -1609,17 +1601,17 @@ definition ParValid :: "('a gstate \<Rightarrow> bool) \<Rightarrow> 'a pproc \<
   "(\<Turnstile>\<^sub>p {P} c {Q}) \<longleftrightarrow> (\<forall>s1 s2 tr2. P s1 \<longrightarrow> par_big_step c s1 tr2 s2 \<longrightarrow> Q s2 tr2)"
 
 definition spec_of_global :: "'a pproc \<Rightarrow> 'a gassn2 \<Rightarrow> bool" where
-  "spec_of_global c Q \<longleftrightarrow> (\<forall>s0. \<Turnstile>\<^sub>p {init_global s0} c {Q s0})"
+  "spec_of_global c Q \<longleftrightarrow> (\<forall>s0. proc_set s0 = proc_of_pproc c \<longrightarrow> \<Turnstile>\<^sub>p {\<lambda>s. s = s0} c {Q s0})"
 
 lemma spec_of_globalE:
-  "spec_of_global c Q \<Longrightarrow> \<Turnstile>\<^sub>p {init_global s0} c {Q s0}"
+  "spec_of_global c Q \<Longrightarrow> proc_set s0 = proc_of_pproc c \<Longrightarrow> \<Turnstile>\<^sub>p {\<lambda>s. s = s0} c {Q s0}"
   unfolding spec_of_global_def by auto
 
 lemma spec_of_single:
   fixes Q :: "'a assn2"
   assumes "spec_of c Q"
   shows "spec_of_global (Single pn c) (single_assn pn Q)"
-  unfolding spec_of_global_def ParValid_def init_global_def apply auto
+  unfolding spec_of_global_def ParValid_def apply clarify
   apply (elim SingleE) 
   using assms unfolding spec_of_def Valid_def init_def
   by (auto intro: single_assn.intros)
@@ -1633,12 +1625,11 @@ lemma spec_of_parallel:
   shows "spec_of_global (Parallel p1 chs p2) (sync_gassn chs pns1 pns2 P Q)"
   unfolding spec_of_global_def ParValid_def apply auto
   apply (elim ParallelE) apply auto
-  apply (elim init_global_parallel) apply (auto simp add: init_global_def)
   subgoal for tr' tr1 s12 tr2 s22 s01 s02
     apply (rule sync_gassn.intros)
     apply (auto simp add: assms(3,4) proc_set_big_step)
-    using assms(1,2) unfolding spec_of_global_def ParValid_def init_global_def
-    by (auto elim: proc_set_big_step)
+    using assms(1,2) unfolding spec_of_global_def ParValid_def
+    by (auto elim: proc_set_big_step simp add: proc_set_big_step)
   done
 
 lemma weaken_post_global:
@@ -1646,7 +1637,9 @@ lemma weaken_post_global:
   unfolding ParValid_def entails_g_def by auto
 
 lemma spec_of_global_post:
-  "spec_of_global p Q1 \<Longrightarrow> \<forall>s0. Q1 s0 \<Longrightarrow>\<^sub>g Q2 s0 \<Longrightarrow> spec_of_global p Q2"
+  "spec_of_global p Q1 \<Longrightarrow>
+   \<forall>s0. proc_set s0 = proc_of_pproc p \<longrightarrow> Q1 s0 \<Longrightarrow>\<^sub>g Q2 s0 \<Longrightarrow>
+   spec_of_global p Q2"
   unfolding spec_of_global_def using weaken_post_global by blast
 
 subsection \<open>Elimination rules for synchronization\<close>
@@ -1838,7 +1831,6 @@ lemma sync_gassn_emp:
 
 lemma sync_gassn_in_out:
   "ch \<in> chs \<Longrightarrow>
-   pn \<in> pns2 \<Longrightarrow>
    pns1 \<inter> pns2 = {} \<Longrightarrow>
    sync_gassn chs pns1 pns2 (wait_in_cg I1 ch P) (wait_out_cg I2 ch Q) s0 \<Longrightarrow>\<^sub>g
    (\<exists>\<^sub>gv. sync_gassn chs pns1 pns2 (P 0 v) (Q 0 v)) s0"
@@ -2361,6 +2353,6 @@ lemma sync_gassn_in_wait_pair:
 subsection \<open>General specification\<close>
 
 definition spec_of_global_gen :: "('a gstate \<Rightarrow> bool) \<Rightarrow> 'a pproc \<Rightarrow> 'a gassn2 \<Rightarrow> bool" where
-  "spec_of_global_gen P c Q \<longleftrightarrow> (\<forall>s0. P s0 \<longrightarrow> \<Turnstile>\<^sub>p {init_global s0} c {Q s0})"
+  "spec_of_global_gen P c Q \<longleftrightarrow> (\<forall>s0. proc_set s0 = proc_of_pproc c \<longrightarrow> P s0 \<longrightarrow> \<Turnstile>\<^sub>p {\<lambda>s. s = s0} c {Q s0})"
 
 end

@@ -92,12 +92,12 @@ proof -
   then obtain xa where "xa\<in>{0<..<x}" " p x - p 0 = q xa (x - 0)" if "x>0"
     using  mvt_simple[of 0 x p q] 
     using atLeastAtMost_iff by blast
-  then have "p x \<le> p 0" if "x>0"
-  using assms 
-  by (smt atLeastAtMost_iff atLeastLessThan_iff greaterThanLessThan_iff)
+  then have "p x \<le> p 0" if "x > 0"
+    using assms(2-4)
+    by (metis atLeastAtMost_iff atLeastLessThan_iff diff_0_right greaterThanLessThan_iff
+              le_iff_diff_le_0 less_eq_real_def order.strict_trans2)
   then show ?thesis
-    using assms  by fastforce
-  
+    using assms by fastforce
 qed
 
 

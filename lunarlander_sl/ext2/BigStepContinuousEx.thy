@@ -506,18 +506,15 @@ done
   done
 
 lemma ex1:
-  assumes "proc_set s0 = {A, B}"
-  shows
-  "\<Turnstile>\<^sub>p {init_global s0}
-        (Parallel (Single A ex1a)
-                  {ch1, ch2}
-                  (Single B ex1b))
-      {(wait_inv_cg (\<lambda>gs. valg gs A X \<in> {0..2})
-        (\<lambda>s0 s tr. valg s A X = 2 \<and> init_single {B, A} s s tr)) s0}"
-  apply (rule weaken_post_global)
-   apply (rule spec_of_globalE[OF ex1'])
-  apply (rule ex1'')
-  using assms by auto
+  "spec_of_global
+    (Parallel (Single A ex1a)
+              {ch1, ch2}
+              (Single B ex1b))
+    (wait_inv_cg (\<lambda>gs. valg gs A X \<in> {0..2})
+      (\<lambda>s0 s tr. valg s A X = 2 \<and> init_single {B, A} s s tr))"
+  apply (rule spec_of_global_post)
+   apply (rule ex1') apply clarify
+  apply (rule ex1'') by auto
 
 subsubsection \<open>Example 2\<close>
 
@@ -593,20 +590,6 @@ lemma ex2a_sp':
       done
     done
   done
-
-lemma upd_mono:
-  assumes "P (upd s0 v (e s0)) \<Longrightarrow>\<^sub>A Q (upd s0 v (e s0))"
-  shows "(P {{v := e}}) s0 \<Longrightarrow>\<^sub>A (Q {{v := e}}) s0"
-  apply (auto simp add: entails_def)
-  subgoal for s tr
-    unfolding subst_assn2_def
-    using assms unfolding entails_def by auto
-  done
-
-lemma exists_assn_mono:
-  assumes "\<And>x. P1 x s0 \<Longrightarrow>\<^sub>A P2 x s0"
-  shows "(\<exists>\<^sub>ax. P1 x) s0 \<Longrightarrow>\<^sub>A (\<exists>\<^sub>ax. P2 x) s0"
-  using assms unfolding entails_def exists_assn_def by blast
 
 lemma ex2a_c_entails:
   "ex2a_c' n Q s0 \<Longrightarrow>\<^sub>A ex2a_c n Q s0"
@@ -915,14 +898,13 @@ lemma ex2'''':
   by (rule entails_g_triv)
 
 lemma ex2:
-  "spec_of_global_gen (\<lambda>s0. proc_set s0 = {A, B})
+  "spec_of_global
     (Parallel (Single A ex2a)
               {ch1, ch2}
               (Single B ex2b))
    (\<exists>\<^sub>gn. ex2_c n (init_single {A, B}))"
-  unfolding spec_of_global_gen_def apply clarify
-  apply (rule weaken_post_global)
-   apply (rule spec_of_globalE[OF ex2''''])
+  apply (rule spec_of_global_post)
+   apply (rule ex2'''') apply clarify
   apply (rule exists_gassn_elim)
   apply (rule exists_gassn_elim)
   subgoal premises pre for s0 n1 n2

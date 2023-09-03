@@ -595,15 +595,25 @@ lemma wait_out_cv_mono:
   apply (rule conj_pure_mono)
   using assms by auto
 
+lemma upd_mono:
+  assumes "P (upd s0 v (e s0)) \<Longrightarrow>\<^sub>A Q (upd s0 v (e s0))"
+  shows "(P {{v := e}}) s0 \<Longrightarrow>\<^sub>A (Q {{v := e}}) s0"
+  apply (auto simp add: entails_def)
+  subgoal for s tr
+    unfolding subst_assn2_def
+    using assms unfolding entails_def by auto
+  done
+
+lemma exists_assn_mono:
+  assumes "\<And>x. P1 x s0 \<Longrightarrow>\<^sub>A P2 x s0"
+  shows "(\<exists>\<^sub>ax. P1 x) s0 \<Longrightarrow>\<^sub>A (\<exists>\<^sub>ax. P2 x) s0"
+  using assms unfolding entails_def exists_assn_def by blast
+
 subsection \<open>Hoare logic for sequential processes\<close>
 
 text \<open>Definition of Hoare triple\<close>
-definition Valid :: "'a assn \<Rightarrow> 'a proc \<Rightarrow> 'a assn \<Rightarrow> bool" ("\<Turnstile> ({(1_)}/ (_)/ {(1_)})" 50) where
-  "\<Turnstile> {P} c {Q} \<longleftrightarrow> (\<forall>s1 tr1 s2 tr2. P s1 tr1 \<longrightarrow> big_step c s1 tr2 s2 \<longrightarrow> Q s2 (tr1 @ tr2))"
-
-theorem strengthen_pre:
-  "\<Turnstile> {P2} c {Q} \<Longrightarrow> P1 \<Longrightarrow>\<^sub>A P2 \<Longrightarrow> \<Turnstile> {P1} c {Q}"
-  unfolding Valid_def entails_def by metis
+definition Valid :: "('a estate \<Rightarrow> bool) \<Rightarrow> 'a proc \<Rightarrow> 'a assn \<Rightarrow> bool" ("\<Turnstile> ({(1_)}/ (_)/ {(1_)})" 50) where
+  "\<Turnstile> {P} c {Q} \<longleftrightarrow> (\<forall>s1 s2 tr. P s1 \<longrightarrow> big_step c s1 tr s2 \<longrightarrow> Q s2 tr)"
 
 theorem weaken_post:
   "\<Turnstile> {P} c {Q1} \<Longrightarrow> Q1 \<Longrightarrow>\<^sub>A Q2 \<Longrightarrow> \<Turnstile> {P} c {Q2}"
@@ -616,7 +626,7 @@ text \<open>Specification of a single process.
   on the ending state and trace.
 \<close>
 definition spec_of :: "'a proc \<Rightarrow> 'a assn2 \<Rightarrow> bool" where
-  "spec_of c Q \<longleftrightarrow> (\<forall>s0. \<Turnstile> {init s0} c {Q s0})"
+  "spec_of c Q \<longleftrightarrow> (\<forall>s0. \<Turnstile> {\<lambda>s. s = s0} c {Q s0})"
 
 text \<open>Consequence rule for spec_of\<close>
 lemma spec_of_post:
@@ -633,7 +643,7 @@ text \<open>For each command, we state two versions of the rules,
 text \<open>Hoare rule for skip statement\<close>
 lemma spec_of_skip:
   "spec_of Skip init"
-  unfolding Valid_def spec_of_def
+  unfolding Valid_def spec_of_def init_def
   by (auto elim: skipE)
 
 lemma Valid_skip_sp:
@@ -995,7 +1005,7 @@ lemma spec_of_interrupt_distrib:
   "spec_of (Interrupt ode b cs pr; c) Q \<longleftrightarrow>
    spec_of (Interrupt ode b (map (cs_append c) cs) (pr; c)) Q"
   unfolding spec_of_def Valid_def
-  using big_step_interrupt_distrib by blast
+  using big_step_interrupt_distrib by metis
 
 lemma big_step_skip_left:
   "big_step (Skip; c) s1 tr s2 \<longleftrightarrow> big_step c s1 tr s2"

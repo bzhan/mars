@@ -842,7 +842,7 @@ lemma interrupt_solInf_c_in:
   done
 
 lemma interrupt_sol_c_wait:
-  "interrupt_sol_c I d P [] = wait_c I d P"
+  "interrupt_sol_c I e P [] = wait_c I e P"
   apply (rule ext) apply (rule ext) apply (rule ext)
   subgoal for s0 s tr apply (rule iffI)
     subgoal apply (elim interrupt_sol_c.cases) apply auto

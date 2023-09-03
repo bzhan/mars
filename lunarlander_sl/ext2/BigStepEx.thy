@@ -151,7 +151,7 @@ text \<open>
   We analyze the following parallel program. The eventual aim
   is to show that the invariant Y = A * B is preserved.
 
-   (ch1!A; B := B + 1)*
+   (ch1!X; Y := Y + 1)*
 || (ch1?X; Y := Y + X)*
 \<close>
 definition ex3a :: "'a proc" where
@@ -351,7 +351,7 @@ lemma ex3:
     (\<lambda>s0 s tr. ex3_inv s)"
   unfolding spec_of_global_gen_def apply auto
   apply (rule weaken_post_global)
-   apply (rule spec_of_globalE[OF ex3'''])
+   apply (rule spec_of_globalE[OF ex3''']) apply simp
   apply (rule exists_gassn_elim)
   apply (rule exists_gassn_elim)
   subgoal premises pre for s0 n1 n2
@@ -603,7 +603,7 @@ lemma ex5:
      (\<lambda>s0 s tr. ex5_inv ls s)"
   unfolding spec_of_global_gen_def apply auto
   apply (rule weaken_post_global)
-   apply (rule spec_of_globalE[OF ex5'''])
+   apply (rule spec_of_globalE[OF ex5''']) apply simp
   apply (rule exists_gassn_elim)
   apply (rule exists_gassn_elim)
   subgoal premises pre for s0 n1 n2
@@ -746,8 +746,10 @@ lemma ex6_full:
     (Parallel (Parallel (Single A ex6a) {ch1} (Single B ex6b))
               {ch2}
               (Single C (Cm (ch2[!](\<lambda>_. v)); Wait (\<lambda>_. 1))))
-    (wait_cg (merge_inv (merge_inv (single_inv ''a'' (\<lambda>s0 t s. s = upd s0 X v)) (id_inv {''b''})) (id_inv {''c''})) A (\<lambda>_. 1)
-            (\<lambda>_. (init_single {C, B, A} {{X := (\<lambda>_. v)}}\<^sub>g at ''a'') {{X := (\<lambda>_. v)}}\<^sub>g at B))"
+    (wait_cg (merge_inv (merge_inv (
+                single_inv A (\<lambda>s0 t s. s = upd s0 X v))
+                (id_inv {B})) (id_inv {C})) A (\<lambda>_. 1)
+            (\<lambda>_. (init_single {C, B, A} {{X := (\<lambda>_. v)}}\<^sub>g at A) {{X := (\<lambda>_. v)}}\<^sub>g at B))"
   (* Stage 1: merge with ex6 *)
   apply (rule spec_of_global_post)
    apply (rule spec_of_parallel)
@@ -761,9 +763,9 @@ lemma ex6_full:
     apply (auto simp add: single_assn_simps)
   (* Stage 3: combine the two assertions *)
     apply (rule entails_g_trans)
-     apply (rule sync_gassn_in_alt_outv) apply (auto simp add: A_def B_def C_def)
+     apply (rule sync_gassn_in_alt_outv) apply (auto simp add: A_def B_def C_def)[6]
     apply (rule entails_g_trans)
-     apply (rule sync_gassn_wait_same) apply auto
+     apply (rule sync_gassn_wait_same) apply (auto simp add: A_def B_def C_def)[1]
     apply (rule wait_cg_mono)
     apply (rule entails_g_trans)
      apply (rule sync_gassn_subst_left) apply auto
