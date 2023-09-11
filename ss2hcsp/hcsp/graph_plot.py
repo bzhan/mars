@@ -51,17 +51,17 @@ class PlotPage(tk.Frame):
         label1.pack()
 
         self.program_name = tk.StringVar()
-        e1 = tk.Entry(self, bd=5, textvariable=self.program_name)
-        e1.pack()
+        self.e1 = ttk.Combobox(self, textvariable=self.program_name)
+        self.e1.pack()
+        self.e1.bind('<<ComboboxSelected>>', self.plot_graph)
+        self.e1.state(["readonly"])
 
         self.program_names = tuple(sorted(self.res['time_series'].keys()))
+        self.e1['values'] = self.program_names
         self.program_name.set(self.program_names[0])
 
         f = Figure(figsize=(5,5), dpi=100)
         self.a = f.add_subplot(111)
-
-        button2 = ttk.Button(self, text="Draw", command=self.plot_graph)
-        button2.pack()
 
         self.canvas = FigureCanvasTkAgg(f, self)
         self.canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
@@ -71,7 +71,7 @@ class PlotPage(tk.Frame):
 
         self.plot_graph()
 
-    def plot_graph(self):
+    def plot_graph(self, *args):
         if self.program_name.get() in self.program_names:
             self.a.clear()
             dataset_state = get_data_time(self.res, self.program_name.get())
@@ -80,19 +80,9 @@ class PlotPage(tk.Frame):
                 self.a.legend()
             self.canvas.draw()
             self.toolbar.update()
+            self.e1.selection_clear()
 
 
-def graph(res, proc_name):
-    DataState = {}
-    temp = res.get("time_series")
-    lst = temp.get(proc_name)
-    for t in lst:
-        state = t.get("state")
-        for key in state.keys():
-            if key not in DataState.keys():
-                DataState.update({key:([],[])})
-            DataState.get(key)[0].append(state.get(key))
-            DataState.get(key)[1].append(t.get('time'))
-
+def graph(res, proc_name=None, separate=False):
     app = Graphapp(res)
     app.mainloop()
