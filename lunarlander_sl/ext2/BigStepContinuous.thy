@@ -265,7 +265,7 @@ lemma Valid_cont_unique_sp:
     "paramODEsol ode b p e"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
   shows "spec_of (Cont ode b; c)
-                 (wait_c (\<lambda>s0 t s. s = updr s0 (p s0 t)) e (\<lambda>d' s. Q (updr s (p s d'))))"
+                 (wait_c (\<lambda>s0 t s. s = updr s0 (p s0 t)) e (\<lambda>d' s0. Q (updr s0 (p s0 d'))))"
   apply (rule spec_of_post)
    apply (rule Valid_cont_sp[OF assms(1)]) apply auto
   apply (rule entails_trans)

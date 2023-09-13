@@ -157,15 +157,15 @@ text \<open>
 definition ex3a :: "'a proc" where
   "ex3a = (Rep (Cm (ch1[!](\<lambda>s. val s X)); Y ::= (\<lambda>s. val s Y + 1)))"
 
-fun ex3a_c :: "nat \<Rightarrow> ('a estate \<Rightarrow> 'a assn) \<Rightarrow> ('a estate \<Rightarrow> 'a assn)" where
-  "ex3a_c 0 Q = Q"
-| "ex3a_c (Suc n) Q =
+fun ex3a_c :: "nat \<Rightarrow> 'a assn2" where
+  "ex3a_c 0 = init"
+| "ex3a_c (Suc n) =
     wait_out_cv single_id_inv ch1 (\<lambda>s. val s X)
-      (\<lambda>d. ex3a_c n Q {{ Y := (\<lambda>s. val s Y + 1) }})"
+      (\<lambda>d. ex3a_c n {{ Y := (\<lambda>s. val s Y + 1) }})"
 
 lemma ex3a_sp:
   "spec_of ex3a
-           (\<exists>\<^sub>an. ex3a_c n init)"
+           (\<exists>\<^sub>an. ex3a_c n)"
   unfolding ex3a_def
   apply (rule spec_of_rep)
   subgoal for n
@@ -184,15 +184,15 @@ lemma ex3a_sp:
 definition ex3b :: "'a proc" where
   "ex3b = (Rep (Cm (ch1[?]X); Y ::= (\<lambda>s. val s Y + val s X)))"
 
-fun ex3b_c :: "nat \<Rightarrow> 'a assn2 \<Rightarrow> 'a assn2" where
-  "ex3b_c 0 Q = Q"
-| "ex3b_c (Suc n) Q =
+fun ex3b_c :: "nat \<Rightarrow> 'a assn2" where
+  "ex3b_c 0 = init"
+| "ex3b_c (Suc n) =
     wait_in_c single_id_inv ch1
-     (\<lambda>d v. ex3b_c n Q {{Y := (\<lambda>s. val s Y + val s X)}} {{X := (\<lambda>_. v)}} )"
+     (\<lambda>d v. ex3b_c n {{Y := (\<lambda>s. val s Y + val s X)}} {{X := (\<lambda>_. v)}} )"
 
 lemma ex3b_sp:
   "spec_of ex3b
-           (\<exists>\<^sub>an. ex3b_c n init)"
+           (\<exists>\<^sub>an. ex3b_c n)"
   unfolding ex3b_def
   apply (rule spec_of_rep)
   subgoal for n
@@ -228,11 +228,11 @@ lemma ex3':
   shows
   "\<exists>s1. ex3_inv s1 \<and>
    (sync_gassn {ch1} {A} {B}
-     (single_assn A (ex3a_c (Suc n1) init))
-     (single_assn B (ex3b_c (Suc n2) init)) s0 \<Longrightarrow>\<^sub>g
+     (single_assn A (ex3a_c (Suc n1)))
+     (single_assn B (ex3b_c (Suc n2))) s0 \<Longrightarrow>\<^sub>g
     (sync_gassn {ch1} {A} {B}
-     (single_assn A (ex3a_c n1 init))
-     (single_assn B (ex3b_c n2 init))) s1)"
+     (single_assn A (ex3a_c n1))
+     (single_assn B (ex3b_c n2))) s1)"
   apply (rule exI[where x="ex3_one_step s0"])
   apply (rule conjI)
   subgoal using assms unfolding ex3_one_step_def ex3_inv_def
@@ -264,8 +264,8 @@ lemma ex3'':
   "ex3_inv s0 \<Longrightarrow>
    \<exists>s1. ex3_inv s1 \<and>
     (sync_gassn {ch1} {A} {B}
-      (single_assn A (ex3a_c n1 init))
-      (single_assn B (ex3b_c n2 init)) s0 \<Longrightarrow>\<^sub>g
+      (single_assn A (ex3a_c n1))
+      (single_assn B (ex3b_c n2)) s0 \<Longrightarrow>\<^sub>g
     init_single {B, A} s1)"
 proof (induction n1 n2 arbitrary: s0 rule: diff_induct)
   case (1 n1)
@@ -304,16 +304,16 @@ next
   case (3 n1 n2)
   obtain s1 where s1: "ex3_inv s1"
     "sync_gassn {ch1} {A} {B}
-      (single_assn A (ex3a_c (Suc n1) init))
-      (single_assn B (ex3b_c (Suc n2) init)) s0 \<Longrightarrow>\<^sub>g
+      (single_assn A (ex3a_c (Suc n1)))
+      (single_assn B (ex3b_c (Suc n2))) s0 \<Longrightarrow>\<^sub>g
      sync_gassn {ch1} {A} {B}
-      (single_assn A (ex3a_c n1 init))
-      (single_assn B (ex3b_c n2 init)) s1"
+      (single_assn A (ex3a_c n1))
+      (single_assn B (ex3b_c n2)) s1"
     using ex3' 3 by blast
   obtain s2 where s2: "ex3_inv s2"
     "sync_gassn {ch1} {A} {B}
-       (single_assn A (ex3a_c n1 init))
-       (single_assn B (ex3b_c n2 init)) s1 \<Longrightarrow>\<^sub>g
+       (single_assn A (ex3a_c n1))
+       (single_assn B (ex3b_c n2)) s1 \<Longrightarrow>\<^sub>g
      init_single {B, A} s2"
     using 3 s1(1) by blast 
   show ?case
@@ -330,8 +330,8 @@ lemma ex3''':
               {ch1}
               (Single B ex3b))
     (\<exists>\<^sub>gn1 n2. sync_gassn {ch1} {A} {B}
-                (single_assn A (ex3a_c n1 init))
-                (single_assn B (ex3b_c n2 init)))"
+                (single_assn A (ex3a_c n1))
+                (single_assn B (ex3b_c n2)))"
   (* Stage 1: merge ex3a_c and ex3b_c *)
   apply (rule spec_of_global_post)
    apply (rule spec_of_parallel)
@@ -357,7 +357,7 @@ lemma ex3:
   subgoal premises pre for s0 n1 n2
   proof -
     obtain s1 where s1: "ex3_inv s1"
-     "sync_gassn {ch1} {A} {B} (single_assn A (ex3a_c n1 init)) (single_assn B (ex3b_c n2 init)) s0 \<Longrightarrow>\<^sub>g
+     "sync_gassn {ch1} {A} {B} (single_assn A (ex3a_c n1)) (single_assn B (ex3b_c n2)) s0 \<Longrightarrow>\<^sub>g
       init_single {B, A} s1"
       using ex3''[of s0 n1 n2] pre by auto
     show ?thesis
@@ -390,16 +390,16 @@ definition ex5a :: "ex5_state proc" where
                  (Cm (ch1[!](\<lambda>s. hd (epart s))); Basic (\<lambda>s. tl (epart s)))
                ELSE Error FI)"
 
-fun ex5a_c :: "nat \<Rightarrow> ex5_state assn2 \<Rightarrow> ex5_state assn2" where
-  "ex5a_c 0 Q = Q"
-| "ex5a_c (Suc n) Q =
+fun ex5a_c :: "nat \<Rightarrow> ex5_state assn2" where
+  "ex5a_c 0 = init"
+| "ex5a_c (Suc n) =
    (IFA (\<lambda>s. epart s \<noteq> []) THEN
-      wait_out_cv single_id_inv ch1 (\<lambda>s. hd (epart s)) (\<lambda>d. ex5a_c n Q {{ (\<lambda>s0. tl (epart s0)) }}\<^sub>e)
+      wait_out_cv single_id_inv ch1 (\<lambda>s. hd (epart s)) (\<lambda>d. ex5a_c n {{ (\<lambda>s0. tl (epart s0)) }}\<^sub>e)
     ELSE false_assn2 FI)"
 
 lemma ex5a_sp:
   "spec_of ex5a
-           (\<exists>\<^sub>an. ex5a_c n init)"
+           (\<exists>\<^sub>an. ex5a_c n)"
   unfolding ex5a_def
   apply (rule spec_of_rep)
   subgoal for n
@@ -428,14 +428,14 @@ lemma ex5a_sp:
 definition ex5b :: "ex5_state proc" where
   "ex5b = Rep (Cm (ch1[?]X); Basic (\<lambda>s. val s X # epart s))"
 
-fun ex5b_c :: "nat \<Rightarrow> ex5_state assn2 \<Rightarrow> ex5_state assn2" where
-  "ex5b_c 0 Q = Q"
-| "ex5b_c (Suc n) Q =
-   wait_in_c single_id_inv ch1 (\<lambda>d v. ex5b_c n Q {{ (\<lambda>s. val s X # epart s) }}\<^sub>e {{ X := (\<lambda>_. v) }})"
+fun ex5b_c :: "nat \<Rightarrow> ex5_state assn2" where
+  "ex5b_c 0 = init"
+| "ex5b_c (Suc n) =
+   wait_in_c single_id_inv ch1 (\<lambda>d v. ex5b_c n {{ (\<lambda>s. val s X # epart s) }}\<^sub>e {{ X := (\<lambda>_. v) }})"
 
 lemma ex5b_sp:
   "spec_of ex5b
-           (\<exists>\<^sub>an. ex5b_c n init)"
+           (\<exists>\<^sub>an. ex5b_c n)"
   unfolding ex5b_def
   apply (rule spec_of_rep)
   subgoal for n
@@ -476,11 +476,11 @@ lemma ex5':
   shows
   "\<exists>s1. ex5_inv ls s1 \<and>
    (sync_gassn {ch1} {A} {B}
-     (single_assn A (ex5a_c (Suc n1) init))
-     (single_assn B (ex5b_c (Suc n2) init)) s0 \<Longrightarrow>\<^sub>g
+     (single_assn A (ex5a_c (Suc n1)))
+     (single_assn B (ex5b_c (Suc n2))) s0 \<Longrightarrow>\<^sub>g
    (sync_gassn {ch1} {A} {B}
-     (single_assn A (ex5a_c n1 init))
-     (single_assn B (ex5b_c n2 init))) s1)"
+     (single_assn A (ex5a_c n1))
+     (single_assn B (ex5b_c n2))) s1)"
   apply (rule exI[where x="ex5_one_step s0"])
   apply (rule conjI)
   subgoal using assms unfolding ex5_one_step_def ex5_inv_def by auto
@@ -514,8 +514,8 @@ lemma ex5'':
   "ex5_inv ls s0 \<Longrightarrow>
    \<exists>s1. ex5_inv ls s1 \<and>
    (sync_gassn {ch1} {A} {B}
-    (single_assn A (ex5a_c n1 init))
-    (single_assn B (ex5b_c n2 init)) s0 \<Longrightarrow>\<^sub>g
+    (single_assn A (ex5a_c n1))
+    (single_assn B (ex5b_c n2)) s0 \<Longrightarrow>\<^sub>g
    init_single {B, A} s1)"
 proof (induction n1 n2 arbitrary: s0 rule: diff_induct)
   case (1 n1)
@@ -557,16 +557,16 @@ next
   case (3 n1 n2)
   obtain s1 where s1: "ex5_inv ls s1"
     "sync_gassn {ch1} {A} {B}
-      (single_assn A (ex5a_c (Suc n1) init))
-      (single_assn B (ex5b_c (Suc n2) init)) s0 \<Longrightarrow>\<^sub>g
+      (single_assn A (ex5a_c (Suc n1)))
+      (single_assn B (ex5b_c (Suc n2))) s0 \<Longrightarrow>\<^sub>g
      sync_gassn {ch1} {A} {B}
-      (single_assn A (ex5a_c n1 init))
-      (single_assn B (ex5b_c n2 init)) s1"
+      (single_assn A (ex5a_c n1))
+      (single_assn B (ex5b_c n2)) s1"
     using ex5' 3 by blast
   obtain s2 where s2: "ex5_inv ls s2"
     "sync_gassn {ch1} {A} {B}
-       (single_assn A (ex5a_c n1 init))
-       (single_assn B (ex5b_c n2 init)) s1 \<Longrightarrow>\<^sub>g
+       (single_assn A (ex5a_c n1))
+       (single_assn B (ex5b_c n2)) s1 \<Longrightarrow>\<^sub>g
      init_single {B, A} s2"
     using 3 s1(1) by blast
   show ?case
@@ -583,8 +583,8 @@ lemma ex5''':
               {ch1}
               (Single B ex5b))
     (\<exists>\<^sub>gn1 n2. sync_gassn {ch1} {A} {B}
-                (single_assn A (ex5a_c n1 init))
-                (single_assn B (ex5b_c n2 init)))"
+                (single_assn A (ex5a_c n1))
+                (single_assn B (ex5b_c n2)))"
   (* Stage 1: merge ex5a_c and ex5b_c *)
   apply (rule spec_of_global_post)
    apply (rule spec_of_parallel)
@@ -609,7 +609,7 @@ lemma ex5:
   subgoal premises pre for s0 n1 n2
   proof -
     obtain s1 where s1: "ex5_inv ls s1"
-     "sync_gassn {ch1} {A} {B} (single_assn A (ex5a_c n1 init)) (single_assn B (ex5b_c n2 init)) s0 \<Longrightarrow>\<^sub>g
+     "sync_gassn {ch1} {A} {B} (single_assn A (ex5a_c n1)) (single_assn B (ex5b_c n2)) s0 \<Longrightarrow>\<^sub>g
       init_single {B, A} s1"
       using ex5''[of _ s0 n1 n2] pre by auto
     show ?thesis
