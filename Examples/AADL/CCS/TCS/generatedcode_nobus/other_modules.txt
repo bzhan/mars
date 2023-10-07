@@ -1,0 +1,810 @@
+%type: module
+
+module PHY_vehicle_imp():
+output v, s, a;
+begin
+  v := 0;
+  s := 0;
+  PHY_vehicle_imp_veh_a := 0;
+  PHY_vehicle_imp_veh_s := 0;
+  PHY_vehicle_imp_veh_v_l := 0;
+  PHY_vehicle_imp_veh_v_w := 0;
+  a := 0.0;
+  {
+    inputs["PHY_vehicle_imp"]["veh_s"]!s -->
+      PHY_vehicle_imp_veh_s := 1; $
+    inputs["PHY_vehicle_imp"]["veh_v_l"]!v -->
+      PHY_vehicle_imp_veh_v_l := 1; $
+    inputs["PHY_vehicle_imp"]["veh_v_w"]!v -->
+      PHY_vehicle_imp_veh_v_w := 1;
+  }*(PHY_vehicle_imp_veh_s == 0 || PHY_vehicle_imp_veh_v_l == 0 || PHY_vehicle_imp_veh_v_w == 0)
+  outputs["PHY_vehicle_imp"]["veh_a"]?a;
+  {
+    {v_dot = a, s_dot = v & true} |> [] (
+      outputs["PHY_vehicle_imp"]["veh_a"]?a -->
+        skip;,
+      inputs["PHY_vehicle_imp"]["veh_s"]!s -->
+        skip;,
+      inputs["PHY_vehicle_imp"]["veh_v_l"]!v -->
+        skip;,
+      inputs["PHY_vehicle_imp"]["veh_v_w"]!v -->
+        skip;
+    )
+  }*
+end
+endmodule
+
+module DEVICE_camera():
+output img;
+begin
+  {
+    outputs["camera"]["img"]!-1;
+    wait(0.2);
+  }*
+end
+endmodule
+
+module DEVICE_radar():
+output obs_pos_radar;
+begin
+  t := 0;
+  data := 0.0;
+  {
+    if (t < 10) {
+      data := 0.0;
+    } else if (t < 20) {
+      slope := (55 - 35) / (20 - 10);
+      data := 35 + slope * (t - 10);
+    } else {
+      data := 0.0;
+    }
+    outputs["radar"]["obs_pos_radar"]!data;
+    wait(0.01);
+    t := t + 0.01;
+  }*
+end
+endmodule
+
+module DEVICE_actuator():
+output cmd;
+begin
+  {
+    inputs["actuator"]["cmd"]?cmd;
+    outputs["PHY_vehicle_imp"]["veh_a"]!cmd;
+    wait(0.002);
+  }*
+end
+endmodule
+
+module DEVICE_GPS():
+output data;
+begin
+  {
+    inputs["PHY_vehicle_imp"]["veh_s"]?data;
+    outputs["GPS"]["veh_pos"]!data;
+    wait(0.006);
+  }*
+end
+endmodule
+
+module DEVICE_laser():
+begin
+  {
+    inputs["PHY_vehicle_imp"]["veh_v_l"]?data;
+    t := 0;
+    {t_dot = 1 & t < 0.01} |> [] (
+      outputs["laser"]["laser_valid"]!1.0 -->
+        error := 0;
+        x := data + error;
+        outputs["laser"]["laser_v"]!data + error;
+    )
+    {t_dot = 1 & t < 0.01}
+  }*
+end
+endmodule
+
+module DEVICE_wheel():
+begin
+  {
+    inputs["PHY_vehicle_imp"]["veh_v_w"]?data;
+    t := 0;
+    {t_dot = 1 & t < 0.01} |> [] (
+      outputs["wheel"]["wheel_valid"]!1.0 -->
+        error := 0;
+        x := data + error;
+        outputs["wheel"]["wheel_v"]!data + error;
+    )
+    {t_dot = 1 & t < 0.01}
+  }*
+end
+endmodule
+
+module DEVICE_user_panel():
+begin
+  outputs["user_panel"]["event"]!"inc";
+  wait(0.5);
+  outputs["user_panel"]["event"]!"inc";
+  wait(0.5);
+  outputs["user_panel"]["event"]!"inc";
+  wait(29);
+  outputs["user_panel"]["event"]!"dec";
+  outputs["user_panel"]["event"]!"dec";
+end
+endmodule
+
+module EXE_img_acq():
+output image, new_image;
+begin
+  image := 0.0;
+  skip;
+  processing_state := 0;
+  state := "wait";
+  prior := 1;
+  {
+    if (state == "wait") {
+      dis["img_acq"]?;
+      inputs["img_acq"]["img"]?image;
+      t := 0;
+      entered := 0;
+      state := "ready";
+    } else if (state == "ready") {
+      reqProcessor[0]["img_acq"]!prior;
+      {t_dot = 1 & t < 0.045} |> [] (
+        run[0]["img_acq"]? -->
+          state := "running";
+      )
+      if (t == 0.045 && state == "ready") {
+        exit[0]["img_acq"]! -->
+          state := "wait"; $
+        run[0]["img_acq"]? -->
+          state := "running";
+      }
+    } else {
+      if (entered == 0) {
+        c := 0;
+        new_image := processing_state;
+        processing_state := image;
+        entered := 1;
+      }
+      if (entered == 1) {
+        {t_dot = 1, c_dot = 1 & c < 0.01 && t < 0.045} |> [] (
+          preempt[0]["img_acq"]? -->
+            state := "ready";
+        )
+        if (state == "running") {
+          if (c == 0.01) {
+            outputs["img_acq"]["proc_img"]!new_image;
+            {
+              preempt[0]["img_acq"]? -->
+                state := "wait"; $
+              free[0]["img_acq"]! -->
+                state := "wait";
+            }
+          } else {
+            preempt[0]["img_acq"]? -->
+              state := "wait"; $
+            free[0]["img_acq"]! -->
+              state := "wait";
+          }
+        }
+      }
+    }
+  }*
+end
+endmodule
+
+module EXE_comp_obs_pos():
+output obs_pos_radar, proc_img, obs_pos;
+begin
+  obs_pos_radar := 0.0;
+  proc_img := 0.0;
+  skip;
+  x0 := 0;
+  state := "wait";
+  prior := 1;
+  {
+    if (state == "wait") {
+      dis["comp_obs_pos"]?;
+      inputs["comp_obs_pos"]["obs_pos_radar"]?obs_pos_radar;
+      inputs["comp_obs_pos"]["proc_img"]?proc_img;
+      t := 0;
+      entered := 0;
+      state := "ready";
+    } else if (state == "ready") {
+      reqProcessor[0]["comp_obs_pos"]!prior;
+      {t_dot = 1 & t < 0.097} |> [] (
+        run[0]["comp_obs_pos"]? -->
+          state := "running";
+      )
+      if (t == 0.097 && state == "ready") {
+        exit[0]["comp_obs_pos"]! -->
+          state := "wait"; $
+        run[0]["comp_obs_pos"]? -->
+          state := "running";
+      }
+    } else {
+      if (entered == 0) {
+        c := 0;
+        x1 := (if proc_img > 0 then proc_img else obs_pos_radar);
+        x2 := (if obs_pos_radar > 0 then obs_pos_radar else proc_img);
+        x3 := min(x1,x2);
+        obs_pos := (if x3 > 0 then x3 else x0);
+        entered := 1;
+      }
+      if (entered == 1) {
+        {t_dot = 1, c_dot = 1 & c < 0.02 && t < 0.097} |> [] (
+          preempt[0]["comp_obs_pos"]? -->
+            state := "ready";
+        )
+        if (state == "running") {
+          if (c == 0.02) {
+            outputs["comp_obs_pos"]["obs_pos"]!obs_pos;
+            {
+              preempt[0]["comp_obs_pos"]? -->
+                state := "wait"; $
+              free[0]["comp_obs_pos"]! -->
+                state := "wait";
+            }
+          } else {
+            preempt[0]["comp_obs_pos"]? -->
+              state := "wait"; $
+            free[0]["comp_obs_pos"]! -->
+              state := "wait";
+          }
+        }
+      }
+    }
+  }*
+end
+endmodule
+
+module EXE_emerg():
+output des_a, veh_v, obs_pos, veh_pos, cmd;
+procedure en_emerg_imp_state begin
+  skip;
+end
+
+procedure du_emerg_imp_state begin
+  skip;
+end
+
+procedure ex_emerg_imp_state begin
+  skip;
+end
+
+procedure entry_emerg_imp_state begin
+  emerg_imp_st := "emerg_imp_state";
+  @en_emerg_imp_state;
+end
+
+procedure during_emerg_imp_state begin
+  emerg_imp_state_done := 0;
+  if (true) {
+    next_v := veh_v + des_a * period;
+    next_s := veh_pos + veh_v * period + 0.5 * des_a * period * period;
+    if (emerg_imp_st == "emerg_imp_state") {
+      @J14_1;
+      emerg_imp_state_done := emerg_imp_ret;
+    }
+  }
+  if (emerg_imp_st == "emerg_imp_state" && emerg_imp_state_done == 0) {
+    @du_emerg_imp_state;
+  }
+  emerg_imp_ret := emerg_imp_state_done;
+end
+
+procedure exit_emerg_imp_state begin
+  @ex_emerg_imp_state;
+  if (emerg_imp_st == "emerg_imp_state") {
+    emerg_imp_st := "";
+  }
+end
+
+procedure en_emerg_imp begin
+  skip;
+end
+
+procedure du_emerg_imp begin
+  skip;
+end
+
+procedure ex_emerg_imp begin
+  skip;
+end
+
+procedure entry_emerg_imp begin
+  @en_emerg_imp;
+end
+
+procedure during_emerg_imp begin
+  emerg_imp_done := 0;
+  if (emerg_imp_done == 0) {
+    @du_emerg_imp;
+  }
+  emerg_imp_ret := emerg_imp_done;
+end
+
+procedure exit_emerg_imp begin
+  @ex_emerg_imp;
+  if (true) {
+    skip;
+  }
+end
+
+procedure J14_1 begin
+  J14_done := 0;
+  distance := obs_pos - next_s;
+  max_d := max_v * max_v / -(2 * min_a);
+  if (obs_pos <= 0 || distance >= max_d) {
+    v_lim := max_v;
+  } else {
+    if (distance >= 0) {
+      v_lim := sqrt(-(2 * min_a * distance));
+    } else {
+      v_lim := 0;
+    }
+  }
+  if (next_v <= v_lim) {
+    if (emerg_imp_st == "emerg_imp_state") {
+      @exit_emerg_imp_state;
+    }
+    cmd := des_a;
+    if (emerg_imp_st == "" && true) {
+      @entry_emerg_imp_state;
+    }
+    emerg_imp_ret := 1;
+    J14_done := emerg_imp_ret;
+  }
+  if (J14_done == 0) {
+    next_s := veh_pos + veh_v * period;
+    @J20_1;
+    J14_done := emerg_imp_ret;
+  }
+  emerg_imp_ret := J14_done;
+end
+
+procedure J20_1 begin
+  J20_done := 0;
+  distance := obs_pos - next_s;
+  max_d := max_v * max_v / -(2 * min_a);
+  if (obs_pos <= 0 || distance >= max_d) {
+    v_lim := max_v;
+  } else {
+    if (distance >= 0) {
+      v_lim := sqrt(-(2 * min_a * distance));
+    } else {
+      v_lim := 0;
+    }
+  }
+  if (veh_v <= v_lim) {
+    if (emerg_imp_st == "emerg_imp_state") {
+      @exit_emerg_imp_state;
+    }
+    cmd := 0;
+    if (emerg_imp_st == "" && true) {
+      @entry_emerg_imp_state;
+    }
+    emerg_imp_ret := 1;
+    J20_done := emerg_imp_ret;
+  }
+  if (J20_done == 0) {
+    if (emerg_imp_st == "emerg_imp_state") {
+      @exit_emerg_imp_state;
+    }
+    cmd := min_a;
+    if (emerg_imp_st == "" && true) {
+      @entry_emerg_imp_state;
+    }
+    emerg_imp_ret := 1;
+    J20_done := emerg_imp_ret;
+  }
+  emerg_imp_ret := J20_done;
+end
+
+procedure init_emerg_imp begin
+  emerg_impEL := [];
+  max_v := 10;
+  min_a := -3;
+  period := 1;
+  cmd := 0;
+  next_v := 0;
+  next_s := 0;
+  emerg_imp_st := "";
+  @entry_emerg_imp;
+  @entry_emerg_imp_state;
+end
+
+procedure exec_emerg_imp begin
+  @during_emerg_imp;
+  if (emerg_imp_ret == 0) {
+    if (emerg_imp_st == "emerg_imp_state") {
+      @during_emerg_imp_state;
+    }
+  }
+end
+
+begin
+  des_a := 0.0;
+  veh_v := 0.0;
+  obs_pos := 0.0;
+  veh_pos := 0.0;
+  @init_emerg_imp;
+  state := "wait";
+  prior := 2;
+  {
+    if (state == "wait") {
+      dis["emerg"]?;
+      inputs["emerg"]["des_a"]?des_a;
+      inputs["emerg"]["veh_v"]?veh_v;
+      inputs["emerg"]["obs_pos"]?obs_pos;
+      inputs["emerg"]["veh_pos"]?veh_pos;
+      t := 0;
+      entered := 0;
+      state := "ready";
+    } else if (state == "ready") {
+      reqProcessor[0]["emerg"]!prior;
+      {t_dot = 1 & t < 0.005} |> [] (
+        run[0]["emerg"]? -->
+          state := "running";
+      )
+      if (t == 0.005 && state == "ready") {
+        exit[0]["emerg"]! -->
+          state := "wait"; $
+        run[0]["emerg"]? -->
+          state := "running";
+      }
+    } else {
+      if (entered == 0) {
+        c := 0;
+        @exec_emerg_imp;
+        entered := 1;
+      }
+      if (entered == 1) {
+        {t_dot = 1, c_dot = 1 & c < 0.001 && t < 0.005} |> [] (
+          preempt[0]["emerg"]? -->
+            state := "ready";
+        )
+        if (state == "running") {
+          if (c == 0.001) {
+            outputs["emerg"]["cmd"]!cmd;
+            {
+              preempt[0]["emerg"]? -->
+                state := "wait"; $
+              free[0]["emerg"]! -->
+                state := "wait";
+            }
+          } else {
+            preempt[0]["emerg"]? -->
+              state := "wait"; $
+            free[0]["emerg"]! -->
+              state := "wait";
+          }
+        }
+      }
+    }
+  }*
+end
+endmodule
+
+module EXE_velo_voter():
+output wheel_v, laser_v, veh_v;
+begin
+  wheel_v := 0.0;
+  wheel_valid := -1.0;
+  laser_v := 0.0;
+  laser_valid := -1.0;
+  x3 := 2;
+  state := "wait";
+  prior := 1;
+  {
+    if (state == "wait") {
+      dis["velo_voter"]?;
+      inputs["velo_voter"]["wheel_v"]?wheel_v;
+      inputs["velo_voter"]["wheel_valid"]?wheel_valid;
+      inputs["velo_voter"]["laser_v"]?laser_v;
+      inputs["velo_voter"]["laser_valid"]?laser_valid;
+      t := 0;
+      entered := 0;
+      state := "ready";
+    } else if (state == "ready") {
+      reqProcessor[0]["velo_voter"]!prior;
+      {t_dot = 1 & t < 0.008} |> [] (
+        run[0]["velo_voter"]? -->
+          state := "running";
+      )
+      if (t == 0.008 && state == "ready") {
+        exit[0]["velo_voter"]! -->
+          state := "wait"; $
+        run[0]["velo_voter"]? -->
+          state := "running";
+      }
+    } else {
+      if (entered == 0) {
+        c := 0;
+        x0 := (if wheel_valid > 0 then wheel_v else laser_v);
+        x1 := (if laser_valid > 0 then laser_v else wheel_v);
+        x2 := x0 + x1;
+        veh_v := x2 / x3;
+        entered := 1;
+      }
+      if (entered == 1) {
+        {t_dot = 1, c_dot = 1 & c < 0.001 && t < 0.008} |> [] (
+          preempt[0]["velo_voter"]? -->
+            state := "ready";
+        )
+        if (state == "running") {
+          if (c == 0.001) {
+            outputs["velo_voter"]["veh_v"]!veh_v;
+            {
+              preempt[0]["velo_voter"]? -->
+                state := "wait"; $
+              free[0]["velo_voter"]! -->
+                state := "wait";
+            }
+          } else {
+            preempt[0]["velo_voter"]? -->
+              state := "wait"; $
+            free[0]["velo_voter"]! -->
+              state := "wait";
+          }
+        }
+      }
+    }
+  }*
+end
+endmodule
+
+module EXE_pan_ctr_th():
+output des_v;
+procedure en_pan_ctr_th_imp_update begin
+  skip;
+end
+
+procedure du_pan_ctr_th_imp_update begin
+  skip;
+end
+
+procedure ex_pan_ctr_th_imp_update begin
+  skip;
+end
+
+procedure entry_pan_ctr_th_imp_update begin
+  pan_ctr_th_imp_st := "pan_ctr_th_imp_update";
+  @en_pan_ctr_th_imp_update;
+end
+
+procedure during_pan_ctr_th_imp_update begin
+  pan_ctr_th_imp_update_done := 0;
+  if (len(pan_ctr_th_impEL) != 0 && top(pan_ctr_th_impEL) == "inc") {
+    skip;
+    if (pan_ctr_th_imp_st == "pan_ctr_th_imp_update") {
+      if (pan_ctr_th_imp_st == "pan_ctr_th_imp_update") {
+        @exit_pan_ctr_th_imp_update;
+      }
+      des_v := des_v + 1;
+      if (pan_ctr_th_imp_st == "" && true) {
+        @entry_pan_ctr_th_imp_update;
+      }
+      pan_ctr_th_imp_ret := 1;
+      pan_ctr_th_imp_update_done := pan_ctr_th_imp_ret;
+    }
+  }
+  if (pan_ctr_th_imp_st == "pan_ctr_th_imp_update" && pan_ctr_th_imp_update_done == 0 && len(pan_ctr_th_impEL) != 0 && top(pan_ctr_th_impEL) == "dec") {
+    skip;
+    if (pan_ctr_th_imp_st == "pan_ctr_th_imp_update") {
+      if (pan_ctr_th_imp_st == "pan_ctr_th_imp_update") {
+        @exit_pan_ctr_th_imp_update;
+      }
+      des_v := des_v - 1;
+      if (pan_ctr_th_imp_st == "" && true) {
+        @entry_pan_ctr_th_imp_update;
+      }
+      pan_ctr_th_imp_ret := 1;
+      pan_ctr_th_imp_update_done := pan_ctr_th_imp_ret;
+    }
+  }
+  if (pan_ctr_th_imp_st == "pan_ctr_th_imp_update" && pan_ctr_th_imp_update_done == 0) {
+    @du_pan_ctr_th_imp_update;
+  }
+  pan_ctr_th_imp_ret := pan_ctr_th_imp_update_done;
+end
+
+procedure exit_pan_ctr_th_imp_update begin
+  @ex_pan_ctr_th_imp_update;
+  if (pan_ctr_th_imp_st == "pan_ctr_th_imp_update") {
+    pan_ctr_th_imp_st := "";
+  }
+end
+
+procedure en_pan_ctr_th_imp begin
+  skip;
+end
+
+procedure du_pan_ctr_th_imp begin
+  skip;
+end
+
+procedure ex_pan_ctr_th_imp begin
+  skip;
+end
+
+procedure entry_pan_ctr_th_imp begin
+  @en_pan_ctr_th_imp;
+end
+
+procedure during_pan_ctr_th_imp begin
+  pan_ctr_th_imp_done := 0;
+  if (pan_ctr_th_imp_done == 0) {
+    @du_pan_ctr_th_imp;
+  }
+  pan_ctr_th_imp_ret := pan_ctr_th_imp_done;
+end
+
+procedure exit_pan_ctr_th_imp begin
+  @ex_pan_ctr_th_imp;
+  if (true) {
+    skip;
+  }
+end
+
+procedure init_pan_ctr_th_imp begin
+  pan_ctr_th_impEL := [];
+  des_v := 0;
+  pan_ctr_th_imp_st := "";
+  @entry_pan_ctr_th_imp;
+  des_v := 0;
+  @entry_pan_ctr_th_imp_update;
+end
+
+procedure exec_pan_ctr_th_imp begin
+  @during_pan_ctr_th_imp;
+  if (pan_ctr_th_imp_ret == 0) {
+    if (pan_ctr_th_imp_st == "pan_ctr_th_imp_update") {
+      @during_pan_ctr_th_imp_update;
+    }
+  }
+end
+
+begin
+  event := " ";
+  skip;
+  @init_pan_ctr_th_imp;
+  state := "wait";
+  prior := 0;
+  {
+    if (state == "wait") {
+      dis["pan_ctr_th"]["event"]?event;
+      t := 0;
+      entered := 0;
+      state := "ready";
+    } else if (state == "ready") {
+      reqProcessor[0]["pan_ctr_th"]!prior;
+      {t_dot = 1 & t < 0.1} |> [] (
+        run[0]["pan_ctr_th"]? -->
+          state := "running";
+      )
+      if (t == 0.1 && state == "ready") {
+        exit[0]["pan_ctr_th"]! -->
+          state := "wait"; $
+        run[0]["pan_ctr_th"]? -->
+          state := "running";
+      }
+    } else {
+      if (entered == 0) {
+        c := 0;
+        pan_ctr_th_impEL := push(pan_ctr_th_impEL,event);
+        @exec_pan_ctr_th_imp;
+        pan_ctr_th_impEL := pop(pan_ctr_th_impEL);
+        entered := 1;
+      }
+      if (entered == 1) {
+        {t_dot = 1, c_dot = 1 & c < 0.01 && t < 0.1} |> [] (
+          preempt[0]["pan_ctr_th"]? -->
+            state := "ready";
+        )
+        if (state == "running") {
+          if (c == 0.01) {
+            outputs["pan_ctr_th"]["des_v"]!des_v;
+            {
+              preempt[0]["pan_ctr_th"]? -->
+                state := "wait"; $
+              free[0]["pan_ctr_th"]! -->
+                state := "wait";
+            }
+          } else {
+            preempt[0]["pan_ctr_th"]? -->
+              state := "wait"; $
+            free[0]["pan_ctr_th"]! -->
+              state := "wait";
+          }
+        }
+      }
+    }
+  }*
+end
+endmodule
+
+module EXE_PI_ctr():
+output des_v, veh_v, des_a;
+begin
+  des_v := 0.0;
+  veh_v := 0.0;
+  Integrator_DSTATE := 0;
+  state := "wait";
+  prior := 1;
+  {
+    if (state == "wait") {
+      dis["PI_ctr"]?;
+      inputs["PI_ctr"]["des_v"]?des_v;
+      inputs["PI_ctr"]["veh_v"]?veh_v;
+      t := 0;
+      entered := 0;
+      state := "ready";
+    } else if (state == "ready") {
+      reqProcessor[0]["PI_ctr"]!prior;
+      {t_dot = 1 & t < 0.007} |> [] (
+        run[0]["PI_ctr"]? -->
+          state := "running";
+      )
+      if (t == 0.007 && state == "ready") {
+        exit[0]["PI_ctr"]! -->
+          state := "wait"; $
+        run[0]["PI_ctr"]? -->
+          state := "running";
+      }
+    } else {
+      if (entered == 0) {
+        c := 0;
+        x0 := des_v - veh_v;
+        if (t % 0.007 == 0) {
+          rtb_Sum := x0;
+          rtb_IntegralGain := rtb_Sum * 1;
+          rtb_Sum := rtb_Sum * 1;
+          rtb_SumFdbk := rtb_Sum + Integrator_DSTATE;
+          if (rtb_SumFdbk > 3) {
+            rtb_SumFdbk_0 := 3;
+          } else if (rtb_SumFdbk < -3) {
+            rtb_SumFdbk_0 := -3;
+          } else {
+            rtb_SumFdbk_0 := rtb_SumFdbk;
+          }
+          rtb_IntegralGain := ((rtb_SumFdbk_0 - rtb_SumFdbk) * 1 + rtb_IntegralGain) * 0.007 + Integrator_DSTATE;
+          rtb_Sum := rtb_Sum + rtb_IntegralGain;
+          if (rtb_Sum > 3) {
+            des_a := 3;
+          } else if (rtb_Sum < -3) {
+            des_a := -3;
+          } else {
+            des_a := rtb_Sum;
+          }
+          Integrator_DSTATE := rtb_IntegralGain;
+        }
+        entered := 1;
+      }
+      if (entered == 1) {
+        {t_dot = 1, c_dot = 1 & c < 0.001 && t < 0.007} |> [] (
+          preempt[0]["PI_ctr"]? -->
+            state := "ready";
+        )
+        if (state == "running") {
+          if (c == 0.001) {
+            outputs["PI_ctr"]["des_a"]!des_a;
+            {
+              preempt[0]["PI_ctr"]? -->
+                state := "wait"; $
+              free[0]["PI_ctr"]! -->
+                state := "wait";
+            }
+          } else {
+            preempt[0]["PI_ctr"]? -->
+              state := "wait"; $
+            free[0]["PI_ctr"]! -->
+              state := "wait";
+          }
+        }
+      }
+    }
+  }*
+end
+endmodule
+

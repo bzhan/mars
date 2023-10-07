@@ -374,7 +374,7 @@ def translate_system(json_info):
                 assert len(targets) == 1
                 component_mod_insts.append(
                     module.HCSPModuleInst(name, "EventBuffer", args))
-                if info['bus']:
+                if ('bus' in info.keys() and info.get('bus')):
                     component_mod_insts.append(module.HCSPModuleInst("busEventBuffer_"+name, "BusEventBuffer",
                                                                      [expr.AConst(info['source']),
                                                                       expr.AConst(

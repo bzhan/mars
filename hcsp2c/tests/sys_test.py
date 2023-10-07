@@ -13,7 +13,7 @@ class SysTest(unittest.TestCase):
         (res, head_res, threads_res) = transfer2c.convertHps(outputfile, infos, step_size=step_size, output_step_size=output_step_size,
                                     max_time=max_time)
 
-        run_str = "sudo gcc"
+        run_str = "gcc"
         with open('hcsp2c/target/%s.c' % outputfile, 'w') as f:
             f.write(res)
             run_str += ' hcsp2c/target/%s.c' % outputfile
@@ -50,7 +50,8 @@ class SysTest(unittest.TestCase):
         if expected_output:
             self.assertEqual(res.stdout, '\n'.join(expected_output) + '\n')
         else:
-            print(res.stdout)
+            a=1
+            #print(res.stdout)
 
     def testSystemv2(self):
         self.run_test(

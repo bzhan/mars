@@ -24,7 +24,7 @@ public
 			velo_ctr: process software::velo_ctr.imp;
 			pan_ctr: process software::pan_ctr.imp;
 			-- cpus
-			cpu: processor platform::cpu;
+			cpu: processor platform_nobus::cpu;
 		connections
 			tran_img: port camera.img -> obs_det.img;
 			tran_obs_pos_radar: port radar.obs_pos_radar -> obs_det.obs_pos_radar;

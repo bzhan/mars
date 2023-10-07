@@ -37,7 +37,8 @@ grammar = r"""
 
     ?access_feature_cmd: var_name ":" "requires" var_name "access" var_name ";"
 
-    ?processor_cmd: "features" (access_feature_cmd)* "properties" (prop_cmd)*
+    ?processor_cmd: "features" (access_feature_cmd)* "properties" (prop_cmd)*  ->processor_feat_prop_cmd
+                    |"properties" (prop_cmd)* ->prop_only_cmd
     
     ?process_cmd: "features" (port_feature_cmd)* -> feat_only_cmd
 
@@ -179,7 +180,6 @@ def simplifyAADL(info):
                                          ] = vars[k]['refered_name']
                 info = output
 
-
     # update connmap and simplify conn
     if 'connmap' not in info.keys():
         info['connmap'] = {}
@@ -209,7 +209,7 @@ def simplify_conn_in_AADL(info):
             break
         else:
             connmap = connmap_new
-    for k,v in connmap.items():
+    for k, v in connmap.items():
         conn_name = info['source_conn_map'][k][0]
         sourcename = k
         [source, source_port] = sourcename.split('.')
@@ -221,7 +221,7 @@ def simplify_conn_in_AADL(info):
         info[conn_name]['target_port'] = []
         info[conn_name]['category'] = "connection"
         for targetname in v:
-            [target,target_port] = targetname.split('.')
+            [target, target_port] = targetname.split('.')
             info[conn_name]['target'].append(target)
             info[conn_name]['target_port'].append(target_port)
     info.pop('source_conn_map')
@@ -371,7 +371,7 @@ class AADLTransformer(Transformer):
     def access_feature_cmd(self, port_name, type, bus_name):
         return ['feat', {port_name: bus_name}]
 
-    def processor_cmd(self, *args):
+    def processor_feat_prop_cmd(self, *args):
         text = {}
         for arg in args:
             text.update(arg[1])
