@@ -1,0 +1,9 @@
+package platform
+public
+	processor cpu
+		features
+			rq_bus: requires bus access bus0.imp;
+		properties
+			scheduling_protocol => (hpf);
+	end cpu;
+end platform;

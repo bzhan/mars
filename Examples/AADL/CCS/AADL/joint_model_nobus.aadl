@@ -1,0 +1,55 @@
+package joint_model
+public
+	with devices;
+	with platform_nobus;
+	with software;
+
+	system cruise_control_system
+	end cruise_control_system;
+
+	system implementation cruise_control_system.imp
+		subcomponents
+			-- physical vehicle
+			vehicle_imp: system vehicle.imp;
+			-- devices
+			camera: device devices::camera.imp;
+			radar: device devices::radar.imp;
+			actuator: device devices::actuator.imp;
+			GPS: device devices::GPS.imp;
+			laser: device devices::laser.imp;
+			wheel: device devices::wheel.imp;
+			user_panel: device devices::user_panel.imp;
+			-- processes
+			obs_det: process software::obs_det.imp;
+			velo_ctr: process software::velo_ctr.imp;
+			pan_ctr: process software::pan_ctr.imp;
+			-- cpus
+			cpu: processor platform::cpu;
+		connections
+			tran_img: port camera.img -> obs_det.img;
+			tran_obs_pos_radar: port radar.obs_pos_radar -> obs_det.obs_pos_radar;
+			tran_cmd: port velo_ctr.cmd -> actuator.cmd;
+			tran_veh_pos: port GPS.veh_pos -> velo_ctr.veh_pos;
+			tran_laser_valid: port laser.laser_valid -> velo_ctr.laser_valid;
+			tran_laser_v: port laser.laser_v -> velo_ctr.laser_v;
+			tran_wheel_valid: port wheel.wheel_valid -> velo_ctr.wheel_valid;
+			tran_wheel_v: port wheel.wheel_v -> velo_ctr.wheel_v;
+			tran_event: port user_panel.event -> pan_ctr.event;
+			tran_des_v: port pan_ctr.des_v -> velo_ctr.des_v;
+			tran_obs_pos: port obs_det.obs_pos-> velo_ctr.obs_pos;
+		properties
+			actual_processor_binding => (reference (cpu)) applies to obs_det, velo_ctr, pan_ctr;
+	end cruise_control_system.imp;
+
+	abstract vehicle
+		features
+			veh_a: in data port;
+			veh_s: out data port;
+			veh_v_l: out data port;
+			veh_v_w: out data port;
+	end vehicle;
+
+	abstract implementation vehicle.imp
+		annex Simulink{** ./Examples/AADL/CCS/Simulink/vehicle_imp.xml **};
+	end vehicle.imp;
+end joint_model;
