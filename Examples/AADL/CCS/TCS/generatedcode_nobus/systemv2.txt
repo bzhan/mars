@@ -686,7 +686,7 @@ begin
         run_l_0_r__lb_img_acq_rb_? -->
           state := "running";
       )
-      if (t == 0.045 && state == "ready") {
+      if (t >= 0.045 && state == "ready") {
         exit_l_0_r__lb_img_acq_rb_! -->
           state := "wait"; $
         run_l_0_r__lb_img_acq_rb_? -->
@@ -705,7 +705,7 @@ begin
             state := "ready";
         )
         if (state == "running") {
-          if (c == 0.01) {
+          if (c >= 0.01) {
             outputs_lb_img_acq_rb__lb_proc_img_rb_!new_image;
             {
               preempt_l_0_r__lb_img_acq_rb_? -->
@@ -758,7 +758,7 @@ begin
         run_l_0_r__lb_comp_obs_pos_rb_? -->
           state := "running";
       )
-      if (t == 0.097 && state == "ready") {
+      if (t >= 0.097 && state == "ready") {
         exit_l_0_r__lb_comp_obs_pos_rb_! -->
           state := "wait"; $
         run_l_0_r__lb_comp_obs_pos_rb_? -->
@@ -779,7 +779,7 @@ begin
             state := "ready";
         )
         if (state == "running") {
-          if (c == 0.02) {
+          if (c >= 0.02) {
             outputs_lb_comp_obs_pos_rb__lb_obs_pos_rb_!obs_pos;
             {
               preempt_l_0_r__lb_comp_obs_pos_rb_? -->
@@ -998,7 +998,7 @@ begin
         run_l_0_r__lb_emerg_rb_? -->
           state := "running";
       )
-      if (t == 0.005 && state == "ready") {
+      if (t >= 0.005 && state == "ready") {
         exit_l_0_r__lb_emerg_rb_! -->
           state := "wait"; $
         run_l_0_r__lb_emerg_rb_? -->
@@ -1016,7 +1016,7 @@ begin
             state := "ready";
         )
         if (state == "running") {
-          if (c == 0.001) {
+          if (c >= 0.001) {
             outputs_lb_emerg_rb__lb_cmd_rb_!cmd;
             {
               preempt_l_0_r__lb_emerg_rb_? -->
@@ -1072,7 +1072,7 @@ begin
         run_l_0_r__lb_velo_voter_rb_? -->
           state := "running";
       )
-      if (t == 0.008 && state == "ready") {
+      if (t >= 0.008 && state == "ready") {
         exit_l_0_r__lb_velo_voter_rb_! -->
           state := "wait"; $
         run_l_0_r__lb_velo_voter_rb_? -->
@@ -1093,7 +1093,7 @@ begin
             state := "ready";
         )
         if (state == "running") {
-          if (c == 0.001) {
+          if (c >= 0.001) {
             outputs_lb_velo_voter_rb__lb_veh_v_rb_!veh_v;
             {
               preempt_l_0_r__lb_velo_voter_rb_? -->
@@ -1243,7 +1243,7 @@ begin
         run_l_0_r__lb_pan_ctr_th_rb_? -->
           state := "running";
       )
-      if (t == 0.1 && state == "ready") {
+      if (t >= 0.1 && state == "ready") {
         exit_l_0_r__lb_pan_ctr_th_rb_! -->
           state := "wait"; $
         run_l_0_r__lb_pan_ctr_th_rb_? -->
@@ -1263,7 +1263,7 @@ begin
             state := "ready";
         )
         if (state == "running") {
-          if (c == 0.01) {
+          if (c >= 0.01) {
             outputs_lb_pan_ctr_th_rb__lb_des_v_rb_!des_v;
             {
               preempt_l_0_r__lb_pan_ctr_th_rb_? -->
@@ -1530,7 +1530,7 @@ begin
         run_l_0_r__lb_PI_ctr_rb_? -->
           state := "running";
       )
-      if (t == 0.007 && state == "ready") {
+      if (t >= 0.007 && state == "ready") {
         exit_l_0_r__lb_PI_ctr_rb_! -->
           state := "wait"; $
         run_l_0_r__lb_PI_ctr_rb_? -->
@@ -1571,7 +1571,7 @@ begin
             state := "ready";
         )
         if (state == "running") {
-          if (c == 0.001) {
+          if (c >= 0.001) {
             outputs_lb_PI_ctr_rb__lb_des_a_rb_!des_a;
             {
               preempt_l_0_r__lb_PI_ctr_rb_? -->
