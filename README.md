@@ -3,6 +3,26 @@
 
 A new version of README file is in progress.
 
+## User interface for simulator
+
+* Start simulator:
+
+```
+python -m ss2hcsp.server.simulator_server
+```
+
+* Start user interface (using a second terminal):
+
+```
+cd hcsp_simulator
+npm start
+```
+
+(for the first time, make sure appropriate version of node.js and npm are installed,
+then run ```npm install```).
+
+* Click `Read HCSP File` button to open a file. For some simple example files, see `Examples/HCSP` folder.
+
 ## Stateflow conversion tests and examples:
 
 * Run all tests:
