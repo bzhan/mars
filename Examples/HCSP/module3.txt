@@ -4,13 +4,13 @@ module P0(i):
   output x;
   begin
     x := 0;
-    (<x_dot = 1 & true> |> [](p2c[i]!x --> skip); c2p[i]?x)**
+    {{x_dot = 1 & true} |> [](p2c[i]!x --> skip;) c2p[i]?x;}*
   end
 endmodule
 
 module P1(i):
   begin
-    (wait(2); p2c[i]?x; c2p[i]!x-1)**
+    {wait(2); p2c[i]?x; c2p[i]!x-1;}*
   end
 endmodule
 

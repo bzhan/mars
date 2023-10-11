@@ -1,4 +1,4 @@
-system ::= @writer || @env || @reader || @heartbeat || @ack
+system ::= @writer; || @env; || @reader; || @heartbeat; || @ack;
 
 writer ::=
 	st1 := "announcing";
@@ -8,56 +8,56 @@ writer ::=
 	ack := 0;
 	re_unsent := [];
 	hb_count := 3;
-	(
-		if st1 == "announcing" then
-			if unsent != [] then
-				st1 := "pushing"
-			elif ack == sent then
-				hb_count := 3
-			else
+	{
+		if (st1 == "announcing" ){
+			if (unsent != []){
+				st1 := "pushing";
+			}else if (ack == sent){
+				hb_count := 3;
+			}else{
 				hb_count := hb_count - 1;
-				if hb_count == 0 then
+				if (hb_count == 0){
 					heartbeat!;
-					hb_count := 3
-				else
-					skip
-				endif
-			endif
-		else
-			if unsent == [] then
+					hb_count := 3;
+				}else{
+					skip;
+				}
+			}
+		}else{
+			if (unsent == []){
 				st1 := "announcing";
-				hb_count := 3
-			else
+				hb_count := 3;
+			}else{
 				n := bottom(unsent);
 				unsent := get(unsent);
 				send!n;
-				sent := sent + 1
-			endif
-		endif;
+				sent := sent + 1;
+			}
+		}
 
-		if st2 == "waiting" then
-			if re_unsent != [] then
+		if (st2 == "waiting") {
+			if (re_unsent != []) {
 				st2 := "must_repair";
-				resp_delay := 5
-			else
-				skip
-			endif
-		elif st2 == "must_repair" then
+				resp_delay := 5;
+			}else{
+				skip;
+			}
+		}else if (st2 == "must_repair"){
 			resp_delay := resp_delay - 1;
-			if resp_delay == 0 then
-				st2 := "repairing"
-			else
-				skip
-			endif
-		else
-			if re_unsent == [] then
-				st2 := "waiting"
-			else
+			if (resp_delay == 0) {
+				st2 := "repairing";
+			}else{
+				skip;
+			}
+		}else{
+			if (re_unsent == []) {
+				st2 := "waiting";
+			}else{
 				n := bottom(re_unsent);
 				re_unsent := get(re_unsent);
-				send!n
-			endif
-		endif;
+				send!n;
+			}
+		}
 
 		add?ls;
 		unsent := push(unsent, ls);
@@ -66,8 +66,8 @@ writer ::=
 		ack := ack + len(ls);
 
 		acknack?ls;
-		re_unsent := push(re_unsent, ls)
-	)**
+		re_unsent := push(re_unsent, ls);
+	}*
 
 env ::=
 	add![3];
@@ -76,21 +76,21 @@ env ::=
 	add![5, 6];
 	add![1];
 	add![0, 2];
-	(
-		add![]
-	)**
+	{
+		add![];
+	}*
 
 reader ::=
 	data := [];
-	(
+	{
 		send?n;
-		data := push(data, n)
-	)**
+		data := push(data, n);
+	}*
 
 heartbeat ::=
-	(
-		heartbeat?
-	)**
+	{
+		heartbeat?;
+	}*
 
 ack ::=
 	ack![];
@@ -123,7 +123,7 @@ ack ::=
 	acknack![];
 	ack![4];
 	acknack![];
-	(
+	{
 		ack![];
-		acknack![]
-	)**
+		acknack![];
+	}*

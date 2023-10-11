@@ -4,19 +4,19 @@ import channels
 
 module input(ch_in):
 begin
-(
-    ch_in?x
-)**
+{
+    ch_in?x;
+}*
 end
 endmodule
 
 module output(ch_out):
 begin
 x := 0;
-(
+{
     x := x + 1;
-    ch_out!x
-)**
+    ch_out!x;
+}*
 end
 endmodule
 

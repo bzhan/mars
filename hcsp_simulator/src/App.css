@@ -181,6 +181,9 @@
 }
 .error-message {
   margin-left: 10px;
+  position: absolute;
+  max-width: 70%;
+  top: 25%;
   color: red;
 }
 

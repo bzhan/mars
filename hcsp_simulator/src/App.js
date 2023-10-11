@@ -847,6 +847,7 @@ class App extends React.Component {
             </pre>
             : (
                 <Container className="left">
+                   
                     {this.state.warnings.map((warning, index) => {
                         return <div key={index} style={{ color: 'red' }}>{warning}</div>
                     })}

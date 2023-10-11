@@ -1,2 +1,2 @@
-P0 ::= (x?x --> x!x+1 $ y?y --> skip); x!x+2
-P1 ::= x!3; x?x; x?x
+P0 ::= {x?x --> x!x+1; $ y?y --> skip;} x!x+2;
+P1 ::= x!3; x?x; x?x;

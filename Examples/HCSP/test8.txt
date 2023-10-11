@@ -1,5 +1,5 @@
-main ::= @factory || @controllers
-factory ::= x := 0; y := 0; (<x_dot = 1 & true> |> [](p2c1!x --> skip, p2c2!y --> skip); (c2p1?x --> skip $ c2p2?y --> skip))**
-controllers ::= @C1 || @C2
-C1 ::= (wait(2); p2c1?x; c2p1!x-1)**
-C2 ::= (wait(2); p2c2?y; c2p2!y-1.5)**
+main ::= @factory; || @controllers;
+factory ::= x := 0; y := 0; {{x_dot = 1 & true} |> [](p2c1!x --> skip;, p2c2!y --> skip;) {c2p1?x --> skip; $ c2p2?y --> skip;}}*
+controllers ::= @C1; || @C2;
+C1 ::= {wait(2); p2c1?x; c2p1!x-1;}*
+C2 ::= {wait(2); p2c2?y; c2p2!y-1.5;}*

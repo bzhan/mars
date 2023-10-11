@@ -1,28 +1,28 @@
-system ::= @writer || @env || @reader
+system ::= @writer; || @env; || @reader;
 
 writer ::=
 	st1 := "idle";
 	unsent := [];
-	(
-		if st1 == "pushing" then
-			if unsent == [] then
-				st1 := "idle"
-			else
+	{
+		if (st1 == "pushing"){
+			if (unsent == []){
+				st1 := "idle";
+			}else{
 				n := bottom(unsent);
 				unsent := get(unsent);
-				send!n
-			endif
-		else
-			if unsent != [] then
-				st1 := "pushing"
-			else
-				skip
-			endif
-		endif;
+				send!n;
+			}
+		}else {
+			if (unsent != []) {
+				st1 := "pushing";
+			}else{
+			skip;
+			}
+		}
 	
 		add?ls;
-		unsent := push(unsent, ls)
-	)**
+		unsent := push(unsent, ls);
+	}*
 
 env ::=
 	add![3];
@@ -31,13 +31,13 @@ env ::=
 	add![5, 6];
 	add![1];
 	add![0, 2];
-	(
-		add![]
-	)**
+	{
+		add![];
+	}*
 
 reader ::=
 	data := [];
-	(
+	{
 		send?n;
-		data := push(data, n)
-	)**
+		data := push(data, n);
+	}*

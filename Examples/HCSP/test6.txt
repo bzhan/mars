@@ -1,2 +1,2 @@
-P0 ::= x := 1; y := 0; <x_dot = -1 * y, y_dot = x & true> |> [](c!x --> skip)
-P1 ::= wait(3); c?x
+P0 ::= x := 1; y := 0; {x_dot = -1 * y, y_dot = x & true} |> [](c!x --> skip;)
+P1 ::= wait(3); c?x;
