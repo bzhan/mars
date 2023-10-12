@@ -698,12 +698,12 @@ begin
         entered := 1;
       }
       if (entered == 1) {
-        {t_dot = 1, c_dot = 1 & c < 0.01 && t < 0.1} |> [] (
+        {t_dot = 1, c_dot = 1 & c < 0.005 && t < 0.1} |> [] (
           preempt[0]["pan_ctr_th"]? -->
             state := "ready";
         )
         if (state == "running") {
-          if (c == 0.01) {
+          if (c == 0.005) {
             outputs["pan_ctr_th"]["des_v"]!des_v;
             {
               preempt[0]["pan_ctr_th"]? -->
@@ -756,7 +756,7 @@ begin
       if (entered == 0) {
         c := 0;
         x0 := des_v - veh_v;
-        if (t % 0.007 == 0) {
+
           rtb_Sum := x0;
           rtb_IntegralGain := rtb_Sum * 1;
           rtb_Sum := rtb_Sum * 1;
@@ -778,7 +778,7 @@ begin
             des_a := rtb_Sum;
           }
           Integrator_DSTATE := rtb_IntegralGain;
-        }
+
         entered := 1;
       }
       if (entered == 1) {
