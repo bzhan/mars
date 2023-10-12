@@ -4,13 +4,13 @@ module P0(p2c,c2p,init_x,slope):
   output x;
   begin
     x := init_x;
-    (<x_dot = slope & true> |> [](p2c!x --> skip); c2p?x)**
+    {{x_dot = slope & true} |> [](p2c!x --> skip;) c2p?x;}*
   end
 endmodule
 
 module P1(p2c,c2p,dly):
   begin
-    (wait(dly); p2c?x; c2p!x-1)**
+    {wait(dly); p2c?x; c2p!x-1;}*
   end
 endmodule
 

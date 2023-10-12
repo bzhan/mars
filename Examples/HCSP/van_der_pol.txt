@@ -1,3 +1,22 @@
-P ::= @PD0 || @PC0
-PD0 ::= t := 0; (ch_z?z; t%6 == 0 -> b := z*z+(-1); t%4 == 0 -> c := b*(-0.1); ch_c_0!c; wait(2); t := t+2)**
-PC0 ::= z := 1; y := 1; (<z_dot = y, y_dot = y*c-z & true> |> [] (ch_c_0?c --> skip, ch_z!z --> skip))**
+P ::= @PD0; || @PC0;
+PD0 ::= 
+t := 0; 
+{
+    ch_z?z;
+    if(t%6 == 0){b := z*z+(-1);}
+    if(t%4 == 0){c := b*(-0.1);}
+    ch_c_0!c;
+    wait(2);
+    t := t+2;
+}*
+
+PC0 ::= 
+z := 1; 
+y := 1; 
+{
+    {z_dot = y, y_dot = y*c-z & true} |> [] (
+    ch_c_0?c -->
+    skip;,
+    ch_z!z -->
+    skip;)
+}*

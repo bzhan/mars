@@ -4,14 +4,18 @@ module P0():
   output x;
   begin
     x := 0; i := 0;
-    (i := i + 1; <x_dot = 1 & true> |> [](p2c[i]!x --> skip); c2p[i]?x)**
+    {
+      i := i + 1; 
+      {x_dot = 1 & true} |> [](p2c[i]!x --> skip;) 
+      c2p[i]?x;
+    }*
   end
 endmodule
 
 module P1():
   begin
     i := 0;
-    (i := i + 1; wait(2); p2c[i]?x; c2p[i]!x-1)**
+    {i := i + 1; wait(2); p2c[i]?x; c2p[i]!x-1;}*
   end
 endmodule
 

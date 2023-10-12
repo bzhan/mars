@@ -1,2 +1,2 @@
-P0 ::= pt := {x:1, y:2}; pt.x := pt.y + 1; ch!pt.x; ch!pt
-P1 ::= ch?x; ch?x
+P0 ::= pt := {x:1, y:2}; pt.x := pt.y + 1; ch!pt.x; ch!pt;
+P1 ::= ch?x; ch?x;
